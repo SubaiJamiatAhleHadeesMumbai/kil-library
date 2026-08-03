@@ -6,7 +6,8 @@ import {
     ArrowLeftOnRectangleIcon, XMarkIcon, ClipboardDocumentListIcon, 
     KeyIcon, CheckBadgeIcon, TagIcon, RectangleStackIcon, 
     LanguageIcon, MapPinIcon, LockClosedIcon, UserCircleIcon, 
-    ComputerDesktopIcon, DocumentDuplicateIcon, AdjustmentsHorizontalIcon
+    ComputerDesktopIcon, DocumentDuplicateIcon, AdjustmentsHorizontalIcon,
+    InformationCircleIcon, ChatBubbleLeftRightIcon, PhotoIcon
 } from '@heroicons/react/24/outline';
 
 // ✅ Custom Hooks & Services
@@ -96,6 +97,9 @@ const AdminSidebar = ({ mobileClose = () => {} }) => {
                 { name: 'Users Management', path: '/admin/users', icon: UsersIcon, requiredPerm: 'USER_VIEW' },
                 { name: 'Languages', path: '/admin/languages', icon: LanguageIcon, requiredPerm: 'BOOK_MANAGE' },
                 { name: 'Locations', path: '/admin/locations', icon: MapPinIcon, requiredPerm: 'BOOK_MANAGE' },
+                { name: 'About Page Settings', path: '/admin/about-settings', icon: InformationCircleIcon, requiredPerm: 'HOMEPAGE_CONTENT_MANAGE' },
+                { name: 'Posters', path: '/admin/posters', icon: PhotoIcon, requiredPerm: 'HOMEPAGE_CONTENT_MANAGE' },
+                { name: 'Fatawa Management', path: '/admin/fatawa', icon: ChatBubbleLeftRightIcon, requiredPerm: 'BOOK_MANAGE' },
                 { name: 'Roles & Permissions', path: '/admin/roles-permissions', icon: KeyIcon, requiredPerm: 'ROLE_VIEW' },
             ]
         },

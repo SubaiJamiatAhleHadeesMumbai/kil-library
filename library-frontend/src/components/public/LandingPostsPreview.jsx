@@ -42,23 +42,23 @@ const LandingPostsPreview = () => {
                 : `${API_BASE_URL}${p.startsWith("/") ? p : `/${p}`}`;
 
     return (
-        <section className="overflow-hidden rounded-[2rem] border border-slate-200 bg-gradient-to-br from-white via-slate-50 to-cyan-50/70 p-4 shadow-[0_20px_60px_-35px_rgba(15,23,42,0.25)] sm:p-6 lg:p-7">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <section className="overflow-hidden rounded-[2rem] border border-slate-200 bg-gradient-to-br from-white via-slate-50 to-cyan-50/70 p-3 shadow-[0_20px_60px_-35px_rgba(15,23,42,0.25)] sm:p-5 lg:p-7">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
                 <div>
-                    <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-cyan-200 bg-cyan-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.3em] text-cyan-700">
+                    <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-cyan-200 bg-cyan-50 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.25em] text-cyan-700 sm:text-xs">
                         <SparklesIcon className="h-4 w-4" />
                         Latest updates
                     </div>
-                    <h2 className="text-2xl font-extrabold text-[#002147] sm:text-3xl">
+                    <h2 className="text-xl font-extrabold text-[#002147] sm:text-3xl">
                         Latest Announcements
                     </h2>
-                    <p className="mt-2 max-w-2xl text-sm text-slate-600 sm:text-base">
+                    <p className="mt-1.5 max-w-2xl text-xs leading-relaxed text-slate-600 sm:mt-2 sm:text-base">
                         Stay informed with the newest library news, events, and important updates.
                     </p>
                 </div>
                 <button
                     onClick={() => navigate("/posts")}
-                    className="inline-flex items-center justify-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-blue-700 shadow-sm transition hover:-translate-y-0.5 hover:bg-slate-50"
+                    className="inline-flex items-center justify-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-blue-700 shadow-sm transition hover:-translate-y-0.5 hover:bg-slate-50 sm:text-sm"
                 >
                     View All
                     <ArrowLongRightIcon className="h-5 w-5" />
@@ -79,7 +79,7 @@ const LandingPostsPreview = () => {
                             640: { slidesPerView: 1 },
                             1024: { slidesPerView: 1 },
                         }}
-                        className="!pb-2"
+                        className="!pb-1.5"
                     >
                         {posts.map((post, i) => {
                             const imageUrl = getFileUrl(post?.file_url);
@@ -90,7 +90,7 @@ const LandingPostsPreview = () => {
                                         onClick={() => setSelectedPost(post)}
                                         className="group w-full cursor-pointer overflow-hidden rounded-[1.5rem] border border-slate-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-lg"
                                     >
-                                        <div className="relative aspect-[16/10] overflow-hidden bg-slate-100 sm:aspect-[16/8]">
+                                        <div className="relative aspect-[16/11] overflow-hidden bg-slate-100 sm:aspect-[16/8]">
                                             {imageUrl ? (
                                                 <img
                                                     src={imageUrl}
@@ -109,19 +109,19 @@ const LandingPostsPreview = () => {
                                             </div>
                                         </div>
 
-                                        <div className="p-5 sm:p-6">
-                                            <div className="mb-3 flex flex-wrap items-center gap-2 text-xs text-slate-500">
+                                        <div className="p-4 sm:p-6">
+                                            <div className="mb-2.5 flex flex-wrap items-center gap-2 text-[11px] text-slate-500 sm:text-xs">
                                                 <CalendarDaysIcon className="h-4 w-4" />
                                                 {post?.created_at
                                                     ? new Date(post.created_at).toLocaleDateString()
                                                     : "N/A"}
                                             </div>
 
-                                            <h3 className="mb-3 text-xl font-bold text-slate-800 sm:text-2xl">
+                                            <h3 className="mb-2 text-lg font-bold text-slate-800 sm:text-2xl">
                                                 {post?.title || "Untitled Announcement"}
                                             </h3>
 
-                                            <p className="text-sm leading-6 text-slate-600 line-clamp-3 sm:text-[15px]">
+                                            <p className="text-xs leading-5 text-slate-600 line-clamp-3 sm:text-[15px]">
                                                 {post?.content || "Click to read full announcement"}
                                             </p>
                                         </div>

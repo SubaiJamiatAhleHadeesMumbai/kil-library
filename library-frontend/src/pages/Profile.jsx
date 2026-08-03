@@ -30,7 +30,7 @@ const Profile = () => {
     const [error, setError] = useState(null); // Page-level load error
 
     // --- State for Profile Details Tab ---
-    const [profileData, setProfileData] = useState({ full_name: '' });
+    const [profileData, setProfileData] = useState({ full_name: '', education: '', social_activities: '' });
     const [isProfileLoading, setIsProfileLoading] = useState(false);
     const [profileError, setProfileError] = useState(null);
     const [profileSuccess, setProfileSuccess] = useState(null);
@@ -67,7 +67,11 @@ const Profile = () => {
             ]);
 
             if (meRes.status === 'fulfilled' && meRes.value) {
-                setProfileData({ full_name: meRes.value.full_name || '' });
+                setProfileData({
+                    full_name: meRes.value.full_name || '',
+                    education: meRes.value.education || '',
+                    social_activities: meRes.value.social_activities || '',
+                });
             } else {
                 // If getMe fails, it's a critical error
                 throw new Error(meRes.reason?.detail || 'Failed to load profile data.');
@@ -241,6 +245,14 @@ const Profile = () => {
                                         <div>
                                             <label htmlFor="full_name" className={labelClass}>Full Name</label>
                                             <input type="text" id="full_name" name="full_name" value={profileData.full_name} onChange={handleProfileChange} className={inputClass} disabled={isProfileLoading} />
+                                        </div>
+                                        <div>
+                                            <label htmlFor="education" className={labelClass}>Education</label>
+                                            <input type="text" id="education" name="education" value={profileData.education} onChange={handleProfileChange} className={inputClass} disabled={isProfileLoading} placeholder="e.g. BS Computer Science" />
+                                        </div>
+                                        <div>
+                                            <label htmlFor="social_activities" className={labelClass}>Social Activities</label>
+                                            <textarea id="social_activities" name="social_activities" value={profileData.social_activities} onChange={handleProfileChange} className={`${inputClass} min-h-[100px]`} disabled={isProfileLoading} placeholder="e.g. Community volunteer, teaching sessions" />
                                         </div>
                                         <div className="text-right pt-2">
                                             <button type="submit" className={primaryButtonClass} disabled={isProfileLoading}>

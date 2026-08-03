@@ -317,6 +317,7 @@ const BookFormUI = ({
   formData = {},
   languages = [],
   subcategories = [],
+  fatawaCategories = [],
   initialData,
   isEditing,
   isLoading,
@@ -414,6 +415,16 @@ const BookFormUI = ({
                 selectedIds={formData.subcategory_ids || []}
                 onChange={onSubcategoryChange}
                 loading={isDropdownLoading}
+              />
+              <SelectField
+                id="fatawa_category_id"
+                name="fatawa_category_id"
+                label="Fatawa Category"
+                options={fatawaCategories}
+                value={formData.fatawa_category_id || ''}
+                onChange={onChange}
+                loading={isDropdownLoading}
+                placeholder="Link to a fatawa topic"
               />
               <TextAreaField id="description" name="description" label="Description / Summary" rows={3} colSpan={2}
                 value={formData.description || ''} onChange={onChange} disabled={isLoading}

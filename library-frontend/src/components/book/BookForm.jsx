@@ -13,6 +13,7 @@ const BookForm = ({ initialData, isEditing, onBookAdded, onBookUpdated, onCancel
     // Dropdown Data
     const [languages, setLanguages] = useState([]);
     const [subcategories, setSubcategories] = useState([]);
+    const [fatawaCategories, setFatawaCategories] = useState([]);
 
     // File Names for UI Display
     const [coverImageName, setCoverImageName] = useState("");
@@ -30,6 +31,7 @@ const BookForm = ({ initialData, isEditing, onBookAdded, onBookUpdated, onCancel
         parts_or_volumes: "",
         subject_number: "",
         language_id: "",
+        fatawa_category_id: "",
         page_count: "",
         publication_year: "",
         price: "",
@@ -55,12 +57,14 @@ const BookForm = ({ initialData, isEditing, onBookAdded, onBookUpdated, onCancel
         const fetchDropdowns = async () => {
             try {
                 // Parallel Fetching for speed
-                const [langRes, subRes] = await Promise.all([
+                const [langRes, subRes, fatawaRes] = await Promise.all([
                     bookService.getLanguages(),
-                    bookService.getSubcategories()
+                    bookService.getSubcategories(),
+                    bookService.getFatawaCategories(),
                 ]);
                 setLanguages(langRes || []);
                 setSubcategories(subRes || []);
+                setFatawaCategories(fatawaRes || []);
             } catch (err) {
                 console.error("Error loading dropdowns:", err);
                 toast.error("Failed to load form options.");
@@ -85,6 +89,7 @@ const BookForm = ({ initialData, isEditing, onBookAdded, onBookUpdated, onCancel
                 parts_or_volumes: initialData.parts_or_volumes || "",
                 subject_number: initialData.subject_number || "",
                 language_id: initialData.language?.id || "",
+                fatawa_category_id: initialData.fatawa_category_id || "",
                 page_count: initialData.page_count || "",
                 publication_year: initialData.publication_year || "",
                 price: initialData.price || "",
@@ -218,6 +223,7 @@ const BookForm = ({ initialData, isEditing, onBookAdded, onBookUpdated, onCancel
             formData={formData}
             languages={languages}
             subcategories={subcategories}
+            fatawaCategories={fatawaCategories}
             initialData={initialData}
             isEditing={isEditing}
             isLoading={loading}

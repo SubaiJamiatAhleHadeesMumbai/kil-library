@@ -30,6 +30,8 @@ from models.permission_model import Permission
 from models.request_model import UploadRequest
 from models.log_model import Log
 from models.book_permission_model import BookPermission
+from models.fatawa_model import FatawaCategory, FatawaQuestion
+from models.poster_model import HomepagePoster
 
 # Alembic config object
 config = context.config

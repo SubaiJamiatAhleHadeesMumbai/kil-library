@@ -32,20 +32,20 @@ const DonationPanel = () => {
 
   return (
     <div className="overflow-hidden rounded-[2rem] border border-slate-200 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 text-white shadow-[0_20px_70px_-35px_rgba(15,23,42,0.6)]">
-      <div className="border-b border-white/10 p-5 sm:p-6">
+      <div className="border-b border-white/10 p-4 sm:p-5">
         <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-emerald-400/20 bg-emerald-500/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.3em] text-emerald-300">
           <HeartIcon className="h-4 w-4" />
           Community support
         </div>
-        <h2 className="text-xl font-extrabold text-white sm:text-2xl">
+        <h2 className="text-lg font-extrabold text-white sm:text-2xl">
           Support the Library
         </h2>
-        <p className="mt-2 text-sm leading-6 text-slate-300 sm:text-[15px]">
+        <p className="mt-2 text-xs leading-6 text-slate-300 sm:text-[15px]">
           Your contribution helps us expand the collection, keep it accessible, and serve more readers.
         </p>
       </div>
 
-      <div className="flex flex-wrap gap-2 border-b border-white/10 bg-white/5 p-3">
+      <div className="flex flex-wrap gap-2 border-b border-white/10 bg-white/5 p-2.5 sm:p-3">
         <TabButton
           active={activeTab === "qr"}
           onClick={() => setActiveTab("qr")}
@@ -63,7 +63,7 @@ const DonationPanel = () => {
         />
       </div>
 
-      <div className="p-4 sm:p-5">
+      <div className="p-3 sm:p-5">
         <div className="rounded-[1.25rem] border border-white/10 bg-white/10 p-3 shadow-inner backdrop-blur sm:p-4">
           {loading ? (
             <div className="flex min-h-[220px] items-center justify-center text-sm text-slate-300">

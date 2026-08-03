@@ -1,0 +1,62 @@
+{
+  "hero": {
+    "enabled": true,
+    "title": "About the Markaz Library",
+    "subtitle": "A trusted place for learning, reflection, and community growth",
+    "description": "A central place for books, knowledge-sharing, and the scholarly vision of the Markaz.",
+    "cta_label": "Explore the collection",
+    "cta_url": "/books",
+    "image_url": "https://res.cloudinary.com/dhlfaiijj/image/upload/v1785550852/booknest/covers/xspwvyfcaawxytgfn3ug.png"
+  },
+  "intro": {
+    "enabled": true,
+    "title": "Introduction",
+    "description": "The library supports readers with curated books, trusted references, and a calm learning environment.",
+    "paragraphs": [
+      "Markaz Library is built to connect readers with authentic knowledge, study resources, and a welcoming atmosphere.",
+      "Visitors can explore books, updates, and community reflections shaped by the educational vision of the Markaz."
+    ]
+  },
+  "ulma_quotes": [
+    {
+      "name": "TESTING",
+      "designation": "this is working ",
+      "quote": "this is very good ",
+      "source_text": "",
+      "source_url": "",
+      "image_url": "https://res.cloudinary.com/dhlfaiijj/image/upload/v1785550936/booknest/covers/glmzzrdo6v8ojmnytw9k.png"
+    }
+  ],
+  "gallery": [
+    {
+      "title": "show this image",
+      "caption": "this is best image of my gallary",
+      "image_url": "https://res.cloudinary.com/dhlfaiijj/image/upload/v1785550965/booknest/covers/ujf92gybxlggjf4lmsoz.png"
+    },
+    {
+      "title": "Day3",
+      "caption": "",
+      "image_url": "https://res.cloudinary.com/dhlfaiijj/image/upload/v1785551043/booknest/covers/hxodl1j1fyb0l5fukkgt.png"
+    },
+    {
+      "title": " Day3",
+      "caption": "",
+      "image_url": "https://res.cloudinary.com/dhlfaiijj/image/upload/v1785551048/booknest/covers/sr0qj2skhcmkstxzsbtb.png"
+    },
+    {
+      "title": "company ",
+      "caption": "",
+      "image_url": "https://res.cloudinary.com/dhlfaiijj/image/upload/v1785551056/booknest/covers/cgwgwvmozwauae8noivc.png"
+    },
+    {
+      "title": "Day 2",
+      "caption": "",
+      "image_url": "https://res.cloudinary.com/dhlfaiijj/image/upload/v1785551060/booknest/covers/zxwfsdat69jrldjfijqt.png"
+    },
+    {
+      "title": "Image 6",
+      "caption": "",
+      "image_url": "https://res.cloudinary.com/dhlfaiijj/image/upload/v1785551125/booknest/covers/c2y6ihbim5jws6y6ot13.png"
+    }
+  ]
+}

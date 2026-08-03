@@ -84,11 +84,15 @@ def update_my_profile(
     
     update_data = user_update.model_dump(exclude_unset=True)
     has_changes = False
-    
+
+    for field_name in ["full_name", "education", "social_activities"]:
+        if field_name in update_data and update_data[field_name] != getattr(current_user, field_name, None):
+            setattr(current_user, field_name, update_data[field_name])
+            has_changes = True
+
     if "full_name" in update_data and update_data["full_name"] != current_user.full_name:
         old_name = current_user.full_name
         current_user.full_name = update_data["full_name"]
-        has_changes = True
         
         # Log create karein (Safe check ke sath)
         try:

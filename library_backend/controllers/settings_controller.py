@@ -17,6 +17,13 @@ SETTINGS_FILE = Path(__file__).resolve().parent.parent / "static" / "homepage_se
 def get_default_homepage_settings():
     return {
         "theme": "aurora",
+        "theme_palette": "indigo",
+        "accent_color": "#007ACC",  # Updated accent color
+        "heading_style": "serif",
+        "background_style": "aurora",
+        "button_style": "solid",
+        "spacing_scale": "comfortable",
+        "ui_feel": "premium",
         "language": "en",
         "hero_badge": "Adaptive Knowledge Grid",
         "site_title": "Kokan Library",
@@ -34,37 +41,65 @@ def get_default_homepage_settings():
                 "secondary_cta_label": "Request access",
                 "secondary_cta_url": "/contact",
             },
-            "search": {
+            "posters": {
                 "enabled": True,
                 "order": 1,
+                "title": "Media Posters",
+                "subtitle": "Rotating shareable posters",
+                "description": "Admin-uploaded poster carousel",
+            },
+            "search": {
+                "enabled": True,
+                "order": 2,
                 "title": "Library Search",
                 "subtitle": "Find books, authors, and collections",
                 "description": "Search, filters, and discovery tools",
             },
             "featured": {
                 "enabled": True,
-                "order": 2,
+                "order": 3,
                 "title": "Library Highlights",
                 "subtitle": "Recommended by the library team",
                 "description": "Curated recommended titles",
             },
+            "gallery": {
+                "enabled": True,
+                "order": 4,
+                "title": "Gallery",
+                "subtitle": "Markaz introduction gallery",
+                "description": "Public about gallery visibility",
+            },
+            "fatawa": {
+                "enabled": True,
+                "order": 5,
+                "title": "Fatawa Q&A",
+                "subtitle": "Guidance and answers",
+                "description": "Public fatawa page link visibility",
+            },
+            "about": {
+                "enabled": True,
+                "order": 6,
+                "title": "About Page",
+                "subtitle": "Library identity and story",
+                "description": "Public about page link visibility",
+            },
             "catalog": {
                 "enabled": True,
-                "order": 3,
+                "order": 7,
                 "title": "Explore the Library",
                 "subtitle": "Browse the full collection",
                 "description": "Main book browsing grid",
             },
             "posts": {
                 "enabled": True,
-                "order": 4,
+                "order": 8,
                 "title": "Latest Announcements",
                 "subtitle": "News and updates",
                 "description": "News and latest updates",
             },
             "donation": {
                 "enabled": True,
-                "order": 5,
+                "order": 9,
                 "title": "Support the Library",
                 "subtitle": "Help the library grow",
                 "description": "Support and donation block",
@@ -77,6 +112,7 @@ def get_default_homepage_settings():
             "show_search_strip": True,
             "show_featured_books": True,
             "show_donation_panel": True,
+            "show_posters": True,
         },
     }
 
@@ -89,7 +125,9 @@ def _load_settings_from_disk():
 
     try:
         with SETTINGS_FILE.open("r", encoding="utf-8") as handle:
-            return json.load(handle)
+            saved_settings = json.load(handle)
+            # Always merge with defaults to ensure new sections are included
+            return _merge_settings(saved_settings)
     except (json.JSONDecodeError, OSError):
         return get_default_homepage_settings()
 
@@ -148,6 +186,7 @@ def update_homepage_settings(payload: dict, db: Session = Depends(get_db), curre
         'HOMEPAGE_LAYOUT_MANAGE',
         'HOMEPAGE_VISIBILITY_MANAGE',
         'HOMEPAGE_SEARCH_MANAGE',
+        'HOMEPAGE_THEME_MANAGE',
         'BOOK_MANAGE',
     }
 

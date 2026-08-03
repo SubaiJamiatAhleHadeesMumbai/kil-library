@@ -9,7 +9,7 @@ const controlPanels = [
   {
     key: 'branding',
     title: 'Theme + Branding',
-    description: 'Visual style, language, and homepage identity text.',
+    description: 'Visual style, language, background, and homepage identity text.',
     requiredPermissions: ['HOMEPAGE_BRANDING_MANAGE'],
   },
   {
@@ -39,11 +39,37 @@ const defaultSections = [
   { key: 'catalog', label: 'Library Catalog', description: 'Main book browsing grid' },
   { key: 'posts', label: 'Announcements', description: 'News and latest updates' },
   { key: 'donation', label: 'Donation Panel', description: 'Support and donation block' },
+  { key: 'about', label: 'About Page', description: 'Public about page link visibility' },
+  { key: 'fatawa', label: 'Fatawa Q&A', description: 'Public fatawa page link visibility' },
+  { key: 'gallery', label: 'Gallery', description: 'Public about gallery visibility' },
+  { key: 'posters', label: 'Media Posters', description: 'Rotating poster carousel and campaign visuals' },
 ];
+
+const buildOrderedSections = (sections = {}) => {
+  return defaultSections
+    .map((section) => ({
+      ...section,
+      enabled: Boolean(sections?.[section.key]?.enabled),
+      title: sections?.[section.key]?.title || section.label,
+      order: Number.isFinite(Number(sections?.[section.key]?.order)) ? Number(sections?.[section.key]?.order) : 0,
+    }))
+    .sort((left, right) => {
+      const orderDifference = left.order - right.order;
+      if (orderDifference !== 0) return orderDifference;
+      return defaultSections.findIndex((section) => section.key === left.key) - defaultSections.findIndex((section) => section.key === right.key);
+    });
+};
 
 const HomepageCustomizer = () => {
   const [settings, setSettings] = useState({
     theme: 'aurora',
+    theme_palette: 'indigo',
+    accent_color: '#007ACC',
+    heading_style: 'serif',
+    background_style: 'aurora',
+    button_style: 'solid',
+    spacing_scale: 'comfortable',
+    ui_feel: 'premium',
     language: 'en',
     hero_badge: '',
     site_title: '',
@@ -122,11 +148,7 @@ const HomepageCustomizer = () => {
   }, []);
 
   const sectionEntries = useMemo(() => {
-    return defaultSections.map((section) => ({
-      ...section,
-      enabled: Boolean(settings.sections?.[section.key]?.enabled),
-      title: settings.sections?.[section.key]?.title || section.label,
-    }));
+    return buildOrderedSections(settings.sections);
   }, [settings.sections]);
 
   const toggleSection = (key) => {
@@ -144,6 +166,10 @@ const HomepageCustomizer = () => {
 
   const updateTheme = (theme) => {
     setSettings((prev) => ({ ...prev, theme }));
+  };
+
+  const updateAccentColor = (accentColor) => {
+    setSettings((prev) => ({ ...prev, accent_color: accentColor }));
   };
 
   const updateLanguage = (language) => {
@@ -320,6 +346,64 @@ const HomepageCustomizer = () => {
                       </button>
                     );
                   })}
+                </div>
+                <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                  <label className="text-sm text-slate-600">
+                    <span className="mb-1 block font-medium text-slate-700">Color Scheme</span>
+                    <select value={settings.theme_palette || 'indigo'} onChange={(e) => updateContentField('theme_palette', e.target.value)} className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700">
+                      <option value="indigo">Indigo</option>
+                      <option value="emerald">Emerald</option>
+                      <option value="amber">Amber</option>
+                      <option value="rose">Rose</option>
+                      <option value="slate">Slate</option>
+                    </select>
+                  </label>
+                  <label className="text-sm text-slate-600">
+                    <span className="mb-1 block font-medium text-slate-700">Accent Color</span>
+                    <input type="color" value={settings.accent_color || '#007ACC'} onChange={(e) => updateAccentColor(e.target.value)} className="h-11 w-full cursor-pointer rounded-xl border border-slate-300 bg-white p-1" />
+                  </label>
+                  <label className="text-sm text-slate-600">
+                    <span className="mb-1 block font-medium text-slate-700">Heading Style</span>
+                    <select value={settings.heading_style || 'serif'} onChange={(e) => updateContentField('heading_style', e.target.value)} className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700">
+                      <option value="serif">Elegant Serif</option>
+                      <option value="sans">Clean Sans</option>
+                      <option value="display">Display</option>
+                    </select>
+                  </label>
+                  <label className="text-sm text-slate-600">
+                    <span className="mb-1 block font-medium text-slate-700">Background</span>
+                    <select value={settings.background_style || 'aurora'} onChange={(e) => updateContentField('background_style', e.target.value)} className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700">
+                      <option value="aurora">Aurora Glow</option>
+                      <option value="soft">Soft White</option>
+                      <option value="midnight">Midnight</option>
+                      <option value="glass">Glass</option>
+                    </select>
+                  </label>
+                  <label className="text-sm text-slate-600">
+                    <span className="mb-1 block font-medium text-slate-700">Button Style</span>
+                    <select value={settings.button_style || 'solid'} onChange={(e) => updateContentField('button_style', e.target.value)} className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700">
+                      <option value="solid">Solid</option>
+                      <option value="outline">Outline</option>
+                      <option value="glass">Glass</option>
+                    </select>
+                  </label>
+                  <label className="text-sm text-slate-600">
+                    <span className="mb-1 block font-medium text-slate-700">Spacing</span>
+                    <select value={settings.spacing_scale || 'comfortable'} onChange={(e) => updateContentField('spacing_scale', e.target.value)} className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700">
+                      <option value="compact">Compact</option>
+                      <option value="comfortable">Comfortable</option>
+                      <option value="airy">Airy</option>
+                    </select>
+                  </label>
+                  <label className="text-sm text-slate-600">
+                    <span className="mb-1 block font-medium text-slate-700">Overall UI Feel</span>
+                    <select value={settings.ui_feel || 'premium'} onChange={(e) => updateContentField('ui_feel', e.target.value)} className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700">
+                      <option value="premium">Premium</option>
+                      <option value="minimal">Minimal</option>
+                      <option value="warm">Warm</option>
+                      <option value="bold">Bold</option>
+                    </select>
+                  </label>
                 </div>
               </div>
 
@@ -532,6 +616,9 @@ const HomepageCustomizer = () => {
           <div className="mt-6 space-y-3">
             <div className="rounded-2xl border border-white/10 bg-white/10 p-3">
               <p className="text-sm font-semibold">Theme: <span className="capitalize">{settings.theme}</span></p>
+            </div>
+            <div className="rounded-2xl border border-white/10 bg-white/10 p-3">
+              <p className="text-sm font-semibold">Accent: <span className="font-mono">{settings.accent_color || '#007ACC'}</span></p>
             </div>
             {sectionEntries.filter((section) => section.enabled).map((section) => (
               <div key={section.key} className="rounded-2xl border border-white/10 bg-white/10 p-3 text-sm">

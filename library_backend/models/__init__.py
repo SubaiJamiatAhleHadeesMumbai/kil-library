@@ -4,6 +4,7 @@ from database import Base
 # Import all models here so Alembic/SQLAlchemy can find them
 from .user_model import User, Role
 from .book_model import Book, Category, Subcategory
+from .fatawa_model import FatawaCategory, FatawaQuestion
 from .language_model import Language
 from .location_model import Location
 from .permission_model import Permission
@@ -13,6 +14,7 @@ from .request_user_model import AccessRequest
 from .issue_model import Issue
 from .book_permission_model import BookPermission
 from .post_model import MarkazPost
+from .poster_model import HomepagePoster
 from .donation_models import DonationInfo
 from .interaction_model import UserBookInteraction
 from .analytics_model import SiteVisit

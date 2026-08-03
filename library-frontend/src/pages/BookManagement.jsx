@@ -5,7 +5,6 @@ import { Toaster, toast } from 'react-hot-toast'; // ✅ Better Notifications
 import { bookService } from '../api/bookService';
 
 // Components
-import BookForm from '../components/book/BookForm';
 import Modal from '../components/common/Modal';
 import BookDetailsModal from '../components/book/BookDetailsModal'; // Ensure path is correct
 
@@ -45,10 +44,6 @@ const BookManagement = () => {
     // --- State ---
     const [allBooks, setAllBooks] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
-    
-    // Modal States
-    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-    const [editingBook, setEditingBook] = useState(null); // null = Add, object = Edit
     
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [deletingBook, setDeletingBook] = useState(null);
@@ -103,8 +98,7 @@ const BookManagement = () => {
     };
 
     const handleEditClick = (book) => {
-        setEditingBook(book);
-        setIsEditModalOpen(true);
+        navigate(`/admin/books/${book.id}/edit`);
     };
 
     const handleDeleteClick = (book) => {
@@ -130,15 +124,7 @@ const BookManagement = () => {
         }
     };
 
-    // Callback from BookForm (Child)
-    const handleFormSuccess = () => {
-        setIsEditModalOpen(false);
-        fetchData(true); // Silent refresh
-        toast.success(editingBook ? "Book updated!" : "Book added successfully!");
-    };
-
     const closeDeleteModal = () => { setIsDeleteModalOpen(false); setDeletingBook(null); };
-    const closeEditModal = () => { setIsEditModalOpen(false); setEditingBook(null); };
 
     return (
         <div className="p-6 space-y-6 bg-gray-50 min-h-screen font-sans">
@@ -247,7 +233,7 @@ const BookManagement = () => {
                                                 <button onClick={() => handleViewClick(book)} className="p-1.5 text-teal-600 hover:bg-teal-50 rounded-lg transition-colors" title="View Details">
                                                     <EyeIcon className="w-5 h-5" />
                                                 </button>
-                                                <button onClick={() => handleEditClick(book)} className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Edit">
+                                                <button onClick={() => handleEditClick(book)} className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Open full-page editor">
                                                     <PencilSquareIcon className="w-5 h-5" />
                                                 </button>
                                                 <button onClick={() => handleDeleteClick(book)} className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Delete">
@@ -303,23 +289,7 @@ const BookManagement = () => {
 
             {/* ================= MODALS ================= */}
 
-            {/* 1. Add/Edit Form Modal */}
-            <Modal
-                isOpen={isEditModalOpen}
-                onClose={closeEditModal}
-                title={editingBook ? "Edit Book Details" : "Add New Book"}
-                size="max-w-5xl"
-            >
-                <BookForm
-                    initialData={editingBook}
-                    isEditing={!!editingBook}
-                    onBookAdded={handleFormSuccess}
-                    onBookUpdated={handleFormSuccess}
-                    onCancel={closeEditModal}
-                />
-            </Modal>
-
-            {/* 2. View Details Modal (Optional but Recommended) */}
+            {/* View Details Modal (Optional but Recommended) */}
             {selectedBookForView && (
                 <BookDetailsModal 
                     book={selectedBookForView}
@@ -329,7 +299,7 @@ const BookManagement = () => {
                 />
             )}
 
-            {/* 3. Delete Confirmation Modal */}
+            {/* Delete Confirmation Modal */}
             <Modal isOpen={isDeleteModalOpen} onClose={closeDeleteModal} title="Confirm Deletion" size="max-w-md">
                 <div className="space-y-4">
                     <div className="bg-red-50 border border-red-100 p-4 rounded-lg flex items-start gap-3">

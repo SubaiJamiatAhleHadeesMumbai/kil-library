@@ -90,7 +90,7 @@ const Layout = () => {
 
                         {/* ✅ NEW: Quick Action - ADD POST */}
                         <button 
-                            onClick={() => navigate('/admin/posts/add')} // Post Add Page Route
+                            onClick={() => navigate('/admin/posts')} // Post Studio Route
                             className="hidden md:flex items-center gap-2 bg-[#002147] hover:bg-[#003366] text-white px-5 py-2.5 rounded-xl text-sm font-bold shadow-lg shadow-blue-900/10 hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300"
                         >
                             <PlusIcon className="w-5 h-5" />
@@ -137,7 +137,7 @@ const Layout = () => {
                     
                     {/* Mobile FAB: Add Post (Only on small screens) */}
                     <button 
-                        onClick={() => navigate('/admin/posts/add')}
+                        onClick={() => navigate('/admin/posts')}
                         className="md:hidden fixed bottom-6 right-6 z-50 bg-[#002147] text-white p-4 rounded-full shadow-2xl hover:bg-[#003366] active:scale-90 transition-all"
                     >
                         <PlusIcon className="w-6 h-6" />

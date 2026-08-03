@@ -20,6 +20,9 @@ import UserLayout from "./components/layout/UserLayout";
 
 // ================= PUBLIC PAGES =================
 import PublicHome from "./pages/PublicHome";
+import AboutUs from "./pages/AboutUs";
+import AboutGallery from "./pages/AboutGallery";
+import Fatawa from "./pages/Fatawa";
 import ReadBook from "./pages/ReadBook";
 import History from "./pages/History";
 import MarkazFeed from "./components/public/MarkazFeed";
@@ -52,6 +55,10 @@ const AddBookPage = lazy(() => import("./pages/AddBookPage"));
 const Authors = lazy(() => import("./pages/Authors"));
 const Publishers = lazy(() => import("./pages/Publishers"));
 const HomepageSettingsPage = lazy(() => import("./pages/Admin/HomepageSettingsPage"));
+const PosterManagementPage = lazy(() => import("./pages/Admin/PosterManagementPage"));
+const AboutSettingsPage = lazy(() => import("./pages/Admin/AboutSettingsPage"));
+const FatawaManager = lazy(() => import("./pages/Admin/FatawaManager"));
+const EditBookPage = lazy(() => import("./pages/Admin/EditBookPage"));
 
 // ✅ TEST / URDU EDITOR
 const UrduEditor = lazy(() => import("./components/UrduEditor/UrduEditor"));
@@ -96,6 +103,9 @@ function App() {
           {/* ================= PUBLIC / USER ROUTES ================= */}
           <Route path="/" element={<UserLayout />}>
             <Route index element={<PublicHome />} />
+            <Route path="about" element={<AboutUs />} />
+            <Route path="about/gallery" element={<AboutGallery />} />
+            <Route path="fatawa" element={<Fatawa />} />
             <Route path="news" element={<MarkazFeed />} />
             <Route path="posts" element={<LatestPosts />} />
             <Route path="authors" element={<Authors />} />
@@ -138,12 +148,14 @@ function App() {
             <Route index element={<Navigate to="dashboard" replace />} />
             <Route path="dashboard" element={<Dashboard />} />
             <Route path="donation" element={<DonationManager />} />
+            <Route path="posts" element={<CreatePost />} />
             <Route path="posts/add" element={<CreatePost />} />
             <Route path="users" element={<UserManagement />} />
             <Route path="roles" element={<RoleManagement />} />
             <Route path="roles-permissions" element={<RolePermissionManagement />} />
             <Route path="books" element={<BookManagement />} />
             <Route path="books/add" element={<AddBookPage />} />
+            <Route path="books/:id/edit" element={<EditBookPage />} />
             <Route path="books/:id" element={<BookDetail />} />
             <Route path="copies" element={<CopiesIssuing />} />
             <Route path="categories" element={<CategoryManagement />} />
@@ -156,6 +168,9 @@ function App() {
             <Route path="digital-access-history" element={<DigitalAccessHistory />} />
             <Route path="logs" element={<AuditLogPage />} />
             <Route path="homepage-settings" element={<HomepageSettingsPage />} />
+            <Route path="posters" element={<PosterManagementPage />} />
+            <Route path="about-settings" element={<AboutSettingsPage />} />
+            <Route path="fatawa" element={<FatawaManager />} />
 
             {/* (Optional) Admin-only editor */}
             <Route path="test-editor" element={<UrduEditor />} />

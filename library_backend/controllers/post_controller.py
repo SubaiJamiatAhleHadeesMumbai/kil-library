@@ -121,6 +121,85 @@ def get_public_posts(
     return [_to_post_response(p) for p in posts]
 
 
+@router.get("/", response_model=List[PostResponse])
+def get_admin_posts(
+    skip: int = 0,
+    limit: int = 50,
+    db: Session = Depends(get_db),
+    current_user: user_model.User = Depends(require_permission("USER_MANAGE"))
+):
+    posts = (
+        db.query(post_model.MarkazPost)
+        .order_by(post_model.MarkazPost.created_at.desc())
+        .offset(skip)
+        .limit(limit)
+        .all()
+    )
+
+    return [_to_post_response(p) for p in posts]
+
+
+@router.get("/{post_id}", response_model=PostResponse)
+def get_post_by_id(
+    post_id: int,
+    db: Session = Depends(get_db),
+    current_user: user_model.User = Depends(require_permission("USER_MANAGE"))
+):
+    post = db.query(post_model.MarkazPost).filter(post_model.MarkazPost.id == post_id).first()
+
+    if not post:
+        raise HTTPException(status_code=404, detail="Post not found")
+
+    return _to_post_response(post)
+
+
+@router.put("/{post_id}", response_model=PostResponse)
+def update_post(
+    post_id: int,
+    title: str = Form(...),
+    content: Optional[str] = Form(None),
+    tags: Optional[str] = Form(None),
+    file: Optional[UploadFile] = File(None),
+    db: Session = Depends(get_db),
+    current_user: user_model.User = Depends(require_permission("USER_MANAGE"))
+):
+    post = db.query(post_model.MarkazPost).filter(post_model.MarkazPost.id == post_id).first()
+
+    if not post:
+        raise HTTPException(status_code=404, detail="Post not found")
+
+    cleaned_title = title.strip()
+    if not cleaned_title:
+        raise HTTPException(status_code=400, detail="Title is required")
+
+    post.title = cleaned_title
+    post.content = content
+    post.tags = tags
+
+    if file:
+        if file.content_type in ALLOWED_IMAGE_TYPES:
+            media_type = "image"
+        elif file.content_type in ALLOWED_PDF_TYPES:
+            media_type = "pdf"
+        else:
+            raise HTTPException(
+                status_code=400,
+                detail="Only JPG/PNG/WebP images and PDF files are allowed."
+            )
+
+        file_url = upload_to_cloudinary(file, folder="library_posts")
+        if not file_url:
+            raise HTTPException(status_code=500, detail="File upload failed on server")
+
+        post.media_type = media_type
+        post.file_url = file_url
+
+    db.commit()
+    db.refresh(post)
+
+    return _to_post_response(post)
+
+
 @router.delete("/{post_id}")
 def delete_post(
     post_id: int,

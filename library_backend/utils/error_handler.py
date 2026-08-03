@@ -109,15 +109,7 @@ def log_error(
                 action_type="ERROR",
                 description=f"[{error_type}] {error_message[:500]}",
                 target_type="Error",
-                target_id=None,
-                details={
-                    "error_id": error_id,
-                    "context": context,
-                    "request_path": request_path,
-                    "request_method": request_method,
-                    "request_ip": request_ip,
-                    "traceback": traceback_str[:1000]
-                }
+                target_id=None
             )
             db.add(error_log)
             db.commit()

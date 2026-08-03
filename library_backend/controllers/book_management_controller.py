@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, File, UploadFile,
 from sqlalchemy.orm import Session, joinedload
 
 # --- Imports ---
-from models import book_model, language_model, user_model, request_model, request_user_model
+from models import book_model, language_model, user_model, request_model, request_user_model, fatawa_model
 from schemas import book_schema
 from auth import require_permission, get_current_user_optional 
 from database import get_db
@@ -46,6 +46,7 @@ async def create_book(
     parts_or_volumes: Optional[str] = Form(None),
     subject_number: Optional[str] = Form(None),
     language_id: int = Form(...),
+    fatawa_category_id: Optional[int] = Form(None),
     page_count: Optional[int] = Form(None),
     publication_year: Optional[int] = Form(None),
     serial_number: Optional[str] = Form(None),
@@ -69,6 +70,13 @@ async def create_book(
     # 1. Validation: Language
     if not db.query(language_model.Language).filter(language_model.Language.id == language_id).first():
         raise HTTPException(status_code=400, detail=f"Language ID {language_id} not found.")
+
+    if fatawa_category_id is not None:
+        if not db.query(fatawa_model.FatawaCategory).filter(
+            fatawa_model.FatawaCategory.id == fatawa_category_id,
+            fatawa_model.FatawaCategory.deleted_at.is_(None),
+        ).first():
+            raise HTTPException(status_code=400, detail=f"Fatawa category ID {fatawa_category_id} not found.")
 
     # 2. Validation: ISBN
     if isbn:
@@ -128,6 +136,7 @@ async def create_book(
         parts_or_volumes=parts_or_volumes,
         subject_number=subject_number,
         language_id=language_id,
+        fatawa_category_id=fatawa_category_id,
         page_count=page_count,
         serial_number=serial_number,
         book_number=book_number,
@@ -185,6 +194,7 @@ async def update_book(
     publisher: Optional[str] = Form(None),
     isbn: Optional[str] = Form(None),
     language_id: Optional[int] = Form(None),
+    fatawa_category_id: Optional[int] = Form(None),
     page_count: Optional[int] = Form(None),
     publication_year: Optional[int] = Form(None),
     serial_number: Optional[str] = Form(None),
@@ -229,6 +239,14 @@ async def update_book(
          if not db.query(language_model.Language).filter(language_model.Language.id == language_id).first():
              raise HTTPException(status_code=400, detail="Invalid Language ID")
          db_book.language_id = language_id
+
+    if fatawa_category_id is not None:
+        if not db.query(fatawa_model.FatawaCategory).filter(
+            fatawa_model.FatawaCategory.id == fatawa_category_id,
+            fatawa_model.FatawaCategory.deleted_at.is_(None),
+        ).first():
+            raise HTTPException(status_code=400, detail="Invalid Fatawa category ID")
+        db_book.fatawa_category_id = fatawa_category_id
     
     if isbn is not None and isbn != db_book.isbn:
          if db.query(book_model.Book).filter(book_model.Book.isbn == isbn, book_model.Book.id != book_id).first():

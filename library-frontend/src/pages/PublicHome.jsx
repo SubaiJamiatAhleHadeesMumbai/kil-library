@@ -25,8 +25,10 @@ import SuccessScreen from "../components/RestrictedAccess/SuccessScreen"; // ✅
 // Services + Hooks
 import { bookService } from "../api/bookService";
 import { categoryService } from "../api/categoryService";
+import aboutService from "../api/aboutService";
 import { useBookSearch } from "../hooks/useBookSearch";
 import LandingPostsPreview from "../components/public/LandingPostsPreview";
+import HomepagePostersCarousel from "../components/public/HomepagePostersCarousel";
 import DonationPanel from "../components/donation/DonationPanel";
 
 // ✅ Skeleton Loader (Premium UI)
@@ -157,6 +159,7 @@ const PublicHome = () => {
   const [showSuccess, setShowSuccess] = useState(false);
   const [homepageSettings, setHomepageSettings] = useState({ theme: 'aurora', sections: {}, layout: {} });
   const [dynamicCategories, setDynamicCategories] = useState([]);  // ✅ Dynamic Categories from DB
+  const [galleryImages, setGalleryImages] = useState([]);  // ✅ Gallery Images
 
   // Filters
   const [sortBy, setSortBy] = useState("newest");
@@ -190,7 +193,7 @@ const PublicHome = () => {
       if (list.length) return list;
     }
     return books.slice(0, 6);
-  }, [books]);
+  }, [books, homepageSettings]);
 
   const recentReadBooks = useMemo(() => {
     if (!Array.isArray(recentReads) || recentReads.length === 0) return [];
@@ -232,7 +235,8 @@ const PublicHome = () => {
           score += 2;
           reasons.push("Same author");
         }
-        if (recentReadBooks.length > 0 && book.id > recentReadBooks[0].book.id) {
+        const latestReadBookId = recentReadBooks[0]?.book?.id;
+        if (recentReadBooks.length > 0 && latestReadBookId != null && book.id > latestReadBookId) {
           score += 1;
           reasons.push("Fresh pick");
         }
@@ -361,6 +365,22 @@ const PublicHome = () => {
     loadSettings();
   }, []);
 
+  // ✅ NEW: Fetch gallery images from about settings
+  useEffect(() => {
+    const loadGallery = async () => {
+      try {
+        const aboutData = await aboutService.getAboutSettings();
+        const gallery = Array.isArray(aboutData?.gallery) ? aboutData.gallery : [];
+        setGalleryImages(gallery.filter(img => img.image_url));
+      } catch (error) {
+        console.warn('⚠️ Could not load gallery images:', error);
+        setGalleryImages([]);
+      }
+    };
+
+    loadGallery();
+  }, []);
+
   // --- 7) AUTO-SEARCH EFFECT (from other pages) ---
   useEffect(() => {
     if (location.state?.preSearch) {
@@ -446,29 +466,99 @@ const PublicHome = () => {
 
   const themeClasses = useMemo(() => {
     const theme = homepageSettings?.theme || 'aurora';
+    const palette = homepageSettings?.theme_palette || 'indigo';
+    const backgroundStyle = homepageSettings?.background_style || 'aurora';
+    const uiFeel = homepageSettings?.ui_feel || 'premium';
+    const headingStyle = homepageSettings?.heading_style || 'serif';
+    const buttonStyle = homepageSettings?.button_style || 'solid';
+    const spacingScale = homepageSettings?.spacing_scale || 'comfortable';
+
+    const headingClasses = {
+      serif: 'font-serif tracking-tight',
+      sans: 'font-sans tracking-tight',
+      display: 'font-black tracking-[-0.04em]',
+    };
+
+    const buttonClasses = {
+      solid: 'shadow-lg shadow-cyan-500/20',
+      outline: 'border border-current bg-transparent',
+      glass: 'bg-white/10 backdrop-blur-xl border border-white/20',
+    };
+
+    const spacingClasses = {
+      compact: 'space-y-4 sm:space-y-6',
+      comfortable: 'space-y-6 sm:space-y-8',
+      airy: 'space-y-8 sm:space-y-12',
+    };
+
+    const backgroundClasses = {
+      aurora: 'bg-[radial-gradient(circle_at_top,_rgba(59,130,246,0.16),_transparent_32%),radial-gradient(circle_at_bottom_right,_rgba(16,185,129,0.12),_transparent_24%)]',
+      soft: 'bg-gradient-to-b from-white via-slate-50 to-slate-100',
+      midnight: 'bg-gradient-to-br from-slate-950 via-slate-900 to-zinc-950',
+      glass: 'bg-white/70 backdrop-blur-xl',
+    };
+
+    const paletteClasses = {
+      indigo: 'accent-indigo-500 highlight-indigo-400',
+      emerald: 'accent-emerald-500 highlight-emerald-400',
+      amber: 'accent-amber-500 highlight-amber-400',
+      rose: 'accent-rose-500 highlight-rose-400',
+      slate: 'accent-slate-500 highlight-slate-400',
+    };
+
     if (theme === 'night') {
       return {
-        shell: 'bg-slate-950 text-slate-100',
+        shell: `bg-slate-950 text-slate-100 ${paletteClasses[palette] || paletteClasses.indigo}`,
         card: 'bg-slate-900/90 text-slate-100 border-slate-800',
         muted: 'text-slate-400',
         hero: 'from-slate-950 via-slate-900 to-slate-800',
+        heading: headingClasses[headingStyle] || headingClasses.serif,
+        button: buttonClasses[buttonStyle] || buttonClasses.solid,
+        spacing: spacingClasses[spacingScale] || spacingClasses.comfortable,
+        background: backgroundClasses[backgroundStyle] || backgroundClasses.aurora,
+        palette,
+        backgroundStyle,
+        uiFeel,
+        headingStyle,
+        buttonStyle,
+        spacingScale,
       };
     }
     if (theme === 'day') {
       return {
-        shell: 'bg-[#F9FAFB] text-gray-800',
+        shell: `bg-[#F9FAFB] text-gray-800 ${paletteClasses[palette] || paletteClasses.indigo}`,
         card: 'bg-white text-slate-800 border-slate-200',
         muted: 'text-slate-500',
         hero: 'from-slate-950 via-slate-900 to-zinc-950',
+        heading: headingClasses[headingStyle] || headingClasses.serif,
+        button: buttonClasses[buttonStyle] || buttonClasses.solid,
+        spacing: spacingClasses[spacingScale] || spacingClasses.comfortable,
+        background: backgroundClasses[backgroundStyle] || backgroundClasses.aurora,
+        palette,
+        backgroundStyle,
+        uiFeel,
+        headingStyle,
+        buttonStyle,
+        spacingScale,
       };
     }
     return {
-      shell: 'bg-[#F9FAFB] text-gray-800',
+      shell: `bg-[#F9FAFB] text-gray-800 ${paletteClasses[palette] || paletteClasses.indigo}`,
       card: 'bg-slate-950/85 text-slate-100 border-slate-800',
       muted: 'text-slate-400',
       hero: 'from-slate-950 via-slate-900 to-zinc-950',
+      heading: headingClasses[headingStyle] || headingClasses.serif,
+      button: buttonClasses[buttonStyle] || buttonClasses.solid,
+      spacing: spacingClasses[spacingScale] || spacingClasses.comfortable,
+      background: backgroundClasses[backgroundStyle] || backgroundClasses.aurora,
+      palette,
+      backgroundStyle,
+      uiFeel,
+      headingStyle,
+      buttonStyle,
+      spacingScale,
     };
-  }, [homepageSettings?.theme]);
+  }, [homepageSettings?.theme, homepageSettings?.theme_palette, homepageSettings?.background_style, homepageSettings?.ui_feel, homepageSettings?.heading_style, homepageSettings?.button_style, homepageSettings?.spacing_scale]);
 
   const sectionVisibility = useMemo(() => homepageSettings?.sections || {}, [homepageSettings?.sections]);
   const getSectionConfig = useCallback((key, fallback) => {
@@ -483,376 +573,457 @@ const PublicHome = () => {
   const showSearchStripBlock = layout.show_search_strip !== false;
   const showFeaturedPanel = layout.show_featured_books !== false;
   const showDonationBlock = layout.show_donation_panel !== false;
+  const posterSection = getSectionConfig('posters', { enabled: layout.show_posters !== false, title: 'Media Posters' });
+  const showPosterBlock = posterSection.enabled !== false;
+  const accentColor = homepageSettings?.accent_color || '#2D89C8';
+  const sectionFrameClass = "rounded-[2rem] border border-slate-200/80 bg-white/85 p-6 shadow-[0_24px_70px_-35px_rgba(15,23,42,0.28)] backdrop-blur-sm sm:p-8";
+  const orderedHomepageSections = useMemo(() => {
+    const defaults = {
+      hero: 0,
+      posters: 1,
+      search: 2,
+      featured: 3,
+      gallery: 4,
+      fatawa: 5,
+      about: 6,
+      catalog: 7,
+      posts: 8,
+      donation: 9,
+    };
+
+    return Object.keys(defaults)
+      .map((key) => {
+        const sectionConfig = sectionVisibility?.[key];
+        const isEnabled = sectionConfig?.enabled !== false;
+        const order = Number.isFinite(Number(sectionConfig?.order)) ? Number(sectionConfig?.order) : defaults[key];
+        
+        return { key, order, isEnabled };
+      })
+      .filter((section) => section.isEnabled !== false)
+      .sort((left, right) => left.order - right.order || defaults[left.key] - defaults[right.key]);
+  }, [sectionVisibility]);
 
   useEffect(() => {
     document.title = siteTitle;
   }, [siteTitle]);
 
+  useEffect(() => {
+    const accentColor = homepageSettings?.accent_color || '#2D89C8';
+    const root = document.documentElement;
+    root.style.setProperty('--accent', accentColor);
+
+    const hoverColor = accentColor;
+    root.style.setProperty('--accent-hover', hoverColor);
+
+    return () => {
+      root.style.removeProperty('--accent');
+      root.style.removeProperty('--accent-hover');
+    };
+  }, [homepageSettings?.accent_color]);
+
   // --- LOADING SCREEN FOR ADMIN REDIRECT ---
   if (authLoading) return null; // Or a spinner
 
   return (
-    <div className={`min-h-screen font-sans animate-in fade-in duration-500 ${themeClasses.shell}`}>
+    <div className={`min-h-screen animate-in fade-in duration-500 ${themeClasses.shell} ${themeClasses.background} ${themeClasses.heading}`}>
       <Toaster position="top-right" />
       <div className="sr-only" aria-label="Current site language">{language}</div>
 
-      {getSectionConfig('hero', { enabled: true }).enabled !== false && <LibraryHero />}
-
       {getSectionConfig('hero', { enabled: true }).enabled !== false && (
-      <div className="app-shell-container py-12">
-        <div className="relative overflow-hidden rounded-[2.5rem] border border-white/10 bg-gradient-to-br from-slate-950 via-slate-900 to-zinc-950 px-6 py-10 shadow-[0_40px_120px_-60px_rgba(15,23,42,0.85)] sm:px-10 sm:py-14">
-          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(59,130,246,0.18),_transparent_25%),radial-gradient(circle_at_bottom_right,_rgba(168,85,247,0.16),_transparent_22%)]" />
-          <div className="relative grid gap-8 lg:grid-cols-[1.4fr_0.9fr] items-start">
-            <div className="space-y-6">
-              <span className="inline-flex items-center gap-2 rounded-full border border-cyan-400/20 bg-cyan-500/10 px-4 py-2 text-xs uppercase tracking-[0.35em] text-cyan-200 shadow-[0_0_0_1px_rgba(56,189,248,0.05)]">
-                <span className="h-2.5 w-2.5 rounded-full bg-cyan-400 animate-pulse shadow-cyan-500/40" />
-                {heroBadge}
-              </span>
+        <div className="app-shell-container py-3 sm:py-5">
+          <LibraryHero />
+        </div>
+      )}
+          {orderedHomepageSections.map(({ key }) => {
+            if (key === 'hero') return null;
 
-              <h2 className="page-title max-w-3xl text-white">
-                {getSectionConfig('hero', { title: 'Welcome to the future of the library' }).title || 'Welcome to the future of the library'}
-              </h2>
-
-              <p className="body-copy max-w-2xl text-slate-300 md:text-[0.98rem]">
-                {getSectionConfig('hero', { description: 'Kokan Library now surfaces trusted Islamic resources with a digital-first, future-ready lens.' }).description || 'Kokan Library now surfaces trusted Islamic resources with a digital-first, future-ready lens.'}
-              </p>
-
-              <div className="flex flex-wrap gap-3">
-                {getSectionConfig('hero', { primary_cta_label: 'Explore the catalog', primary_cta_url: '/books' }).primary_cta_label ? (
-                  <a href={getSectionConfig('hero', { primary_cta_url: '/books' }).primary_cta_url || '/books'} className="inline-flex items-center rounded-full bg-cyan-500 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-cyan-500/20 transition hover:bg-cyan-400">
-                    {getSectionConfig('hero', { primary_cta_label: 'Explore the catalog' }).primary_cta_label || 'Explore the catalog'}
-                  </a>
-                ) : null}
-                {getSectionConfig('hero', { secondary_cta_label: 'Request access', secondary_cta_url: '/contact' }).secondary_cta_label ? (
-                  <a href={getSectionConfig('hero', { secondary_cta_url: '/contact' }).secondary_cta_url || '/contact'} className="inline-flex items-center rounded-full border border-white/20 bg-white/10 px-5 py-2.5 text-sm font-semibold text-slate-100 backdrop-blur transition hover:bg-white/20">
-                    {getSectionConfig('hero', { secondary_cta_label: 'Request access' }).secondary_cta_label || 'Request access'}
-                  </a>
-                ) : null}
-              </div>
-
-              {showHeroStats ? (
-                <div className="grid gap-4 sm:grid-cols-3">
-                  <div className="rounded-3xl border border-cyan-500/15 bg-white/5 p-5 shadow-[0_30px_60px_-40px_rgba(96,165,250,0.35)] backdrop-blur-xl">
-                    <p className="text-[clamp(1.75rem,1.2rem+1.8vw,2.6rem)] font-semibold text-white">50+</p>
-                    <p className="mt-2 eyebrow text-cyan-200/80">Islamic Books</p>
-                  </div>
-                  <div className="rounded-3xl border border-violet-500/15 bg-white/5 p-5 shadow-[0_30px_60px_-40px_rgba(168,85,247,0.28)] backdrop-blur-xl">
-                    <p className="text-[clamp(1.75rem,1.2rem+1.8vw,2.6rem)] font-semibold text-white">10+</p>
-                    <p className="mt-2 eyebrow text-violet-200/80">Categories</p>
-                  </div>
-                  <div className="rounded-3xl border border-slate-400/10 bg-white/5 p-5 shadow-[0_30px_60px_-40px_rgba(148,163,184,0.25)] backdrop-blur-xl">
-                    <p className="text-[clamp(1.75rem,1.2rem+1.8vw,2.6rem)] font-semibold text-white">100%</p>
-                    <p className="mt-2 eyebrow text-slate-300/80">Free Access</p>
-                  </div>
+            if (key === 'posters' && showPosterBlock) {
+              return (
+                <div key="posters" className={`app-shell-container py-2 sm:py-4 lg:py-6 ${themeClasses.spacing}`}>
+                  <HomepagePostersCarousel />
                 </div>
-              ) : null}
-            </div>
+              );
+            }
 
-            <div className="relative overflow-hidden rounded-[2rem] border border-white/10 bg-slate-900/70 p-6 shadow-2xl">
-              <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-cyan-400 via-blue-400 to-violet-400 opacity-70" />
-              <div className="space-y-5">
-                <h3 className="section-title text-white">Why this library feels futuristic</h3>
-                <div className="grid gap-3 text-sm text-slate-300 md:grid-cols-2">
-                  <div className="rounded-2xl border border-slate-700/80 bg-slate-950/70 p-4 shadow-lg">
-                    <p className="card-title text-white">Authentic Sources</p>
-                    <p className="mt-1 text-slate-400">Every book is verified from scholarly and reliable references.</p>
-                  </div>
-                  <div className="rounded-2xl border border-slate-700/80 bg-slate-950/70 p-4 shadow-lg">
-                    <p className="card-title text-white">Easy Categorization</p>
-                    <p className="mt-1 text-slate-400">Quran, Hadith, Fiqh, and Seerah are organized into clear sections.</p>
-                  </div>
-                  <div className="rounded-2xl border border-slate-700/80 bg-slate-950/70 p-4 shadow-lg">
-                    <p className="card-title text-white">Multi-language Support</p>
-                    <p className="mt-1 text-slate-400">Arabic, Urdu, and English books are available in one place.</p>
-                  </div>
-                  <div className="rounded-2xl border border-slate-700/80 bg-slate-950/70 p-4 shadow-lg">
-                    <p className="card-title text-white">Offline Reading</p>
-                    <p className="mt-1 text-slate-400">Download and read books without needing internet access.</p>
-                  </div>
-                  <div className="rounded-2xl border border-slate-700/80 bg-slate-950/70 p-4 shadow-lg">
-                    <p className="card-title text-white">Bookmark & Notes</p>
-                    <p className="mt-1 text-slate-400">Save favorite books and add personal notes as you read.</p>
-                  </div>
-                  <div className="rounded-2xl border border-slate-700/80 bg-slate-950/70 p-4 shadow-lg">
-                    <p className="card-title text-white">Free & Open Access</p>
-                    <p className="mt-1 text-slate-400">Everything is free and dynamically accessible for every reader.</p>
-                  </div>
-                </div>
-              </div>
-              <div className="absolute -right-10 bottom-6 h-32 w-32 rounded-full bg-gradient-to-br from-cyan-500/20 to-violet-500/10 blur-3xl" />
-            </div>
-          </div>
-        </div>
-      </div>
-      )}
-
-      {getSectionConfig('search', { enabled: true }).enabled !== false && showSearchStripBlock && (
-      <div className="app-shell-container scroll-mt-24 pb-8" id="search">
-        <LibrarySearchStrip
-          searchTerm={searchTerm}
-          onSearchChange={setSearchTerm}
-          title={getSectionConfig('search', { title: 'Library Search' }).title || 'Library Search'}
-          subtitle={getSectionConfig('search', { subtitle: 'Search the library collection' }).subtitle || 'Search the library collection'}
-          description={getSectionConfig('search', { description: 'Find books, authors, publishers and smart recommendations right from the library section.' }).description || 'Find books, authors, publishers and smart recommendations right from the library section.'}
-          placeholder={getSectionConfig('search', { placeholder: 'Search by title, author, or ISBN...' }).placeholder || 'Search by title, author, or ISBN...'}
-          showHint={Boolean(getSectionConfig('search', { show_hint: true }).show_hint !== false)}
-          enableVoice={Boolean(getSectionConfig('search', { enable_voice: true }).enable_voice !== false)}
-          enableDeepSearch={Boolean(getSectionConfig('search', { enable_deep: true }).enable_deep !== false)}
-          enableSuggestions={Boolean(getSectionConfig('search', { show_suggestions: true }).show_suggestions !== false)}
-        />
-      </div>
-      )}
-
-      {getSectionConfig('continue_reading', { enabled: true }).enabled !== false && recentReadBooks.length > 0 && (
-      <div className="app-shell-container pb-8">
-        <div className="mb-4 flex items-end justify-between gap-3">
-          <div>
-            <p className="eyebrow text-emerald-600">Continue reading</p>
-            <h3 className="section-title text-slate-900">Pick up where you left off</h3>
-          </div>
-        </div>
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          {recentReadBooks.map((entry) => (
-            <CompactBookCard
-              key={entry.book.id}
-              book={entry.book}
-              label={`Page ${entry.last_page_read || 1}`}
-              meta={entry.total_pages > 0 ? `Page ${entry.last_page_read || 1} of ${entry.total_pages}` : (entry.updated_at ? new Date(entry.updated_at).toLocaleDateString("en-IN", { month: "short", day: "numeric" }) : "Recently")}
-              progress={entry.total_pages > 0 ? ((Number(entry.last_page_read || 1) / Number(entry.total_pages)) * 100) : null}
-              onClick={() => handleResumeReading(entry.book.id)}
-            />
-          ))}
-        </div>
-      </div>
-      )}
-
-      {getSectionConfig('recommended', { enabled: true }).enabled !== false && recommendedBooks.length > 0 && (
-      <div className="app-shell-container pb-8">
-        <div className="mb-4 flex items-end justify-between gap-3">
-          <div>
-            <p className="eyebrow text-cyan-600">Recommended for you</p>
-            <h3 className="section-title text-slate-900">Smart picks based on your activity</h3>
-          </div>
-        </div>
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          {recommendedBooks.map((book) => (
-            <CompactBookCard
-              key={book.book.id}
-              book={book.book}
-              label="Suggested"
-              meta={book.book?.language?.name || book.book?.language || ""}
-              chips={book.reasons}
-              onClick={() => setSelectedBook(book.book)}
-            />
-          ))}
-        </div>
-      </div>
-      )}
-
-      {getSectionConfig('trending', { enabled: true }).enabled !== false && trendingBooks.length > 0 && (
-      <div className="app-shell-container pb-12">
-        <div className="mb-4 flex items-end justify-between gap-3">
-          <div>
-            <p className="eyebrow text-amber-600">Trending books</p>
-            <h3 className="section-title text-slate-900">Most visible right now</h3>
-          </div>
-        </div>
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          {trendingBooks.map((book, index) => (
-            <CompactBookCard
-              key={book.id}
-              book={book}
-              label={`#${index + 1}`}
-              meta={`${getBookViews(book)} views`}
-              onClick={() => setSelectedBook(book)}
-            />
-          ))}
-        </div>
-      </div>
-      )}
-
-      {getSectionConfig('featured', { enabled: true }).enabled !== false && showFeaturedPanel && (
-      <div className="app-shell-container pb-12">
-        <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between mb-6">
-          <div>
-            <p className="eyebrow text-indigo-600">{getSectionConfig('featured', { title: 'Library Highlights' }).title || 'Library Highlights'}</p>
-            <h2 className="section-title text-slate-900">{getSectionConfig('featured', { subtitle: 'Recommended by the library team' }).subtitle || 'Recommended by the library team'}</h2>
-          </div>
-          <button
-            onClick={() => {
-              const el = document.getElementById("book-grid");
-              if (el) el.scrollIntoView({ behavior: "smooth" });
-            }}
-            className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50"
-          >
-            Browse full collection
-          </button>
-        </div>
-
-        {loading ? (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-            {Array.from({ length: 4 }).map((_, idx) => (
-              <BookCardSkeleton key={idx} />
-            ))}
-          </div>
-        ) : featuredBooks.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {featuredBooks.map((book) => (
-              <PublicBookCard
-                key={book.id}
-                book={book}
-                isFavorite={favorites.includes(book.id)}
-                onToggleFavorite={(e) => toggleFavorite(e, book.id)}
-                onClick={() => setSelectedBook(book)}
-              />
-            ))}
-          </div>
-        ) : (
-          <div className="rounded-3xl border border-dashed border-slate-300 bg-white p-10 text-center text-slate-500">
-            No featured titles are available yet. Please check back soon.
-          </div>
-        )}
-      </div>
-      )}
-
-      {getSectionConfig('catalog', { enabled: true }).enabled !== false && (
-      <div className="app-shell-container py-8" id="book-grid">
-        {/* Header + Stats */}
-        <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-8 border-b border-gray-200 pb-4">
-          <div>
-            <h2 className="page-title font-serif text-[#002147] max-w-4xl">
-              {searchTerm ? `Results for "${searchTerm}"` : getSectionConfig('catalog', { title: 'Explore the Library' }).title || 'Explore the Library'}
-            </h2>
-            <p className="body-copy mt-1">
-              {getSectionConfig('catalog', { description: 'Browse our handpicked selection, curated recommendations, and full catalog from Kokan Islamic Library.' }).description || 'Browse our handpicked selection, curated recommendations, and full catalog from Kokan Islamic Library.'}
-            </p>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-3">
-            {/* Favorites Toggle */}
-            <button
-              onClick={() => setShowFavoritesOnly((p) => !p)}
-              className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg border text-sm font-bold transition-all shadow-sm ${showFavoritesOnly
-                ? "bg-pink-50 border-pink-200 text-pink-700"
-                : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50"
-                }`}
-              title="Show only favorite books"
-            >
-              <HeartIcon className="w-5 h-5" />
-              Favorites
-              {favorites.length > 0 && (
-                <span className="ml-1 text-xs bg-white border border-gray-200 px-2 py-0.5 rounded-full">
-                  {favorites.length}
-                </span>
-              )}
-            </button>
-
-            {/* Refresh */}
-            <button
-              onClick={loadBooks}
-              disabled={loading}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 text-sm font-bold shadow-sm disabled:opacity-50"
-              title="Refresh Books"
-            >
-              <ArrowPathIcon className={`w-5 h-5 ${loading ? "animate-spin" : ""}`} />
-              Refresh
-            </button>
-
-            {/* Count */}
-            <div className="text-sm text-gray-500">
-              Showing{" "}
-              <span className="font-bold text-gray-700">{finalBooks.length}</span>{" "}
-              books
-            </div>
-          </div>
-        </div>
-
-        {/* Grid */}
-        {loading ? (
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
-            {Array.from({ length: 10 }).map((_, i) => (
-              <BookCardSkeleton key={i} />
-            ))}
-          </div>
-        ) : finalBooks.length > 0 ? (
-          <div className="mb-10">
-            {/* --- LATEST ARRIVALS SWIPER (Only on Default View) --- */}
-            {!searchTerm && !showFavoritesOnly && sortedBooks.length > 0 && (
-               <div className="mb-12">
-                   <h3 className="text-lg font-bold text-slate-400 uppercase tracking-widest mb-4">
-                     Trending Now
-                   </h3>
-                   <Swiper
-                     modules={[Autoplay, Navigation]}
-                     spaceBetween={20}
-                     loop={sortedBooks.length > 4}
-                     autoplay={{
-                       delay: 3000,
-                       disableOnInteraction: false,
-                     }}
-                     breakpoints={{
-                       320: { slidesPerView: 2 },
-                       640: { slidesPerView: 3 },
-                       768: { slidesPerView: 4 },
-                       1024: { slidesPerView: 5 },
-                     }}
-                   >
-                     {sortedBooks.slice(0, 8).map((book) => (
-                       <SwiperSlide key={book.id}>
-                         <PublicBookCard
-                           book={book}
-                           isFavorite={favorites.includes(book.id)}
-                           onToggleFavorite={(e) => toggleFavorite(e, book.id)}
-                           onClick={() => setSelectedBook(book)}
-                         />
-                       </SwiperSlide>
-                     ))}
-                   </Swiper>
-               </div>
-            )}
-
-            {/* --- MAIN GRID --- */}
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
-                {finalBooks.map((book) => (
-                    <PublicBookCard
-                      key={book.id}
-                      book={book}
-                      isFavorite={favorites.includes(book.id)}
-                      onToggleFavorite={(e) => toggleFavorite(e, book.id)}
-                      onClick={() => setSelectedBook(book)}
+            if (key === 'search' && getSectionConfig('search', { enabled: true }).enabled !== false && showSearchStripBlock) {
+              return (
+                <div key="search" className="app-shell-container scroll-mt-24 pb-5 sm:pb-8" id="search">
+                  <div className={`${sectionFrameClass} overflow-hidden`}>
+                    <LibrarySearchStrip
+                      searchTerm={searchTerm}
+                      onSearchChange={setSearchTerm}
+                      title={getSectionConfig('search', { title: 'Library Search' }).title || 'Library Search'}
+                      subtitle={getSectionConfig('search', { subtitle: 'Search the library collection' }).subtitle || 'Search the library collection'}
+                      description={getSectionConfig('search', { description: 'Find books, authors, publishers and smart recommendations right from the library section.' }).description || 'Find books, authors, publishers and smart recommendations right from the library section.'}
+                      placeholder={getSectionConfig('search', { placeholder: 'Search by title, author, or ISBN...' }).placeholder || 'Search by title, author, or ISBN...'}
+                      showHint={Boolean(getSectionConfig('search', { show_hint: true }).show_hint !== false)}
+                      enableVoice={Boolean(getSectionConfig('search', { enable_voice: true }).enable_voice !== false)}
+                      enableDeepSearch={Boolean(getSectionConfig('search', { enable_deep: true }).enable_deep !== false)}
+                      enableSuggestions={Boolean(getSectionConfig('search', { show_suggestions: true }).show_suggestions !== false)}
                     />
-                ))}
-            </div>
-          </div>
-        ) : (
-          <div className="text-center py-20 bg-white rounded-xl border border-gray-200 shadow-sm">
-            <FaceFrownIcon className="w-12 h-12 text-gray-300 mx-auto mb-2" />
-            <p className="text-gray-700 font-bold text-lg">
-              No books found matching your criteria.
-            </p>
-            <p className="text-gray-400 text-sm mt-1">
-              Try different keywords or clear filters.
-            </p>
+                  </div>
+                </div>
+              );
+            }
 
-            <button
-              onClick={handleClearAll}
-              className="mt-5 inline-flex items-center justify-center px-5 py-2.5 rounded-lg bg-[#2D89C8] text-white font-bold hover:bg-[#2374ac] transition-colors shadow-sm"
-            >
-              Clear All Filters
-            </button>
-          </div>
-        )}
-      </div>
-      )}
+            if (key === 'continue_reading' && getSectionConfig('continue_reading', { enabled: true }).enabled !== false && recentReadBooks.length > 0) {
+              return (
+                <div key="continue_reading" className="app-shell-container pb-4 sm:pb-8">
+                  <div className={`${sectionFrameClass}`}>
+                    <div className="mb-4 flex items-end justify-between gap-3">
+                      <div>
+                        <p className="eyebrow text-emerald-600">Continue reading</p>
+                        <h3 className="section-title text-slate-900">Pick up where you left off</h3>
+                      </div>
+                    </div>
+                    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                      {recentReadBooks.map((entry) => (
+                        <CompactBookCard
+                          key={entry.book.id}
+                          book={entry.book}
+                          label={`Page ${entry.last_page_read || 1}`}
+                          meta={entry.total_pages > 0 ? `Page ${entry.last_page_read || 1} of ${entry.total_pages}` : (entry.updated_at ? new Date(entry.updated_at).toLocaleDateString("en-IN", { month: "short", day: "numeric" }) : "Recently")}
+                          progress={entry.total_pages > 0 ? ((Number(entry.last_page_read || 1) / Number(entry.total_pages)) * 100) : null}
+                          onClick={() => handleResumeReading(entry.book.id)}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              );
+            }
 
-      {/* Modals */}
-      {selectedBook && (
-        <BookDetailsModal
-          book={selectedBook}
-          onClose={() => setSelectedBook(null)}
-          onRequestAccess={() => handleRequestAccess(selectedBook)}
-        />
-      )}
+            if (key === 'featured' && getSectionConfig('featured', { enabled: true }).enabled !== false && showFeaturedPanel) {
+              return (
+                <div key="featured" className="app-shell-container pb-5 sm:pb-12">
+                  <div className={`${sectionFrameClass}`}>
+                    <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between mb-6">
+                      <div>
+                        <p className="eyebrow" style={{ color: accentColor }}>{getSectionConfig('featured', { title: 'Library Highlights' }).title || 'Library Highlights'}</p>
+                        <h2 className="section-title text-slate-900">{getSectionConfig('featured', { subtitle: 'Recommended by the library team' }).subtitle || 'Recommended by the library team'}</h2>
+                      </div>
+                      <button
+                        onClick={() => {
+                          const el = document.getElementById("book-grid");
+                          if (el) el.scrollIntoView({ behavior: "smooth" });
+                        }}
+                        className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50"
+                      >
+                        Browse full collection
+                      </button>
+                    </div>
+
+                    {loading ? (
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                        {Array.from({ length: 4 }).map((_, idx) => (
+                          <BookCardSkeleton key={idx} />
+                        ))}
+                      </div>
+                    ) : featuredBooks.length > 0 ? (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                        {featuredBooks.map((book) => (
+                          <PublicBookCard
+                            key={book.id}
+                            book={book}
+                            isFavorite={favorites.includes(book.id)}
+                            onToggleFavorite={(e) => toggleFavorite(e, book.id)}
+                            onClick={() => setSelectedBook(book)}
+                          />
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="rounded-3xl border border-dashed border-slate-300 bg-white p-10 text-center text-slate-500">
+                        No featured titles are available yet. Please check back soon.
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            }
+
+            if (key === 'gallery' && getSectionConfig('gallery', { enabled: false }).enabled !== false) {
+              const galleryConfig = getSectionConfig('gallery', {});
+              const displayImages = galleryImages.length > 0 ? galleryImages : [
+                { image_url: 'https://via.placeholder.com/600x400?text=Gallery+Image+1', title: 'Gallery Image 1' },
+                { image_url: 'https://via.placeholder.com/600x400?text=Gallery+Image+2', title: 'Gallery Image 2' },
+                { image_url: 'https://via.placeholder.com/600x400?text=Gallery+Image+3', title: 'Gallery Image 3' },
+                { image_url: 'https://via.placeholder.com/600x400?text=Gallery+Image+4', title: 'Gallery Image 4' },
+                { image_url: 'https://via.placeholder.com/600x400?text=Gallery+Image+5', title: 'Gallery Image 5' },
+                { image_url: 'https://via.placeholder.com/600x400?text=Gallery+Image+6', title: 'Gallery Image 6' },
+              ];
+              
+              return (
+                <div key="gallery" className="app-shell-container pb-5 sm:pb-12">
+                  <div className={`${sectionFrameClass}`}>
+                    <div className="mb-6 flex items-end justify-between gap-3">
+                      <div>
+                        <p className="eyebrow" style={{ color: accentColor }}>{galleryConfig.title || 'Gallery'}</p>
+                        <h3 className="section-title text-slate-900">{galleryConfig.subtitle || 'Visual collections'}</h3>
+                      </div>
+                    </div>
+                    <Swiper
+                      modules={[Autoplay, Navigation]}
+                      spaceBetween={16}
+                      loop={displayImages.length > 3}
+                      autoplay={{
+                        delay: 4000,
+                        disableOnInteraction: false,
+                      }}
+                      navigation
+                      breakpoints={{
+                        320: { slidesPerView: 1 },
+                        640: { slidesPerView: 2 },
+                        1024: { slidesPerView: 3 },
+                      }}
+                      className="rounded-2xl overflow-hidden"
+                    >
+                      {displayImages.map((image, idx) => (
+                        <SwiperSlide key={idx}>
+                          <div className="relative group overflow-hidden rounded-xl bg-slate-100 shadow-md hover:shadow-xl transition-shadow h-64 sm:h-72">
+                            <img
+                              src={image.image_url}
+                              alt={image.title || `Gallery image ${idx + 1}`}
+                              className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                              loading="lazy"
+                            />
+                            {image.title && (
+                              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-4">
+                                <p className="text-white font-semibold text-sm line-clamp-2">{image.title}</p>
+                              </div>
+                            )}
+                            {image.caption && (
+                              <div className="absolute top-0 left-0 right-0 bg-gradient-to-b from-black/40 to-transparent p-3">
+                                <p className="text-white/80 text-xs line-clamp-2">{image.caption}</p>
+                              </div>
+                            )}
+                          </div>
+                        </SwiperSlide>
+                      ))}
+                    </Swiper>
+                  </div>
+                </div>
+              );
+            }
+
+            if (key === 'fatawa' && getSectionConfig('fatawa', { enabled: false }).enabled !== false) {
+              const fatawaConfig = getSectionConfig('fatawa', {});
+              return (
+                <div key="fatawa" className="app-shell-container pb-5 sm:pb-12">
+                  <div className={`${sectionFrameClass}`}>
+                    <div className="mb-6 flex items-end justify-between gap-3">
+                      <div>
+                        <p className="eyebrow" style={{ color: accentColor }}>{fatawaConfig.title || 'Fatawa Q&A'}</p>
+                        <h3 className="section-title text-slate-900">{fatawaConfig.subtitle || 'Islamic Q&A'}</h3>
+                      </div>
+                    </div>
+                    <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-2xl p-8 sm:p-12 text-center border border-blue-200">
+                      <div className="text-6xl mb-4">❓</div>
+                      <p className="text-slate-700 mb-6 text-lg">{fatawaConfig.description || 'Get answers to your Islamic questions from our fatawa database.'}</p>
+                      <button
+                        onClick={() => navigate('/fatawa')}
+                        className="inline-flex items-center gap-2 px-6 py-3 rounded-lg font-semibold text-white transition-all"
+                        style={{ backgroundColor: accentColor }}
+                      >
+                        Explore Fatawa
+                        <span>→</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            }
+
+            if (key === 'about' && getSectionConfig('about', { enabled: false }).enabled !== false) {
+              const aboutConfig = getSectionConfig('about', {});
+              return (
+                <div key="about" className="app-shell-container pb-5 sm:pb-12">
+                  <div className={`${sectionFrameClass}`}>
+                    <div className="mb-6 flex items-end justify-between gap-3">
+                      <div>
+                        <p className="eyebrow" style={{ color: accentColor }}>{aboutConfig.title || 'About Page'}</p>
+                        <h3 className="section-title text-slate-900">{aboutConfig.subtitle || 'Learn about our library'}</h3>
+                      </div>
+                    </div>
+                    <div className="bg-gradient-to-br from-slate-50 to-slate-100 rounded-2xl p-8 sm:p-12 text-center">
+                      <div className="text-6xl mb-4">📚</div>
+                      <p className="text-slate-700 mb-6 text-lg">{aboutConfig.description || 'Learn more about our library and mission.'}</p>
+                      <button
+                        onClick={() => navigate('/about')}
+                        className="inline-flex items-center gap-2 px-6 py-3 rounded-lg font-semibold text-white transition-all"
+                        style={{ backgroundColor: accentColor }}
+                      >
+                        Learn More
+                        <span>→</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            }
+
+            if (key === 'catalog' && getSectionConfig('catalog', { enabled: true }).enabled !== false) {
+              return (
+                <div key="catalog" className="app-shell-container py-5 sm:py-8" id="book-grid">
+                  <div className={`${sectionFrameClass}`}>
+                    <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-8 border-b border-gray-200 pb-4">
+                      <div>
+                        <h2 className="page-title font-serif text-[#002147] max-w-4xl">
+                          {searchTerm ? `Results for "${searchTerm}"` : getSectionConfig('catalog', { title: 'Explore the Library' }).title || 'Explore the Library'}
+                        </h2>
+                        <p className="body-copy mt-1">
+                          {getSectionConfig('catalog', { description: 'Browse our handpicked selection, curated recommendations, and full catalog from Kokan Islamic Library.' }).description || 'Browse our handpicked selection, curated recommendations, and full catalog from Kokan Islamic Library.'}
+                        </p>
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-3">
+                        <button
+                          onClick={() => setShowFavoritesOnly((p) => !p)}
+                          className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg border text-sm font-bold transition-all shadow-sm ${showFavoritesOnly
+                            ? "bg-pink-50 border-pink-200 text-pink-700"
+                            : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50"
+                            }`}
+                          title="Show only favorite books"
+                        >
+                          <HeartIcon className="w-5 h-5" />
+                          Favorites
+                          {favorites.length > 0 && (
+                            <span className="ml-1 text-xs bg-white border border-gray-200 px-2 py-0.5 rounded-full">
+                              {favorites.length}
+                            </span>
+                          )}
+                        </button>
+
+                        <button
+                          onClick={loadBooks}
+                          disabled={loading}
+                          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 text-sm font-bold shadow-sm disabled:opacity-50"
+                          title="Refresh Books"
+                        >
+                          <ArrowPathIcon className={`w-5 h-5 ${loading ? "animate-spin" : ""}`} />
+                          Refresh
+                        </button>
+
+                        <div className="text-sm text-gray-500">
+                          Showing{" "}
+                          <span className="font-bold text-gray-700">{finalBooks.length}</span>{" "}
+                          books
+                        </div>
+                      </div>
+                    </div>
+
+                    {loading ? (
+                      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
+                        {Array.from({ length: 10 }).map((_, i) => (
+                          <BookCardSkeleton key={i} />
+                        ))}
+                      </div>
+                    ) : finalBooks.length > 0 ? (
+                      <div className="mb-10">
+                        {!searchTerm && !showFavoritesOnly && sortedBooks.length > 0 && (
+                           <div className="mb-12">
+                               <h3 className="text-lg font-bold uppercase tracking-widest mb-4" style={{ color: accentColor }}>
+                                 Trending Now
+                               </h3>
+                               <Swiper
+                                 modules={[Autoplay, Navigation]}
+                                 spaceBetween={20}
+                                 loop={sortedBooks.length > 4}
+                                 autoplay={{
+                                   delay: 3000,
+                                   disableOnInteraction: false,
+                                 }}
+                                 breakpoints={{
+                                   320: { slidesPerView: 2 },
+                                   640: { slidesPerView: 3 },
+                                   768: { slidesPerView: 4 },
+                                   1024: { slidesPerView: 5 },
+                                 }}
+                               >
+                                 {sortedBooks.slice(0, 8).map((book) => (
+                                   <SwiperSlide key={book.id}>
+                                     <PublicBookCard
+                                       book={book}
+                                       isFavorite={favorites.includes(book.id)}
+                                       onToggleFavorite={(e) => toggleFavorite(e, book.id)}
+                                       onClick={() => setSelectedBook(book)}
+                                     />
+                                   </SwiperSlide>
+                                 ))}
+                               </Swiper>
+                           </div>
+                        )}
+
+                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+                            {finalBooks.map((book) => (
+                                <PublicBookCard
+                                  key={book.id}
+                                  book={book}
+                                  isFavorite={favorites.includes(book.id)}
+                                  onToggleFavorite={(e) => toggleFavorite(e, book.id)}
+                                  onClick={() => setSelectedBook(book)}
+                                />
+                            ))}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="text-center py-20 bg-white rounded-xl border border-gray-200 shadow-sm">
+                        <FaceFrownIcon className="w-12 h-12 text-gray-300 mx-auto mb-2" />
+                        <p className="text-gray-700 font-bold text-lg">
+                          No books found matching your criteria.
+                        </p>
+                        <p className="text-gray-400 text-sm mt-1">
+                          Try different keywords or clear filters.
+                        </p>
+
+                        <button
+                          onClick={handleClearAll}
+                          className="mt-5 inline-flex items-center justify-center px-5 py-2.5 rounded-lg text-white font-bold transition-colors shadow-sm"
+                          style={{ backgroundColor: accentColor }}
+                        >
+                          Clear All Filters
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            }
+
+            if (key === 'posts' || key === 'donation') {
+              const showPosts = getSectionConfig('posts', { enabled: true }).enabled !== false;
+              const showDonation = getSectionConfig('donation', { enabled: true }).enabled !== false && showDonationBlock;
+
+              if (!showPosts && !showDonation) return null;
+              if (key === 'donation') return null;
+
+              return (
+                <div key="posts-donation" className="app-shell-container py-6 sm:py-10 lg:py-16 border-t border-gray-200">
+                  <div className="grid grid-cols-1 gap-6 lg:grid-cols-3 lg:gap-10">
+                    {showPosts && (
+                      <div className="lg:col-span-2">
+                        <LandingPostsPreview />
+                      </div>
+                    )}
+                    {showDonation && (
+                      <div className="lg:col-span-1 lg:sticky lg:top-24 h-fit">
+                        <DonationPanel />
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            }
+
+            return null;
+          })}
+
+          {selectedBook && (
+            <BookDetailsModal
+              book={selectedBook}
+              onClose={() => setSelectedBook(null)}
+              onRequestAccess={() => handleRequestAccess(selectedBook)}
+            />
+          )}
 
       {isAccessFlowOpen && (
         <RestrictedAccessFlow
@@ -868,26 +1039,6 @@ const PublicHome = () => {
           onClose={() => setShowSuccess(false)}
         />
       )}
-
-      {getSectionConfig('posts', { enabled: true }).enabled !== false || getSectionConfig('donation', { enabled: true }).enabled !== false ? (
-      <div className="app-shell-container py-16 border-t border-gray-200">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
-
-          {getSectionConfig('posts', { enabled: true }).enabled !== false && (
-          <div className="lg:col-span-2">
-            <LandingPostsPreview />
-          </div>
-          )}
-
-          {getSectionConfig('donation', { enabled: true }).enabled !== false && showDonationBlock && (
-          <div className="lg:col-span-1 lg:sticky lg:top-24 h-fit">
-            <DonationPanel />
-          </div>
-          )}
-
-        </div>
-      </div>
-      ) : null}
 
     </div>
   );

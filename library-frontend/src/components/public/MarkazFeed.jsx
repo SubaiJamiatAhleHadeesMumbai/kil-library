@@ -43,9 +43,15 @@ const formatDate = (dateString) => {
 
 const getFileUrl = (file_url) => {
   if (!file_url) return null;
-  // file_url example: /static/uploads/posts/abc.jpg
-  // Make full URL:
-  return `${API_BASE_URL}${file_url}`;
+
+  // Cloudinary and other absolute URLs should be used directly.
+  if (String(file_url).startsWith("http://") || String(file_url).startsWith("https://")) {
+    return file_url;
+  }
+
+  // Local/static relative paths should use API base URL.
+  const cleanPath = String(file_url).startsWith("/") ? file_url : `/${file_url}`;
+  return `${API_BASE_URL}${cleanPath}`;
 };
 
 const MarkazFeed = () => {

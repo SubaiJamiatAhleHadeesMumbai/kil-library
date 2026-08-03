@@ -1,13 +1,20 @@
 {
-  "theme": "aurora",
+  "theme": "day",
+  "theme_palette": "rose",
+  "accent_color": "#007ACC",
+  "heading_style": "display",
+  "background_style": "glass",
+  "button_style": "glass",
+  "spacing_scale": "compact",
+  "ui_feel": "premium",
   "language": "en",
-  "hero_badge": "tARIQUE",
+  "hero_badge": "",
   "site_title": "",
   "sections": {
     "hero": {
       "enabled": true,
       "order": 0,
-      "title": "Welcome to the future of the library testING ",
+      "title": "Welcome to the future of the library",
       "subtitle": "A modern, intelligent reading experience",
       "description": "Main landing intro and spotlight area",
       "badge": "Adaptive Knowledge Grid",
@@ -18,25 +25,18 @@
       "secondary_cta_url": "/contact"
     },
     "search": {
-      "enabled": true,
-      "order": 1,
+      "enabled": false,
+      "order": 8,
       "title": "Library Search",
       "subtitle": "Find books, authors, and collections",
-      "description": "Search, filters, and discovery tools",
-      "show_hint": false,
-      "enable_voice": false,
-      "enable_deep": false,
-      "show_suggestions": false
+      "description": "Search, filters, and discovery tools"
     },
     "featured": {
       "enabled": false,
-      "order": 1,
-      "title": "library k choose kiya ",
-      "subtitle": "bahut accchi book",
-      "description": "good",
-      "featured_books": [
-        1
-      ]
+      "order": 2,
+      "title": "Library Highlights",
+      "subtitle": "Recommended by the library team",
+      "description": "Curated recommended titles"
     },
     "catalog": {
       "enabled": false,
@@ -54,18 +54,47 @@
     },
     "donation": {
       "enabled": true,
-      "order": 5,
+      "order": 0,
       "title": "Support the Library",
       "subtitle": "Help the library grow",
       "description": "Support and donation block"
+    },
+    "about": {
+      "enabled": true,
+      "order": 6,
+      "title": "About Page",
+      "subtitle": "Library identity and story",
+      "description": "Public about page link visibility"
+    },
+    "fatawa": {
+      "enabled": true,
+      "order": 7,
+      "title": "Fatawa Q&A",
+      "subtitle": "Guidance and answers",
+      "description": "Public fatawa page link visibility"
+    },
+    "gallery": {
+      "enabled": true,
+      "order": 8,
+      "title": "Gallery",
+      "subtitle": "Markaz introduction gallery",
+      "description": "Public about gallery visibility"
+    },
+    "posters": {
+      "enabled": true,
+      "order": 9,
+      "title": "Media Posters",
+      "subtitle": "Rotating shareable posters",
+      "description": "Admin-uploaded poster carousel"
     }
   },
   "layout": {
     "show_stats": true,
     "show_trending": true,
     "show_favorites": true,
-    "show_search_strip": false,
+    "show_search_strip": true,
     "show_featured_books": true,
-    "show_donation_panel": true
+    "show_donation_panel": true,
+    "show_posters": true
   }
 }
