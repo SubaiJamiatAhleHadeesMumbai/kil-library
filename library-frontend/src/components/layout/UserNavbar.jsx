@@ -183,6 +183,7 @@ const UserNavbar = () => {
             <div className="hidden md:flex items-center space-x-1">
               <NavItem to="/" label="Home" icon={HomeIcon} />
               <NavItem to="/books" label="Library" icon={BookOpenIcon} />
+              {showAboutLink ? <NavItem to="/about" label="About" icon={InformationCircleIcon} /> : null}
               {showFatawaLink ? <NavItem to="/fatawa" label="Fatawa" icon={BookOpenIcon} /> : null}
               <NavItem to="/authors" label="Authors" icon={UsersIcon} />
               <NavItem to="/publishers" label="Publishers" icon={BuildingOfficeIcon} />
@@ -342,6 +343,8 @@ const UserNavbar = () => {
                 <div className="space-y-1">
                   <NavItem to="/" label="Home" icon={HomeIcon} onClick={() => setIsMobileMenuOpen(false)} />
                   <NavItem to="/books" label="Library" icon={BookOpenIcon} onClick={() => setIsMobileMenuOpen(false)} />
+                  {showAboutLink ? <NavItem to="/about" label="About" icon={InformationCircleIcon} onClick={() => setIsMobileMenuOpen(false)} /> : null}
+                  {showFatawaLink ? <NavItem to="/fatawa" label="Fatawa" icon={BookOpenIcon} onClick={() => setIsMobileMenuOpen(false)} /> : null}
                   <NavItem to="/authors" label="Authors" icon={UsersIcon} onClick={() => setIsMobileMenuOpen(false)} />
                   <NavItem to="/publishers" label="Publishers" icon={BuildingOfficeIcon} onClick={() => setIsMobileMenuOpen(false)} />
                   <NavItem to="/posts" label="Updates" icon={MegaphoneIcon} onClick={() => setIsMobileMenuOpen(false)} />

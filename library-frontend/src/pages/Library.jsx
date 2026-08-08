@@ -3,7 +3,7 @@ import { useLocation, useSearchParams } from 'react-router-dom';
 import { bookService } from '../api/bookService';
 import { useBookSearch } from '../hooks/useBookSearch';
 import BookCard from '../components/book/BookCard';
-import { MagnifyingGlassIcon, FunnelIcon } from '@heroicons/react/24/outline';
+import { MagnifyingGlassIcon } from '@heroicons/react/24/outline';
 
 const UserLibrary = () => {
     const location = useLocation();
@@ -87,46 +87,18 @@ const UserLibrary = () => {
                 </div>
             </div>
 
-            {/* --- FILTERS SECTION --- */}
+            {/* --- BOOK GRID --- */}
             <div className="max-w-7xl mx-auto px-4 -mt-12">
-                <div className="bg-white rounded-2xl shadow-xl p-6 border border-slate-100 flex flex-wrap gap-4 items-center justify-between">
-                    <div className="flex flex-wrap gap-3 items-center">
-                        <div className="flex items-center gap-2 text-slate-500 font-semibold text-sm border-r pr-4">
-                            <FunnelIcon className="h-5 w-5" />
-                            FILTERS
-                        </div>
-                        
-                        {/* Language Filter (dynamic from data) */}
-                        <select 
-                            className="bg-slate-50 border-none rounded-lg px-4 py-2 text-sm font-medium focus:ring-2 focus:ring-emerald-500"
-                            value={selectedLanguage}
-                            onChange={(e) => setSelectedLanguage(e.target.value)}
-                        >
-                            <option value="all">All Languages</option>
-                            {[...new Set(books.map(b => (b.language && (b.language.name || b.language)) || 'Unknown'))].map((lang) => (
-                                <option key={lang} value={String(lang).toLowerCase()}>{lang}</option>
-                            ))}
-                        </select>
-
-                        {/* Category Filter (dynamic from data) */}
-                        <select 
-                            className="bg-slate-50 border-none rounded-lg px-4 py-2 text-sm font-medium focus:ring-2 focus:ring-emerald-500"
-                            value={selectedCategory}
-                            onChange={(e) => setSelectedCategory(e.target.value)}
-                        >
-                            <option value="all">All Categories</option>
-                            {[...new Set(books.flatMap(b => (b.subcategories || []).map(s => s.name || s).concat(b.category ? (b.category.name || b.category) : [])))].map((cat) => (
-                                <option key={cat} value={String(cat).toLowerCase()}>{cat}</option>
-                            ))}
-                        </select>
+                <div className="bg-white rounded-2xl shadow-xl p-4 sm:p-6 border border-slate-100 flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2 text-slate-500 font-semibold text-sm">
+                        <MagnifyingGlassIcon className="h-5 w-5" />
+                        Search results
                     </div>
-
                     <div className="text-slate-400 text-sm font-medium">
-                        Showing <span className="text-slate-900 font-bold">{filteredBooks.length}</span> results
+                        Showing <span className="text-slate-900 font-bold">{filteredBooks.length}</span> books
                     </div>
                 </div>
 
-                {/* --- BOOK GRID --- */}
                 {loading ? (
                     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6 mt-12">
                         {[...Array(10)].map((_, i) => <div key={i} className="h-80 bg-slate-200 animate-pulse rounded-xl" />)}
@@ -145,7 +117,7 @@ const UserLibrary = () => {
                     <div className="text-center py-20">
                         <div className="text-6xl mb-4">🔍</div>
                         <h3 className="text-xl font-bold text-slate-800">No books found matching your search.</h3>
-                        <p className="text-slate-500">Try adjusting your filters or search term.</p>
+                        <p className="text-slate-500">Try a different search term.</p>
                     </div>
                 )}
             </div>

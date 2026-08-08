@@ -10,6 +10,7 @@ from models import book_model, user_model, book_permission_model, request_user_m
 from schemas import book_schema
 from auth import get_current_user_optional 
 from database import get_db
+from utils.local_helper import resolve_upload_path
 
 router = APIRouter()
 
@@ -357,7 +358,7 @@ def read_books(
 # ==================================
 @router.get("/deep-search", tags=["Global Search"])
 def deep_search_all_books(
-    query: str = Query(..., min_length=3, description="Search keyword"),
+    query: str = Query(..., min_length=1, description="Search keyword"),
     db: Session = Depends(get_db)
 ):
     print(f"\n🔍 [DEEP SEARCH START] Query: '{query}'")
@@ -383,12 +384,11 @@ def deep_search_all_books(
         url_path = str(book.txt_file_url)
         print(f"➡️ Checking Book ID {book.id} | TXT URL: {url_path}")
         
-        # Agar URL me "static" na ho, toh add karo (local file ke liye)
-        if url_path.startswith("/uploads"):
-            file_path = os.path.join("static", url_path.lstrip("/"))
-        else:
+        # Resolve uploaded file paths robustly, regardless of process CWD
+        file_path = resolve_upload_path(url_path)
+        if file_path is None:
             file_path = url_path
-            
+
         print(f"📂 Looking for physical file at: {file_path}")
 
         if not os.path.exists(file_path):

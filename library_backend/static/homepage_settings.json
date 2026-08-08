@@ -1,8 +1,8 @@
 {
   "theme": "day",
   "theme_palette": "rose",
-  "accent_color": "#007ACC",
-  "heading_style": "display",
+  "accent_color": "#cc3d00",
+  "heading_style": "sans",
   "background_style": "glass",
   "button_style": "glass",
   "spacing_scale": "compact",
@@ -13,7 +13,7 @@
   "sections": {
     "hero": {
       "enabled": true,
-      "order": 0,
+      "order": 5,
       "title": "Welcome to the future of the library",
       "subtitle": "A modern, intelligent reading experience",
       "description": "Main landing intro and spotlight area",
@@ -23,6 +23,13 @@
       "primary_cta_url": "/books",
       "secondary_cta_label": "Request access",
       "secondary_cta_url": "/contact"
+    },
+    "posters": {
+      "enabled": true,
+      "order": 9,
+      "title": "Media Posters",
+      "subtitle": "Rotating shareable posters",
+      "description": "Admin-uploaded poster carousel"
     },
     "search": {
       "enabled": false,
@@ -37,6 +44,34 @@
       "title": "Library Highlights",
       "subtitle": "Recommended by the library team",
       "description": "Curated recommended titles"
+    },
+    "gallery": {
+      "enabled": true,
+      "order": 8,
+      "title": "Gallery",
+      "subtitle": "Markaz introduction gallery",
+      "description": "Public about gallery visibility"
+    },
+    "fatawa": {
+      "enabled": true,
+      "order": 7,
+      "title": "Fatawa Q&A",
+      "subtitle": "Guidance and answers",
+      "description": "Public fatawa page link visibility"
+    },
+    "about": {
+      "enabled": true,
+      "order": 10,
+      "title": "About Page",
+      "subtitle": "Library identity and story",
+      "description": "Public about page link visibility"
+    },
+    "education_social_activity": {
+      "enabled": true,
+      "order": 11,
+      "title": "Education, Social & Activity",
+      "subtitle": "Community learning, service, and engagement",
+      "description": "Community education and social service section visibility"
     },
     "catalog": {
       "enabled": false,
@@ -54,38 +89,10 @@
     },
     "donation": {
       "enabled": true,
-      "order": 0,
+      "order": 2,
       "title": "Support the Library",
       "subtitle": "Help the library grow",
       "description": "Support and donation block"
-    },
-    "about": {
-      "enabled": true,
-      "order": 6,
-      "title": "About Page",
-      "subtitle": "Library identity and story",
-      "description": "Public about page link visibility"
-    },
-    "fatawa": {
-      "enabled": true,
-      "order": 7,
-      "title": "Fatawa Q&A",
-      "subtitle": "Guidance and answers",
-      "description": "Public fatawa page link visibility"
-    },
-    "gallery": {
-      "enabled": true,
-      "order": 8,
-      "title": "Gallery",
-      "subtitle": "Markaz introduction gallery",
-      "description": "Public about gallery visibility"
-    },
-    "posters": {
-      "enabled": true,
-      "order": 9,
-      "title": "Media Posters",
-      "subtitle": "Rotating shareable posters",
-      "description": "Admin-uploaded poster carousel"
     }
   },
   "layout": {

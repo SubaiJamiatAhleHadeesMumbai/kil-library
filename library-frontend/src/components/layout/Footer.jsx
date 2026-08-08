@@ -122,15 +122,19 @@ const Footer = () => {
           <ul className="space-y-4 text-sm text-gray-300">
             <li className="flex items-start gap-3">
               <MapPinIcon className="w-5 h-5 text-[#F4A261] mt-0.5 shrink-0" />
-              <span>123 Islamic Center Road,<br />Kokan Region, India</span>
+              <span>Bait-us-Salam Complex<br />Bharana Naka Khed Road,<br />Mahad Naka, Khed,<br />Maharashtra 415709</span>
             </li>
             <li className="flex items-center gap-3">
               <EnvelopeIcon className="w-5 h-5 text-[#F4A261] shrink-0" />
-              <span>contact@kokanlibrary.com</span>
+              <span>markazdawah.khed@gmail.com</span>
             </li>
             <li className="flex items-center gap-3">
               <PhoneIcon className="w-5 h-5 text-[#F4A261] shrink-0" />
-              <span>+91 123 456 7890</span>
+              <span>+91 90059 00585</span>
+            </li>
+            <li className="flex items-center gap-3">
+              <PhoneIcon className="w-5 h-5 text-[#F4A261] shrink-0" />
+              <span>+91 90059 00589</span>
             </li>
           </ul>
         </div>

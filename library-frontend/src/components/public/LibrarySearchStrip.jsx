@@ -48,6 +48,7 @@ const LibrarySearchStrip = ({
   
   // ✅ Deep Search Modal ka State
   const [isDeepSearchOpen, setIsDeepSearchOpen] = useState(false);
+  const [deepSearchQuery, setDeepSearchQuery] = useState("");
 
   // ✅ Auto-Opening the Book States
   const [deepSearchBook, setDeepSearchBook] = useState(null);
@@ -107,6 +108,7 @@ const LibrarySearchStrip = ({
   /* -------- Deep Search Result Click Handler -------- */
   const handleDeepResultClick = async (bookId, pageNumber, searchQuery) => {
     setIsDeepSearchOpen(false); // Modal band karo
+    setDeepSearchQuery(searchQuery || "");
     setIsFetchingBook(true);    // Loading spinner shuru karo
     
     try {
@@ -138,6 +140,11 @@ const LibrarySearchStrip = ({
 
   const openDeepSearch = () => {
     setMobileMode("deep");
+    setIsDeepSearchOpen(true);
+  };
+
+  const returnToDeepSearch = () => {
+    setDeepSearchBook(null);
     setIsDeepSearchOpen(true);
   };
 
@@ -341,6 +348,7 @@ const LibrarySearchStrip = ({
         isOpen={isDeepSearchOpen}
         onClose={() => setIsDeepSearchOpen(false)}
         onResultClick={handleDeepResultClick}
+        initialQuery={deepSearchQuery}
       />
 
       {/* ✅ HIDDEN BOOK MODAL (Auto-opens SmartReader when deepSearchBook is set) */}
@@ -348,6 +356,7 @@ const LibrarySearchStrip = ({
         <BookDetailsModal
           book={deepSearchBook}
           onClose={() => setDeepSearchBook(null)}
+          onBackToSearch={returnToDeepSearch}
           startView="details"
           autoOpenReader={true} // Seedha reader me khulega
           initialPage={deepSearchConfig.page}

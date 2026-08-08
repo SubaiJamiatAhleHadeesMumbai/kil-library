@@ -40,6 +40,7 @@ const defaultSections = [
   { key: 'posts', label: 'Announcements', description: 'News and latest updates' },
   { key: 'donation', label: 'Donation Panel', description: 'Support and donation block' },
   { key: 'about', label: 'About Page', description: 'Public about page link visibility' },
+  { key: 'education_social_activity', label: 'Education, Social & Activity', description: 'Community education and social service section visibility' },
   { key: 'fatawa', label: 'Fatawa Q&A', description: 'Public fatawa page link visibility' },
   { key: 'gallery', label: 'Gallery', description: 'Public about gallery visibility' },
   { key: 'posters', label: 'Media Posters', description: 'Rotating poster carousel and campaign visuals' },

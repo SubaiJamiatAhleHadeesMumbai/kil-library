@@ -208,7 +208,7 @@ const MarkazFeed = () => {
                                 onClick={() => openImagePreview(fullFileUrl, post.title)}
                                 onError={(e) => {
                                   e.currentTarget.src =
-                                    "https://dummyimage.com/1200x600/e5e7eb/111827&text=Image+Not+Available";
+                                    "https://placehold.co/1200x600/e5e7eb/111827?text=Image+Not+Available";
                                 }}
                               />
                             </div>

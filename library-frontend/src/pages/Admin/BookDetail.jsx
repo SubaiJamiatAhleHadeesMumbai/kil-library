@@ -203,7 +203,7 @@ const BookDetail = () => {
         try {
             const data = await bookService.getBookById(id);
             setBook(data);
-            setTimeout(() => setShowPdf(true), 200);
+            setShowPdf(true);
 
             // Restore last-read page for this book, if any
             const saved = Number(localStorage.getItem(`book-progress-${id}`)) || 0;
@@ -618,23 +618,7 @@ const BookDetail = () => {
                                 )}
                             </AnimatePresence>
 
-                            {/* On small screens, embedded viewers are fiddly to use — nudge toward opening it instead */}
-                            {isMobile ? (
-                                <div className="flex flex-col items-center justify-center gap-3 py-10 px-4 text-center bg-slate-50">
-                                    <BookOpen className="w-8 h-8 text-indigo-400" />
-                                    <p className="text-sm text-gray-600">Preview works best on desktop.<br />Open or download to read comfortably.</p>
-                                    <div className="flex gap-2">
-                                        <a
-                                            href={pdfUrl}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 text-white text-xs font-semibold rounded-lg hover:bg-indigo-700"
-                                        >
-                                            <ExternalLink className="w-3.5 h-3.5" /> Open PDF
-                                        </a>
-                                    </div>
-                                </div>
-                            ) : !showPdf ? (
+                            {!showPdf ? (
                                 <div
                                     className="w-full flex items-center justify-center"
                                     style={{ height: focusMode ? undefined : '80vh', minHeight: focusMode ? undefined : '500px', maxHeight: focusMode ? undefined : '850px', flex: focusMode ? 1 : undefined }}

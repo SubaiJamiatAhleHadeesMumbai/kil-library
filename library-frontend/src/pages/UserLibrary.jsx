@@ -550,20 +550,16 @@ const UserLibrary = () => {
       </div>
 
       {/* FILTER BAR */}
-      <div className="relative z-30 max-w-7xl mx-auto px-4 mt-6 md:sticky md:top-16 md:-mt-20">
+      <div className="relative z-30 max-w-7xl mx-auto px-4 mt-4 md:sticky md:top-16 md:mt-4">
         <motion.div
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
-          className="rounded-[1.75rem] border border-white/50 bg-white/78 p-3 shadow-[0_18px_55px_-30px_rgba(15,23,42,0.45)] backdrop-blur-2xl flex flex-col gap-3 justify-between items-center md:p-4 xl:flex-row xl:gap-4"
+          className="rounded-2xl border border-white/60 bg-white/85 p-2.5 shadow-[0_12px_35px_-24px_rgba(15,23,42,0.4)] backdrop-blur-xl flex flex-col gap-2.5 justify-between items-stretch md:p-3 xl:flex-row xl:items-center xl:gap-3"
         >
           {/* Filters */}
-          <div className="flex flex-wrap items-center gap-2.5 w-full xl:w-auto justify-center md:justify-start">
-            <div className="hidden md:flex items-center gap-2 text-slate-500 text-sm font-bold bg-slate-100/50 px-3 py-2 rounded-xl">
-              <FunnelIcon className="h-4 w-4" /> Filters
-            </div>
-
+          <div className="flex flex-wrap items-center gap-2 w-full xl:w-auto justify-start">
             <select
-              className="min-w-[150px] rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold outline-none transition hover:border-emerald-500 cursor-pointer"
+              className="min-w-[140px] rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-sm font-medium outline-none transition hover:border-emerald-500 cursor-pointer"
               value={selectedLanguage}
               onChange={(e) => setSelectedLanguage(e.target.value)}
             >
@@ -574,7 +570,7 @@ const UserLibrary = () => {
             </select>
 
             <select
-              className="max-w-[220px] rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold outline-none transition hover:border-emerald-500 cursor-pointer"
+              className="max-w-[220px] rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-sm font-medium outline-none transition hover:border-emerald-500 cursor-pointer"
               value={selectedCategory}
               onChange={(e) => setSelectedCategory(e.target.value)}
             >
@@ -587,9 +583,9 @@ const UserLibrary = () => {
           </div>
 
           {/* Controls */}
-          <div className="flex w-full items-center justify-between gap-3 border-t border-slate-200 pt-3 xl:w-auto xl:justify-end xl:border-t-0 xl:pt-0">
+          <div className="flex w-full items-center justify-between gap-3 border-t border-slate-100 pt-2.5 xl:w-auto xl:justify-end xl:border-t-0 xl:pt-0">
             {/* View Toggle */}
-            <div className="flex rounded-2xl bg-slate-100 p-1">
+            <div className="flex rounded-xl bg-slate-100 p-0.5">
               <button
                 onClick={() => setViewMode("grid")}
                 className={`p-1.5 rounded-md transition-all ${
@@ -616,10 +612,10 @@ const UserLibrary = () => {
             </div>
 
             {/* Sort */}
-            <div className="flex items-center gap-2 whitespace-nowrap">
+            <div className="flex items-center gap-1.5 whitespace-nowrap rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5">
               <ArrowsUpDownIcon className="h-4 w-4 text-slate-400" />
               <select
-                className="bg-transparent text-sm font-bold text-slate-700 outline-none cursor-pointer"
+                className="bg-transparent text-sm font-medium text-slate-700 outline-none cursor-pointer"
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
               >

@@ -17,7 +17,8 @@ const TextEditor = ({
   // Page & View Props
   viewMode,           
   totalPages,
-  onPageChange,       
+  onPageChange,
+  suppressAutoPageTracking = false,
   allPagesContent,    
   currentPage
 }) => {
@@ -55,8 +56,8 @@ const TextEditor = ({
             className={`
               rounded-[2px] px-0.5 transition-all duration-300
               ${isActive
-                ? 'bg-orange-500 text-white font-bold shadow-md scale-110 inline-block mx-0.5 ring-2 ring-orange-200'
-                : 'bg-yellow-300 text-black hover:bg-yellow-400'
+                ? 'bg-emerald-600 text-white font-bold shadow-md scale-110 inline-block mx-0.5 ring-2 ring-emerald-200'
+                : 'bg-emerald-200 text-emerald-950 hover:bg-emerald-300'
               }
             `}
           >
@@ -66,6 +67,16 @@ const TextEditor = ({
       }
       return part;
     });
+  };
+
+  const renderPageText = (text, pageNum) => {
+    if (!text) return null;
+
+    return text.split('\n').map((para, index) => (
+      <p key={`${pageNum}-${index}`} className="hover:bg-amber-50/50 transition-colors rounded-lg px-4 -mx-4 py-2">
+        {getHighlightedText(para, pageNum)}
+      </p>
+    ));
   };
 
   // ---------------------------------------------------------
@@ -245,12 +256,12 @@ const TextEditor = ({
   }, []);
 
   return (
-    <div className="flex-1 bg-white border-l border-gray-200 flex flex-col shadow-xl z-10 relative h-full">
+    <div className="flex-1 min-h-0 bg-white border-l border-gray-200 flex flex-col shadow-xl z-10 relative h-full">
       <div
         ref={editorRef}
-        className="w-full h-full p-4 md:p-8 overflow-y-auto outline-none leading-loose text-gray-800 font-serif custom-scrollbar text-right whitespace-pre-wrap selection:bg-indigo-100 selection:text-indigo-800"
+        className="w-full h-full min-h-0 p-4 md:p-8 overflow-y-auto outline-none leading-loose text-gray-800 font-serif custom-scrollbar text-right whitespace-pre-wrap selection:bg-indigo-100 selection:text-indigo-800"
         dir="rtl"
-        style={{ fontSize: `${textSize}px` }}
+        style={{ fontSize: `${textSize}px`, backgroundImage: 'linear-gradient(to bottom, rgba(16,185,129,0.02), rgba(16,185,129,0.01))' }}
       >
         {Object.keys(allPagesContent).length > 0 ? (
           viewMode === 'scroll' ? (
@@ -265,14 +276,14 @@ const TextEditor = ({
                     threshold={0.3} 
                     onChange={(inView) => {
                       // Only trigger page sync if not currently auto-scrolling
-                      if (inView && !isSyncingRef.current) {
+                      if (inView && !isSyncingRef.current && !suppressAutoPageTracking) {
                         onPageChange(pageNum);
                       }
                     }}
                   >
                     {/* Added ID here to enable auto-scrolling to the correct page */}
-                    <div id={`text-page-${pageNum}`} className="relative border-b border-gray-100 pb-10 min-h-[300px]">
-                      <div className="absolute top-0 left-0 text-xs font-bold text-gray-300 select-none bg-gray-50 px-2 py-1 rounded">
+                    <div id={`text-page-${pageNum}`} className={`relative border-b pb-10 min-h-[300px] transition-all ${currentPage === pageNum ? 'border-indigo-300 bg-indigo-50/40 ring-1 ring-inset ring-indigo-200 rounded-xl' : 'border-gray-100'}`}>
+                      <div className={`absolute top-0 left-0 text-xs font-bold select-none px-2 py-1 rounded ${currentPage === pageNum ? 'bg-indigo-100 text-indigo-700' : 'bg-gray-50 text-gray-300'}`}>
                         Page {pageNum}
                       </div>
                       <div className="mt-8">
@@ -288,7 +299,9 @@ const TextEditor = ({
               })}
             </div>
           ) : (
-            <div dangerouslySetInnerHTML={{ __html: textContent || allPagesContent[currentPage] }} />
+            <div className="space-y-6">
+              {renderPageText(textContent || allPagesContent[currentPage] || "", currentPage)}
+            </div>
           )
         ) : (
           <div className="flex flex-col items-center justify-center h-full text-gray-300 select-none">

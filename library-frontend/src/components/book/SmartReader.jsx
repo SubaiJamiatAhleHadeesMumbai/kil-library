@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
+import { ArrowLeft, BookText, FileText, LayoutGrid } from 'lucide-react';
 import Toolbar from './Toolbar';
 import PdfViewer from './PdfViewer';
 import TextEditor from './TextEditor';
@@ -8,12 +10,15 @@ const SmartReader = ({
   pdfUrl, 
   txtUrl, 
   onClose, 
+  onBackToSearch,
   initialPage = 1, 
   initialSearchText = "" 
 }) => {
+  
+  const [isMobile, setIsMobile] = useState(() => (typeof window !== 'undefined' ? window.innerWidth < 768 : false));
   // Shared States
-  const [layoutMode, setLayoutMode] = useState('split'); 
-  const [viewMode, setViewMode] = useState('scroll'); 
+  const [layoutMode, setLayoutMode] = useState(() => (typeof window !== 'undefined' && window.innerWidth < 768 ? 'pdf' : 'split')); 
+  const [viewMode, setViewMode] = useState(() => (typeof window !== 'undefined' && window.innerWidth < 768 ? 'single' : 'scroll')); 
   
   // ✅ States ko initial props se start karwaya hai
   const [currentPage, setCurrentPage] = useState(initialPage);
@@ -29,14 +34,64 @@ const SmartReader = ({
   // Text Data State
   const [allPagesContent, setAllPagesContent] = useState({});
   const [isLoadingText, setIsLoadingText] = useState(false);
+  const [pendingLandingPage, setPendingLandingPage] = useState(() => (initialPage > 1 ? initialPage : null));
+  const [isLandingLocked, setIsLandingLocked] = useState(() => initialPage > 1 || Boolean(initialSearchText));
+  const [pdfReady, setPdfReady] = useState(() => !pdfUrl);
+  const [textReady, setTextReady] = useState(() => !txtUrl);
 
   const pageInputRef = useRef(null);
+
+  useEffect(() => {
+    const shouldLock = initialPage > 1 || Boolean(initialSearchText);
+    setPendingLandingPage(initialPage > 1 ? initialPage : null);
+    setIsLandingLocked(shouldLock);
+    setPdfReady(!pdfUrl);
+    setTextReady(!txtUrl);
+    setCurrentPage(initialPage);
+  }, [initialPage, initialSearchText, pdfUrl, txtUrl]);
+
+  useEffect(() => {
+    if (!isLandingLocked) return;
+    if (pendingLandingPage !== null) return;
+
+    const needsPdf = Boolean(pdfUrl) && (layoutMode === 'pdf' || layoutMode === 'split');
+    const needsText = Boolean(txtUrl) && (layoutMode === 'text' || layoutMode === 'split');
+
+    const pdfSettled = !needsPdf || pdfReady;
+    const textSettled = !needsText || textReady;
+
+    if (pdfSettled && textSettled) {
+      setIsLandingLocked(false);
+    }
+  }, [isLandingLocked, pendingLandingPage, layoutMode, pdfUrl, txtUrl, pdfReady, textReady]);
+
+  useEffect(() => {
+    setSearchText(initialSearchText || "");
+  }, [initialSearchText]);
+
+  useEffect(() => {
+    const onResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
+
+  useEffect(() => {
+    if (isMobile) {
+      if (layoutMode === 'split') setLayoutMode('pdf');
+      if (viewMode !== 'single') setViewMode('single');
+    }
+  }, [isMobile, layoutMode, viewMode]);
 
   // ---------------------------------------------------------
   // 1. FETCH & SPLIT TEXT BY DELIMITERS 
   // ---------------------------------------------------------
   useEffect(() => {
-    if (!txtUrl) return;
+    if (!txtUrl) {
+      setTextReady(true);
+      return;
+    }
+
+    setTextReady(false);
     const fetchText = async () => {
       setIsLoadingText(true);
       try {
@@ -55,6 +110,7 @@ const SmartReader = ({
       } catch (error) {
         console.error("Failed to load text:", error);
       } finally {
+        setTextReady(true);
         setIsLoadingText(false);
       }
     };
@@ -104,8 +160,10 @@ const SmartReader = ({
         if (targetMatchIndex !== -1) {
           setCurrentMatchIndex(targetMatchIndex);
         } else {
+          // Keep externally selected deep-search page stable.
+          // Only highlight first available match index when current page has no local match.
           setCurrentMatchIndex(0);
-          setCurrentPage(matches[0].page); 
+          setCurrentPage(matches[0].page);
         }
       } else {
         setCurrentMatchIndex(-1);
@@ -121,6 +179,7 @@ const SmartReader = ({
   // ---------------------------------------------------------
   const handleNextMatch = () => {
     if (globalMatches.length === 0) return;
+    setIsLandingLocked(false);
     const nextIndex = (currentMatchIndex + 1) % globalMatches.length;
     setCurrentMatchIndex(nextIndex);
     setCurrentPage(globalMatches[nextIndex].page); 
@@ -128,13 +187,27 @@ const SmartReader = ({
 
   const handlePrevMatch = () => {
     if (globalMatches.length === 0) return;
+    setIsLandingLocked(false);
     const prevIndex = currentMatchIndex === 0 ? globalMatches.length - 1 : currentMatchIndex - 1;
     setCurrentMatchIndex(prevIndex);
     setCurrentPage(globalMatches[prevIndex].page); 
   };
 
+  const handleSearchChange = (value) => {
+    setIsLandingLocked(false);
+    setSearchText(value);
+  };
+
+  const clearSearch = () => {
+    setIsLandingLocked(false);
+    setSearchText('');
+    setGlobalMatches([]);
+    setCurrentMatchIndex(-1);
+  };
+
   const handlePageSubmit = (e) => {
     if (e.key === 'Enter') {
+      setIsLandingLocked(false);
       const page = Math.max(1, Math.min(totalPages, parseInt(e.target.value) || 1));
       setCurrentPage(page);
       e.target.value = '';
@@ -142,77 +215,127 @@ const SmartReader = ({
     }
   };
 
-  return (
-    <div className="fixed inset-0 z-[200] bg-white flex flex-col h-screen w-screen overflow-hidden">
-      {/* Top Header / Toolbar */}
+  const handleAutoPageChange = (pageNumber) => {
+    if (isLandingLocked) return;
+    setCurrentPage(pageNumber);
+  };
+
+  const handleLandingResolved = (landedPage) => {
+    if (pendingLandingPage === null) return;
+    if (landedPage !== pendingLandingPage) return;
+
+    setPendingLandingPage(null);
+    window.setTimeout(() => {
+      setIsLandingLocked(false);
+    }, 200);
+  };
+
+  const readerContent = (
+    <div className="fixed inset-0 z-[10080] bg-white flex flex-col min-h-0 h-screen w-screen overflow-hidden">
+      <div className="flex items-center justify-between gap-3 border-b border-slate-200 bg-white/95 px-3 py-3 backdrop-blur md:px-4">
+        <div className="flex min-w-0 items-center gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              if (onBackToSearch) {
+                onBackToSearch();
+                return;
+              }
+              onClose?.();
+            }}
+            className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-100"
+            title="Back to search"
+          >
+            <ArrowLeft size={16} />
+            <span className="hidden sm:inline">Back to Search</span>
+            <span className="sm:hidden">Back</span>
+          </button>
+          <div className="hidden min-w-0 flex-col sm:flex">
+            <span className="truncate text-[11px] font-bold uppercase tracking-[0.3em] text-slate-400">Smart Reader</span>
+            <span className="truncate text-sm font-semibold text-slate-800">Page {currentPage} of {totalPages}</span>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50 p-1 shadow-sm">
+          <button
+            type="button"
+            onClick={() => setLayoutMode('pdf')}
+            className={`inline-flex items-center gap-1.5 rounded-full px-3 py-2 text-xs font-semibold transition ${layoutMode === 'pdf' ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
+            title="PDF only"
+          >
+            <FileText size={14} />
+            <span className="hidden sm:inline">PDF Only</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setLayoutMode('text')}
+            className={`inline-flex items-center gap-1.5 rounded-full px-3 py-2 text-xs font-semibold transition ${layoutMode === 'text' ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
+            title="TXT only"
+            disabled={!txtUrl}
+          >
+            <BookText size={14} />
+            <span className="hidden sm:inline">TXT Only</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setLayoutMode('split')}
+            className={`inline-flex items-center gap-1.5 rounded-full px-3 py-2 text-xs font-semibold transition ${layoutMode === 'split' ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
+            title="Both PDF and TXT"
+            disabled={!pdfUrl || !txtUrl}
+          >
+            <LayoutGrid size={14} />
+            <span className="hidden sm:inline">Both</span>
+          </button>
+        </div>
+      </div>
+
       <Toolbar 
-        pdfUrl={pdfUrl}
-        currentPage={currentPage}
-        totalPages={totalPages}
-        
-        // Search Props
         searchText={searchText}
-        setSearchText={setSearchText}
+        onSearchChange={handleSearchChange}
+        searchCount={globalMatches.length}
+        activeSearchIndex={currentMatchIndex}
+        onSearchPrev={handlePrevMatch}
+        onSearchNext={handleNextMatch}
+        onClearSearch={clearSearch}
+        viewMode={viewMode}
+        onPageChange={handleAutoPageChange}
+        pdfComponent={(
+          <PdfViewer 
+            pdfUrl={pdfUrl}
+            isMobile={isMobile}
+            viewMode={viewMode}
+            scale={scale}
+            setScale={setScale}
+            totalPages={totalPages}
+            setTotalPages={setTotalPages}
+            currentPage={currentPage}
+            setCurrentPage={setCurrentPage}
+            onAutoPageChange={handleAutoPageChange}
+            suppressAutoPageTracking={isLandingLocked}
+            onDocumentReady={() => setPdfReady(true)}
+            onDocumentError={() => setPdfReady(true)}
+            onLandingResolved={handleLandingResolved}
+            searchText={searchText}
+          />
+        )}
+        textContent={allPagesContent[currentPage] || ""}
+        allPagesContent={allPagesContent}
+        isLoading={isLoadingText}
+        layoutMode={layoutMode}
+        suppressAutoPageTracking={isLandingLocked}
         globalMatches={globalMatches}
         currentMatchIndex={currentMatchIndex}
-        isIndexing={isIndexing}
-        onNextMatch={handleNextMatch}
-        onPrevMatch={handlePrevMatch}
-        
-        pageInputRef={pageInputRef}
-        viewMode={viewMode}
-        setViewMode={setViewMode}
-        layoutMode={layoutMode}
-        setLayoutMode={setLayoutMode}
-        handlePageSubmit={handlePageSubmit}
-        onNextPage={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-        onPrevPage={() => setCurrentPage(p => Math.max(1, p - 1))}
-        onClose={onClose}
+        totalPages={totalPages}
+        currentPage={currentPage}
       />
-
-      {/* Main Content Area */}
-      <div className="flex-1 flex w-full h-[calc(100vh-64px)] overflow-hidden bg-gray-100">
-        
-        {/* PDF VIEWER SECTION */}
-        {(layoutMode === 'split' || layoutMode === 'pdf') && (
-          <div className={`${layoutMode === 'split' ? 'w-1/2' : 'w-full'} h-full border-r border-gray-300`}>
-            <PdfViewer 
-              pdfUrl={pdfUrl}
-              viewMode={viewMode}
-              scale={scale}
-              setScale={setScale}
-              totalPages={totalPages}
-              setTotalPages={setTotalPages}
-              currentPage={currentPage}
-              setCurrentPage={setCurrentPage} 
-            />
-          </div>
-        )}
-
-        {/* TEXT EDITOR SECTION */}
-        {(layoutMode === 'split' || layoutMode === 'text') && (
-          <div className={`${layoutMode === 'split' ? 'w-1/2' : 'w-full'} h-full`}>
-            <TextEditor 
-              textContent={allPagesContent[currentPage] || ""}
-              textSize={18}
-              isLoading={isLoadingText}
-              pdfUrl={pdfUrl}
-              searchText={searchText}
-              viewMode={viewMode}
-              totalPages={totalPages}
-              onPageChange={setCurrentPage} 
-              allPagesContent={allPagesContent}
-              
-              // Search Highlights Props
-              globalMatches={globalMatches}
-              currentMatchIndex={currentMatchIndex}
-              currentPage={currentPage}
-            />
-          </div>
-        )}
-      </div>
     </div>
   );
+
+  if (typeof document === 'undefined') {
+    return readerContent;
+  }
+
+  return createPortal(readerContent, document.body);
 };
 
 export default SmartReader;

@@ -47,6 +47,13 @@ const BookCardSkeleton = () => {
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || (import.meta.env.PROD ? "https://kil2-backend.onrender.com" : "http://127.0.0.1:8000");
 
+const resolveImageUrl = (value) => {
+  if (!value) return "";
+  if (typeof value === "string" && value.startsWith("http")) return value;
+  const path = String(value);
+  return `${API_BASE_URL}${path.startsWith("/") ? path : `/${path}`}`;
+};
+
 const getBookImage = (book) => {
   const rawUrl = book?.cover_image_url || book?.cover_image;
   if (!rawUrl) return "https://via.placeholder.com/240x320?text=No+Cover";
@@ -157,9 +164,11 @@ const PublicHome = () => {
   const [books, setBooks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showSuccess, setShowSuccess] = useState(false);
-  const [homepageSettings, setHomepageSettings] = useState({ theme: 'aurora', sections: {}, layout: {} });
+  const [homepageSettings, setHomepageSettings] = useState(null);
+  const [homepageSettingsLoaded, setHomepageSettingsLoaded] = useState(false);
   const [dynamicCategories, setDynamicCategories] = useState([]);  // ✅ Dynamic Categories from DB
   const [galleryImages, setGalleryImages] = useState([]);  // ✅ Gallery Images
+  const [aboutContent, setAboutContent] = useState({ hero: {}, intro: {}, display: {} });
 
   // Filters
   const [sortBy, setSortBy] = useState("newest");
@@ -359,26 +368,35 @@ const PublicHome = () => {
         setHomepageSettings(data || { theme: 'aurora', sections: {}, layout: {} });
       } catch (error) {
         console.error('Unable to load homepage settings', error);
+      } finally {
+        setHomepageSettingsLoaded(true);
       }
     };
 
     loadSettings();
   }, []);
 
-  // ✅ NEW: Fetch gallery images from about settings
+  // ✅ NEW: Fetch about content and gallery images from about settings
   useEffect(() => {
-    const loadGallery = async () => {
+    const loadAboutContent = async () => {
       try {
         const aboutData = await aboutService.getAboutSettings();
         const gallery = Array.isArray(aboutData?.gallery) ? aboutData.gallery : [];
-        setGalleryImages(gallery.filter(img => img.image_url));
+        setGalleryImages(gallery.filter((img) => img.image_url));
+        setAboutContent({
+          hero: aboutData?.hero || {},
+          intro: aboutData?.intro || {},
+          display: aboutData?.display || {},
+          gallery,
+        });
       } catch (error) {
-        console.warn('⚠️ Could not load gallery images:', error);
+        console.warn('⚠️ Could not load about content:', error);
         setGalleryImages([]);
+        setAboutContent({ hero: {}, intro: {}, display: {}, gallery: [] });
       }
     };
 
-    loadGallery();
+    loadAboutContent();
   }, []);
 
   // --- 7) AUTO-SEARCH EFFECT (from other pages) ---
@@ -586,9 +604,10 @@ const PublicHome = () => {
       gallery: 4,
       fatawa: 5,
       about: 6,
-      catalog: 7,
-      posts: 8,
-      donation: 9,
+      education_social_activity: 7,
+      catalog: 8,
+      posts: 9,
+      donation: 10,
     };
 
     return Object.keys(defaults)
@@ -623,6 +642,16 @@ const PublicHome = () => {
 
   // --- LOADING SCREEN FOR ADMIN REDIRECT ---
   if (authLoading) return null; // Or a spinner
+  if (!homepageSettingsLoaded) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <div className="rounded-[2rem] border border-slate-200 bg-white px-8 py-10 text-center shadow-sm">
+          <div className="mx-auto h-10 w-10 animate-spin rounded-full border-4 border-slate-200 border-t-[#002147]" />
+          <p className="mt-4 text-sm font-semibold text-slate-600">Loading homepage content...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={`min-h-screen animate-in fade-in duration-500 ${themeClasses.shell} ${themeClasses.background} ${themeClasses.heading}`}>
@@ -807,26 +836,52 @@ const PublicHome = () => {
 
             if (key === 'fatawa' && getSectionConfig('fatawa', { enabled: false }).enabled !== false) {
               const fatawaConfig = getSectionConfig('fatawa', {});
+              const stats = [
+                { label: 'Answered', value: '2' },
+                { label: 'Private', value: '0' },
+                { label: 'Categories', value: '0' },
+              ];
               return (
                 <div key="fatawa" className="app-shell-container pb-5 sm:pb-12">
                   <div className={`${sectionFrameClass}`}>
                     <div className="mb-6 flex items-end justify-between gap-3">
                       <div>
                         <p className="eyebrow" style={{ color: accentColor }}>{fatawaConfig.title || 'Fatawa Q&A'}</p>
-                        <h3 className="section-title text-slate-900">{fatawaConfig.subtitle || 'Islamic Q&A'}</h3>
+                        <h3 className="section-title text-slate-900">{fatawaConfig.subtitle || 'Structured fatwa questions with fast search and clear answers.'}</h3>
                       </div>
                     </div>
-                    <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-2xl p-8 sm:p-12 text-center border border-blue-200">
-                      <div className="text-6xl mb-4">❓</div>
-                      <p className="text-slate-700 mb-6 text-lg">{fatawaConfig.description || 'Get answers to your Islamic questions from our fatawa database.'}</p>
-                      <button
-                        onClick={() => navigate('/fatawa')}
-                        className="inline-flex items-center gap-2 px-6 py-3 rounded-lg font-semibold text-white transition-all"
-                        style={{ backgroundColor: accentColor }}
-                      >
-                        Explore Fatawa
-                        <span>→</span>
-                      </button>
+                    <div className="rounded-[1.75rem] border border-blue-200 bg-gradient-to-br from-blue-50 via-cyan-50 to-white p-6 sm:p-8 lg:p-10">
+                      <div className="grid gap-6 lg:grid-cols-[1.15fr_0.85fr] lg:items-center">
+                        <div>
+                          <p className="text-lg leading-8 text-slate-700">
+                            Browse public answered questions, keep private questions private, and ask with or without your name. Related books are linked by category for quick follow-up reading.
+                          </p>
+                          <div className="mt-5 flex flex-wrap gap-3">
+                            <button
+                              onClick={() => navigate('/fatawa')}
+                              className="inline-flex items-center gap-2 rounded-full px-5 py-3 text-sm font-semibold text-white transition-all hover:opacity-90"
+                              style={{ backgroundColor: accentColor }}
+                            >
+                              Ask Your Question
+                              <span>→</span>
+                            </button>
+                            <button
+                              onClick={() => navigate('/books')}
+                              className="inline-flex items-center gap-2 rounded-full border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition-all hover:border-slate-400 hover:bg-slate-50"
+                            >
+                              Browse Library
+                            </button>
+                          </div>
+                        </div>
+                        <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1 xl:grid-cols-3">
+                          {stats.map((item) => (
+                            <div key={item.label} className="rounded-2xl border border-white/80 bg-white/80 p-4 shadow-sm">
+                              <p className="text-[11px] font-bold uppercase tracking-[0.25em] text-slate-400">{item.label}</p>
+                              <p className="mt-2 text-2xl font-black text-slate-900">{item.value}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -835,26 +890,76 @@ const PublicHome = () => {
 
             if (key === 'about' && getSectionConfig('about', { enabled: false }).enabled !== false) {
               const aboutConfig = getSectionConfig('about', {});
+              const aboutHeroImage = resolveImageUrl(aboutContent?.hero?.image_url);
+              const introDescription = aboutContent?.intro?.description || aboutConfig.description || 'Learn more about our library and mission.';
+              const introParagraphs = Array.isArray(aboutContent?.intro?.paragraphs) ? aboutContent.intro.paragraphs.filter(Boolean) : [];
               return (
                 <div key="about" className="app-shell-container pb-5 sm:pb-12">
                   <div className={`${sectionFrameClass}`}>
                     <div className="mb-6 flex items-end justify-between gap-3">
                       <div>
                         <p className="eyebrow" style={{ color: accentColor }}>{aboutConfig.title || 'About Page'}</p>
-                        <h3 className="section-title text-slate-900">{aboutConfig.subtitle || 'Learn about our library'}</h3>
+                        <h3 className="section-title text-slate-900">{aboutContent?.intro?.title || aboutConfig.subtitle || 'Learn about our library'}</h3>
                       </div>
                     </div>
-                    <div className="bg-gradient-to-br from-slate-50 to-slate-100 rounded-2xl p-8 sm:p-12 text-center">
-                      <div className="text-6xl mb-4">📚</div>
-                      <p className="text-slate-700 mb-6 text-lg">{aboutConfig.description || 'Learn more about our library and mission.'}</p>
-                      <button
-                        onClick={() => navigate('/about')}
-                        className="inline-flex items-center gap-2 px-6 py-3 rounded-lg font-semibold text-white transition-all"
-                        style={{ backgroundColor: accentColor }}
-                      >
-                        Learn More
-                        <span>→</span>
-                      </button>
+                    <div className="grid gap-6 overflow-hidden rounded-[1.75rem] border border-slate-200 bg-slate-50 lg:grid-cols-[1.05fr_0.95fr]">
+                      <div className="p-6 sm:p-8">
+                        <p className="text-lg leading-8 text-slate-700">{introDescription}</p>
+                        {introParagraphs.slice(0, 2).map((paragraph, index) => (
+                          <p key={`${paragraph}-${index}`} className="mt-4 text-sm leading-7 text-slate-600">
+                            {paragraph}
+                          </p>
+                        ))}
+                        <button
+                          onClick={() => navigate('/about')}
+                          className="mt-6 inline-flex items-center gap-2 rounded-full px-5 py-3 text-sm font-semibold text-white transition-all hover:opacity-90"
+                          style={{ backgroundColor: accentColor }}
+                        >
+                          Learn More
+                          <span>→</span>
+                        </button>
+                      </div>
+                      <div className="min-h-[260px] bg-slate-100">
+                        {aboutHeroImage ? (
+                          <img src={aboutHeroImage} alt={aboutContent?.hero?.title || 'About the library'} className="h-full w-full object-cover" loading="lazy" />
+                        ) : (
+                          <div className="flex h-full min-h-[260px] items-center justify-center bg-gradient-to-br from-[#002147] via-[#0f4c81] to-cyan-700 px-6 text-center text-white">
+                            <div>
+                              <p className="text-xs font-bold uppercase tracking-[0.3em] text-cyan-100/80">Markaz</p>
+                              <h4 className="mt-3 text-2xl font-black">Library, learning, and community</h4>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            }
+
+            if (key === 'education_social_activity' && getSectionConfig('education_social_activity', { enabled: false }).enabled !== false) {
+              const educationConfig = getSectionConfig('education_social_activity', {});
+              const cards = [
+                { title: 'Education', description: 'Knowledge-based learning programs, seminars, and public guidance for students and families.' },
+                { title: 'Social Work', description: 'Community welfare efforts, support initiatives, and outreach rooted in compassion and service.' },
+                { title: 'Activities', description: 'Events, gatherings, and educational activities that keep the community engaged and connected.' },
+              ];
+              return (
+                <div key="education_social_activity" className="app-shell-container pb-5 sm:pb-12">
+                  <div className={`${sectionFrameClass}`}>
+                    <div className="mb-6 flex items-end justify-between gap-3">
+                      <div>
+                        <p className="eyebrow" style={{ color: accentColor }}>{educationConfig.title || 'Education, Social & Activity'}</p>
+                        <h3 className="section-title text-slate-900">{educationConfig.subtitle || 'Community learning, service, and engagement'}</h3>
+                      </div>
+                    </div>
+                    <div className="grid gap-4 md:grid-cols-3">
+                      {cards.map((card) => (
+                        <div key={card.title} className="rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm">
+                          <h4 className="text-lg font-black text-slate-900">{card.title}</h4>
+                          <p className="mt-2 text-sm leading-7 text-slate-600">{card.description}</p>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 </div>

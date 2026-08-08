@@ -66,6 +66,7 @@ const getSafeName = (value, fallback = "N/A") => {
 const BookDetailsModal = ({ 
   book, 
   onClose, 
+  onBackToSearch,
   startView = "details",
   autoOpenReader = false,       // Deep search se aaya hai toh true hoga
   initialPage = 1,              // Deep search ka page number
@@ -154,7 +155,7 @@ const BookDetailsModal = ({
       toast.error("No digital format available to read.");
       return;
     }
-    setShowSmartReader(true); 
+    setShowSmartReader(true);
   };
 
   const handleReadTextClick = async () => {
@@ -162,7 +163,7 @@ const BookDetailsModal = ({
       toast.error("No digital format available to read.");
       return;
     }
-    setShowSmartReader(true); 
+    setShowSmartReader(true);
   };
 
   if (!book) return null;
@@ -175,9 +176,15 @@ const BookDetailsModal = ({
   if (showSmartReader) {
     return (
       <SmartReader 
+        key={`${book?.id || 'book'}-${initialPage}-${initialSearchQuery}`}
         pdfUrl={pdfUrl} 
         txtUrl={txtUrl} 
         onClose={() => setShowSmartReader(false)} 
+        onBackToSearch={() => {
+          setShowSmartReader(false);
+          handleClose();
+          onBackToSearch?.();
+        }}
         initialPage={initialPage}                  // Pass page number
         initialSearchText={initialSearchQuery}     // Pass keyword for highlighting
       />

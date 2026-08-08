@@ -83,23 +83,30 @@ def get_default_homepage_settings():
                 "subtitle": "Library identity and story",
                 "description": "Public about page link visibility",
             },
-            "catalog": {
+            "education_social_activity": {
                 "enabled": True,
                 "order": 7,
+                "title": "Education, Social & Activity",
+                "subtitle": "Community learning, service, and engagement",
+                "description": "Community education and social service section visibility",
+            },
+            "catalog": {
+                "enabled": True,
+                "order": 8,
                 "title": "Explore the Library",
                 "subtitle": "Browse the full collection",
                 "description": "Main book browsing grid",
             },
             "posts": {
                 "enabled": True,
-                "order": 8,
+                "order": 9,
                 "title": "Latest Announcements",
                 "subtitle": "News and updates",
                 "description": "News and latest updates",
             },
             "donation": {
                 "enabled": True,
-                "order": 9,
+                "order": 10,
                 "title": "Support the Library",
                 "subtitle": "Help the library grow",
                 "description": "Support and donation block",

@@ -23,7 +23,7 @@ const ReadBook = () => {
     // --- State Management ---
     const [book, setBook] = useState(null);
     const [loading, setLoading] = useState(true);
-    const [viewMode, setViewMode] = useState('pdf'); // 'pdf' | 'text'
+    const [viewMode, setViewMode] = useState('text'); // 'pdf' | 'text'
     
     // Research Toolkit States
     const [isBookmarked, setIsBookmarked] = useState(false);
@@ -83,9 +83,15 @@ const ReadBook = () => {
                     console.warn("Could not store recent read:", storageError);
                 }
 
-                // C. Default to PDF URL fix
+                // C. Prefer text mode when TXT exists so mobile users can read smoothly without PDF scrolling issues
                 if (!bookData.pdf_url && !bookData.pdf_file) {
                     toast.error("No reading material available.");
+                }
+
+                if (bookData?.txt_file_url || bookData?.txt_file) {
+                    setViewMode('text');
+                } else {
+                    setViewMode('pdf');
                 }
 
             } catch (err) {
@@ -209,11 +215,11 @@ const ReadBook = () => {
             </header>
 
             {/* ================= MAIN CONTENT AREA ================= */}
-            <div className="flex-1 relative bg-slate-200/50 overflow-hidden">
+            <div className="flex-1 relative bg-slate-100 overflow-hidden">
                 
                 {/* --- MODE A: PDF VIEWER --- */}
                 {viewMode === 'pdf' && (
-                    <div className="w-full h-full flex flex-col items-center justify-center">
+                    <div className="w-full h-full flex flex-col">
                         {(book?.pdf_url || book?.pdf_file) ? (
                             <PdfViewer 
                                 pdfUrl={getPdfUrl(book.pdf_url || book.pdf_file)}
@@ -236,8 +242,8 @@ const ReadBook = () => {
 
                 {/* --- MODE B: TEXT RESEARCHER --- */}
                 {viewMode === 'text' && (
-                    <div className="w-full h-full overflow-y-auto custom-scrollbar p-4 md:p-8 flex justify-center">
-                        <div className="max-w-3xl w-full bg-white min-h-full shadow-xl rounded-xl p-8 md:p-12 border border-slate-200">
+                    <div className="w-full h-full overflow-y-auto custom-scrollbar p-0 md:p-0 flex">
+                        <div className="w-full min-h-full bg-white p-6 md:p-10 border-0 rounded-none shadow-none">
                             
                             {/* Text Header */}
                             <div className="flex justify-between items-end mb-8 border-b pb-4">
