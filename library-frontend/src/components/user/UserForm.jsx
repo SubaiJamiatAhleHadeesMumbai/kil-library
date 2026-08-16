@@ -1,271 +1,303 @@
 // src/components/user/UserForm.jsx
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
+import { 
+    UserIcon,
+    EnvelopeIcon,
+    KeyIcon,
+    ShieldCheckIcon, 
+    ExclamationTriangleIcon,
+    EyeIcon,
+    EyeSlashIcon,
+    ArrowPathIcon,
+    CheckIcon,
+    UserCircleIcon
+} from '@heroicons/react/24/outline';
 import { userService } from '../../api/userService';
 
-// Spinner Icon
-const SpinnerIcon = ({ className = "text-white" }) => (
-    <svg className={`animate-spin -ml-0.5 mr-2 h-4 w-4 ${className}`} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-    </svg>
-);
+const inputBase = 
+    'w-full bg-slate-50/80 border border-slate-200 rounded-xl pl-10 pr-4 py-2.5 text-xs font-semibold text-slate-800 placeholder:text-slate-400 placeholder:font-normal outline-none transition-all duration-200 focus:bg-white focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500/20 disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed';
 
-const UserForm = ({ 
-    onSubmitSuccess, 
-    onError,        
-    onCancel,       
-    initialData = null, 
-    isEditing = false, 
-    roles = [] 
+const selectBase = 
+    'w-full bg-slate-50/80 border border-slate-200 rounded-xl px-4 py-2.5 text-xs font-semibold text-slate-800 placeholder:text-slate-400 outline-none transition-all duration-200 focus:bg-white focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500/20 disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed';
+
+/**
+ * 🌟 Ultra-Modern UserForm Component with Generous Modal Padding
+ */
+const UserForm = ({
+    initialData = null,
+    roles = [],
+    isEditing = false,
+    onError = () => {},
+    onSubmitSuccess = () => {},
+    onCancel = () => {}
 }) => {
+    const [formData, setFormData] = useState({
+        username: '',
+        email: '',
+        full_name: '',
+        password: '',
+        role_id: '',
+        status: 'Active'
+    });
 
-    // --- Safety Checks ---
-    const safeOnError = onError || ((msg) => console.error("Error:", msg));
-    const safeOnSuccess = onSubmitSuccess || (() => console.log("Success"));
-    const safeOnCancel = onCancel || (() => {});
+    const [showPassword, setShowPassword] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [formError, setFormError] = useState('');
 
-    // --- State ---
-    const getInitialState = useCallback(() => ({
-        username: initialData?.username || '',
-        email: initialData?.email || '',
-        full_name: initialData?.full_name || initialData?.fullName || '', 
-        password: '', 
-        // Normalize role id to string to avoid controlled/uncontrolled warnings
-        role_id: initialData?.role?.id != null ? String(initialData.role.id) : (initialData?.role_id != null ? String(initialData.role_id) : ''),
-        status: initialData?.status || 'Active', 
-    }), [initialData]);
-
-    const [formData, setFormData] = useState(getInitialState());
-    const [passwordConfirm, setPasswordConfirm] = useState('');
-    const [isLoading, setIsLoading] = useState(false);
-    
     useEffect(() => {
-        setFormData(getInitialState());
-        setPasswordConfirm('');
-    }, [initialData, getInitialState]);
+        if (initialData) {
+            setFormData({
+                username: initialData.username || '',
+                email: initialData.email || '',
+                full_name: initialData.full_name || '',
+                password: '',
+                role_id: initialData.role_id || initialData.role?.id || '',
+                status: initialData.status || 'Active'
+            });
+        }
+    }, [initialData]);
 
-    // --- Handlers ---
     const handleChange = (e) => {
         const { name, value } = e.target;
-        setFormData((prev) => ({ ...prev, [name]: value }));
+        setFormData(prev => ({ ...prev, [name]: value }));
+        if (formError) setFormError('');
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        setIsLoading(true);
-        // Clear previous errors via safe handler
-        safeOnError(null);
-        
-        // --- Validation ---
-        if (!formData.username || !formData.email || !formData.role_id) {
-            safeOnError("Username, Email, and Role are required.");
-            setIsLoading(false);
-            return;
-        }
+        setFormError('');
+        setIsSubmitting(true);
 
-        // Password Validation
-        if (!isEditing) { 
-            // Create Mode: Password is Mandatory
-            if (!formData.password || formData.password.length < 8) {
-                safeOnError("Password is required and must be at least 8 characters.");
-                setIsLoading(false);
-                return;
-            }
-            if (formData.password !== passwordConfirm) {
-                safeOnError("Passwords do not match.");
-                setIsLoading(false);
-                return;
-            }
-        } else { 
-            // Edit Mode: Password is Optional, but if provided, must match rules
-             if (formData.password) {
-                if (formData.password.length < 8) {
-                    safeOnError("New password must be at least 8 characters.");
-                    setIsLoading(false);
-                    return;
-                }
-                if (formData.password !== passwordConfirm) {
-                    safeOnError("Passwords do not match.");
-                    setIsLoading(false);
-                    return;
-                }
-             }
-        }
-
-        // --- API Call ---
         try {
-            if (isEditing) {
-                // ✅ Update Logic
-                const payload = {
-                    username: formData.username, // Allow username updates if backend permits
-                    email: formData.email,       // Allow email updates
-                    full_name: formData.full_name,
-                    role_id: parseInt(formData.role_id, 10),
-                    status: formData.status,
-                };
-                
-                // Only include password if user typed one
-                if (formData.password) {
-                     payload.password = formData.password;
-                }
+            if (!formData.username.trim()) throw new Error('Username is required.');
+            if (!formData.email.trim()) throw new Error('Email address is required.');
+            if (!isEditing && !formData.password) throw new Error('Password is required for new accounts.');
 
-                console.log("Updating User:", payload); // Debugging
-                const updatedUser = await userService.updateUser(initialData.id, payload);
-                safeOnSuccess(updatedUser); 
+            const payload = {
+                username: formData.username.trim(),
+                email: formData.email.trim(),
+                full_name: formData.full_name.trim(),
+                status: formData.status,
+            };
 
-            } else {
-                // ✅ Create Logic
-                const payload = {
-                    username: formData.username,
-                    email: formData.email,
-                    password: formData.password,
-                    full_name: formData.full_name || null,
-                    role_id: parseInt(formData.role_id, 10),
-                };
-                console.log("Creating User:", payload); // Debugging
-                const newUser = await userService.createUser(payload);
-                safeOnSuccess(newUser); 
+            if (formData.role_id) {
+                payload.role_id = Number(formData.role_id);
             }
+
+            if (formData.password) {
+                payload.password = formData.password;
+            }
+
+            if (isEditing && initialData?.id) {
+                await userService.updateUser(initialData.id, payload);
+            } else {
+                await userService.createUser(payload);
+            }
+
+            onSubmitSuccess();
         } catch (err) {
-            console.error("UserForm submit error:", err);
-            // Show the exact error message from backend (e.g. "Email already registered")
-            const errorMsg = err.detail || err.message || "An unexpected error occurred.";
-            safeOnError(errorMsg);
+            console.error('User Form Error:', err);
+            const msg = err.response?.data?.detail || err.message || 'Failed to save user identity.';
+            setFormError(msg);
+            onError(msg);
         } finally {
-            setIsLoading(false);
+            setIsSubmitting(false);
         }
     };
 
-    // --- Tailwind Classes ---
-    const inputClass = "block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm disabled:opacity-50 disabled:bg-gray-100";
-    const labelClass = "block text-sm font-medium text-gray-700 mb-1";
-    const buttonClass = `inline-flex items-center justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50`;
-    const primaryButtonClass = `${buttonClass} bg-indigo-600 hover:bg-indigo-700 focus:ring-indigo-500`;
-    const secondaryButtonClass = `inline-flex items-center justify-center py-2 px-4 border border-gray-300 shadow-sm text-sm font-medium rounded-md bg-white text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50`;
-
     return (
-        <form onSubmit={handleSubmit} className="space-y-4"> 
-            {/* Show User ID in User Information section when available */}
-            {initialData?.id && (
-                <div>
-                    <label className={labelClass}>User ID</label>
-                    <input type="text" value={String(initialData.id)} readOnly className={`${inputClass} bg-gray-100`} />
+        /* ✅ Fixed Modal Padding (pt-6 pb-6 px-6 sm:px-8) */
+        <form onSubmit={handleSubmit} className="space-y-6 pt-6 pb-6 px-6 sm:px-8">
+            
+            {/* Error Banner */}
+            {formError && (
+                <div className="p-3 bg-rose-50 border border-rose-200 rounded-2xl flex items-center gap-3 text-rose-700 text-xs font-bold animate-in fade-in duration-200">
+                    <ExclamationTriangleIcon className="w-5 h-5 text-rose-600 flex-shrink-0" />
+                    <span>{formError}</span>
                 </div>
             )}
 
-            <div className="grid grid-cols-1 gap-y-4 gap-x-4 sm:grid-cols-2">
+            {/* Read-Only Security ID Banner */}
+            {isEditing && initialData?.id && (
+                <div className="flex items-center justify-between p-3 bg-indigo-50/60 rounded-2xl border border-indigo-100 text-xs">
+                    <div className="flex items-center gap-2 text-indigo-700 font-bold">
+                        <ShieldCheckIcon className="w-4 h-4 text-indigo-600" />
+                        <span>SECURITY ACCESS ID</span>
+                    </div>
+                    <span className="font-mono font-black text-indigo-950 bg-white px-2.5 py-0.5 rounded-lg border border-indigo-200 shadow-2xs">
+                        #{String(initialData.id).padStart(3, '0')}
+                    </span>
+                </div>
+            )}
+
+            {/* Form Fields Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                 
                 {/* Username */}
-                <div className="sm:col-span-1">
-                    <label htmlFor="username" className={labelClass}>Username *</label>
-                    <input 
-                        type="text" id="username" name="username" 
-                        value={formData.username} onChange={handleChange} 
-                        required disabled={isLoading} // Enabled in edit mode too now
-                        className={inputClass} 
-                        autoComplete="username" 
-                    />
+                <div className="space-y-2">
+                    <label className="block text-[10px] font-black text-slate-500 uppercase tracking-wider">
+                        Username <span className="text-rose-500">*</span>
+                    </label>
+                    <div className="relative flex items-center">
+                        <UserIcon className="w-4 h-4 absolute left-3.5 text-slate-400 pointer-events-none" />
+                        <input
+                            type="text"
+                            name="username"
+                            value={formData.username}
+                            onChange={handleChange}
+                            placeholder="e.g. tarique"
+                            disabled={isSubmitting}
+                            className={inputBase}
+                            required
+                        />
+                    </div>
                 </div>
 
-                {/* Email */}
-                <div className="sm:col-span-1">
-                    <label htmlFor="email" className={labelClass}>Email *</label>
-                    <input 
-                        type="email" id="email" name="email" 
-                        value={formData.email} onChange={handleChange} 
-                        required disabled={isLoading} // Enabled in edit mode too now
-                        className={inputClass} 
-                        autoComplete="email" 
-                    />
+                {/* Email Address */}
+                <div className="space-y-2">
+                    <label className="block text-[10px] font-black text-slate-500 uppercase tracking-wider">
+                        Email Address <span className="text-rose-500">*</span>
+                    </label>
+                    <div className="relative flex items-center">
+                        <EnvelopeIcon className="w-4 h-4 absolute left-3.5 text-slate-400 pointer-events-none" />
+                        <input
+                            type="email"
+                            name="email"
+                            value={formData.email}
+                            onChange={handleChange}
+                            placeholder="user@booknest.com"
+                            disabled={isSubmitting}
+                            className={inputBase}
+                            required
+                        />
+                    </div>
                 </div>
 
                 {/* Full Name */}
-                <div className="sm:col-span-2">
-                    <label htmlFor="full_name" className={labelClass}>Full Name</label>
-                    <input 
-                        type="text" id="full_name" name="full_name" 
-                        value={formData.full_name} onChange={handleChange} 
-                        disabled={isLoading} className={inputClass} autoComplete="name" 
-                    />
-                </div>
-                
-                {/* Password Fields (Conditional Logic) */}
-                <div className="sm:col-span-1">
-                    <label htmlFor="password" className={labelClass}>
-                        {isEditing ? "New Password (Optional)" : "Password *"}
+                <div className="sm:col-span-2 space-y-2">
+                    <label className="block text-[10px] font-black text-slate-500 uppercase tracking-wider">
+                        Full Name
                     </label>
-                    <input 
-                        type="password" id="password" name="password" 
-                        value={formData.password} onChange={handleChange} 
-                        required={!isEditing} disabled={isLoading} 
-                        className={inputClass} autoComplete="new-password" 
-                        placeholder={isEditing ? "Leave blank to keep current" : ""}
-                    />
-                </div>
-                
-                {/* Confirm Password (Only show if creating OR if typing a new password) */}
-                {(!isEditing || formData.password) && (
-                    <div className="sm:col-span-1">
-                        <label htmlFor="passwordConfirm" className={labelClass}>
-                            Confirm Password *
-                        </label>
-                        <input 
-                            type="password" id="passwordConfirm" name="passwordConfirm" 
-                            value={passwordConfirm} onChange={(e) => setPasswordConfirm(e.target.value)} 
-                            required disabled={isLoading} 
-                            className={inputClass} autoComplete="new-password" 
+                    <div className="relative flex items-center">
+                        <UserCircleIcon className="w-4 h-4 absolute left-3.5 text-slate-400 pointer-events-none" />
+                        <input
+                            type="text"
+                            name="full_name"
+                            value={formData.full_name}
+                            onChange={handleChange}
+                            placeholder="e.g. Tarique Ahmad"
+                            disabled={isSubmitting}
+                            className={inputBase}
                         />
                     </div>
-                )}
-                
-                {/* Role Selection */}
-                <div className="sm:col-span-1">
-                    <label htmlFor="role_id" className={labelClass}>Role *</label>
-                    <select 
-                        id="role_id" name="role_id" 
-                        value={formData.role_id} onChange={handleChange} 
-                        required disabled={isLoading} className={inputClass}
+                </div>
+
+                {/* Password Input */}
+                <div className="space-y-2">
+                    <label className="block text-[10px] font-black text-slate-500 uppercase tracking-wider">
+                        {isEditing ? 'New Password (Optional)' : 'Account Password'} {!isEditing && <span className="text-rose-500">*</span>}
+                    </label>
+                    <div className="relative flex items-center">
+                        <KeyIcon className="w-4 h-4 absolute left-3.5 text-slate-400 pointer-events-none" />
+                        <input
+                            type={showPassword ? 'text' : 'password'}
+                            name="password"
+                            value={formData.password}
+                            onChange={handleChange}
+                            placeholder={isEditing ? 'Leave blank to keep current' : '••••••••'}
+                            disabled={isSubmitting}
+                            className={`${inputBase} pr-10`}
+                        />
+                        <button
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            className="absolute right-3 text-slate-400 hover:text-slate-600 transition-colors p-1"
+                        >
+                            {showPassword ? <EyeSlashIcon className="w-4 h-4" /> : <EyeIcon className="w-4 h-4" />}
+                        </button>
+                    </div>
+                </div>
+
+                {/* Role Select */}
+                <div className="space-y-2">
+                    <label className="block text-[10px] font-black text-slate-500 uppercase tracking-wider">
+                        Authorization Role <span className="text-rose-500">*</span>
+                    </label>
+                    <select
+                        name="role_id"
+                        value={formData.role_id}
+                        onChange={handleChange}
+                        disabled={isSubmitting}
+                        className={selectBase}
                     >
-                        <option value="">Select Role</option>
-                        {roles.map(role => (
-                            <option key={role.id} value={String(role.id)}>{role.name}</option>
+                        <option value="">Select Role...</option>
+                        {roles.map(r => (
+                            <option key={r.id} value={r.id}>
+                                {r.name || r.title}
+                            </option>
                         ))}
                     </select>
                 </div>
-                 
-                {/* Status Selection (Only in Edit Mode) */}
-                {isEditing && (
-                    <div className="sm:col-span-1">
-                        <label htmlFor="status" className={labelClass}>Status *</label>
-                        <select 
-                            id="status" name="status" 
-                            value={formData.status} onChange={handleChange} 
-                            required disabled={isLoading} className={inputClass}
-                        >
-                             <option value="Active">Active</option>
-                             <option value="Inactive">Inactive</option>
-                             <option value="Suspended">Suspended</option>
-                        </select>
+
+                {/* Account Status Selection */}
+                <div className="sm:col-span-2 space-y-2">
+                    <label className="block text-[10px] font-black text-slate-500 uppercase tracking-wider">
+                        Account Status <span className="text-rose-500">*</span>
+                    </label>
+                    <div className="grid grid-cols-2 gap-3">
+                        {['Active', 'Inactive'].map(statusOption => {
+                            const isSelected = formData.status === statusOption;
+                            return (
+                                <button
+                                    key={statusOption}
+                                    type="button"
+                                    onClick={() => setFormData(prev => ({ ...prev, status: statusOption }))}
+                                    className={`
+                                        flex items-center justify-between px-4 py-2.5 rounded-xl border text-xs font-bold transition-all duration-200
+                                        ${isSelected 
+                                            ? statusOption === 'Active' 
+                                                ? 'bg-emerald-50 border-emerald-500/60 text-emerald-700 shadow-2xs'
+                                                : 'bg-slate-100 border-slate-400 text-slate-700 shadow-2xs'
+                                            : 'bg-slate-50/80 border-slate-200 text-slate-500 hover:bg-slate-100'
+                                        }
+                                    `}
+                                >
+                                    <div className="flex items-center gap-2">
+                                        <span className={`w-2 h-2 rounded-full ${statusOption === 'Active' ? 'bg-emerald-500' : 'bg-slate-400'}`} />
+                                        <span>{statusOption}</span>
+                                    </div>
+                                    {isSelected && <CheckIcon className="w-4 h-4 text-emerald-600" />}
+                                </button>
+                            );
+                        })}
                     </div>
-                )}
+                </div>
             </div>
 
-            <div className="pt-4 flex justify-end space-x-3 border-t border-gray-200 mt-4">
-                <button 
-                    type="button" 
-                    className={secondaryButtonClass} 
-                    onClick={safeOnCancel} 
-                    disabled={isLoading}
+            {/* Modal Footer Actions with Padding */}
+            <div className="flex items-center justify-end gap-3 pt-5 border-t border-slate-100">
+                <button
+                    type="button"
+                    onClick={onCancel}
+                    disabled={isSubmitting}
+                    className="px-5 py-2.5 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 transition-all disabled:opacity-50"
                 >
                     Cancel
                 </button>
-                <button 
-                    type="submit" 
-                    className={primaryButtonClass} 
-                    disabled={isLoading}
+
+                <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 text-white text-xs font-bold shadow-md shadow-indigo-200 transition-all hover:shadow-lg active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                    {isLoading ? <SpinnerIcon /> : null}
-                    {isLoading ? 'Saving...' : (isEditing ? 'Update User' : 'Create User')}
+                    {isSubmitting ? (
+                        <>
+                            <ArrowPathIcon className="w-4 h-4 animate-spin text-white" />
+                            <span>Saving...</span>
+                        </>
+                    ) : (
+                        <span>{isEditing ? 'Update User' : 'Provision User'}</span>
+                    )}
                 </button>
             </div>
         </form>

@@ -1,4 +1,4 @@
-﻿// ✅ src/components/book/BookFormUI.jsx - All JSX syntax fixed
+﻿// ✅ src/components/book/BookFormUI.jsx
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -11,25 +11,37 @@ import {
 
 const API_URL = import.meta.env.VITE_API_BASE_URL || (import.meta.env.PROD ? 'https://kil2-backend.onrender.com' : 'http://127.0.0.1:8000');
 
-// â”€â”€â”€ Design tokens â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-const base =
-  'w-full bg-white border-2 border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-800 placeholder:text-slate-400 placeholder:font-normal outline-none transition-all duration-200 focus:border-[#002147] focus:shadow-[0_0_0_4px_rgba(0,33,71,0.07)] disabled:bg-slate-50 disabled:text-slate-500 disabled:cursor-not-allowed';
+// --- Base Input Styling ---
+const baseInputStyle =
+  'w-full bg-white border-2 border-slate-200/90 rounded-xl px-4 py-3 text-sm font-medium text-slate-800 placeholder:text-slate-400 placeholder:font-normal outline-none transition-all duration-200 focus:border-[#002147] focus:shadow-[0_0_0_4px_rgba(0,33,71,0.08)] disabled:bg-slate-50 disabled:text-slate-500 disabled:cursor-not-allowed';
 
-// â”€â”€â”€ Section header â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// --- Tailwind ColSpan Mapping (Prevents Tailwind JIT purge issues) ---
+const colSpanMap = {
+  1: 'col-span-1',
+  2: 'col-span-2',
+  3: 'col-span-3',
+  4: 'col-span-4',
+  full: 'col-span-full'
+};
+
+// --- Section Header Component ---
 const SectionHeader = ({ step, icon: Icon, title, subtitle, color = 'blue' }) => {
-  const colors = {
+  const colorMap = {
     blue:   { bg: 'bg-blue-50',   text: 'text-blue-600',   border: 'border-blue-100',   ring: 'bg-blue-600' },
     violet: { bg: 'bg-violet-50', text: 'text-violet-600', border: 'border-violet-100', ring: 'bg-violet-600' },
     amber:  { bg: 'bg-amber-50',  text: 'text-amber-600',  border: 'border-amber-100',  ring: 'bg-amber-600' },
     teal:   { bg: 'bg-teal-50',   text: 'text-teal-600',   border: 'border-teal-100',   ring: 'bg-teal-600' },
     rose:   { bg: 'bg-rose-50',   text: 'text-rose-600',   border: 'border-rose-100',   ring: 'bg-rose-600' },
   };
-  const c = colors[color];
+  const c = colorMap[color] || colorMap.blue;
+
   return (
     <div className="flex items-center gap-4 mb-6">
-      <div className={`relative flex-shrink-0 w-11 h-11 rounded-2xl ${c.bg} border ${c.border} flex items-center justify-center shadow-sm`}>
+      <div className={`relative flex-shrink-0 w-11 h-11 rounded-2xl ${c.bg} border ${c.border} flex items-center justify-center shadow-xs`}>
         <Icon className={`w-5 h-5 ${c.text}`} />
-        <span className={`absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full ${c.ring} text-white text-[10px] font-black flex items-center justify-center shadow`}>{step}</span>
+        <span className={`absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full ${c.ring} text-white text-[10px] font-black flex items-center justify-center shadow-xs`}>
+          {step}
+        </span>
       </div>
       <div>
         <h3 className="text-base font-black text-slate-800 leading-tight">{title}</h3>
@@ -39,57 +51,56 @@ const SectionHeader = ({ step, icon: Icon, title, subtitle, color = 'blue' }) =>
   );
 };
 
-// â”€â”€â”€ Input Field â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// --- Input Field ---
 const InputField = ({ label, id, type = 'text', required, colSpan = 1, ...props }) => (
-  <div className={`col-span-${colSpan}`}>
+  <div className={colSpanMap[colSpan] || 'col-span-1'}>
     <label htmlFor={id} className="block text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-2">
-      {label} {required && <span className="text-rose-400 ml-0.5">*</span>}
+      {label} {required && <span className="text-rose-500 ml-0.5">*</span>}
     </label>
-    <input id={id} type={type} className={base} {...props} />
+    <input id={id} type={type} className={baseInputStyle} {...props} />
   </div>
 );
 
-// â”€â”€â”€ Select Field â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-const SelectField = ({ label, id, options = [], loading, placeholder = 'Selectâ€¦', required, colSpan = 1, ...props }) => (
-  <div className={`col-span-${colSpan}`}>
+// --- Select Field ---
+const SelectField = ({ label, id, options = [], loading, placeholder = 'Select...', required, colSpan = 1, ...props }) => (
+  <div className={colSpanMap[colSpan] || 'col-span-1'}>
     <label htmlFor={id} className="block text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-2">
-      {label} {required && <span className="text-rose-400 ml-0.5">*</span>}
+      {label} {required && <span className="text-rose-500 ml-0.5">*</span>}
     </label>
     <div className="relative">
-      <select id={id} className={`${base} appearance-none pr-10`} disabled={loading} {...props}>
-        {loading ? <option>Loadingâ€¦</option> : <option value="">{placeholder}</option>}
+      <select id={id} className={`${baseInputStyle} appearance-none pr-10`} disabled={loading} {...props}>
+        {loading ? <option>Loading options...</option> : <option value="">{placeholder}</option>}
         {options.map(o => <option key={o.id} value={o.id}>{o.name}</option>)}
       </select>
-      <ChevronDownIcon className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+      <ChevronDownIcon className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
     </div>
   </div>
 );
 
-// â”€â”€â”€ TextArea Field â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// --- Text Area Field ---
 const TextAreaField = ({ label, id, rows = 3, colSpan = 2, ...props }) => (
-  <div className={`col-span-${colSpan}`}>
-    <label htmlFor={id} className="block text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-2">{label}</label>
-    <textarea id={id} rows={rows} className={`${base} resize-none`} {...props} />
+  <div className={colSpanMap[colSpan] || 'col-span-2'}>
+    <label htmlFor={id} className="block text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-2">
+      {label}
+    </label>
+    <textarea id={id} rows={rows} className={`${baseInputStyle} resize-none`} {...props} />
   </div>
 );
 
-// â”€â”€â”€ Multi-select subcategories â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-// ✅ FIXED: Multi-select subcategories with proper event handling & mobile support
-const SubcategorySelect = ({ subcategories, selectedIds, onChange, loading }) => {
+// --- Multi-Select Subcategories Component ---
+const SubcategorySelect = ({ subcategories = [], selectedIds = [], onChange, loading }) => {
   const [open, setOpen] = useState(false);
-  const ref = useRef(null);
+  const dropdownRef = useRef(null);
 
-  // ✅ FIX: Improved click-outside detection with proper timing
   useEffect(() => {
     if (!open) return;
 
     const handleClickOutside = (e) => {
-      if (ref.current && !ref.current.contains(e.target)) {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
         setOpen(false);
       }
     };
 
-    // Small delay to prevent immediate closing on same click that opened it
     const timer = setTimeout(() => {
       document.addEventListener('mousedown', handleClickOutside);
       document.addEventListener('touchend', handleClickOutside);
@@ -102,62 +113,56 @@ const SubcategorySelect = ({ subcategories, selectedIds, onChange, loading }) =>
     };
   }, [open]);
 
-  // ✅ FIX: Proper event delegation and propagation handling
   const handleButtonClick = (e) => {
     e.preventDefault();
     e.stopPropagation();
     setOpen(prev => !prev);
   };
 
-  const toggle = (id) => {
+  const toggleCategory = (id) => {
     const numId = Number(id);
-    const next = selectedIds.includes(numId)
+    const nextSelected = selectedIds.includes(numId)
       ? selectedIds.filter(x => x !== numId)
       : [...selectedIds, numId];
     
-    // ✅ CRITICAL FIX: Send proper event structure
     onChange({ 
       target: { 
         name: 'subcategory_ids', 
-        value: next  // Ensure value is the array, not selectedOptions
+        value: nextSelected 
       } 
     });
-    
-    console.log("✅ Category toggled. New selection:", next);
   };
 
-  const selected = subcategories.filter(s => selectedIds.includes(Number(s.id)));
+  const selectedList = subcategories.filter(s => selectedIds.includes(Number(s.id)));
 
   return (
-    <div className="col-span-2 relative" ref={ref}>
+    <div className="col-span-2 relative" ref={dropdownRef}>
       <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-2">
-        Categories & Genres <span className="text-rose-400">*</span>
+        Categories & Genres <span className="text-rose-500">*</span>
       </label>
       
       <button
         type="button"
         onClick={handleButtonClick}
         disabled={loading}
-        className={`${base} flex items-center justify-between gap-2 text-left min-h-[48px] focus:ring-2 focus:ring-[#002147]`}
+        className={`${baseInputStyle} flex items-center justify-between gap-2 text-left min-h-[48px] focus:ring-2 focus:ring-[#002147]`}
         aria-haspopup="listbox"
         aria-expanded={open}
-        aria-label="Select categories"
       >
         <span className="flex flex-wrap gap-1.5 flex-1 min-w-0">
-          {selected.length === 0 ? (
-            <span className="text-slate-400 font-normal">Select categories…</span>
-          ) : selected.map(s => (
-            <span key={s.id} className="inline-flex items-center gap-1 bg-slate-100 text-slate-700 text-[11px] font-bold px-2.5 py-1 rounded-full whitespace-nowrap">
+          {selectedList.length === 0 ? (
+            <span className="text-slate-400 font-normal">Select categories...</span>
+          ) : selectedList.map(s => (
+            <span key={s.id} className="inline-flex items-center gap-1 bg-slate-100 text-slate-800 text-[11px] font-bold px-2.5 py-1 rounded-full whitespace-nowrap border border-slate-200/80">
               {s.name}
               <button
                 type="button"
                 onClick={(e) => { 
                   e.preventDefault();
                   e.stopPropagation(); 
-                  toggle(s.id); 
+                  toggleCategory(s.id); 
                 }}
                 className="hover:text-rose-500 transition-colors flex-shrink-0"
-                aria-label={`Remove ${s.name}`}
               >
                 <XCircleIcon className="w-3.5 h-3.5" />
               </button>
@@ -170,15 +175,15 @@ const SubcategorySelect = ({ subcategories, selectedIds, onChange, loading }) =>
       <AnimatePresence mode="wait">
         {open && (
           <motion.div
-            initial={{ opacity: 0, y: -8, scale: 0.95 }}
-            animate={{ opacity: 1, y: 4, scale: 1 }}
-            exit={{ opacity: 0, y: -8, scale: 0.95 }}
+            initial={{ opacity: 0, y: -8, scale: 0.96 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -8, scale: 0.96 }}
             transition={{ duration: 0.12, ease: "easeOut" }}
-            className="absolute z-50 top-full left-0 right-0 mt-1 bg-white border-2 border-slate-200 rounded-2xl shadow-xl overflow-hidden"
+            className="absolute z-50 top-full left-0 right-0 mt-1 bg-white border-2 border-slate-200/90 rounded-2xl shadow-2xl overflow-hidden"
           >
-            <div className="max-h-56 overflow-y-auto p-2">
-              {loading && <p className="text-xs text-center text-slate-400 py-4">Loading…</p>}
-              {!loading && subcategories.length === 0 && <p className="text-xs text-center text-slate-400 py-4">No categories found</p>}
+            <div className="max-h-56 overflow-y-auto p-2 space-y-0.5 custom-scrollbar">
+              {loading && <p className="text-xs text-center text-slate-400 py-4">Loading categories...</p>}
+              {!loading && subcategories.length === 0 && <p className="text-xs text-center text-slate-400 py-4">No categories available</p>}
               {!loading && subcategories.map(sub => {
                 const checked = selectedIds.includes(Number(sub.id));
                 return (
@@ -188,17 +193,17 @@ const SubcategorySelect = ({ subcategories, selectedIds, onChange, loading }) =>
                     onClick={(e) => {
                       e.preventDefault();
                       e.stopPropagation();
-                      toggle(sub.id);
+                      toggleCategory(sub.id);
                     }}
-                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all text-left ${checked ? 'bg-slate-100 text-slate-900' : 'text-slate-700 hover:bg-slate-50'}`}
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all text-left ${checked ? 'bg-slate-100 text-slate-900 font-semibold' : 'text-slate-700 hover:bg-slate-50'}`}
                     role="option"
                     aria-selected={checked}
                   >
                     <span className={`flex-shrink-0 w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all ${checked ? 'bg-[#002147] border-[#002147]' : 'border-slate-300'}`}>
-                      {checked && <CheckIcon className="w-3 h-3 text-white" />}
+                      {checked && <CheckIcon className="w-3.5 h-3.5 text-white" />}
                     </span>
-                    <span>
-                      <span className="text-slate-400 text-xs">{sub.category?.name} › </span>
+                    <span className="truncate">
+                      {sub.category?.name && <span className="text-slate-400 text-xs font-normal">{sub.category.name} › </span>}
                       {sub.name}
                     </span>
                   </button>
@@ -212,31 +217,51 @@ const SubcategorySelect = ({ subcategories, selectedIds, onChange, loading }) =>
   );
 };
 
-// â”€â”€â”€ Toggle switch card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-const ToggleCard = ({ id, checked, onChange, disabled, icon: Icon, title, desc }) => (
-  <label
-    htmlFor={id}
-    className={`flex items-start gap-4 p-4 rounded-2xl border-2 cursor-pointer transition-all duration-200 select-none ${
-      checked ? 'border-[#002147] bg-[#002147]/5' : 'border-slate-200 bg-white hover:border-slate-300'
-    }`}
-  >
-    <div className={`flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${checked ? 'bg-[#002147] text-white' : 'bg-slate-100 text-slate-400'}`}>
-      <Icon className="w-5 h-5" />
-    </div>
-    <div className="flex-1 min-w-0">
-      <div className="flex items-center justify-between gap-2">
-        <span className={`font-bold text-sm transition-colors ${checked ? 'text-[#002147]' : 'text-slate-700'}`}>{title}</span>
-        <div className={`relative flex-shrink-0 w-11 h-6 rounded-full transition-colors duration-200 ${checked ? 'bg-[#002147]' : 'bg-slate-200'}`}>
-          <div className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform duration-200 ${checked ? 'translate-x-5' : ''}`} />
-        </div>
-      </div>
-      <p className="text-xs text-slate-500 mt-0.5">{desc}</p>
-    </div>
-    <input id={id} name={id} type="checkbox" checked={checked} onChange={onChange} disabled={disabled} className="sr-only" />
-  </label>
-);
+// --- Toggle Switch Card ---
+const ToggleCard = ({ id, checked, onChange, disabled, icon: Icon, title, desc }) => {
+  const [localChecked, setLocalChecked] = useState(!!checked);
 
-// â”€â”€â”€ Drag & Drop File Zone â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  useEffect(() => { setLocalChecked(!!checked); }, [checked]);
+
+  const handleClick = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (disabled) return;
+    const next = !localChecked;
+    setLocalChecked(next);
+    console.debug('ToggleCard click', id, next);
+    try {
+      if (onChange) onChange({ target: { name: id, type: 'checkbox', checked: next } });
+    } catch (err) {
+      console.error('ToggleCard onChange error', err);
+    }
+  };
+
+  return (
+    <label
+      htmlFor={id}
+      onClick={handleClick}
+      className={`flex items-start gap-4 p-4 rounded-2xl border-2 cursor-pointer transition-all duration-200 select-none ${
+        localChecked ? 'border-[#002147] bg-[#002147]/5 shadow-xs' : 'border-slate-200 bg-white hover:border-slate-300'
+      }`}
+    >
+      <div className={`flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${localChecked ? 'bg-[#002147] text-white shadow-xs' : 'bg-slate-100 text-slate-400'}`}>
+        <Icon className="w-5 h-5" />
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center justify-between gap-2">
+          <span className={`font-bold text-sm transition-colors ${localChecked ? 'text-[#002147]' : 'text-slate-700'}`}>{title}</span>
+          <div className={`relative flex-shrink-0 w-11 h-6 rounded-full transition-colors duration-200 ${localChecked ? 'bg-[#002147]' : 'bg-slate-200'}`}>
+            <div className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow-md transition-transform duration-200 ${localChecked ? 'translate-x-5' : ''}`} />
+          </div>
+        </div>
+        <p className="text-xs text-slate-500 mt-0.5">{desc}</p>
+      </div>
+      <input id={id} name={id} type="checkbox" checked={localChecked} onChange={() => {}} disabled={disabled} className="sr-only" />
+    </label>
+  );
+};
+
 const FileDropZone = ({ label, id, accept, onChange, currentUrl, newFileName, icon: Icon, accent = 'blue' }) => {
   const [dragging, setDragging] = useState(false);
   const [localName, setLocalName] = useState('');
@@ -278,7 +303,7 @@ const FileDropZone = ({ label, id, accept, onChange, currentUrl, newFileName, ic
           onChange={(e) => { const f = e.target.files[0]; if (f) { setLocalName(f.name); if (onChange) onChange(e); } }}
         />
 
-        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-200 shadow-sm border
+        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-200 shadow-xs border
           ${localName ? 'bg-emerald-100 border-emerald-200' : `bg-white border-slate-200 group-hover:${a.bg}`}`}>
           {localName
             ? <CheckCircleIcon className="w-6 h-6 text-emerald-500" />
@@ -289,7 +314,7 @@ const FileDropZone = ({ label, id, accept, onChange, currentUrl, newFileName, ic
         {localName ? (
           <div className="text-center">
             <p className={`text-[11px] font-bold px-3 py-1.5 rounded-full ${a.badge} max-w-[180px] truncate`}>{localName}</p>
-            <p className="text-[10px] text-slate-400 mt-1">Click to change</p>
+            <p className="text-[10px] text-slate-400 mt-1">Click to replace file</p>
           </div>
         ) : (
           <div className="text-center">
@@ -302,7 +327,7 @@ const FileDropZone = ({ label, id, accept, onChange, currentUrl, newFileName, ic
           <a href={`${API_URL}${currentUrl}`} target="_blank" rel="noopener noreferrer"
             onClick={(e) => e.stopPropagation()}
             className={`text-[10px] font-bold uppercase tracking-wide px-3 py-1.5 rounded-full ${a.badge} hover:opacity-80 transition-opacity`}>
-            View existing file
+            View Existing File
           </a>
         )}
       </div>
@@ -310,9 +335,7 @@ const FileDropZone = ({ label, id, accept, onChange, currentUrl, newFileName, ic
   );
 };
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-//   MAIN COMPONENT
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// --- MAIN FORM UI COMPONENT ---
 const BookFormUI = ({
   formData = {},
   languages = [],
@@ -337,7 +360,7 @@ const BookFormUI = ({
   return (
     <form onSubmit={onSubmit} className="flex flex-col h-full bg-white">
 
-      {/* â”€â”€ Status Banner â”€â”€ */}
+      {/* Status Banner */}
       <AnimatePresence>
         {(error || successMessage) && (
           <motion.div
@@ -355,11 +378,11 @@ const BookFormUI = ({
         )}
       </AnimatePresence>
 
-      {/* â”€â”€ Scrollable body â”€â”€ */}
+      {/* Scrollable body */}
       <div className="flex-1 overflow-y-auto">
         <div className="p-6 sm:p-8 space-y-10">
 
-          {/* â”€â”€â”€ 1. CORE INFO â”€â”€â”€ */}
+          {/* 1. CORE INFO */}
           <section>
             <SectionHeader step="1" icon={BookOpenIcon} title="Core Details" subtitle="Title, author, publisher and language" color="blue" />
             <div className="grid grid-cols-2 gap-5">
@@ -379,7 +402,7 @@ const BookFormUI = ({
             </div>
           </section>
 
-          {/* â”€â”€â”€ 2. SPECIFICATIONS â”€â”€â”€ */}
+          {/* 2. SPECIFICATIONS */}
           <section>
             <SectionHeader step="2" icon={AdjustmentsHorizontalIcon} title="Specifications" subtitle="ISBN, edition, year, pages and pricing" color="violet" />
             <div className="grid grid-cols-2 gap-5 sm:grid-cols-3">
@@ -392,13 +415,13 @@ const BookFormUI = ({
               <InputField id="page_count" name="page_count" label="Pages" type="number"
                 value={formData.page_count || ''} onChange={onChange} disabled={isLoading} min="1" placeholder="e.g. 450" />
               <InputField id="parts_or_volumes" name="parts_or_volumes" label="Parts / Volumes"
-                value={formData.parts_or_volumes || ''} onChange={onChange} disabled={isLoading} placeholder="e.g. Vol. 1â€“3" />
+                value={formData.parts_or_volumes || ''} onChange={onChange} disabled={isLoading} placeholder="e.g. Vol. 1-3" />
               <InputField id="price" name="price" label="Price (PKR)" type="number"
                 value={formData.price || ''} onChange={onChange} disabled={isLoading} min="0" placeholder="0.00" />
             </div>
           </section>
 
-          {/* â”€â”€â”€ 3. LIBRARY CLASSIFICATION â”€â”€â”€ */}
+          {/* 3. LIBRARY CLASSIFICATION */}
           <section>
             <SectionHeader step="3" icon={TagIcon} title="Library Classification" subtitle="Catalog numbers, categories and notes" color="amber" />
             <div className="grid grid-cols-2 gap-5 sm:grid-cols-3 mb-5">
@@ -428,14 +451,14 @@ const BookFormUI = ({
               />
               <TextAreaField id="description" name="description" label="Description / Summary" rows={3} colSpan={2}
                 value={formData.description || ''} onChange={onChange} disabled={isLoading}
-                placeholder="Brief synopsis or notes about this bookâ€¦" />
+                placeholder="Brief synopsis or notes about this book..." />
               <TextAreaField id="remarks" name="remarks" label="Remarks" rows={2} colSpan={2}
                 value={formData.remarks || ''} onChange={onChange} disabled={isLoading}
                 placeholder="Internal notes, condition, source, etc." />
             </div>
           </section>
 
-          {/* â”€â”€â”€ 4. DIGITAL ASSETS â”€â”€â”€ */}
+          {/* 4. DIGITAL ASSETS */}
           <section>
             <SectionHeader step="4" icon={CloudArrowUpIcon} title="Digital Assets" subtitle="Upload cover image, PDF and research text (drag & drop supported)" color="teal" />
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
@@ -451,7 +474,7 @@ const BookFormUI = ({
             </div>
           </section>
 
-          {/* â”€â”€â”€ 5. ACCESS CONTROL â”€â”€â”€ */}
+          {/* 5. ACCESS CONTROL */}
           <section>
             <SectionHeader step="5" icon={ShieldCheckIcon} title="Access Control" subtitle="Set borrowing and visibility permissions" color="rose" />
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -462,17 +485,17 @@ const BookFormUI = ({
               <ToggleCard id="is_digital" checked={formData.is_digital || false}
                 onChange={onChange} disabled={isLoading}
                 icon={ComputerDesktopIcon} title="Digital Only"
-                desc="No physical copy â€” online access only." />
+                desc="No physical copy - online access only." />
             </div>
           </section>
 
         </div>
       </div>
 
-      {/* â”€â”€ Footer Actions â”€â”€ */}
+      {/* Footer Actions */}
       <div className="flex-shrink-0 flex items-center justify-between gap-4 px-6 sm:px-8 py-5 bg-slate-50 border-t border-slate-200">
         <p className="text-xs text-slate-400 hidden sm:block">
-          Fields marked <span className="text-rose-400 font-bold">*</span> are required
+          Fields marked <span className="text-rose-500 font-bold">*</span> are required
         </p>
         <div className="flex items-center gap-3 ml-auto">
           {onCancel && (
@@ -491,7 +514,7 @@ const BookFormUI = ({
             {isLoading ? (
               <>
                 <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                Savingâ€¦
+                Saving...
               </>
             ) : (
               <>

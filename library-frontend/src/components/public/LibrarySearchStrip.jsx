@@ -31,6 +31,7 @@ const LibrarySearchStrip = ({
   onSearchChange,
   suggestions = [],
   loading = false,
+  autoFocus = false,
   onDeepSearchResultClick,
   title = "Library Search",
   subtitle = "Search the library collection",
@@ -57,6 +58,14 @@ const LibrarySearchStrip = ({
 
   const inputRef = useRef(null);
   const debouncedValue = useDebounce(localValue, 300);
+
+  useEffect(() => {
+    if (autoFocus) {
+      // Small delay so component layout settles
+      const t = setTimeout(() => inputRef.current?.focus(), 120);
+      return () => clearTimeout(t);
+    }
+  }, [autoFocus]);
 
   /* -------- Apply debounced value -------- */
   useEffect(() => {

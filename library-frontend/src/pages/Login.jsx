@@ -1,27 +1,21 @@
 /**
- * ✅ PERFECT Login.jsx — Markaz Library Management System
+ * ✅ ULTRA-PRO Login.jsx — Markaz Library Management System
  *
- * ENHANCEMENTS OVER YOUR VERSION:
+ * ENHANCEMENTS:
  * ─────────────────────────────────────────────────────────
  * LOGIC:
- *   ✅ Centralized handleAuthSuccess() — no duplicate code
- *   ✅ rememberMe checkbox wired to token persistence
- *   ✅ Field-level validation with inline error messages
- *   ✅ Login throttle: 3 attempts → 30s cooldown
- *   ✅ Role extraction as a pure utility (handles string/object/null)
- *   ✅ No setTimeout hacks — navigation is direct & synchronous
- *   ✅ Proper authService.setToken(token, rememberMe) usage
- *   ✅ Google img replaced with inline SVG (no external URL dep)
- *   ✅ Session cleanup on mount (stale token purge)
+ *   ✅ Centralized handleAuthSuccess() with direct navigation
+ *   ✅ RememberMe state persistent token storage
+ *   ✅ Field-level validation with smooth error message rendering
+ *   ✅ Cooldown throttle: 3 failed attempts → 30s live countdown
+ *   ✅ Session cleanup on mount (purges invalid/stale tokens)
+ *   ✅ Full Google OAuth flow with inline SVG icon fallback
  *
  * UI/UX:
- *   ✅ All your design preserved (navy/cyan, split panel, cards)
- *   ✅ Inline field errors with AnimatePresence
- *   ✅ Cooldown banner counts down live
- *   ✅ Full ARIA: aria-invalid, aria-describedby, aria-label
- *   ✅ Focus rings on all interactive elements
- *   ✅ Spinner on both buttons preserved
- *   ✅ Dev credentials card (dev-only, fixed bottom-right)
+ *   ✅ Split ambient visual aura background + glass card styling
+ *   ✅ Live countdown cooldown banner with pulse indicator
+ *   ✅ Responsive typography & clean accessibility (ARIA labels)
+ *   ✅ Dev-credentials helper card for quick local testing
  */
 
 import React, { useMemo, useState, useEffect, useCallback, useRef } from "react";
@@ -42,17 +36,18 @@ import {
   EyeSlashIcon,
   ArrowRightOnRectangleIcon,
   ShieldCheckIcon,
+  ClockIcon,
 } from "@heroicons/react/24/outline";
 
-// ─── Constants ────────────────────────────────────────────
-const GOOGLE_CLIENT_ID = (import.meta.env.VITE_GOOGLE_CLIENT_ID || "").trim();
+// ─── Constants & Env Setup ──────────────────────────────────
+const GOOGLE_CLIENT_ID = (import.meta.env?.VITE_GOOGLE_CLIENT_ID || "").trim();
 const GOOGLE_AUTH_ENABLED = Boolean(GOOGLE_CLIENT_ID);
+const IS_DEV = import.meta.env?.DEV || process.env.NODE_ENV === "development";
 
 const MAX_ATTEMPTS = 3;
 const COOLDOWN_MS = 30_000;
 
-// ─── Pure Utilities ───────────────────────────────────────
-// ─── Google SVG (inline — no external image dep) ─────────
+// ─── Inline Google Icon SVG ────────────────────────────────
 const GoogleIcon = () => (
   <svg className="w-5 h-5 flex-shrink-0" viewBox="0 0 24 24" aria-hidden="true">
     <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
@@ -62,7 +57,7 @@ const GoogleIcon = () => (
   </svg>
 );
 
-// ─── Field-level error ────────────────────────────────────
+// ─── Field Error Alert Component ───────────────────────────
 const FieldError = ({ id, message }) => (
   <AnimatePresence>
     {message && (
@@ -73,31 +68,32 @@ const FieldError = ({ id, message }) => (
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: -4 }}
         transition={{ duration: 0.2 }}
-        className="mt-1.5 flex items-center gap-1.5 text-xs font-semibold text-rose-500"
+        className="mt-1.5 flex items-center gap-1.5 text-xs font-semibold text-rose-600"
       >
-        <span aria-hidden="true" className="w-1.5 h-1.5 rounded-full bg-rose-500 flex-shrink-0" />
+        <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-rose-600 flex-shrink-0" />
         {message}
       </motion.p>
     )}
   </AnimatePresence>
 );
 
-// ─── Cooldown Banner ──────────────────────────────────────
+// ─── Live Cooldown Banner Component ────────────────────────
 const CooldownBanner = ({ remaining }) => (
   <motion.div
     role="alert"
     initial={{ opacity: 0, y: -8, scale: 0.97 }}
     animate={{ opacity: 1, y: 0, scale: 1 }}
-    className="flex items-center gap-2.5 bg-rose-50 border-2 border-rose-200 rounded-2xl px-4 py-3 text-sm text-rose-700 font-medium"
+    className="flex items-center gap-3 bg-rose-50/90 border border-rose-200/80 rounded-2xl px-4 py-3 text-xs sm:text-sm text-rose-700 font-medium shadow-xs"
   >
-    <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-    </svg>
-    Too many attempts. Try again in{" "}
-    <strong className="font-black">{Math.ceil(remaining / 1000)}s</strong>
+    <ClockIcon className="w-5 h-5 flex-shrink-0 text-rose-600 animate-pulse" />
+    <span>
+      Too many failed attempts. Retry in{" "}
+      <strong className="font-bold text-rose-900">{Math.ceil(remaining / 1000)}s</strong>
+    </span>
   </motion.div>
 );
 
+// ─── Google OAuth Login Button Component ────────────────────
 const GoogleLoginButton = ({ disabled, loading, onGoogleSuccess, onGoogleError }) => {
   const googleLogin = useGoogleLogin({
     onSuccess: async (tokenResponse) => {
@@ -112,34 +108,34 @@ const GoogleLoginButton = ({ disabled, loading, onGoogleSuccess, onGoogleError }
       disabled={disabled}
       type="button"
       aria-label="Continue with Google"
-      className="w-full flex items-center justify-center gap-3 bg-white border-2 border-slate-200 text-slate-700 font-semibold py-3.5 rounded-2xl hover:border-slate-300 hover:bg-slate-50 active:scale-[0.98] transition-all duration-200 group disabled:opacity-50 disabled:pointer-events-none mb-5 shadow-sm focus:outline-none focus:ring-4 focus:ring-[#002147]/15"
+      className="w-full flex items-center justify-center gap-3 bg-white border border-slate-200/80 text-slate-700 font-semibold py-3.5 rounded-2xl hover:border-slate-300 hover:bg-slate-50/80 active:scale-[0.98] transition-all duration-200 shadow-2xs disabled:opacity-50 disabled:pointer-events-none mb-5 focus:outline-none focus:ring-4 focus:ring-[#002147]/10"
     >
       {loading ? (
-        <span className="w-5 h-5 border-2 border-slate-300 border-t-slate-600 rounded-full animate-spin" aria-hidden="true" />
+        <span className="w-5 h-5 border-2 border-slate-300 border-t-slate-700 rounded-full animate-spin" aria-hidden="true" />
       ) : (
         <GoogleIcon />
       )}
-      <span>{loading ? "Connecting…" : "Continue with Google"}</span>
+      <span className="text-sm">{loading ? "Connecting to Google..." : "Continue with Google"}</span>
     </button>
   );
 };
 
 // ═══════════════════════════════════════════════════════════
-// MAIN COMPONENT
+// MAIN LOGIN COMPONENT
 // ═══════════════════════════════════════════════════════════
 const Login = () => {
-  // Form state
+  // Form State
   const [credentials, setCredentials] = useState({ username: "", password: "" });
   const [fieldErrors, setFieldErrors] = useState({});
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [shake, setShake] = useState(false);
 
-  // Loading
+  // Loading States
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
 
-  // Throttle
+  // Throttling States
   const [attempts, setAttempts] = useState(0);
   const [cooldownUntil, setCooldownUntil] = useState(null);
   const [cooldownRemaining, setCooldownRemaining] = useState(0);
@@ -154,13 +150,13 @@ const Login = () => {
     [loading, googleLoading, cooldownRemaining]
   );
 
-  // ── Stale token cleanup on mount ──────────────────────────
+  // ── Stale Token Cleanup ────────────────────────────────────
   useEffect(() => {
     const token = authService.getToken?.();
     if (!token) authService.clearToken?.();
   }, []);
 
-  // ── Cooldown countdown ────────────────────────────────────
+  // ── Cooldown Timer Hook ────────────────────────────────────
   useEffect(() => {
     if (!cooldownUntil) return;
     const tick = () => {
@@ -179,13 +175,13 @@ const Login = () => {
     return () => clearInterval(cooldownRef.current);
   }, [cooldownUntil]);
 
-  // ── Shake helper ──────────────────────────────────────────
+  // ── Shake Trigger Helper ──────────────────────────────────
   const triggerShake = useCallback(() => {
     setShake(true);
     setTimeout(() => setShake(false), 500);
   }, []);
 
-  // ── Centralized post-auth handler ─────────────────────────
+  // ── Post-Authentication Central Handler ───────────────────
   const handleAuthSuccess = useCallback(
     (user, token) => {
       authService.setToken?.(token, rememberMe);
@@ -198,13 +194,13 @@ const Login = () => {
       }
 
       const from = location.state?.from?.pathname;
-      const safe = from && from !== "/login" && from !== "/register" && from.startsWith("/");
-      navigate(safe ? from : "/", { replace: true });
+      const safeRedirect = from && from !== "/login" && from !== "/register" && from.startsWith("/");
+      navigate(safeRedirect ? from : "/", { replace: true });
     },
     [navigate, location, setAuthData, rememberMe]
   );
 
-  // ── Field validation ──────────────────────────────────────
+  // ── Validation Logic ──────────────────────────────────────
   const validate = () => {
     const errors = {};
     const u = credentials.username.trim();
@@ -213,7 +209,7 @@ const Login = () => {
     if (!u) {
       errors.username = "Username is required.";
     } else if (u.length < 3) {
-      errors.username = "At least 3 characters required.";
+      errors.username = "Username must be at least 3 characters.";
     }
 
     if (!p) {
@@ -224,14 +220,17 @@ const Login = () => {
     return Object.keys(errors).length === 0;
   };
 
-  // ── Standard Login ────────────────────────────────────────
+  // ── Standard Login Form Submit ────────────────────────────
   const handleLogin = async (e) => {
     e.preventDefault();
     if (cooldownRemaining > 0) return;
-    if (!validate()) { triggerShake(); return; }
+    if (!validate()) {
+      triggerShake();
+      return;
+    }
 
     setLoading(true);
-    const toastId = toast.loading("Verifying credentials…");
+    const toastId = toast.loading("Verifying security credentials...");
 
     try {
       const result = await authService.login(
@@ -241,20 +240,21 @@ const Login = () => {
       );
 
       if (!result?.user || !result?.access_token) {
-        throw new Error("Incomplete response from server.");
+        throw new Error("Invalid response received from authentication server.");
       }
 
       const name = result.user.full_name || result.user.username || "there";
       toast.success(`Welcome back, ${name}!`, { id: toastId });
       handleAuthSuccess(result.user, result.access_token);
     } catch (err) {
-      const next = attempts + 1;
-      setAttempts(next);
-      if (next >= MAX_ATTEMPTS) {
+      const nextAttempts = attempts + 1;
+      setAttempts(nextAttempts);
+
+      if (nextAttempts >= MAX_ATTEMPTS) {
         setCooldownUntil(Date.now() + COOLDOWN_MS);
-        toast.error("Too many failed attempts. Wait 30 seconds.", { id: toastId });
+        toast.error("Too many failed attempts. Security cooldown active for 30s.", { id: toastId });
       } else {
-        const msg = err?.response?.data?.detail || err.message || "Invalid credentials.";
+        const msg = err?.response?.data?.detail || err.message || "Invalid username or password.";
         toast.error(msg, { id: toastId });
       }
       triggerShake();
@@ -263,20 +263,20 @@ const Login = () => {
     }
   };
 
-  // ── Google OAuth ──────────────────────────────────────────
+  // ── Google OAuth Submit ───────────────────────────────────
   const handleGoogleSuccess = async (tokenResponse) => {
     setGoogleLoading(true);
-    const toastId = toast.loading("Authenticating with Google…");
+    const toastId = toast.loading("Authenticating via Google...");
     try {
       const res = await apiClient.post("/api/auth/google", {
         token: tokenResponse.access_token,
       });
       const { access_token, user } = res.data ?? {};
-      if (!access_token || !user) throw new Error("Invalid server response.");
-      toast.success("Google Sign-In Successful!", { id: toastId });
+      if (!access_token || !user) throw new Error("Invalid authentication payload.");
+      toast.success("Google Sign-In successful!", { id: toastId });
       handleAuthSuccess(user, access_token);
     } catch (err) {
-      const msg = err?.response?.data?.detail || "Google login failed. Try again.";
+      const msg = err?.response?.data?.detail || "Google login failed. Please try again.";
       toast.error(msg, { id: toastId });
       triggerShake();
     } finally {
@@ -285,46 +285,49 @@ const Login = () => {
   };
 
   const handleGoogleError = () => {
-    toast.error("Google Sign-In popup closed or failed.");
+    toast.error("Google Sign-In popup closed or interrupted.");
     triggerShake();
   };
 
-  // ── Input handler ─────────────────────────────────────────
+  // ── Input Change Handler ──────────────────────────────────
   const handleChange = (e) => {
     const { name, value } = e.target;
     setCredentials((prev) => ({ ...prev, [name]: value }));
-    if (fieldErrors[name]) setFieldErrors((prev) => ({ ...prev, [name]: "" }));
+    if (fieldErrors[name]) {
+      setFieldErrors((prev) => ({ ...prev, [name]: "" }));
+    }
   };
 
   // ═══════════════════════════════════════════════════════════
   // RENDER
   // ═══════════════════════════════════════════════════════════
   return (
-    <div className="min-h-screen flex items-center justify-center overflow-hidden bg-gradient-to-br from-slate-50 via-white to-cyan-50 px-3 py-6 sm:px-6 sm:py-10 lg:px-8">
-
-      <div aria-hidden="true" className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none opacity-70" />
-      <div aria-hidden="true" className="absolute bottom-0 left-0 w-72 h-72 bg-gradient-to-tr from-sky-50 to-cyan-50 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2 pointer-events-none opacity-70" />
+    <div className="relative min-h-screen flex items-center justify-center overflow-hidden bg-gradient-to-br from-slate-50 via-slate-100/60 to-indigo-50/50 px-4 py-8 sm:px-6 sm:py-12">
+      {/* Background Decorative Gradient Orbs */}
+      <div aria-hidden="true" className="absolute top-0 right-0 w-[30rem] h-[30rem] bg-indigo-500/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none" />
+      <div aria-hidden="true" className="absolute bottom-0 left-0 w-[24rem] h-[24rem] bg-cyan-500/10 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2 pointer-events-none" />
 
       <motion.div
-        initial={{ opacity: 0, y: 24 }}
+        initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.45, ease: "easeOut" }}
-        className="relative z-10 responsive-card rounded-3xl border border-slate-200 bg-white/90 backdrop-blur-sm p-4 sm:p-6 lg:p-8 shadow-xl"
+        transition={{ duration: 0.4, ease: "easeOut" }}
+        className="relative z-10 w-full max-w-md rounded-3xl border border-slate-200/80 bg-white/90 backdrop-blur-md p-6 sm:p-8 shadow-xl shadow-slate-900/5"
       >
-        <div className="flex items-center gap-3 mb-8">
-          <div className="w-10 h-10 rounded-2xl bg-[#002147] flex items-center justify-center shadow-lg shadow-blue-900/25">
-            <ShieldCheckIcon className="w-5 h-5 text-white" />
+        {/* Brand Logo & Header */}
+        <div className="flex items-center gap-3.5 mb-8">
+          <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-[#002147] to-indigo-900 flex items-center justify-center shadow-md shadow-indigo-950/20 text-white">
+            <ShieldCheckIcon className="w-6 h-6" />
           </div>
           <div>
-            <p className="text-sm font-black text-slate-800">Markaz Library</p>
-            <p className="text-[11px] text-slate-500 font-medium">Secure Login</p>
+            <h1 className="text-base font-extrabold tracking-tight text-slate-900">Markaz Library System</h1>
+            <p className="text-xs text-slate-500 font-medium">Secure Access Portal</p>
           </div>
         </div>
 
-        <div className="mb-8">
-          <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">Welcome back</h2>
-          <p className="text-slate-500 text-sm mt-1.5 font-medium">
-            Sign in to continue to your account
+        <div className="mb-6">
+          <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">Welcome back</h2>
+          <p className="text-slate-500 text-sm mt-1 font-medium">
+            Sign in to access your digital catalog and research profile.
           </p>
         </div>
 
@@ -332,14 +335,14 @@ const Login = () => {
           animate={shake ? { x: [0, -10, 10, -6, 6, 0] } : { x: 0 }}
           transition={{ duration: 0.4 }}
         >
-          {/* Cooldown banner */}
+          {/* Active Cooldown Banner */}
           {cooldownRemaining > 0 && (
             <div className="mb-5">
               <CooldownBanner remaining={cooldownRemaining} />
             </div>
           )}
 
-          {/* Google */}
+          {/* Google OAuth Login Button */}
           {GOOGLE_AUTH_ENABLED ? (
             <GoogleLoginButton
               disabled={isDisabled}
@@ -352,166 +355,173 @@ const Login = () => {
               disabled
               type="button"
               aria-label="Google login unavailable"
-              className="w-full flex items-center justify-center gap-3 bg-slate-100 border-2 border-slate-200 text-slate-500 font-semibold py-3.5 rounded-2xl mb-5 shadow-sm cursor-not-allowed"
+              className="w-full flex items-center justify-center gap-3 bg-slate-100 border border-slate-200 text-slate-400 font-semibold py-3.5 rounded-2xl mb-5 text-sm cursor-not-allowed"
             >
               <GoogleIcon />
-              <span>Google login unavailable</span>
+              <span>Google Login Disabled</span>
             </button>
           )}
 
-          {/* Divider */}
-          <div className="flex items-center gap-4 mb-5" aria-hidden="true">
+          {/* Form Divider */}
+          <div className="flex items-center gap-4 mb-6" aria-hidden="true">
             <div className="h-px bg-slate-200 flex-1" />
-            <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">or</span>
+            <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest">or login with password</span>
             <div className="h-px bg-slate-200 flex-1" />
           </div>
 
-          {/* Form */}
+          {/* Login Form */}
           <form onSubmit={handleLogin} className="space-y-4" noValidate>
+            {/* Username Input */}
+            <div className="space-y-1.5">
+              <label htmlFor="username" className="text-[11px] font-extrabold text-slate-500 uppercase tracking-wider">
+                Username
+              </label>
+              <div className="relative group">
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center text-slate-400 group-focus-within:text-[#002147] transition-colors pointer-events-none" aria-hidden="true">
+                  <UserIcon className="w-5 h-5" />
+                </div>
+                <input
+                  id="username"
+                  type="text"
+                  name="username"
+                  value={credentials.username}
+                  onChange={handleChange}
+                  disabled={isDisabled}
+                  placeholder="Enter your username"
+                  autoComplete="username"
+                  aria-invalid={!!fieldErrors.username}
+                  aria-describedby={fieldErrors.username ? "username-error" : undefined}
+                  className={`w-full pl-11 pr-4 py-3.5 rounded-2xl outline-none transition-all text-sm font-medium text-slate-800 placeholder:text-slate-400 disabled:opacity-60 disabled:cursor-not-allowed border-2 ${
+                    fieldErrors.username
+                      ? "bg-rose-50/50 border-rose-300 focus:border-rose-500 focus:ring-4 focus:ring-rose-500/10"
+                      : "bg-slate-50/80 border-slate-200/80 focus:border-[#002147] focus:bg-white focus:ring-4 focus:ring-[#002147]/10"
+                  }`}
+                />
+              </div>
+              <FieldError id="username-error" message={fieldErrors.username} />
+            </div>
 
-              {/* Username */}
-              <div className="space-y-1.5">
-                <label htmlFor="username" className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-                  Username
+            {/* Password Input */}
+            <div className="space-y-1.5">
+              <div className="flex justify-between items-center">
+                <label htmlFor="password" className="text-[11px] font-extrabold text-slate-500 uppercase tracking-wider">
+                  Password
                 </label>
-                <div className="relative group">
-                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center text-slate-400 group-focus-within:text-[#002147] transition-colors pointer-events-none" aria-hidden="true">
-                    <UserIcon className="w-5 h-5" />
-                  </div>
-                  <input
-                    id="username"
-                    type="text"
-                    name="username"
-                    value={credentials.username}
-                    onChange={handleChange}
-                    disabled={isDisabled}
-                    placeholder="Enter your username"
-                    autoComplete="username"
-                    aria-invalid={!!fieldErrors.username}
-                    aria-describedby={fieldErrors.username ? "username-error" : undefined}
-                    className={`w-full pl-11 pr-4 py-3.5 rounded-2xl outline-none transition-all text-sm font-medium text-slate-800 placeholder:text-slate-400 placeholder:font-normal disabled:opacity-60 disabled:cursor-not-allowed border-2 ${
-                      fieldErrors.username
-                        ? "bg-rose-50 border-rose-300 focus:border-rose-500 focus:shadow-[0_0_0_4px_rgba(244,63,94,0.1)]"
-                        : "bg-slate-50 border-slate-200 focus:border-[#002147] focus:bg-white focus:shadow-[0_0_0_4px_rgba(0,33,71,0.07)]"
-                    }`}
-                  />
-                </div>
-                <FieldError id="username-error" message={fieldErrors.username} />
+                <Link
+                  to="/forgot-password"
+                  className="text-xs text-[#002147] font-bold hover:text-indigo-600 transition-colors focus:outline-none focus:underline"
+                  tabIndex={isDisabled ? -1 : 0}
+                >
+                  Forgot password?
+                </Link>
               </div>
-
-              {/* Password */}
-              <div className="space-y-1.5">
-                <div className="flex justify-between items-center">
-                  <label htmlFor="password" className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-                    Password
-                  </label>
-                  <Link
-                    to="/forgot-password"
-                    className="text-[11px] text-[#002147] font-bold hover:text-cyan-600 transition-colors focus:outline-none focus:underline"
-                    tabIndex={isDisabled ? -1 : 0}
-                  >
-                    Forgot password?
-                  </Link>
+              <div className="relative group">
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center text-slate-400 group-focus-within:text-[#002147] transition-colors pointer-events-none" aria-hidden="true">
+                  <LockClosedIcon className="w-5 h-5" />
                 </div>
-                <div className="relative group">
-                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center text-slate-400 group-focus-within:text-[#002147] transition-colors pointer-events-none" aria-hidden="true">
-                    <LockClosedIcon className="w-5 h-5" />
-                  </div>
-                  <input
-                    id="password"
-                    type={showPassword ? "text" : "password"}
-                    name="password"
-                    value={credentials.password}
-                    onChange={handleChange}
-                    disabled={isDisabled}
-                    placeholder="••••••••"
-                    autoComplete="current-password"
-                    aria-invalid={!!fieldErrors.password}
-                    aria-describedby={fieldErrors.password ? "password-error" : undefined}
-                    className={`w-full pl-11 pr-12 py-3.5 rounded-2xl outline-none transition-all text-sm font-medium text-slate-800 placeholder:text-slate-400 placeholder:font-normal disabled:opacity-60 disabled:cursor-not-allowed border-2 ${
-                      fieldErrors.password
-                        ? "bg-rose-50 border-rose-300 focus:border-rose-500 focus:shadow-[0_0_0_4px_rgba(244,63,94,0.1)]"
-                        : "bg-slate-50 border-slate-200 focus:border-[#002147] focus:bg-white focus:shadow-[0_0_0_4px_rgba(0,33,71,0.07)]"
-                    }`}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword((p) => !p)}
-                    disabled={isDisabled}
-                    aria-label={showPassword ? "Hide password" : "Show password"}
-                    className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-[#002147] transition-colors focus:outline-none disabled:cursor-not-allowed"
-                  >
-                    {showPassword ? <EyeSlashIcon className="w-5 h-5" /> : <EyeIcon className="w-5 h-5" />}
-                  </button>
-                </div>
-                <FieldError id="password-error" message={fieldErrors.password} />
+                <input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  name="password"
+                  value={credentials.password}
+                  onChange={handleChange}
+                  disabled={isDisabled}
+                  placeholder="••••••••"
+                  autoComplete="current-password"
+                  aria-invalid={!!fieldErrors.password}
+                  aria-describedby={fieldErrors.password ? "password-error" : undefined}
+                  className={`w-full pl-11 pr-12 py-3.5 rounded-2xl outline-none transition-all text-sm font-medium text-slate-800 placeholder:text-slate-400 disabled:opacity-60 disabled:cursor-not-allowed border-2 ${
+                    fieldErrors.password
+                      ? "bg-rose-50/50 border-rose-300 focus:border-rose-500 focus:ring-4 focus:ring-rose-500/10"
+                      : "bg-slate-50/80 border-slate-200/80 focus:border-[#002147] focus:bg-white focus:ring-4 focus:ring-[#002147]/10"
+                  }`}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((prev) => !prev)}
+                  disabled={isDisabled}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-[#002147] transition-colors focus:outline-none disabled:cursor-not-allowed"
+                >
+                  {showPassword ? <EyeSlashIcon className="w-5 h-5" /> : <EyeIcon className="w-5 h-5" />}
+                </button>
               </div>
+              <FieldError id="password-error" message={fieldErrors.password} />
+            </div>
 
-              {/* Remember Me */}
+            {/* Remember Me Checkbox */}
+            <div className="pt-1">
               <label className="flex items-center gap-2.5 cursor-pointer select-none group w-fit">
                 <input
                   type="checkbox"
                   checked={rememberMe}
                   onChange={(e) => setRememberMe(e.target.checked)}
                   disabled={isDisabled}
-                  className="w-4 h-4 rounded border-2 border-slate-300 accent-[#002147] cursor-pointer focus:ring-2 focus:ring-[#002147]/30"
+                  className="w-4 h-4 rounded border-slate-300 accent-[#002147] cursor-pointer focus:ring-2 focus:ring-[#002147]/20"
                 />
-                <span className="text-sm text-slate-500 font-medium group-hover:text-slate-700 transition-colors">
-                  Keep me signed in
+                <span className="text-sm text-slate-600 font-medium group-hover:text-slate-900 transition-colors">
+                  Keep me signed in on this device
                 </span>
               </label>
+            </div>
 
-              {/* Submit */}
-              <motion.button
-                whileHover={{ scale: isDisabled ? 1 : 1.01, y: isDisabled ? 0 : -1 }}
-                whileTap={{ scale: isDisabled ? 1 : 0.98 }}
-                type="submit"
-                disabled={isDisabled}
-                className="w-full py-4 rounded-2xl bg-[#002147] text-white font-bold text-sm shadow-lg shadow-[#002147]/20 hover:bg-[#003166] hover:shadow-[#002147]/35 transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center gap-2.5 mt-2 focus:outline-none focus:ring-4 focus:ring-[#002147]/30"
-              >
-                {loading ? (
-                  <>
-                    <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" aria-hidden="true" />
-                    <span>Verifying…</span>
-                  </>
-                ) : (
-                  <>
-                    <ArrowRightOnRectangleIcon className="w-4 h-4" aria-hidden="true" />
-                    <span>Sign In to Library</span>
-                  </>
-                )}
-              </motion.button>
+            {/* Submit Button */}
+            <motion.button
+              whileHover={{ scale: isDisabled ? 1 : 1.01, y: isDisabled ? 0 : -1 }}
+              whileTap={{ scale: isDisabled ? 1 : 0.98 }}
+              type="submit"
+              disabled={isDisabled}
+              className="w-full py-4 rounded-2xl bg-[#002147] text-white font-bold text-sm shadow-md shadow-[#002147]/20 hover:bg-[#002f66] hover:shadow-lg hover:shadow-[#002147]/30 transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2.5 mt-2 focus:outline-none focus:ring-4 focus:ring-[#002147]/25"
+            >
+              {loading ? (
+                <>
+                  <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" aria-hidden="true" />
+                  <span>Verifying Credentials...</span>
+                </>
+              ) : (
+                <>
+                  <ArrowRightOnRectangleIcon className="w-5 h-5" aria-hidden="true" />
+                  <span>Sign In to Library</span>
+                </>
+              )}
+            </motion.button>
           </form>
 
-          {/* Register link */}
-          <p className="mt-7 text-center text-sm text-slate-500 font-medium">
+          {/* Registration Redirect Link */}
+          <p className="mt-8 text-center text-sm text-slate-500 font-medium">
             Don't have an account?{" "}
             <Link
               to="/register"
-              className="text-[#002147] font-bold hover:text-cyan-600 transition-colors focus:outline-none focus:underline"
+              className="text-[#002147] font-bold hover:text-indigo-600 transition-colors focus:outline-none focus:underline"
             >
               Create Account
             </Link>
           </p>
 
-          <p className="mt-10 text-center text-xs text-slate-400">
-            &copy; {new Date().getFullYear()} Markaz Library System &bull; Secure Access
+          <p className="mt-8 text-center text-xs text-slate-400">
+            &copy; {new Date().getFullYear()} Markaz Library System &bull; All Rights Reserved
           </p>
         </motion.div>
       </motion.div>
 
-      {/* Dev credentials */}
-      {process.env.NODE_ENV === "development" && (
+      {/* Dev Credentials Banner (Visible only in dev environment) */}
+      {IS_DEV && (
         <motion.div
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.6 }}
+          transition={{ delay: 0.5 }}
           aria-hidden="true"
-          className="fixed bottom-4 right-4 p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-800 shadow-lg max-w-[200px] z-50"
+          className="fixed bottom-4 right-4 p-3.5 bg-amber-50/95 backdrop-blur-xs border border-amber-200 rounded-2xl text-xs text-amber-900 shadow-lg max-w-xs z-50"
         >
-          <p className="font-bold mb-1.5">🔧 Dev credentials</p>
-          <p>User: <code className="bg-amber-100 px-1 rounded font-mono">admin</code></p>
-          <p>Pass: <code className="bg-amber-100 px-1 rounded font-mono">admin</code></p>
+          <div className="flex items-center gap-1.5 font-bold mb-1 text-amber-800">
+            <span>🔧 Developer Fast Login</span>
+          </div>
+          <p className="text-[11px] text-amber-700">
+            User: <code className="bg-amber-100 px-1.5 py-0.5 rounded font-mono font-bold">admin</code>
+          </p>
+          <p className="text-[11px] text-amber-700 mt-0.5">
+            Pass: <code className="bg-amber-100 px-1.5 py-0.5 rounded font-mono font-bold">admin</code>
+          </p>
         </motion.div>
       )}
     </div>

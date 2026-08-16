@@ -1,13 +1,23 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { Autoplay, EffectFade } from 'swiper/modules';
-import { CalendarDaysIcon, MapPinIcon, ArrowTopRightOnSquareIcon } from '@heroicons/react/24/outline';
+import {
+  CalendarDaysIcon,
+  MapPinIcon,
+  ArrowTopRightOnSquareIcon,
+  XMarkIcon,
+  SparklesIcon,
+  EyeIcon,
+} from '@heroicons/react/24/outline';
 import posterService from '../../api/posterService';
 
 import 'swiper/css';
 import 'swiper/css/effect-fade';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || (import.meta.env.PROD ? 'https://kil2-backend.onrender.com' : 'http://127.0.0.1:8000');
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL ||
+  (import.meta.env.PROD ? 'https://kil2-backend.onrender.com' : 'http://127.0.0.1:8000');
 
 const toAbsoluteUrl = (value) => {
   if (!value) return null;
@@ -21,9 +31,9 @@ const resolveTranslation = (poster, language) => {
 };
 
 const getCaptionPositionClass = (alignment) => {
-  if (alignment === 'top') return 'top-0 items-start bg-gradient-to-b from-slate-950/85 via-slate-950/30 to-transparent';
-  if (alignment === 'center') return 'inset-0 items-center justify-center bg-slate-950/35';
-  return 'bottom-0 items-end bg-gradient-to-t from-slate-950/90 via-slate-950/40 to-transparent';
+  if (alignment === 'top') return 'top-0 items-start bg-gradient-to-b from-slate-950/90 via-slate-950/40 to-transparent';
+  if (alignment === 'center') return 'inset-0 items-center justify-center bg-slate-950/50';
+  return 'bottom-0 items-end bg-gradient-to-t from-slate-950/95 via-slate-950/50 to-transparent';
 };
 
 const HomepagePostersCarousel = () => {
@@ -50,6 +60,18 @@ const HomepagePostersCarousel = () => {
     };
   }, []);
 
+  // Lock body scroll when modal is open
+  useEffect(() => {
+    if (openPoster) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [openPoster]);
+
   const language = useMemo(() => {
     try {
       return localStorage.getItem('homepage_language') || 'en';
@@ -58,22 +80,28 @@ const HomepagePostersCarousel = () => {
     }
   }, []);
 
+  // Loading Skeleton State
   if (loading) {
     return (
-      <section className="rounded-[2rem] border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
-        <div className="h-8 w-44 animate-pulse rounded-full bg-slate-100" />
-        <div className="mt-4 h-[420px] animate-pulse rounded-[1.75rem] bg-slate-100" />
+      <section className="rounded-3xl border border-slate-800 bg-slate-900 p-4 shadow-xl sm:p-6">
+        <div className="h-6 w-44 animate-pulse rounded-full bg-slate-800" />
+        <div className="mt-4 h-[380px] animate-pulse rounded-2xl bg-slate-800/60 sm:h-[460px]" />
       </section>
     );
   }
 
+  // Empty State
   if (!posters.length) {
     return (
-      <section className="overflow-hidden rounded-[2rem] border border-slate-200 bg-gradient-to-br from-white via-slate-50 to-amber-50/40 p-4 shadow-[0_20px_60px_-35px_rgba(15,23,42,0.25)] sm:p-6 lg:p-7">
-        <div className="rounded-[1.75rem] border border-dashed border-slate-300 bg-white p-8 text-center sm:p-12">
-          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-amber-700">Media / Poster</p>
-          <h2 className="mt-3 text-2xl font-extrabold text-[#002147] sm:text-3xl">No posters published yet</h2>
-          <p className="mt-3 text-sm text-slate-600 sm:text-base">When an admin adds a poster, it will appear here with desktop and mobile versions, program details, and a clickable location link.</p>
+      <section className="overflow-hidden rounded-3xl border border-slate-800 bg-slate-900 p-6 shadow-xl sm:p-8">
+        <div className="rounded-2xl border border-dashed border-slate-700 bg-slate-950/50 p-8 text-center sm:p-12">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-indigo-500/10 px-3.5 py-1 text-xs font-bold uppercase tracking-widest text-indigo-400 border border-indigo-500/20">
+            <SparklesIcon className="w-4 h-4 text-indigo-400" /> Media & Campaigns
+          </span>
+          <h2 className="mt-3 text-2xl font-extrabold text-white sm:text-3xl">No Posters Published Yet</h2>
+          <p className="mt-2 max-w-lg mx-auto text-sm text-slate-400 sm:text-base leading-relaxed">
+            Admin-uploaded event posters and announcements will automatically appear here with program info and location links.
+          </p>
         </div>
       </section>
     );
@@ -82,149 +110,224 @@ const HomepagePostersCarousel = () => {
   const activePoster = openPoster ? posters.find((poster) => poster.id === openPoster) : null;
 
   return (
-    <section className="overflow-hidden rounded-[1.5rem] border border-slate-200 bg-white p-0 shadow-sm md:h-[calc(100vh-88px)] md:max-h-[calc(100vh-88px)] md:overflow-hidden">
-      <div className="h-full md:h-full">
-        <Swiper
-          modules={[Autoplay, EffectFade]}
-          slidesPerView={1}
-          effect="fade"
-          fadeEffect={{ crossFade: true }}
-          loop={posters.length > 1}
-          autoplay={{ delay: 4500, disableOnInteraction: false }}
-          className="!h-auto md:!h-full !pb-2"
-        >
-          {posters.map((poster) => {
-            const translation = resolveTranslation(poster, language);
-            const desktopImage = toAbsoluteUrl(poster.desktop_image_url);
-            const mobileImage = toAbsoluteUrl(poster.mobile_image_url) || desktopImage;
-            const title = translation.title || poster.title;
-            const programName = translation.program_name || poster.program_name;
-            const eventDate = translation.event_date || poster.event_date;
-            const locationName = translation.location_name || poster.location_name;
-            const locationUrl = translation.location_url || poster.location_url;
-            const description = translation.description || poster.description;
-            const captionPosition = getCaptionPositionClass(poster.caption_alignment || 'bottom');
-            return (
-              <SwiperSlide key={poster.id} className="!h-auto md:!h-full">
-                <article
-                  className="flex h-auto min-h-0 overflow-hidden rounded-[1.5rem] border border-slate-200 bg-white shadow-sm md:h-full md:items-stretch"
-                  onClick={() => setOpenPoster(poster.id)}
-                  role="button"
-                  tabIndex={0}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') setOpenPoster(poster.id);
-                  }}
-                >
-                  <div className="grid h-full min-h-0 gap-0 md:grid-cols-[minmax(0,2.3fr)_minmax(180px,0.7fr)] md:items-stretch">
-                    <div className="flex h-auto min-h-0 flex-col border-b border-slate-200 bg-white p-1 sm:p-2 md:h-full md:border-b-0 md:border-r md:self-stretch">
-                      <div className="poster-frame relative block w-full overflow-hidden rounded-[1rem] border border-slate-200 bg-white shadow-none aspect-[2/3] md:aspect-auto md:min-h-[min(100%,22rem)] md:flex-1">
-                        <picture className="absolute inset-0 block p-1 sm:p-2 md:p-2">
-                          <source media="(max-width: 767px)" srcSet={mobileImage || desktopImage || ''} />
-                          <img
-                            src={desktopImage || mobileImage || ''}
-                            alt={title}
-                            className="poster-image absolute inset-0 m-auto block h-full w-full object-contain"
-                            loading="eager"
-                          />
-                        </picture>
-                        <div className={`absolute inset-x-0 flex ${captionPosition} p-3 text-white sm:p-5`}>
-                          <div className="space-y-1.5 sm:space-y-2">
-                            <div className="flex flex-wrap items-center gap-1.5 text-[10px] sm:gap-3 sm:text-sm">
-                              {eventDate ? <span className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 backdrop-blur"><CalendarDaysIcon className="h-4 w-4" />{eventDate}</span> : null}
-                              {locationName ? <span className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 backdrop-blur"><MapPinIcon className="h-4 w-4" />{locationName}</span> : null}
-                            </div>
-                            <h3 className="text-lg font-extrabold leading-tight sm:text-3xl">{title}</h3>
-                            {programName ? <p className="text-[10px] uppercase tracking-[0.2em] text-cyan-200 sm:text-sm">{programName}</p> : null}
-                          </div>
+    <section className="overflow-hidden rounded-3xl border border-slate-800 bg-slate-900 shadow-2xl">
+      <Swiper
+        modules={[Autoplay, EffectFade]}
+        slidesPerView={1}
+        effect="fade"
+        fadeEffect={{ crossFade: true }}
+        loop={posters.length > 1}
+        autoplay={{ delay: 5000, disableOnInteraction: false }}
+        className="w-full"
+      >
+        {posters.map((poster) => {
+          const translation = resolveTranslation(poster, language);
+          const desktopImage = toAbsoluteUrl(poster.desktop_image_url);
+          const mobileImage = toAbsoluteUrl(poster.mobile_image_url) || desktopImage;
+          const title = translation.title || poster.title || 'Untitled Poster';
+          const programName = translation.program_name || poster.program_name;
+          const eventDate = translation.event_date || poster.event_date;
+          const locationName = translation.location_name || poster.location_name;
+          const locationUrl = translation.location_url || poster.location_url;
+          const description = translation.description || poster.description;
+          const captionPosition = getCaptionPositionClass(poster.caption_alignment || 'bottom');
+
+          return (
+            <SwiperSlide key={poster.id}>
+              <article
+                className="group cursor-pointer overflow-hidden bg-slate-900"
+                onClick={() => setOpenPoster(poster.id)}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') setOpenPoster(poster.id);
+                }}
+              >
+                <div className="grid gap-0 lg:grid-cols-[1.6fr_1fr] min-h-[420px] sm:min-h-[480px]">
+                  {/* Left Canvas: Poster Display */}
+                  <div className="relative flex items-center justify-center bg-slate-950 p-3 sm:p-6 overflow-hidden min-h-[300px] sm:min-h-[420px]">
+                    <picture className="w-full h-full flex items-center justify-center">
+                      <source media="(max-width: 767px)" srcSet={mobileImage || desktopImage || ''} />
+                      <img
+                        src={desktopImage || mobileImage || ''}
+                        alt={title}
+                        className="max-h-[460px] w-auto max-w-full object-contain rounded-xl shadow-lg transition-transform duration-500 group-hover:scale-[1.01]"
+                        loading="eager"
+                      />
+                    </picture>
+
+                    {/* Gradient Caption Overlay */}
+                    <div className={`absolute inset-x-0 flex ${captionPosition} p-4 text-white sm:p-6 pointer-events-none`}>
+                      <div className="space-y-1.5 max-w-xl">
+                        <div className="flex flex-wrap items-center gap-2 text-xs font-semibold">
+                          {eventDate && (
+                            <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-900/80 backdrop-blur-md px-3 py-1 text-slate-200 border border-slate-700/80">
+                              <CalendarDaysIcon className="h-3.5 w-3.5 text-cyan-400" />
+                              {eventDate}
+                            </span>
+                          )}
+                          {locationName && (
+                            <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-900/80 backdrop-blur-md px-3 py-1 text-slate-200 border border-slate-700/80">
+                              <MapPinIcon className="h-3.5 w-3.5 text-amber-400" />
+                              {locationName}
+                            </span>
+                          )}
                         </div>
+                        <h3 className="text-lg font-extrabold text-white sm:text-2xl leading-snug drop-shadow-md">
+                          {title}
+                        </h3>
                       </div>
                     </div>
 
-                    <div className="flex h-auto flex-col justify-start gap-1.5 overflow-hidden p-2 text-sm sm:p-3 md:h-full md:min-w-0 lg:self-stretch">
+                    {/* Expand Badge Indicator */}
+                    <div className="absolute top-4 right-4 hidden sm:flex items-center gap-1.5 rounded-full bg-slate-900/80 backdrop-blur-md px-3 py-1.5 text-xs font-semibold text-white border border-slate-700 opacity-0 transition-opacity group-hover:opacity-100">
+                      <EyeIcon className="w-4 h-4 text-indigo-400" /> Click to Expand
+                    </div>
+                  </div>
+
+                  {/* Right Sidebar: Program Details Panel */}
+                  <div className="flex flex-col justify-between p-5 sm:p-7 border-t border-slate-800 lg:border-t-0 lg:border-l lg:border-slate-800 bg-slate-900 text-white">
+                    <div className="space-y-4">
+                      <div className="inline-flex items-center gap-1.5 rounded-full bg-indigo-500/10 px-3 py-1 text-xs font-extrabold uppercase tracking-widest text-indigo-400 border border-indigo-500/20">
+                        <SparklesIcon className="w-3.5 h-3.5 text-indigo-400" /> Featured Notice
+                      </div>
+
                       <div>
-                        <div className="rounded-xl border border-slate-200 bg-slate-50 p-2 sm:p-2.5">
-                          <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-amber-700 sm:text-xs">Media / Poster</p>
-                          <h2 className="mt-1 text-base font-extrabold leading-snug text-[#002147] sm:text-xl">Upcoming programs and notices</h2>
-                          <p className="mt-1 text-xs leading-relaxed text-slate-600 sm:text-sm">Admin-uploaded posters rotate automatically and stay optimized for mobile and desktop screens.</p>
-                        </div>
+                        <h2 className="text-xl sm:text-2xl font-extrabold text-white leading-snug">
+                          {programName || title}
+                        </h2>
+                        {description && (
+                          <p className="mt-2.5 text-xs sm:text-sm leading-relaxed text-slate-300 line-clamp-4">
+                            {description}
+                          </p>
+                        )}
+                      </div>
 
-                        <p className="mt-2 text-[10px] font-semibold uppercase tracking-[0.28em] text-amber-700 sm:text-xs">Program Details</p>
-                        <h4 className="mt-1 text-sm font-bold leading-snug text-slate-900 sm:text-lg">{programName || title}</h4>
-                        {description ? <p className="mt-1 line-clamp-2 whitespace-pre-wrap text-[11px] leading-5 text-slate-600 sm:line-clamp-3 sm:text-sm">{description}</p> : null}
-
-                        <div className="mt-3 space-y-1 rounded-xl border border-slate-200 bg-slate-50 p-2 text-xs sm:space-y-1.5 sm:p-2.5 sm:text-sm">
-                          {eventDate ? <p className="text-slate-700"><span className="font-semibold text-slate-900">Date:</span> {eventDate}</p> : null}
-                          {locationName ? (
-                            <div className="text-slate-700">
-                              <span className="font-semibold text-slate-900">Location:</span>{' '}
+                      {/* Event Meta Box */}
+                      <div className="space-y-2.5 rounded-2xl border border-slate-800 bg-slate-950/60 p-4 text-xs sm:text-sm">
+                        {eventDate && (
+                          <div className="flex items-center gap-2.5 text-slate-300">
+                            <CalendarDaysIcon className="w-4 h-4 text-cyan-400 shrink-0" />
+                            <span><strong className="text-white font-bold">Date:</strong> {eventDate}</span>
+                          </div>
+                        )}
+                        {locationName && (
+                          <div className="flex items-center gap-2.5 text-slate-300">
+                            <MapPinIcon className="w-4 h-4 text-amber-400 shrink-0" />
+                            <span>
+                              <strong className="text-white font-bold">Location:</strong>{' '}
                               {locationUrl ? (
-                                <a href={locationUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-blue-700 underline decoration-blue-300 underline-offset-4 hover:text-blue-900">
+                                <a
+                                  href={locationUrl}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  onClick={(e) => e.stopPropagation()}
+                                  className="inline-flex items-center gap-1 text-cyan-400 font-bold underline underline-offset-4 hover:text-cyan-300"
+                                >
                                   {locationName}
-                                  <ArrowTopRightOnSquareIcon className="h-4 w-4" />
+                                  <ArrowTopRightOnSquareIcon className="h-3.5 w-3.5" />
                                 </a>
                               ) : (
                                 <span>{locationName}</span>
                               )}
-                            </div>
-                          ) : null}
-                        </div>
+                            </span>
+                          </div>
+                        )}
                       </div>
                     </div>
-                  </div>
-                </article>
-              </SwiperSlide>
-            );
-          })}
-        </Swiper>
-      </div>
 
-      {activePoster ? (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/85 p-3 backdrop-blur-sm sm:p-6"
-          onClick={() => setOpenPoster(null)}
-        >
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setOpenPoster(poster.id);
+                      }}
+                      className="mt-6 inline-flex items-center justify-center gap-2 w-full rounded-2xl bg-indigo-600 px-4 py-3.5 text-xs sm:text-sm font-bold text-white shadow-md shadow-indigo-600/20 hover:bg-indigo-500 active:scale-[0.98] transition"
+                    >
+                      <EyeIcon className="w-4 h-4" /> View Full Poster
+                    </button>
+                  </div>
+                </div>
+              </article>
+            </SwiperSlide>
+          );
+        })}
+      </Swiper>
+
+      {/* React Portal Lightbox Dialog — Rendered on document.body */}
+      {activePoster &&
+        createPortal(
           <div
-            className="relative max-h-[95vh] w-full max-w-6xl overflow-hidden rounded-[1.5rem] border border-white/10 bg-white shadow-2xl"
-            onClick={(e) => e.stopPropagation()}
+            className="fixed inset-0 z-[9999] flex items-center justify-center p-4 sm:p-6 bg-slate-950/85 backdrop-blur-md animate-in fade-in duration-200"
+            onClick={() => setOpenPoster(null)}
           >
-            <button
-              onClick={() => setOpenPoster(null)}
-              className="absolute right-3 top-3 z-10 rounded-full bg-slate-950/70 px-3 py-2 text-xs font-semibold text-white shadow-lg hover:bg-slate-950 sm:right-4 sm:top-4"
+            <div
+              className="relative w-full max-w-2xl max-h-[88vh] overflow-y-auto rounded-3xl border border-slate-700 bg-slate-900 text-white p-5 sm:p-6 shadow-2xl space-y-4"
+              onClick={(e) => e.stopPropagation()}
             >
-              Close
-            </button>
-            <div className="grid max-h-[95vh] md:grid-cols-[minmax(0,1.7fr)_minmax(240px,0.3fr)]">
-              <div className="relative flex min-h-[50vh] items-center justify-center bg-slate-950 p-3 sm:min-h-[70vh] sm:p-4">
+              {/* Modal Header */}
+              <div className="flex items-start justify-between gap-3 border-b border-slate-800 pb-3">
+                <div>
+                  <span className="inline-block rounded-full bg-indigo-500/10 px-2.5 py-0.5 text-[11px] font-extrabold uppercase tracking-widest text-indigo-400 border border-indigo-500/20">
+                    Poster Lightbox Preview
+                  </span>
+                  <h3 className="mt-1 text-lg sm:text-xl font-extrabold text-white leading-snug">
+                    {resolveTranslation(activePoster, language).title || activePoster.title}
+                  </h3>
+                </div>
+
+                <button
+                  onClick={() => setOpenPoster(null)}
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white transition border border-slate-700"
+                  title="Close Modal"
+                >
+                  <XMarkIcon className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Poster Image Frame */}
+              <div className="relative flex items-center justify-center rounded-2xl bg-slate-950 p-2 sm:p-3 border border-slate-800">
                 <img
                   src={toAbsoluteUrl(activePoster.desktop_image_url || activePoster.mobile_image_url) || ''}
                   alt={resolveTranslation(activePoster, language).title || activePoster.title}
-                  className="max-h-[88vh] w-auto max-w-full object-contain"
+                  className="max-h-[55vh] w-auto max-w-full object-contain rounded-xl shadow-md"
                 />
               </div>
-              <div className="border-t border-slate-200 bg-white p-4 md:border-l md:border-t-0 md:p-5">
-                <p className="text-xs font-semibold uppercase tracking-[0.28em] text-amber-700">Full Poster</p>
-                <h3 className="mt-1 text-lg font-extrabold text-[#002147]">
-                  {resolveTranslation(activePoster, language).title || activePoster.title}
-                </h3>
-                <p className="mt-2 text-sm leading-6 text-slate-600">
-                  {resolveTranslation(activePoster, language).description || activePoster.description || 'Poster preview'}
-                </p>
-                <div className="mt-4 space-y-2 rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
-                  {resolveTranslation(activePoster, language).event_date || activePoster.event_date ? (
-                    <p><span className="font-semibold text-slate-900">Date:</span> {resolveTranslation(activePoster, language).event_date || activePoster.event_date}</p>
-                  ) : null}
-                  {resolveTranslation(activePoster, language).location_name || activePoster.location_name ? (
-                    <p>
-                      <span className="font-semibold text-slate-900">Location:</span>{' '}
-                      {resolveTranslation(activePoster, language).location_name || activePoster.location_name}
-                    </p>
-                  ) : null}
+
+              {/* Metadata & Description */}
+              <div className="space-y-3 pt-1">
+                {(resolveTranslation(activePoster, language).description || activePoster.description) && (
+                  <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
+                    {resolveTranslation(activePoster, language).description || activePoster.description}
+                  </p>
+                )}
+
+                {/* Date & Location Chips */}
+                <div className="flex flex-wrap items-center gap-3 pt-1 text-xs">
+                  {(resolveTranslation(activePoster, language).event_date || activePoster.event_date) && (
+                    <span className="inline-flex items-center gap-1.5 rounded-xl bg-slate-950 border border-slate-800 px-3 py-1.5 text-slate-200">
+                      <CalendarDaysIcon className="w-4 h-4 text-cyan-400" />
+                      <span>
+                        <strong className="text-white font-semibold">Date:</strong>{' '}
+                        {resolveTranslation(activePoster, language).event_date || activePoster.event_date}
+                      </span>
+                    </span>
+                  )}
+                  {(resolveTranslation(activePoster, language).location_name || activePoster.location_name) && (
+                    <span className="inline-flex items-center gap-1.5 rounded-xl bg-slate-950 border border-slate-800 px-3 py-1.5 text-slate-200">
+                      <MapPinIcon className="w-4 h-4 text-amber-400" />
+                      <span>
+                        <strong className="text-white font-semibold">Location:</strong>{' '}
+                        {resolveTranslation(activePoster, language).location_name || activePoster.location_name}
+                      </span>
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
-          </div>
-        </div>
-      ) : null}
+          </div>,
+          document.body
+        )}
     </section>
   );
 };
