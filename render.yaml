@@ -1,0 +1,61 @@
+services:
+  # ✅ Backend Service
+  - type: web
+    name: kil2-backend
+    runtime: python
+    plan: free
+    pythonVersion: 3.11
+    
+    # ✅ Build command - install from root, knows how to find library_backend
+    buildCommand: |
+      pip install --upgrade pip && pip install -r library_backend/requirements.txt
+    
+    # ✅ CRITICAL: Use app.py which handles imports from anywhere
+    startCommand: python app.py
+    
+    # ✅ Environment variables
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: SECRET_KEY
+        sync: false
+      - key: ALGORITHM
+        value: HS256
+      - key: ACCESS_TOKEN_EXPIRE_MINUTES
+        value: "15"
+      - key: REFRESH_TOKEN_EXPIRE_DAYS
+        value: "7"
+      - key: DATABASE_POOL_SIZE
+        value: "20"
+      - key: DATABASE_MAX_OVERFLOW
+        value: "40"
+      - key: DATABASE_POOL_RECYCLE
+        value: "1800"
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_KEY
+        sync: false
+
+  # ✅ Frontend Service (optional - if deploying frontend separately)
+  - type: web
+    name: kil2-frontend
+    runtime: node
+    plan: free
+    
+    rootDir: library-frontend
+    
+    buildCommand: |
+      npm install
+      npm run build
+    
+    startCommand: npm run preview -- --host 0.0.0.0 --port 3000
+    
+    envVars:
+      - key: VITE_API_BASE_URL
+        value: https://kil2-backend.onrender.com

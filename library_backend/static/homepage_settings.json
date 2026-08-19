@@ -1,0 +1,71 @@
+{
+  "theme": "aurora",
+  "language": "en",
+  "hero_badge": "tARIQUE",
+  "site_title": "",
+  "sections": {
+    "hero": {
+      "enabled": true,
+      "order": 0,
+      "title": "Welcome to the future of the library testING ",
+      "subtitle": "A modern, intelligent reading experience",
+      "description": "Main landing intro and spotlight area",
+      "badge": "Adaptive Knowledge Grid",
+      "cta_label": "Explore the catalog",
+      "primary_cta_label": "Explore the catalog",
+      "primary_cta_url": "/books",
+      "secondary_cta_label": "Request access",
+      "secondary_cta_url": "/contact"
+    },
+    "search": {
+      "enabled": true,
+      "order": 1,
+      "title": "Library Search",
+      "subtitle": "Find books, authors, and collections",
+      "description": "Search, filters, and discovery tools",
+      "show_hint": false,
+      "enable_voice": false,
+      "enable_deep": false,
+      "show_suggestions": false
+    },
+    "featured": {
+      "enabled": false,
+      "order": 1,
+      "title": "library k choose kiya ",
+      "subtitle": "bahut accchi book",
+      "description": "good",
+      "featured_books": [
+        1
+      ]
+    },
+    "catalog": {
+      "enabled": false,
+      "order": 3,
+      "title": "Explore the Library",
+      "subtitle": "Browse the full collection",
+      "description": "Main book browsing grid"
+    },
+    "posts": {
+      "enabled": true,
+      "order": 4,
+      "title": "Latest Announcements",
+      "subtitle": "News and updates",
+      "description": "News and latest updates"
+    },
+    "donation": {
+      "enabled": true,
+      "order": 5,
+      "title": "Support the Library",
+      "subtitle": "Help the library grow",
+      "description": "Support and donation block"
+    }
+  },
+  "layout": {
+    "show_stats": true,
+    "show_trending": true,
+    "show_favorites": true,
+    "show_search_strip": false,
+    "show_featured_books": true,
+    "show_donation_panel": true
+  }
+}

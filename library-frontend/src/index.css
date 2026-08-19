@@ -1,0 +1,489 @@
+@import "tailwindcss";
+
+/* ============================================================
+   DESIGN TOKENS
+   ============================================================ */
+:root {
+  --primary:        #002147;
+  --primary-hover:  #003166;
+  --primary-light:  #EEF4FF;
+  --accent:         #2D89C8;
+  --accent-hover:   #1a6ea8;
+  --success:        #10b981;
+  --warning:        #f59e0b;
+  --danger:         #ef4444;
+  --surface:        #ffffff;
+  --surface-alt:    #F8FAFC;
+  --border:         #e2e8f0;
+  --text-primary:   #0f172a;
+  --text-secondary: #64748b;
+  --text-muted:     #94a3b8;
+  --shadow-sm:      0 1px 3px 0 rgb(0 0 0 / 0.08), 0 1px 2px -1px rgb(0 0 0 / 0.08);
+  --shadow-md:      0 4px 16px -2px rgb(0 0 0 / 0.10), 0 2px 6px -2px rgb(0 0 0 / 0.06);
+  --shadow-lg:      0 10px 30px -4px rgb(0 0 0 / 0.12), 0 4px 10px -4px rgb(0 0 0 / 0.08);
+  --radius-sm:      0.625rem;
+  --radius-md:      0.875rem;
+  --radius-lg:      1rem;
+  --radius-xl:      1.25rem;
+}
+
+/* ============================================================
+   BASE RESET & TYPOGRAPHY
+   ============================================================ */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  display: block;
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  font-family: "Inter", "Montserrat", system-ui, -apple-system, sans-serif;
+  font-size: clamp(0.875rem, 0.84rem + 0.18vw, 0.94rem);
+  line-height: 1.6;
+  font-weight: 400;
+  color: var(--text-primary);
+  background-color: var(--surface-alt);
+}
+
+h1 {
+  font-size: clamp(1.35rem, 1.15rem + 1vw, 2.25rem);
+  line-height: 1.12;
+  letter-spacing: -0.035em;
+  font-weight: 700;
+}
+
+h2 {
+  font-size: clamp(1.15rem, 1rem + 0.65vw, 1.5rem);
+  line-height: 1.2;
+  letter-spacing: -0.025em;
+  font-weight: 700;
+}
+
+h3 {
+  font-size: clamp(1rem, 0.95rem + 0.35vw, 1.125rem);
+  line-height: 1.25;
+  letter-spacing: -0.015em;
+  font-weight: 600;
+}
+
+p,
+li,
+label,
+input,
+textarea,
+button,
+select {
+  font-size: clamp(0.875rem, 0.84rem + 0.16vw, 0.94rem);
+}
+
+.page-title {
+  font-size: clamp(1.4rem, 1.1rem + 1vw, 2.25rem);
+  line-height: 1.1;
+  letter-spacing: -0.04em;
+  font-weight: 700;
+}
+
+.section-title {
+  font-size: clamp(1.05rem, 0.95rem + 0.45vw, 1.35rem);
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  font-weight: 700;
+}
+
+.card-title {
+  font-size: clamp(0.95rem, 0.9rem + 0.25vw, 1.1rem);
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+  font-weight: 600;
+}
+
+.eyebrow {
+  font-size: 0.72rem;
+  line-height: 1.2;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  font-weight: 700;
+}
+
+.body-copy {
+  font-size: 0.92rem;
+  line-height: 1.6;
+  color: var(--text-secondary);
+}
+
+.muted-copy {
+  font-size: 0.8rem;
+  line-height: 1.45;
+  color: var(--text-muted);
+}
+
+.card-surface {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.card-surface-soft {
+  background: linear-gradient(180deg, rgba(255,255,255,0.92), rgba(248,250,252,0.96));
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  border-radius: var(--radius-xl);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.soft-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  min-height: 1.6rem;
+  padding: 0.35rem 0.7rem;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.pill-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  border-radius: 999px;
+  padding: 0.4rem 0.75rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+#root {
+  max-width: 100% !important;
+  text-align: left !important;
+}
+
+/* ============================================================
+   CUSTOM SCROLLBAR
+   ============================================================ */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* ============================================================
+   SELECTION
+   ============================================================ */
+::selection {
+  background-color: rgba(0, 33, 71, 0.15);
+  color: var(--primary);
+}
+
+/* ============================================================
+   FOCUS RING (Accessibility)
+   ============================================================ */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* ============================================================
+   ANIMATIONS
+   ============================================================ */
+@keyframes gradientMove {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes shimmer {
+  0%   { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+
+@keyframes pulse-ring {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(45, 137, 200, 0.3); }
+  50%       { box-shadow: 0 0 0 8px rgba(45, 137, 200, 0); }
+}
+
+@keyframes scanY {
+  from { top: -10%; }
+  to   { top: 110%; }
+}
+
+@keyframes scanX {
+  from { left: -10%; }
+  to   { left: 110%; }
+}
+
+@keyframes binary {
+  0%   { opacity: 0; transform: translateY(-20px); }
+  10%  { opacity: 1; }
+  90%  { opacity: 1; }
+  100% { opacity: 0; transform: translateY(100vh); }
+}
+
+@keyframes node {
+  0%, 100% { transform: scale(1);   opacity: 0.7; }
+  50%       { transform: scale(1.6); opacity: 0.3; }
+}
+
+@keyframes star {
+  0%, 100% { opacity: 0.2; transform: scale(0.8); }
+  50%       { opacity: 1;   transform: scale(1.2); }
+}
+
+/* Utility animation classes */
+.animate-scanY  { animation: scanY  8s linear infinite; }
+.animate-scanX  { animation: scanX  12s linear infinite; }
+.animate-binary { animation: binary 4s linear infinite; }
+.animate-node   { animation: node   3s ease-in-out infinite; }
+.animate-star   { animation: star   2s ease-in-out infinite; }
+.animate-fadeInUp { animation: fadeInUp 0.45s ease-out both; }
+
+/* ============================================================
+   GLASS / CARD UTILITIES
+   ============================================================ */
+.glass {
+  background: rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+}
+
+.glass-dark {
+  background: rgba(0, 33, 71, 0.6);
+  backdrop-filter: blur(16px) saturate(160%);
+  -webkit-backdrop-filter: blur(16px) saturate(160%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.card {
+  background: white;
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.card:hover {
+  box-shadow: var(--shadow-md);
+}
+
+/* ============================================================
+   FORM ELEMENTS
+   ============================================================ */
+.input-field {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background: #F8FAFC;
+  border: 2px solid #e2e8f0;
+  border-radius: var(--radius-lg);
+  outline: none;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+
+.input-field:focus {
+  border-color: var(--primary);
+  background: white;
+  box-shadow: 0 0 0 4px rgba(0, 33, 71, 0.07);
+}
+
+.input-field::placeholder {
+  color: var(--text-muted);
+  font-weight: 400;
+}
+
+/* ============================================================
+   BUTTONS
+   ============================================================ */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.875rem 1.5rem;
+  background: var(--primary);
+  color: white;
+  font-weight: 700;
+  font-size: 0.875rem;
+  border-radius: var(--radius-xl);
+  border: none;
+  cursor: pointer;
+  transition: background 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease;
+  box-shadow: 0 4px 14px rgba(0, 33, 71, 0.2);
+}
+
+.btn-primary:hover {
+  background: var(--primary-hover);
+  box-shadow: 0 6px 20px rgba(0, 33, 71, 0.3);
+  transform: translateY(-1px);
+}
+
+.btn-primary:active {
+  transform: translateY(0);
+}
+
+.btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* ============================================================
+   RESPONSIVE FOUNDATION
+   ============================================================ */
+
+img,
+picture,
+video,
+canvas,
+svg {
+  max-width: 100%;
+  height: auto;
+}
+
+input:not([type="checkbox"]):not([type="radio"]),
+select,
+textarea,
+button,
+.btn-primary,
+.input-field {
+  min-height: 44px;
+}
+
+.app-shell-container {
+  width: min(100% - 2rem, 90rem);
+  margin-inline: auto;
+}
+
+.app-shell-container-wide {
+  width: min(100% - 2rem, 120rem);
+  margin-inline: auto;
+}
+
+.fluid-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr));
+  gap: clamp(0.75rem, 0.5rem + 1vw, 1.5rem);
+}
+
+.responsive-card {
+  width: 100%;
+  max-width: min(100%, 34rem);
+  margin-inline: auto;
+}
+
+/* Mobile: 320px - 480px */
+@media (min-width: 320px) and (max-width: 480px) {
+  :root {
+    --radius-xl: 1rem;
+  }
+
+  .app-shell-container,
+  .app-shell-container-wide {
+    width: min(100% - 1rem, 100rem);
+  }
+}
+
+/* Large mobile / small tablet: 481px - 768px */
+@media (min-width: 481px) and (max-width: 768px) {
+  .app-shell-container,
+  .app-shell-container-wide {
+    width: min(100% - 1.5rem, 100rem);
+  }
+}
+
+/* Tablet: 769px - 1024px */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .app-shell-container {
+    width: min(100% - 2rem, 64rem);
+  }
+
+  .app-shell-container-wide {
+    width: min(100% - 2rem, 80rem);
+  }
+}
+
+/* Desktop: 1025px - 1440px */
+@media (min-width: 1025px) and (max-width: 1440px) {
+  .app-shell-container {
+    width: min(100% - 3rem, 82rem);
+  }
+
+  .app-shell-container-wide {
+    width: min(100% - 3rem, 96rem);
+  }
+}
+
+/* Large / 4K: 1441px+ */
+@media (min-width: 1441px) {
+  html {
+    font-size: 18px;
+  }
+
+  .app-shell-container {
+    width: min(100% - 4rem, 96rem);
+  }
+
+  .app-shell-container-wide {
+    width: min(100% - 4rem, 120rem);
+  }
+}
+
+/* Keep widely used Tailwind containers pleasant on large screens without per-page rewrites. */
+.max-w-7xl {
+  max-width: min(100%, 96rem) !important;
+}
+
+.max-w-6xl {
+  max-width: min(100%, 88rem) !important;
+}
+
+.max-w-5xl {
+  max-width: min(100%, 80rem) !important;
+}
+
+/* ============================================================
+   URDU / RTL SUPPORT
+   ============================================================ */
+.font-urdu {
+  font-family: 'Jameel Noori Nastaleeq', 'Noto Nastaliq Urdu', serif;
+  direction: rtl;
+  line-height: 2;
+}

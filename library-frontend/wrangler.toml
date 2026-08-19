@@ -1,0 +1,23 @@
+# Wrangler configuration for Cloudflare Pages
+# This file tells Cloudflare how to build and deploy the project
+
+name = "kil2-frontend"
+type = "javascript"
+
+# Build configuration
+build = { command = "npm run build", cwd = "." }
+
+# Where the built files are located
+main = "dist/index.html"
+
+# Environment variables for production
+[env.production]
+vars = { VITE_API_BASE_URL = "https://kil2-backend.onrender.com" }
+
+# Observability
+[observability]
+enabled = false
+
+# Triggers for automatic deploys
+[triggers]
+branches = [{ pattern = "main" }]

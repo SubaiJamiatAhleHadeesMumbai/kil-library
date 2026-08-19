@@ -1,0 +1,34 @@
+Introduction to Algorithms
+ A Sample Dummy Textbook
+ Thomas H. Cormen  |  Charles E. Leiserson
+ MIT Press    3rd Edition    2009
+
+
+Chapter 1: The Role of Algorithms in Computing
+An algorithm is any well-defined computational procedure that takes some value, or set of
+values, as input and produces some value, or set of values, as output. An algorithm is thus a
+sequence of computational steps that transform the input into the output.
+We can also view an algorithm as a tool for solving a well-specified computational problem.
+The statement of the problem specifies in general terms the desired input/output relationship,
+and the algorithm describes a specific computational procedure for achieving that relationship.
+Algorithms are widely used throughout modern life. Consider a bank that needs to process
+financial transactions, a search engine that needs to rank web pages, or a navigation app that
+must find the shortest route between two locations. Each of these tasks relies on algorithms
+operating efficiently, even as the size of the input data grows very large.
+This chapter introduces the basic terminology used throughout the rest of this text, including
+notions of correctness, efficiency, and the trade-offs designers must consider when choosing
+between competing approaches to the same problem.
+
+
+Table of Contents
+Chapter 1 — The Role of Algorithms in Computing .......... 1
+Chapter 2 — Getting Started .......... 15
+Chapter 3 — Growth of Functions .......... 43
+Chapter 4 — Divide-and-Conquer .......... 65
+Chapter 5 — Probabilistic Analysis and Randomized Algorithms .......... 91
+Chapter 6 — Heapsort .......... 151
+Chapter 7 — Quicksort .......... 170
+ Note: This is a dummy sample PDF generated for testing purposes only (e.g. library management system
+ uploads). It is not the actual book.
+
+

@@ -1,0 +1,36 @@
+# ✅ Netlify Configuration for React SPA + Vite
+
+[build]
+  command = "npm install && npm run build"
+  publish = "dist"
+  environment = { NODE_VERSION = "20", NODE_ENV = "production" }
+
+# ✅ CRITICAL: SPA Routing - All routes go to index.html
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+# ✅ Caching Strategy
+[[headers]]
+  for = "/index.html"
+  [headers.values]
+    # index.html must revalidate frequently for updates
+    Cache-Control = "max-age=0, no-cache, no-store, must-revalidate"
+
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    # Assets have content hashes - cache forever
+    Cache-Control = "public, max-age=31536000, immutable"
+
+# ✅ Security Headers
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "SAMEORIGIN"
+    X-Content-Type-Options = "nosniff"
+    X-XSS-Protection = "1; mode=block"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    # Allow API calls to Render backend
+    Access-Control-Allow-Origin = "*"
