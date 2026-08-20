@@ -35,6 +35,79 @@ print("Creating all tables...")
 Base.metadata.create_all(bind=engine)
 
 print("Synchronizing schema columns...")
+
+rename_queries = [
+    # Users table renames
+    """
+    DO $$ 
+    BEGIN
+      IF EXISTS(SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='FullName') THEN
+        ALTER TABLE users RENAME COLUMN "FullName" TO full_name;
+      END IF;
+      IF EXISTS(SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='Education') THEN
+        ALTER TABLE users RENAME COLUMN "Education" TO education;
+      END IF;
+      IF EXISTS(SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='SocialActivities') THEN
+        ALTER TABLE users RENAME COLUMN "SocialActivities" TO social_activities;
+      END IF;
+      IF EXISTS(SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='Email') THEN
+        ALTER TABLE users RENAME COLUMN "Email" TO email;
+      END IF;
+      IF EXISTS(SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='Username') THEN
+        ALTER TABLE users RENAME COLUMN "Username" TO username;
+      END IF;
+      IF EXISTS(SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='PasswordHash') THEN
+        ALTER TABLE users RENAME COLUMN "PasswordHash" TO password_hash;
+      END IF;
+      IF EXISTS(SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='DateJoined') THEN
+        ALTER TABLE users RENAME COLUMN "DateJoined" TO date_joined;
+      END IF;
+      IF EXISTS(SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='Status') THEN
+        ALTER TABLE users RENAME COLUMN "Status" TO status;
+      END IF;
+      IF EXISTS(SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='RoleID') THEN
+        ALTER TABLE users RENAME COLUMN "RoleID" TO role_id;
+      END IF;
+    END $$;
+    """,
+    # Languages table renames
+    """
+    DO $$ 
+    BEGIN
+      IF EXISTS(SELECT 1 FROM information_schema.columns WHERE table_name='languages' AND column_name='LanguageID') THEN
+        ALTER TABLE languages RENAME COLUMN "LanguageID" TO id;
+      END IF;
+      IF EXISTS(SELECT 1 FROM information_schema.columns WHERE table_name='languages' AND column_name='LanguageName') THEN
+        ALTER TABLE languages RENAME COLUMN "LanguageName" TO name;
+      END IF;
+      IF EXISTS(SELECT 1 FROM information_schema.columns WHERE table_name='languages' AND column_name='LanguageCode') THEN
+        ALTER TABLE languages RENAME COLUMN "LanguageCode" TO code;
+      END IF;
+      IF EXISTS(SELECT 1 FROM information_schema.columns WHERE table_name='languages' AND column_name='Description') THEN
+        ALTER TABLE languages RENAME COLUMN "Description" TO description;
+      END IF;
+    END $$;
+    """,
+    # Book copies and issued books renames
+    """
+    DO $$ 
+    BEGIN
+      IF EXISTS(SELECT 1 FROM information_schema.columns WHERE table_name='book_copies' AND column_name='CopyID') THEN
+        ALTER TABLE book_copies RENAME COLUMN "CopyID" TO id;
+      END IF;
+      IF EXISTS(SELECT 1 FROM information_schema.columns WHERE table_name='book_copies' AND column_name='BookID') THEN
+        ALTER TABLE book_copies RENAME COLUMN "BookID" TO book_id;
+      END IF;
+      IF EXISTS(SELECT 1 FROM information_schema.columns WHERE table_name='book_copies' AND column_name='LocationID') THEN
+        ALTER TABLE book_copies RENAME COLUMN "LocationID" TO location_id;
+      END IF;
+      IF EXISTS(SELECT 1 FROM information_schema.columns WHERE table_name='book_copies' AND column_name='Status') THEN
+        ALTER TABLE book_copies RENAME COLUMN "Status" TO status;
+      END IF;
+    END $$;
+    """
+]
+
 alter_queries = [
     # users table columns
     "ALTER TABLE users ADD COLUMN IF NOT EXISTS education VARCHAR(500);",
@@ -65,7 +138,7 @@ alter_queries = [
 ]
 
 with engine.connect() as conn:
-    for q in alter_queries:
+    for q in rename_queries + alter_queries:
         try:
             conn.execute(text(q))
         except Exception as e:
