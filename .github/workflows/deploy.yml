@@ -40,7 +40,6 @@ jobs:
             echo "🗄️ Checking database schema..."
             docker compose exec -T backend python create_tables.py || true
             docker compose exec -T backend python setup_admin.py || true
-            docker compose exec -T backend python scripts/seed_data.py || true
             
             # 5. Clean up old unused Docker images
             echo "🧹 Cleaning unused docker images..."
