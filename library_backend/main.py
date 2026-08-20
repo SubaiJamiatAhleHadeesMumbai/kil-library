@@ -114,7 +114,6 @@ app = FastAPI(
 # ✅ Add Rate Limiter to App (Issue #4 Fix)
 if limiter:
     app.state.limiter = limiter
-    app.add_exception_handler(Exception, lambda req, exc: JSONResponse({"detail": "Rate limit exceeded"}, status_code=429))
 
 # ==========================================
 # 🛡️ MIDDLEWARES (Best Practices)
@@ -130,17 +129,13 @@ async def add_process_time_header(request: Request, call_next):
     return response
 
 # 2. Trusted Host (Security Header)
-trusted_hosts_env = os.getenv("TRUSTED_HOSTS", "")
+trusted_hosts_env = os.getenv("TRUSTED_HOSTS", "*")
 trusted_hosts = [host.strip() for host in trusted_hosts_env.split(",") if host.strip()]
-if not trusted_hosts:
-    trusted_hosts = [
-        "localhost",
-        "127.0.0.1",
-        "kil2.onrender.com",
-        "*.onrender.com",
-        "*.vercel.app",
-        "*.netlify.app",
-    ]
+if not trusted_hosts or "*" in trusted_hosts:
+    trusted_hosts = ["*"]
+else:
+    trusted_hosts.extend(["localhost", "127.0.0.1", "ahlehadeeskokan.com", "*.ahlehadeeskokan.com", "www.ahlehadeeskokan.com"])
+
 app.add_middleware(
     TrustedHostMiddleware,
     allowed_hosts=trusted_hosts
@@ -156,10 +151,8 @@ origins = [o.strip() for o in _cors_env.split(",") if o.strip()] if _cors_env el
     "http://127.0.0.1:5173",
     "http://localhost:3000",
     "http://127.0.0.1:3000",
-    "https://yourdomain.com",
-    "https://kil-2-9yz1-five.vercel.app",  # ✅ Production Vercel frontend
-    "https://kil-2-3ouk.vercel.app",  # ✅ Current Vercel frontend in browser screenshot
-    "https://kil2.pages.dev",  # ✅ Cloudflare Pages (optional)
+    "https://ahlehadeeskokan.com",
+    "https://www.ahlehadeeskokan.com",
 ]
 
 # Allow any current/future Vercel or Cloudflare Pages preview/custom domains.
