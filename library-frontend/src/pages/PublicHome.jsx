@@ -20,7 +20,7 @@ import LibrarySearchStrip from "../components/public/LibrarySearchStrip";
 import PublicBookCard from "../components/public/PublicBookCard";
 import BookDetailsModal from "../components/book/BookDetailsModal";
 import RestrictedAccessFlow from "../components/book/RestrictedAccessFlow";
-import SuccessScreen from "../components/RestrictedAccess/SuccessScreen"; // ✅ Missing Import Fixed
+import SuccessScreen from "../components/RestrictedAccess/SuccessScreen"; // âœ… Missing Import Fixed
 
 // Services + Hooks
 import { bookService } from "../api/bookService";
@@ -29,7 +29,7 @@ import { useBookSearch } from "../hooks/useBookSearch";
 import LandingPostsPreview from "../components/public/LandingPostsPreview";
 import DonationPanel from "../components/donation/DonationPanel";
 
-// ✅ Skeleton Loader (Premium UI)
+// âœ… Skeleton Loader (Premium UI)
 const BookCardSkeleton = () => {
   return (
     <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm animate-pulse">
@@ -43,7 +43,7 @@ const BookCardSkeleton = () => {
   );
 };
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || (import.meta.env.PROD ? "https://kil2-backend.onrender.com" : "http://127.0.0.1:8000");
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || (import.meta.env.PROD ? "" : "http://127.0.0.1:8000");
 
 const getBookImage = (book) => {
   const rawUrl = book?.cover_image_url || book?.cover_image;
@@ -141,12 +141,12 @@ const CompactBookCard = ({ book, label, meta, onClick, progress = null, chips = 
 
 const PublicHome = () => {
   const navigate = useNavigate();
-  const { isAdmin, user, loading: authLoading } = useAuth(); // ✅ Auth Hook
+  const { isAdmin, user, loading: authLoading } = useAuth(); // âœ… Auth Hook
 
   // --- 1) SMART REDIRECT (Admin Protection) ---
   useEffect(() => {
     if (!authLoading && user && isAdmin) {
-      console.log("👮‍♂️ Admin Detected on Public Home -> Redirecting to Dashboard");
+      console.log("ðŸ‘®â€â™‚ï¸ Admin Detected on Public Home -> Redirecting to Dashboard");
       navigate('/admin/dashboard', { replace: true });
     }
   }, [user, isAdmin, authLoading, navigate]);
@@ -156,7 +156,7 @@ const PublicHome = () => {
   const [loading, setLoading] = useState(true);
   const [showSuccess, setShowSuccess] = useState(false);
   const [homepageSettings, setHomepageSettings] = useState({ theme: 'aurora', sections: {}, layout: {} });
-  const [dynamicCategories, setDynamicCategories] = useState([]);  // ✅ Dynamic Categories from DB
+  const [dynamicCategories, setDynamicCategories] = useState([]);  // âœ… Dynamic Categories from DB
 
   // Filters
   const [sortBy, setSortBy] = useState("newest");
@@ -266,7 +266,7 @@ const PublicHome = () => {
   // Categories list
   const categories = useMemo(
     () => {
-      // ✅ If dynamic categories loaded from DB, use them
+      // âœ… If dynamic categories loaded from DB, use them
       if (dynamicCategories.length > 0) {
         return [
           { value: "all", label: "All Categories" },
@@ -278,7 +278,7 @@ const PublicHome = () => {
         ];
       }
       
-      // ✅ Fallback to hardcoded if DB load fails
+      // âœ… Fallback to hardcoded if DB load fails
       return [
         { value: "all", label: "All Categories" },
         { value: "aqeedah_fiqh", label: "Aqeedah & Fiqh" },
@@ -311,7 +311,7 @@ const PublicHome = () => {
       const list = Array.isArray(data) ? data : data?.books || [];
       setBooks(list);
     } catch (error) {
-      console.error("❌ PublicHome Load Error:", error);
+      console.error("âŒ PublicHome Load Error:", error);
       toast.error("Could not load library catalog.");
     } finally {
       setLoading(false);
@@ -332,7 +332,7 @@ const PublicHome = () => {
     }
   }, []);
 
-  // ✅ NEW: Fetch categories from database (admin-added)
+  // âœ… NEW: Fetch categories from database (admin-added)
   useEffect(() => {
     const loadCategories = async () => {
       try {
@@ -340,7 +340,7 @@ const PublicHome = () => {
         const categoryList = Array.isArray(data) ? data : data?.categories || [];
         setDynamicCategories(categoryList);
       } catch (error) {
-        console.warn("⚠️ Could not load categories from DB, using fallback:", error);
+        console.warn("âš ï¸ Could not load categories from DB, using fallback:", error);
         setDynamicCategories([]);
       }
     };

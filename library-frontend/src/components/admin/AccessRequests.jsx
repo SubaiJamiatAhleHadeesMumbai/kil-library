@@ -20,15 +20,15 @@ import {
 
 import restrictedBookService from "../../api/restrictedBookService";
 
-// ✅ CONFIG: API Base URL (Make sure this matches your Django Port)
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || (import.meta.env.PROD ? "https://kil2-backend.onrender.com" : "http://127.0.0.1:8000");
+// âœ… CONFIG: API Base URL (Make sure this matches your Django Port)
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || (import.meta.env.PROD ? "" : "http://127.0.0.1:8000");
 
 // --- HELPERS ---
 const normalizeStatus = (s) => String(s || "").toLowerCase();
 const safeText = (v, f = "N/A") => (v && String(v).trim() !== "" ? String(v) : f);
 const formatDate = (d) => d ? new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'N/A';
 
-// ✅ NEW: Image URL Helper
+// âœ… NEW: Image URL Helper
 const getCoverUrl = (path) => {
     if (!path) return "https://via.placeholder.com/150x200?text=No+Cover";
     if (path.startsWith("http")) return path; // Already full URL
@@ -265,7 +265,7 @@ const AccessRequests = () => {
                         </div>
                       </td>
 
-                      {/* Book Image Fixed ✅ */}
+                      {/* Book Image Fixed âœ… */}
                       <td className="p-4">
                         <div className="flex items-center gap-3">
                            <div className="w-8 h-10 rounded bg-slate-100 border border-slate-200 overflow-hidden shadow-sm shrink-0">
@@ -361,7 +361,7 @@ const AccessRequests = () => {
                  <div className="bg-slate-50 p-5 border-b border-slate-100 flex justify-between items-start">
                     <div>
                         <h2 className="text-xl font-bold text-slate-900">Request Details</h2>
-                        <p className="text-sm text-slate-500">ID: #{viewModal.data.id} • {formatDate(viewModal.data.created_at)}</p>
+                        <p className="text-sm text-slate-500">ID: #{viewModal.data.id} â€¢ {formatDate(viewModal.data.created_at)}</p>
                     </div>
                     <button onClick={() => setViewModal({open:false, data:null})} className="p-1 hover:bg-slate-200 rounded-full text-slate-400"><XMarkIcon className="w-6 h-6" /></button>
                  </div>
@@ -398,7 +398,7 @@ const AccessRequests = () => {
                        <div className="space-y-3">
                           <h3 className="text-xs font-black text-slate-400 uppercase tracking-wider">Book Requested</h3>
                           <div className="flex gap-4 items-start">
-                             {/* ✅ MODAL IMAGE FIXED */}
+                             {/* âœ… MODAL IMAGE FIXED */}
                              <img 
                                 src={getCoverUrl(viewModal.data.book_cover)} 
                                 className="w-16 h-24 object-cover rounded-lg shadow-sm bg-slate-100 border border-slate-200" 

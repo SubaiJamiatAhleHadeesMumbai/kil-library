@@ -8,7 +8,7 @@ import {
 } from "@heroicons/react/24/outline";
 import { donationService } from "../../api/donationService";
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || (import.meta.env.PROD ? "https://kil2-backend.onrender.com" : "http://127.0.0.1:8000");
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || (import.meta.env.PROD ? "" : "http://127.0.0.1:8000");
 const DonationPanel = () => {
   const [activeTab, setActiveTab] = useState("qr");
   const [data, setData] = useState(null);
@@ -67,7 +67,7 @@ const DonationPanel = () => {
         <div className="rounded-[1.25rem] border border-white/10 bg-white/10 p-3 shadow-inner backdrop-blur sm:p-4">
           {loading ? (
             <div className="flex min-h-[220px] items-center justify-center text-sm text-slate-300">
-              Loading…
+              Loadingâ€¦
             </div>
           ) : (
             <>

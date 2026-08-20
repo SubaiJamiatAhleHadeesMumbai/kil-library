@@ -14,7 +14,7 @@ import { XMarkIcon } from "@heroicons/react/24/outline";
 
 import "swiper/css";
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || (import.meta.env.PROD ? "https://kil2-backend.onrender.com" : "http://127.0.0.1:8000");
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || (import.meta.env.PROD ? "" : "http://127.0.0.1:8000");
 
 const LandingPostsPreview = () => {
     const [selectedPost, setSelectedPost] = useState(null);

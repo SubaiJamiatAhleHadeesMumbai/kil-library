@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Search, X, Loader2, BookOpen, ChevronRight, FileText } from 'lucide-react';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || (import.meta.env.PROD ? "https://kil2-backend.onrender.com" : "http://127.0.0.1:8000");
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || (import.meta.env.PROD ? "" : "http://127.0.0.1:8000");
 
 // Fallback cover agar book ki image na ho
 const FALLBACK_COVER = "data:image/svg+xml;utf8," + encodeURIComponent(`

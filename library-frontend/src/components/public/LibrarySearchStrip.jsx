@@ -11,7 +11,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import GlobalSearchModal from "../book/GlobalSearchModal";
 import BookDetailsModal from "../book/BookDetailsModal";
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || (import.meta.env.PROD ? "" : "http://127.0.0.1:8000");
 
 /* ---------------- Debounce Hook ---------------- */
 const useDebounce = (value, delay = 300) => {

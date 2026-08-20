@@ -27,8 +27,8 @@ import useAuth from "../../hooks/useAuth";
 import NotificationBell from "../common/NotificationBell";
 import DonationModal from "../donation/DonationModal";
 
-// ✅ CONFIG
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || (import.meta.env.PROD ? "https://kil2-backend.onrender.com" : "http://127.0.0.1:8000");
+// âœ… CONFIG
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || (import.meta.env.PROD ? "" : "http://127.0.0.1:8000");
 const MARKAZ_LOGO_URL = `${API_BASE_URL}/static/images/MarkazLogo.png`;
 
 // ==========================================
@@ -247,7 +247,7 @@ const UserNavbar = () => {
                 </div>
               ) : (
                 <div className="flex items-center gap-3 pl-3 border-l border-slate-200">
-                  {/* ✅ ONLY LOGIN BUTTON (Register Removed) */}
+                  {/* âœ… ONLY LOGIN BUTTON (Register Removed) */}
                   <Link
                     to="/login"
                     className="flex items-center gap-2 bg-[#002147] text-white px-6 py-2.5 rounded-full text-sm font-bold shadow-md hover:bg-[#003366] hover:shadow-lg hover:-translate-y-0.5 transition-all"
@@ -306,7 +306,7 @@ const UserNavbar = () => {
                             </Link>
                         </div>
                     ) : (
-                        // ✅ ONLY LOGIN BUTTON MOBILE (Register Removed)
+                        // âœ… ONLY LOGIN BUTTON MOBILE (Register Removed)
                         <Link
                             to="/login"
                             onClick={() => setIsMobileMenuOpen(false)}
