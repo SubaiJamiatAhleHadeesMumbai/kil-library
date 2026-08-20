@@ -6,20 +6,15 @@ from database import Base
 class Language(Base):
     __tablename__ = "languages"
 
-    # 1. Primary Key (Legacy naming convention preserved)
-    id = Column("LanguageID", Integer, primary_key=True, index=True)
+    # 1. Primary Key
+    id = Column(Integer, primary_key=True, index=True)
     
     # 2. Basic Info
-    name = Column("LanguageName", String(100), unique=True, nullable=False, index=True)
-    
-    # NEW: ISO Code (e.g., 'en', 'hi', 'ur')
-    # Ye Frontend par icons/flags dikhane ke liye bahut useful hota hai
-    code = Column("LanguageCode", String(10), unique=True, index=True, nullable=True)
-    
-    description = Column("Description", Text, nullable=True)
+    name = Column(String(100), unique=True, nullable=False, index=True)
+    code = Column(String(10), unique=True, index=True, nullable=True)
+    description = Column(Text, nullable=True)
 
     # 3. Relationships
-    # Ensure Book model has: language = relationship("Language", back_populates="books")
     books = relationship("Book", back_populates="language")
 
     # 4. Timestamps (Standardized)

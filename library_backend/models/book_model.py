@@ -64,7 +64,7 @@ class Book(Base):
     edition = Column(String(100), nullable=True)
     
     # 2. Categorization & Language
-    language_id = Column(Integer, ForeignKey("languages.LanguageID", ondelete="SET NULL"), nullable=True)
+    language_id = Column(Integer, ForeignKey("languages.id", ondelete="SET NULL"), nullable=True)
     fatawa_category_id = Column(Integer, ForeignKey("fatawa_categories.id", ondelete="SET NULL"), nullable=True, index=True)
     
     # 3. Digital & Media

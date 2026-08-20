@@ -39,17 +39,17 @@ class User(Base):
 
     id = Column(Integer, primary_key=True, index=True)
 
-    full_name = Column("FullName", String(255), nullable=True)
-    education = Column("Education", String(500), nullable=True)
-    social_activities = Column("SocialActivities", String(1000), nullable=True)
-    email = Column("Email", String(255), unique=True, nullable=False, index=True)
-    username = Column("Username", String(100), unique=True, nullable=False, index=True)
-    password_hash = Column("PasswordHash", String(255), nullable=False)
+    full_name = Column(String(255), nullable=True)
+    education = Column(String(500), nullable=True)
+    social_activities = Column(String(1000), nullable=True)
+    email = Column(String(255), unique=True, nullable=False, index=True)
+    username = Column(String(100), unique=True, nullable=False, index=True)
+    password_hash = Column(String(255), nullable=False)
 
-    date_joined = Column("DateJoined", DateTime, default=datetime.utcnow, nullable=False)
-    status = Column("Status", String(50), default="Active")
+    date_joined = Column(DateTime, default=datetime.utcnow, nullable=False)
+    status = Column(String(50), default="Active")
 
-    role_id = Column("RoleID", Integer, ForeignKey("roles.id"), nullable=False)
+    role_id = Column(Integer, ForeignKey("roles.id"), nullable=False)
     role = relationship("Role", back_populates="users")
 
     otp_code = Column(String(6), nullable=True)
