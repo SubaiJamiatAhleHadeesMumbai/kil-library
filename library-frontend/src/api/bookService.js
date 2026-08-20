@@ -116,6 +116,16 @@ export const bookService = {
         }
     },
 
+    async getFatawaCategories() {
+        try {
+            const response = await apiClient.get('/api/fatawa/categories');
+            return response.data;
+        } catch (error) {
+            console.error("Error fetching fatawa categories:", error);
+            return [];
+        }
+    },
+
     // ============================================================
     // 3. REQUESTS & AUTHENTICATION SAFEGUARDS
     // ============================================================

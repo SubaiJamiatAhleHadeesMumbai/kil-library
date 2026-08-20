@@ -176,9 +176,9 @@ const LibraryHero = () => {
       </button> */}
 
       {/* ================= CONTENT ================= */}
-      <div className="relative z-10 mx-auto max-w-7xl px-4 py-8 sm:py-12 md:py-20">
+      <div className="relative z-10 mx-auto max-w-7xl px-4 py-5 sm:py-8 md:py-14">
         <div className="mx-auto max-w-4xl rounded-[2rem] border border-white/10 bg-white/6 p-4 shadow-[0_30px_80px_-40px_rgba(0,0,0,0.6)] backdrop-blur-xl sm:p-6 md:p-8">
-          <div className="flex flex-col items-center justify-between gap-5 text-center md:gap-8">
+          <div className="flex flex-col items-center justify-between gap-4 text-center md:gap-8">
             <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.28em] text-cyan-200/80 backdrop-blur-sm">
               <BuildingLibraryIcon className="h-3.5 w-3.5 text-[#F4A261]" />
               Markaz Library
@@ -199,31 +199,31 @@ const LibraryHero = () => {
                 initial={{ opacity: 0, y: 22 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.8 }}
-                className="relative mx-auto max-w-2xl text-sm leading-relaxed text-[#F4A261] font-serif sm:text-base md:text-lg"
+                className="relative mx-auto max-w-2xl text-[11px] leading-relaxed text-[#F4A261] font-serif sm:text-base md:text-lg"
               >
                 يَا أَيُّهَا الَّذِينَ آمَنُوا أَطِيعُوا اللَّهَ وَأَطِيعُوا الرَّسُولَ
               </motion.h2>
 
-              <div className="mx-auto mt-2 h-[2px] w-20 bg-cyan-400/90 animate-cursor sm:w-28" />
+              <div className="mx-auto mt-2 h-[2px] w-16 bg-cyan-400/90 animate-cursor sm:w-24" />
 
               <motion.h1
                 initial={{ opacity: 0, y: 30 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.15, duration: 0.9 }}
-                className="mx-auto mt-3 max-w-3xl text-[clamp(1.65rem,1rem+5vw,3.4rem)] font-serif font-semibold leading-[1.05] text-white drop-shadow-[0_10px_24px_rgba(0,0,0,0.35)]"
+                className="mx-auto mt-2 max-w-3xl text-[clamp(1.45rem,0.9rem+4.5vw,3.4rem)] font-serif font-semibold leading-[1.05] text-white drop-shadow-[0_10px_24px_rgba(0,0,0,0.35)]"
               >
                 Kokan Islamic Library
               </motion.h1>
 
-              <p className="mx-auto mt-3 max-w-xl text-xs leading-relaxed text-slate-300/90 sm:text-sm md:text-base">
+              <p className="mx-auto mt-2 max-w-xl text-[11px] leading-relaxed text-slate-300/90 sm:text-sm md:text-base">
                 Explore curated Islamic knowledge with a calm, modern reading experience.
               </p>
 
-              <div className="mt-6 flex flex-col items-stretch justify-center gap-2 sm:flex-row sm:gap-3">
-                <a href="#search" className="inline-flex items-center justify-center rounded-full bg-cyan-500 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-cyan-500/20 transition hover:-translate-y-0.5 hover:bg-cyan-400 sm:px-6">
+              <div className="mt-4 flex flex-col items-stretch justify-center gap-2 sm:flex-row sm:gap-3">
+                <a href="#search" className="inline-flex items-center justify-center rounded-full bg-cyan-500 px-4 py-2 text-xs font-semibold text-white shadow-lg shadow-cyan-500/20 transition hover:-translate-y-0.5 hover:bg-cyan-400 sm:px-6 sm:text-sm">
                   Browse Books
                 </a>
-                <a href="#book-grid" className="inline-flex items-center justify-center rounded-full border border-white/20 bg-white/10 px-5 py-2.5 text-sm font-semibold text-slate-100 backdrop-blur transition hover:-translate-y-0.5 hover:bg-white/20 sm:px-6">
+                <a href="#book-grid" className="inline-flex items-center justify-center rounded-full border border-white/20 bg-white/10 px-4 py-2 text-xs font-semibold text-slate-100 backdrop-blur transition hover:-translate-y-0.5 hover:bg-white/20 sm:px-6 sm:text-sm">
                   View Catalog
                 </a>
               </div>

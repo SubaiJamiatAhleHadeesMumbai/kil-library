@@ -26,22 +26,24 @@ import {
 import useAuth from "../../hooks/useAuth";
 import NotificationBell from "../common/NotificationBell";
 import DonationModal from "../donation/DonationModal";
+import settingsService from "../../api/settingsService";
 
-// âœ… CONFIG
-const MARKAZ_LOGO_URL = "/logo.png";
+// ✅ CONFIG
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || (import.meta.env.PROD ? "https://kil2-backend.onrender.com" : "http://127.0.0.1:8000");
+const MARKAZ_LOGO_URL = `${API_BASE_URL}/static/images/MarkazLogo.png`;
 
 // ==========================================
 // 1. SUB-COMPONENTS
 // ==========================================
 
-const TopLink = ({ label, icon: Icon, href = "#" }) => (
-  <a
-    href={href}
+const TopLink = ({ label, icon: Icon, to = "#" }) => (
+  <Link
+    to={to}
     className="flex items-center gap-1.5 text-[11px] font-medium text-blue-100/70 hover:text-white transition-colors duration-200"
   >
     {Icon && <Icon className="h-3.5 w-3.5" />}
     {label}
-  </a>
+  </Link>
 );
 
 const NavItem = ({ to, label, icon: Icon, onClick }) => (
@@ -90,6 +92,7 @@ const UserNavbar = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isDonationOpen, setIsDonationOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [homepageSettings, setHomepageSettings] = useState(null);
   
   const profileRef = useRef(null);
 
@@ -110,6 +113,22 @@ const UserNavbar = () => {
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
+  useEffect(() => {
+    let mounted = true;
+    settingsService.getHomepageSettings().then((data) => {
+      if (mounted) setHomepageSettings(data || {});
+    }).catch(() => {
+      if (mounted) setHomepageSettings({});
+    });
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const sectionVisibility = homepageSettings?.sections || {};
+  const showAboutLink = sectionVisibility.about?.enabled !== false;
+  const showFatawaLink = sectionVisibility.fatawa?.enabled !== false;
+
   return (
     <div className="flex flex-col w-full relative z-50 font-sans">
       
@@ -120,7 +139,8 @@ const UserNavbar = () => {
         <div className="app-shell-container h-9 flex items-center justify-between">
           <div className="flex items-center gap-6">
             <TopLink label="Our Projects" icon={GlobeAltIcon} />
-            <TopLink label="About Us" icon={InformationCircleIcon} />
+            {showAboutLink ? <TopLink label="About Us" icon={InformationCircleIcon} to="/about" /> : null}
+            {showFatawaLink ? <TopLink label="Fatawa" icon={BookOpenIcon} to="/fatawa" /> : null}
             <TopLink label="Database" icon={TableCellsIcon} />
           </div>
           <div className="text-white/20 text-[10px] font-bold tracking-[0.2em] uppercase">
@@ -163,6 +183,8 @@ const UserNavbar = () => {
             <div className="hidden md:flex items-center space-x-1">
               <NavItem to="/" label="Home" icon={HomeIcon} />
               <NavItem to="/books" label="Library" icon={BookOpenIcon} />
+              {showAboutLink ? <NavItem to="/about" label="About" icon={InformationCircleIcon} /> : null}
+              {showFatawaLink ? <NavItem to="/fatawa" label="Fatawa" icon={BookOpenIcon} /> : null}
               <NavItem to="/authors" label="Authors" icon={UsersIcon} />
               <NavItem to="/publishers" label="Publishers" icon={BuildingOfficeIcon} />
               <NavItem to="/posts" label="Updates" icon={MegaphoneIcon} />
@@ -246,7 +268,7 @@ const UserNavbar = () => {
                 </div>
               ) : (
                 <div className="flex items-center gap-3 pl-3 border-l border-slate-200">
-                  {/* âœ… ONLY LOGIN BUTTON (Register Removed) */}
+                  {/* ✅ ONLY LOGIN BUTTON (Register Removed) */}
                   <Link
                     to="/login"
                     className="flex items-center gap-2 bg-[#002147] text-white px-6 py-2.5 rounded-full text-sm font-bold shadow-md hover:bg-[#003366] hover:shadow-lg hover:-translate-y-0.5 transition-all"
@@ -305,7 +327,7 @@ const UserNavbar = () => {
                             </Link>
                         </div>
                     ) : (
-                        // âœ… ONLY LOGIN BUTTON MOBILE (Register Removed)
+                        // ✅ ONLY LOGIN BUTTON MOBILE (Register Removed)
                         <Link
                             to="/login"
                             onClick={() => setIsMobileMenuOpen(false)}
@@ -321,6 +343,8 @@ const UserNavbar = () => {
                 <div className="space-y-1">
                   <NavItem to="/" label="Home" icon={HomeIcon} onClick={() => setIsMobileMenuOpen(false)} />
                   <NavItem to="/books" label="Library" icon={BookOpenIcon} onClick={() => setIsMobileMenuOpen(false)} />
+                  {showAboutLink ? <NavItem to="/about" label="About" icon={InformationCircleIcon} onClick={() => setIsMobileMenuOpen(false)} /> : null}
+                  {showFatawaLink ? <NavItem to="/fatawa" label="Fatawa" icon={BookOpenIcon} onClick={() => setIsMobileMenuOpen(false)} /> : null}
                   <NavItem to="/authors" label="Authors" icon={UsersIcon} onClick={() => setIsMobileMenuOpen(false)} />
                   <NavItem to="/publishers" label="Publishers" icon={BuildingOfficeIcon} onClick={() => setIsMobileMenuOpen(false)} />
                   <NavItem to="/posts" label="Updates" icon={MegaphoneIcon} onClick={() => setIsMobileMenuOpen(false)} />

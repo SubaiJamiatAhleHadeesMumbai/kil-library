@@ -1,5 +1,5 @@
 // src/pages/UserManagement.jsx
-import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import toast from 'react-hot-toast';
 import {
     PencilSquareIcon,
@@ -14,56 +14,65 @@ import {
     ChevronLeftIcon,
     ChevronRightIcon,
     ArrowPathIcon,
+    XMarkIcon,
+    NoSymbolIcon,
 } from '@heroicons/react/24/outline';
 import { userService } from '../api/userService';
 import Modal from '../components/common/Modal';
 import UserForm from '../components/user/UserForm';
-import '../assets/css/ManagementPages.css';
 
 const PAGE_SIZE = 10;
 
-// Deterministic avatar color from username, so the same person always
-// gets the same color instead of everyone looking identical in indigo.
+// Deterministic avatar color palette from username
 const AVATAR_PALETTE = [
-    'bg-indigo-100 text-indigo-600',
-    'bg-emerald-100 text-emerald-600',
-    'bg-amber-100 text-amber-600',
-    'bg-rose-100 text-rose-600',
-    'bg-sky-100 text-sky-600',
-    'bg-violet-100 text-violet-600',
+    'bg-indigo-100 text-indigo-700 border-indigo-200',
+    'bg-emerald-100 text-emerald-700 border-emerald-200',
+    'bg-amber-100 text-amber-700 border-amber-200',
+    'bg-rose-100 text-rose-700 border-rose-200',
+    'bg-sky-100 text-sky-700 border-sky-200',
+    'bg-violet-100 text-violet-700 border-violet-200',
 ];
+
 const avatarColorFor = (str = '') => {
     let hash = 0;
     for (let i = 0; i < str.length; i++) hash = str.charCodeAt(i) + ((hash << 5) - hash);
     return AVATAR_PALETTE[Math.abs(hash) % AVATAR_PALETTE.length];
 };
 
-const getRoleBadgeColor = (roleName) => {
-    const r = roleName?.toLowerCase() || '';
-    if (r.includes('admin')) return 'bg-purple-100 text-purple-700 ring-purple-600/20';
-    if (r === 'student') return 'bg-blue-100 text-blue-700 ring-blue-600/20';
-    if (r === 'editor') return 'bg-indigo-100 text-indigo-700 ring-indigo-600/20';
-    if (r === 'member') return 'bg-slate-100 text-slate-700 ring-slate-600/20';
-    return 'bg-emerald-100 text-emerald-700 ring-emerald-600/20';
+// Safe Role Name Extractor (Handles Objects or Strings)
+const getRoleName = (u) => {
+    if (!u || !u.role) return 'Member';
+    if (typeof u.role === 'object') {
+        return u.role.name || u.role.title || 'Member';
+    }
+    return String(u.role);
 };
 
-// --- Skeleton row shown while loading, matches real row height so there's
-// no layout jump once data arrives.
+const getRoleBadgeColor = (roleName) => {
+    const r = (roleName || '').toLowerCase();
+    if (r.includes('admin')) return 'bg-purple-50 text-purple-700 border-purple-200/80';
+    if (r.includes('student')) return 'bg-blue-50 text-blue-700 border-blue-200/80';
+    if (r.includes('editor')) return 'bg-indigo-50 text-indigo-700 border-indigo-200/80';
+    if (r.includes('member')) return 'bg-slate-100 text-slate-700 border-slate-200/80';
+    return 'bg-emerald-50 text-emerald-700 border-emerald-200/80';
+};
+
+// --- Table Skeleton Loader ---
 const SkeletonRow = () => (
     <tr className="animate-pulse">
-        <td className="px-6 py-4"><div className="h-3 w-10 bg-slate-200 rounded" /></td>
+        <td className="px-6 py-4"><div className="h-3 w-10 bg-slate-200 rounded-md" /></td>
         <td className="px-6 py-4">
             <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-full bg-slate-200" />
-                <div className="space-y-2">
-                    <div className="h-3 w-28 bg-slate-200 rounded" />
-                    <div className="h-2.5 w-36 bg-slate-100 rounded" />
+                <div className="h-10 w-10 rounded-full bg-slate-200 shrink-0" />
+                <div className="space-y-2 flex-1">
+                    <div className="h-3 w-28 bg-slate-200 rounded-md" />
+                    <div className="h-2.5 w-36 bg-slate-100 rounded-md" />
                 </div>
             </div>
         </td>
-        <td className="px-6 py-4 text-center"><div className="h-5 w-16 bg-slate-200 rounded mx-auto" /></td>
-        <td className="px-6 py-4"><div className="h-3 w-14 bg-slate-200 rounded" /></td>
-        <td className="px-6 py-4"><div className="h-6 w-16 bg-slate-100 rounded ml-auto" /></td>
+        <td className="px-6 py-4 text-center"><div className="h-6 w-20 bg-slate-200 rounded-full mx-auto" /></td>
+        <td className="px-6 py-4"><div className="h-4 w-16 bg-slate-200 rounded-full" /></td>
+        <td className="px-6 py-4"><div className="h-7 w-16 bg-slate-200 rounded-xl ml-auto" /></td>
     </tr>
 );
 
@@ -75,34 +84,34 @@ const UserManagement = () => {
     const [error, setError] = useState(null);
 
     // --- Filter / search state ---
-    const [activeTab, setActiveTab] = useState('all'); // 'all', 'staff', 'public'
-    const [searchInput, setSearchInput] = useState(''); // raw input, updates instantly
-    const [searchTerm, setSearchTerm] = useState('');   // debounced value used for filtering
+    const [activeTab, setActiveTab] = useState('all'); // 'all' | 'staff' | 'public'
+    const [searchInput, setSearchInput] = useState('');
+    const [searchTerm, setSearchTerm] = useState('');
     const [filterStatus, setFilterStatus] = useState('All');
     const [sortConfig, setSortConfig] = useState({ key: 'username', direction: 'asc' });
     const [page, setPage] = useState(1);
 
     // --- Modal state ---
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-    const [editingUser, setEditingUser] = useState(null); // null = new user
+    const [editingUser, setEditingUser] = useState(null);
     const [actionError, setActionError] = useState(null);
 
-    // --- Delete confirmation state (replaces window.confirm for a consistent UI) ---
+    // --- Delete confirmation state ---
     const [userPendingDelete, setUserPendingDelete] = useState(null);
     const [deletingId, setDeletingId] = useState(null);
 
-    // Debounce search input -> searchTerm, avoids re-filtering on every keystroke
+    // Debounce search input
     useEffect(() => {
         const handle = setTimeout(() => setSearchTerm(searchInput), 250);
         return () => clearTimeout(handle);
     }, [searchInput]);
 
-    // Reset to page 1 whenever the effective result set could change shape
+    // Reset pagination on filter change
     useEffect(() => {
         setPage(1);
     }, [searchTerm, filterStatus, activeTab]);
 
-    // --- Fetch data ---
+    // --- Fetch Data ---
     const fetchData = useCallback(async () => {
         setLoading(true);
         setError(null);
@@ -115,26 +124,26 @@ const UserManagement = () => {
             setRoles(rolesData || []);
         } catch (err) {
             console.error('Error fetching users/roles:', err);
-            setError('Failed to load user data. Check your connection and try again.');
+            setError('Failed to load user identity data. Please verify your connection.');
         } finally {
             setLoading(false);
         }
     }, []);
 
-    useEffect(() => { fetchData(); }, [fetchData]);
+    useEffect(() => { 
+        fetchData(); 
+    }, [fetchData]);
 
     // --- Filtering ---
-    const roleNameOf = (u) => (u.role?.name || u.role || '').toLowerCase();
-
     const filteredUsers = useMemo(() => {
         let data = users;
 
-        if (searchTerm) {
+        if (searchTerm.trim()) {
             const lowerTerm = searchTerm.toLowerCase();
             data = data.filter(u =>
                 (u.username || '').toLowerCase().includes(lowerTerm) ||
-                (u.email && u.email.toLowerCase().includes(lowerTerm)) ||
-                (u.full_name && u.full_name.toLowerCase().includes(lowerTerm))
+                (u.email || '').toLowerCase().includes(lowerTerm) ||
+                (u.full_name || '').toLowerCase().includes(lowerTerm)
             );
         }
 
@@ -143,9 +152,9 @@ const UserManagement = () => {
         }
 
         if (activeTab === 'staff') {
-            data = data.filter(u => roleNameOf(u) !== 'member');
+            data = data.filter(u => getRoleName(u).toLowerCase() !== 'member');
         } else if (activeTab === 'public') {
-            data = data.filter(u => roleNameOf(u) === 'member');
+            data = data.filter(u => getRoleName(u).toLowerCase() === 'member');
         }
 
         return data;
@@ -157,8 +166,13 @@ const UserManagement = () => {
         const { key, direction } = sortConfig;
         data.sort((a, b) => {
             let aVal, bVal;
-            if (key === 'role') { aVal = roleNameOf(a); bVal = roleNameOf(b); }
-            else { aVal = (a[key] || '').toString().toLowerCase(); bVal = (b[key] || '').toString().toLowerCase(); }
+            if (key === 'role') { 
+                aVal = getRoleName(a).toLowerCase(); 
+                bVal = getRoleName(b).toLowerCase(); 
+            } else { 
+                aVal = (a[key] || '').toString().toLowerCase(); 
+                bVal = (b[key] || '').toString().toLowerCase(); 
+            }
             if (aVal < bVal) return direction === 'asc' ? -1 : 1;
             if (aVal > bVal) return direction === 'asc' ? 1 : -1;
             return 0;
@@ -183,11 +197,12 @@ const UserManagement = () => {
     const stats = useMemo(() => {
         const total = users.length;
         const active = users.filter(u => u.status === 'Active').length;
-        const restricted = users.filter(u => roleNameOf(u) !== 'member').length;
-        return { total, active, restricted };
+        const staffUsers = users.filter(u => getRoleName(u).toLowerCase() !== 'member').length;
+        return { total, active, staffUsers };
     }, [users]);
 
     const hasActiveFilters = searchTerm || filterStatus !== 'All' || activeTab !== 'all';
+    
     const resetFilters = () => {
         setSearchInput('');
         setSearchTerm('');
@@ -214,13 +229,13 @@ const UserManagement = () => {
         if (!userPendingDelete) return;
         const { id, username } = userPendingDelete;
         setDeletingId(id);
-        const toastId = toast.loading(`Removing ${username}...`);
+        const toastId = toast.loading(`Revoking identity for ${username}...`);
         try {
             await userService.deleteUser(id);
             setUsers(prev => prev.filter(u => u.id !== id));
-            toast.success(`${username} was removed.`, { id: toastId });
+            toast.success(`Access revoked for ${username}.`, { id: toastId });
         } catch (err) {
-            toast.error(err?.detail || 'Failed to delete user.', { id: toastId });
+            toast.error(err?.detail || 'Failed to revoke user access.', { id: toastId });
         } finally {
             setDeletingId(null);
             setUserPendingDelete(null);
@@ -232,155 +247,183 @@ const UserManagement = () => {
             className={`px-6 py-4 cursor-pointer select-none group ${className}`}
             onClick={() => toggleSort(sortKey)}
         >
-            <span className="inline-flex items-center gap-1">
+            <span className="inline-flex items-center gap-1.5">
                 {label}
-                <span className="flex flex-col -space-y-1 opacity-40 group-hover:opacity-80">
-                    <ChevronUpIcon className={`h-3 w-3 ${sortConfig.key === sortKey && sortConfig.direction === 'asc' ? 'opacity-100 text-indigo-600' : ''}`} />
-                    <ChevronDownIcon className={`h-3 w-3 ${sortConfig.key === sortKey && sortConfig.direction === 'desc' ? 'opacity-100 text-indigo-600' : ''}`} />
+                <span className="flex flex-col -space-y-1 opacity-40 group-hover:opacity-100 transition-opacity">
+                    <ChevronUpIcon className={`h-3 w-3 ${sortConfig.key === sortKey && sortConfig.direction === 'asc' ? 'opacity-100 text-indigo-600 font-bold' : ''}`} />
+                    <ChevronDownIcon className={`h-3 w-3 ${sortConfig.key === sortKey && sortConfig.direction === 'desc' ? 'opacity-100 text-indigo-600 font-bold' : ''}`} />
                 </span>
             </span>
         </th>
     );
 
     return (
-        <div className="p-6 max-w-7xl mx-auto space-y-6">
+        <div className="p-4 sm:p-6 lg:p-8 space-y-8 bg-slate-50/50 min-h-screen font-sans">
+            
+            {/* --- HEADER SECTION --- */}
+            <div className="bg-white p-6 sm:p-8 rounded-3xl shadow-sm border border-slate-200/80 flex flex-col md:flex-row md:items-center justify-between gap-6 relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/5 rounded-full blur-3xl pointer-events-none" />
 
-            {/* Header & Title */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                <div>
-                    <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
-                        <UserGroupIcon className="h-8 w-8 text-indigo-600" />
-                        Identity Management
-                    </h1>
-                    <p className="text-slate-500 mt-1 text-sm">Control system access levels and user accounts.</p>
+                <div className="space-y-1 relative z-10">
+                    <div className="flex items-center gap-3">
+                        <div className="p-2.5 bg-gradient-to-tr from-slate-900 to-slate-800 text-indigo-400 rounded-2xl shadow-md border border-slate-800">
+                            <UserGroupIcon className="w-6 h-6" />
+                        </div>
+                        <div>
+                            <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+                                User Identity Management
+                            </h1>
+                            <p className="text-xs sm:text-sm text-slate-500 font-medium">
+                                Control system roles, user credentials, and permission access privileges.
+                            </p>
+                        </div>
+                    </div>
                 </div>
-                <button
-                    onClick={handleAddUser}
-                    className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl font-bold shadow-md shadow-indigo-100 transition-all active:scale-95 shrink-0"
-                >
-                    <PlusIcon className="h-5 w-5" /> Provision New User
-                </button>
+
+                <div className="flex items-center gap-3 relative z-10">
+                    <button
+                        onClick={fetchData}
+                        className="p-3 text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200/70 rounded-2xl transition-all shadow-xs border border-slate-200/60 active:scale-95"
+                        title="Refresh Users"
+                    >
+                        <ArrowPathIcon className={`w-5 h-5 ${loading ? 'animate-spin text-indigo-600' : ''}`} />
+                    </button>
+
+                    <button
+                        onClick={handleAddUser}
+                        className="inline-flex items-center px-5 py-3 bg-gradient-to-r from-slate-900 to-slate-800 hover:from-slate-800 hover:to-slate-900 text-white text-xs sm:text-sm font-bold rounded-2xl shadow-lg shadow-slate-900/15 hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 border border-slate-700/50"
+                    >
+                        <PlusIcon className="w-5 h-5 mr-2 text-indigo-400" />
+                        Provision New User
+                    </button>
+                </div>
             </div>
 
-            {/* Error banner — was previously captured in state but never shown */}
+            {/* Error Notification Banner */}
             {error && (
-                <div className="flex items-center justify-between gap-4 p-4 bg-rose-50 border border-rose-200 rounded-xl text-rose-700">
-                    <div className="flex items-center gap-2 text-sm font-medium">
-                        <ShieldExclamationIcon className="h-5 w-5 shrink-0" />
-                        {error}
+                <div className="flex items-center justify-between gap-4 p-4 bg-rose-50 border border-rose-200/80 rounded-2xl text-rose-700 shadow-xs">
+                    <div className="flex items-center gap-2.5 text-xs sm:text-sm font-bold">
+                        <ShieldExclamationIcon className="h-5 w-5 shrink-0 text-rose-600" />
+                        <span>{error}</span>
                     </div>
                     <button
                         onClick={fetchData}
-                        className="flex items-center gap-1.5 text-sm font-bold text-rose-700 hover:text-rose-900 shrink-0"
+                        className="flex items-center gap-1.5 text-xs font-bold text-rose-800 hover:underline shrink-0"
                     >
                         <ArrowPathIcon className="h-4 w-4" /> Retry
                     </button>
                 </div>
             )}
 
-            {/* Stats Cards */}
+            {/* --- STATS SUMMARY CARDS --- */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
-                    <p className="text-xs font-bold text-slate-400 uppercase">Total Entities</p>
-                    <p className="text-3xl font-black text-slate-800">{loading ? '—' : stats.total}</p>
+                <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs space-y-1">
+                    <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Total Accounts</p>
+                    <p className="text-2xl sm:text-3xl font-black text-slate-900">{loading ? '—' : stats.total}</p>
                 </div>
-                <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 border-l-4 border-l-emerald-500">
-                    <p className="text-xs font-bold text-slate-400 uppercase">Active Sessions</p>
-                    <p className="text-3xl font-black text-emerald-600">{loading ? '—' : stats.active}</p>
+
+                <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs border-l-4 border-l-emerald-500 space-y-1">
+                    <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Active Sessions</p>
+                    <p className="text-2xl sm:text-3xl font-black text-emerald-600">{loading ? '—' : stats.active}</p>
                 </div>
-                <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 border-l-4 border-l-orange-500">
-                    <p className="text-xs font-bold text-slate-400 uppercase">Managed Users (Staff/Students)</p>
-                    <p className="text-3xl font-black text-orange-600">{loading ? '—' : stats.restricted}</p>
+
+                <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs border-l-4 border-l-indigo-500 space-y-1">
+                    <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Staff & Admin Users</p>
+                    <p className="text-2xl sm:text-3xl font-black text-indigo-600">{loading ? '—' : stats.staffUsers}</p>
                 </div>
             </div>
 
-            {/* Main Content Area */}
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden min-h-[500px] flex flex-col">
+            {/* --- MAIN USER TABLE & FILTERS --- */}
+            <div className="bg-white rounded-3xl shadow-sm border border-slate-200/80 overflow-hidden flex flex-col">
 
                 {/* Toolbar */}
-                <div className="p-4 border-b border-slate-100 flex flex-col md:flex-row gap-4 justify-between items-stretch md:items-center bg-slate-50/50">
+                <div className="p-4 sm:p-5 border-b border-slate-200/80 flex flex-col md:flex-row gap-4 justify-between items-stretch md:items-center bg-slate-50/50">
 
                     {/* Tabs */}
-                    <div className="flex p-1 bg-slate-200/60 rounded-xl w-full md:w-auto overflow-x-auto">
-                        {['all', 'staff', 'public'].map(tab => (
+                    <div className="flex p-1 bg-slate-200/70 rounded-2xl w-full md:w-auto overflow-x-auto">
+                        {[
+                            { id: 'all', label: 'Global List' },
+                            { id: 'staff', label: 'Staff / Admin' },
+                            { id: 'public', label: 'Public Members' }
+                        ].map(tab => (
                             <button
-                                key={tab}
-                                onClick={() => setActiveTab(tab)}
-                                className={`px-4 py-2 rounded-lg text-sm font-bold capitalize transition-all whitespace-nowrap ${
-                                    activeTab === tab
-                                    ? 'bg-white text-indigo-600 shadow-sm'
-                                    : 'text-slate-500 hover:text-slate-700'
+                                key={tab.id}
+                                onClick={() => setActiveTab(tab.id)}
+                                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
+                                    activeTab === tab.id
+                                    ? 'bg-slate-900 text-indigo-400 shadow-sm'
+                                    : 'text-slate-600 hover:text-slate-900'
                                 }`}
                             >
-                                {tab === 'all' ? 'Global List' : tab === 'staff' ? 'Staff / Managed' : 'Public Members'}
+                                {tab.label}
                             </button>
                         ))}
                     </div>
 
-                    {/* Filters */}
-                    <div className="flex gap-3 w-full md:w-auto">
-                        <div className="relative flex-grow min-w-[180px]">
-                            <MagnifyingGlassIcon className="h-5 w-5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                    {/* Search & Filter Dropdown */}
+                    <div className="flex items-center gap-3 w-full md:w-auto">
+                        <div className="relative flex-grow min-w-[200px]">
+                            <MagnifyingGlassIcon className="h-4 w-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
                             <input
                                 type="text"
-                                placeholder="Identify by username..."
-                                className="w-full pl-10 pr-9 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                                placeholder="Search by username, email..."
+                                className="w-full pl-10 pr-9 py-2.5 bg-slate-50 text-xs font-medium text-slate-800 placeholder-slate-400 rounded-xl border border-slate-200 focus:bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all"
                                 value={searchInput}
                                 onChange={(e) => setSearchInput(e.target.value)}
                             />
                             {searchInput && (
                                 <button
                                     onClick={() => setSearchInput('')}
-                                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-md text-slate-400 hover:text-slate-600 hover:bg-slate-100 text-xs leading-none"
-                                    title="Clear search"
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 p-0.5 text-slate-400 hover:text-slate-600"
                                 >
-                                    ✕
+                                    <XMarkIcon className="w-4 h-4" />
                                 </button>
                             )}
                         </div>
+
                         <select
-                            className="px-3 py-2 border border-slate-300 rounded-lg text-sm font-medium bg-white outline-none focus:ring-2 focus:ring-indigo-500 shrink-0"
+                            className="px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 shrink-0"
                             value={filterStatus}
                             onChange={(e) => setFilterStatus(e.target.value)}
                         >
-                            <option value="All">Any Status</option>
+                            <option value="All">All Statuses</option>
                             <option value="Active">Active</option>
                             <option value="Inactive">Inactive</option>
                         </select>
                     </div>
                 </div>
 
-                {/* Table (md and up) */}
-                <div className="overflow-x-auto hidden md:block flex-1">
+                {/* Table (Desktop) */}
+                <div className="overflow-x-auto hidden md:block">
                     <table className="w-full text-left border-collapse">
-                        <thead className="bg-slate-50 text-xs font-bold text-slate-500 uppercase tracking-wider">
-                            <tr>
+                        <thead>
+                            <tr className="bg-slate-50/80 border-b border-slate-200/80 text-[11px] font-black text-slate-500 uppercase tracking-widest">
                                 <th className="px-6 py-4">Security ID</th>
-                                <SortHeader label="Account Profile" sortKey="username" />
-                                <SortHeader label="Authorization Level" sortKey="role" className="text-center" />
-                                <SortHeader label="Status" sortKey="status" />
+                                <SortHeader label="User Account" sortKey="username" />
+                                <SortHeader label="Role Level" sortKey="role" className="text-center" />
+                                <SortHeader label="Account Status" sortKey="status" />
                                 <th className="px-6 py-4 text-right">Actions</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-slate-100">
+                        <tbody className="divide-y divide-slate-100 text-xs font-medium">
                             {loading ? (
                                 Array.from({ length: 5 }).map((_, i) => <SkeletonRow key={i} />)
                             ) : pagedUsers.length === 0 ? (
                                 <tr>
                                     <td colSpan={5} className="px-6 py-16 text-center text-slate-400">
-                                        <ShieldCheckIcon className="h-12 w-12 mx-auto mb-3 opacity-20" />
+                                        <ShieldCheckIcon className="h-12 w-12 mx-auto mb-3 opacity-20 text-slate-500" />
                                         {hasActiveFilters ? (
                                             <>
-                                                <p className="font-medium">No users match your current filters.</p>
-                                                <button onClick={resetFilters} className="mt-3 text-sm font-bold text-indigo-600 hover:underline">
-                                                    Clear filters
+                                                <p className="font-bold text-slate-800">No users match your filters.</p>
+                                                <button onClick={resetFilters} className="mt-2 text-xs font-bold text-indigo-600 hover:underline">
+                                                    Reset filters
                                                 </button>
                                             </>
                                         ) : (
                                             <>
-                                                <p className="font-medium">No users yet.</p>
-                                                <button onClick={handleAddUser} className="mt-3 text-sm font-bold text-indigo-600 hover:underline">
-                                                    Provision your first user
+                                                <p className="font-bold text-slate-800">No user accounts found.</p>
+                                                <button onClick={handleAddUser} className="mt-2 text-xs font-bold text-indigo-600 hover:underline">
+                                                    Provision first user
                                                 </button>
                                             </>
                                         )}
@@ -388,54 +431,62 @@ const UserManagement = () => {
                                 </tr>
                             ) : (
                                 pagedUsers.map(user => (
-                                    <tr key={user.id} className="hover:bg-slate-50/80 transition-colors">
-                                        <td className="px-6 py-4 text-xs font-mono text-slate-400">
+                                    <tr key={user.id} className="hover:bg-slate-50/80 transition-colors group">
+                                        <td className="px-6 py-4 text-xs font-mono font-bold text-slate-400">
                                             #{String(user.id).padStart(3, '0')}
                                         </td>
+                                        
                                         <td className="px-6 py-4">
                                             <div className="flex items-center gap-3">
                                                 {user.avatar_url ? (
-                                                    <img src={user.avatar_url} alt="" className="h-10 w-10 rounded-full object-cover" />
+                                                    <img src={user.avatar_url} alt="" className="h-10 w-10 rounded-xl object-cover border border-slate-200 shadow-xs" />
                                                 ) : (
-                                                    <div className={`h-10 w-10 rounded-full flex items-center justify-center font-bold text-lg uppercase ${avatarColorFor(user.username)}`}>
+                                                    <div className={`h-10 w-10 rounded-xl border flex items-center justify-center font-extrabold text-sm uppercase shadow-xs ${avatarColorFor(user.username)}`}>
                                                         {(user.username || '?').charAt(0)}
                                                     </div>
                                                 )}
                                                 <div className="min-w-0">
-                                                    <p className="font-bold text-slate-800 truncate">{user.username}</p>
-                                                    <p className="text-xs text-slate-500 truncate">{user.email}</p>
+                                                    <p className="font-bold text-slate-900 truncate group-hover:text-indigo-600 transition-colors">
+                                                        {user.username}
+                                                    </p>
+                                                    <p className="text-slate-400 text-xs truncate">
+                                                        {user.email || 'No email associated'}
+                                                    </p>
                                                 </div>
                                             </div>
                                         </td>
-                                        <td className="px-6 py-4 text-center">
-                                            <span className={`inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset ${getRoleBadgeColor(user.role?.name || user.role)}`}>
-                                                {(user.role?.name || user.role || 'N/A').toUpperCase()}
+
+                                        <td className="px-6 py-4 text-center whitespace-nowrap">
+                                            <span className={`inline-flex items-center rounded-lg px-2.5 py-1 text-[10px] font-extrabold border uppercase tracking-wider ${getRoleBadgeColor(getRoleName(user))}`}>
+                                                {getRoleName(user).toUpperCase()}
                                             </span>
                                         </td>
-                                        <td className="px-6 py-4">
+
+                                        <td className="px-6 py-4 whitespace-nowrap">
                                             <span className={`inline-flex items-center gap-1.5 text-xs font-bold ${user.status === 'Active' ? 'text-emerald-600' : 'text-slate-500'}`}>
-                                                <span className={`h-2 w-2 rounded-full ${user.status === 'Active' ? 'bg-emerald-500' : 'bg-slate-400'}`}></span>
-                                                {user.status}
+                                                <span className={`h-2 w-2 rounded-full ${user.status === 'Active' ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'}`} />
+                                                {user.status || 'Active'}
                                             </span>
                                         </td>
-                                        <td className="px-6 py-4 text-right">
-                                            <div className="flex justify-end gap-2">
+
+                                        <td className="px-6 py-4 whitespace-nowrap text-right">
+                                            <div className="flex justify-end gap-1.5 opacity-90 group-hover:opacity-100 transition-opacity">
                                                 <button
                                                     onClick={() => handleEditUser(user)}
-                                                    className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
-                                                    title="Edit identity"
+                                                    className="p-2 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors"
+                                                    title="Edit user details"
                                                     aria-label={`Edit ${user.username}`}
                                                 >
-                                                    <PencilSquareIcon className="h-5 w-5" />
+                                                    <PencilSquareIcon className="h-4 w-4" />
                                                 </button>
                                                 <button
                                                     onClick={() => requestDeleteUser(user)}
                                                     disabled={deletingId === user.id}
-                                                    className="p-2 text-rose-500 hover:bg-rose-50 rounded-lg transition-colors disabled:opacity-40"
+                                                    className="p-2 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-colors disabled:opacity-40"
                                                     title="Revoke access"
                                                     aria-label={`Revoke access for ${user.username}`}
                                                 >
-                                                    <TrashIcon className="h-5 w-5" />
+                                                    <TrashIcon className="h-4 w-4" />
                                                 </button>
                                             </div>
                                         </td>
@@ -446,12 +497,12 @@ const UserManagement = () => {
                     </table>
                 </div>
 
-                {/* Card list (below md) — avoids forcing a wide table into horizontal scroll on phones */}
+                {/* Mobile Cards View */}
                 <div className="md:hidden divide-y divide-slate-100">
                     {loading ? (
                         Array.from({ length: 4 }).map((_, i) => (
                             <div key={i} className="p-4 animate-pulse flex items-center gap-3">
-                                <div className="h-10 w-10 rounded-full bg-slate-200" />
+                                <div className="h-10 w-10 rounded-xl bg-slate-200" />
                                 <div className="space-y-2 flex-1">
                                     <div className="h-3 w-1/2 bg-slate-200 rounded" />
                                     <div className="h-2.5 w-1/3 bg-slate-100 rounded" />
@@ -461,52 +512,39 @@ const UserManagement = () => {
                     ) : pagedUsers.length === 0 ? (
                         <div className="p-12 text-center text-slate-400">
                             <ShieldCheckIcon className="h-12 w-12 mx-auto mb-3 opacity-20" />
-                            {hasActiveFilters ? (
-                                <>
-                                    <p className="font-medium">No users match your current filters.</p>
-                                    <button onClick={resetFilters} className="mt-3 text-sm font-bold text-indigo-600 hover:underline">Clear filters</button>
-                                </>
-                            ) : (
-                                <>
-                                    <p className="font-medium">No users yet.</p>
-                                    <button onClick={handleAddUser} className="mt-3 text-sm font-bold text-indigo-600 hover:underline">Provision your first user</button>
-                                </>
-                            )}
+                            <p className="font-bold text-slate-800">No user accounts found.</p>
                         </div>
                     ) : (
                         pagedUsers.map(user => (
-                            <div key={user.id} className="p-4 flex items-center gap-3">
-                                {user.avatar_url ? (
-                                    <img src={user.avatar_url} alt="" className="h-11 w-11 rounded-full object-cover shrink-0" />
-                                ) : (
-                                    <div className={`h-11 w-11 rounded-full flex items-center justify-center font-bold text-lg uppercase shrink-0 ${avatarColorFor(user.username)}`}>
-                                        {(user.username || '?').charAt(0)}
-                                    </div>
-                                )}
-                                <div className="min-w-0 flex-1">
-                                    <p className="font-bold text-slate-800 truncate">{user.username}</p>
-                                    <p className="text-xs text-slate-500 truncate">{user.email}</p>
-                                    <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-                                        <span className={`inline-flex items-center rounded-md px-2 py-0.5 text-[10px] font-medium ring-1 ring-inset ${getRoleBadgeColor(user.role?.name || user.role)}`}>
-                                            {(user.role?.name || user.role || 'N/A').toUpperCase()}
-                                        </span>
-                                        <span className={`inline-flex items-center gap-1 text-[10px] font-bold ${user.status === 'Active' ? 'text-emerald-600' : 'text-slate-500'}`}>
-                                            <span className={`h-1.5 w-1.5 rounded-full ${user.status === 'Active' ? 'bg-emerald-500' : 'bg-slate-400'}`}></span>
-                                            {user.status}
-                                        </span>
+                            <div key={user.id} className="p-4 flex items-center justify-between gap-3">
+                                <div className="flex items-center gap-3 min-w-0">
+                                    {user.avatar_url ? (
+                                        <img src={user.avatar_url} alt="" className="h-10 w-10 rounded-xl object-cover border border-slate-200 shrink-0" />
+                                    ) : (
+                                        <div className={`h-10 w-10 rounded-xl border flex items-center justify-center font-bold text-sm uppercase shrink-0 ${avatarColorFor(user.username)}`}>
+                                            {(user.username || '?').charAt(0)}
+                                        </div>
+                                    )}
+                                    <div className="min-w-0 flex-1">
+                                        <p className="font-bold text-slate-900 text-xs truncate">{user.username}</p>
+                                        <p className="text-[11px] text-slate-400 truncate">{user.email}</p>
+                                        <div className="flex items-center gap-2 mt-1">
+                                            <span className={`inline-flex items-center rounded-md px-1.5 py-0.5 text-[9px] font-extrabold uppercase border ${getRoleBadgeColor(getRoleName(user))}`}>
+                                                {getRoleName(user)}
+                                            </span>
+                                            <span className={`text-[10px] font-bold ${user.status === 'Active' ? 'text-emerald-600' : 'text-slate-500'}`}>
+                                                • {user.status || 'Active'}
+                                            </span>
+                                        </div>
                                     </div>
                                 </div>
-                                <div className="flex flex-col gap-1 shrink-0">
-                                    <button onClick={() => handleEditUser(user)} className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg" aria-label={`Edit ${user.username}`}>
-                                        <PencilSquareIcon className="h-5 w-5" />
+
+                                <div className="flex items-center gap-1 shrink-0">
+                                    <button onClick={() => handleEditUser(user)} className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-xl">
+                                        <PencilSquareIcon className="h-4 w-4" />
                                     </button>
-                                    <button
-                                        onClick={() => requestDeleteUser(user)}
-                                        disabled={deletingId === user.id}
-                                        className="p-2 text-rose-500 hover:bg-rose-50 rounded-lg disabled:opacity-40"
-                                        aria-label={`Revoke access for ${user.username}`}
-                                    >
-                                        <TrashIcon className="h-5 w-5" />
+                                    <button onClick={() => requestDeleteUser(user)} className="p-2 text-rose-500 hover:bg-rose-50 rounded-xl">
+                                        <TrashIcon className="h-4 w-4" />
                                     </button>
                                 </div>
                             </div>
@@ -514,36 +552,34 @@ const UserManagement = () => {
                     )}
                 </div>
 
-                {/* Pagination */}
+                {/* --- PAGINATION FOOTER --- */}
                 {!loading && sortedUsers.length > 0 && (
-                    <div className="flex items-center justify-between px-6 py-3 border-t border-slate-100 bg-slate-50/50">
-                        <p className="text-xs text-slate-500">
-                            Showing <span className="font-semibold text-slate-700">{(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, sortedUsers.length)}</span> of <span className="font-semibold text-slate-700">{sortedUsers.length}</span>
+                    <div className="px-6 py-4 border-t border-slate-200/80 flex items-center justify-between bg-slate-50/50">
+                        <p className="text-xs text-slate-500 font-medium">
+                            Showing <span className="font-bold text-slate-800">{(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, sortedUsers.length)}</span> of <span className="font-bold text-slate-800">{sortedUsers.length}</span>
                         </p>
-                        <div className="flex items-center gap-1">
+                        <div className="flex items-center gap-1.5">
                             <button
                                 onClick={() => setPage(p => Math.max(1, p - 1))}
                                 disabled={page === 1}
-                                className="p-1.5 rounded-lg border border-slate-200 text-slate-500 hover:bg-white disabled:opacity-40 disabled:cursor-not-allowed"
-                                aria-label="Previous page"
+                                className="inline-flex items-center gap-1 px-3 py-1.5 border border-slate-200/80 rounded-xl bg-white text-xs font-bold text-slate-700 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-2xs"
                             >
-                                <ChevronLeftIcon className="h-4 w-4" />
+                                <ChevronLeftIcon className="h-3.5 w-3.5" /> Previous
                             </button>
-                            <span className="text-xs font-bold text-slate-600 px-2">{page} / {totalPages}</span>
+                            <span className="text-xs font-bold text-slate-700 px-2">{page} / {totalPages}</span>
                             <button
                                 onClick={() => setPage(p => Math.min(totalPages, p + 1))}
                                 disabled={page === totalPages}
-                                className="p-1.5 rounded-lg border border-slate-200 text-slate-500 hover:bg-white disabled:opacity-40 disabled:cursor-not-allowed"
-                                aria-label="Next page"
+                                className="inline-flex items-center gap-1 px-3 py-1.5 border border-slate-200/80 rounded-xl bg-white text-xs font-bold text-slate-700 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-2xs"
                             >
-                                <ChevronRightIcon className="h-4 w-4" />
+                                Next <ChevronRightIcon className="h-3.5 w-3.5" />
                             </button>
                         </div>
                     </div>
                 )}
             </div>
 
-            {/* --- Add / Edit User Modal --- */}
+            {/* --- ADD / EDIT USER MODAL --- */}
             <Modal
                 isOpen={isEditModalOpen}
                 onClose={() => setIsEditModalOpen(false)}
@@ -559,19 +595,19 @@ const UserManagement = () => {
                     onSubmitSuccess={() => {
                         fetchData();
                         setIsEditModalOpen(false);
-                        toast.success(editingUser ? 'User updated.' : 'User created.');
+                        toast.success(editingUser ? 'User updated successfully.' : 'User created successfully.');
                     }}
                     onCancel={() => setIsEditModalOpen(false)}
                 />
 
                 {actionError && (
-                    <div className="mt-4 p-3 bg-rose-50 border border-rose-100 text-rose-600 text-sm rounded-xl text-center font-medium">
+                    <div className="mt-4 p-3 bg-rose-50 border border-rose-100 text-rose-600 text-xs rounded-xl text-center font-bold">
                         ⚠️ {actionError}
                     </div>
                 )}
             </Modal>
 
-            {/* --- Delete Confirmation Modal (replaces window.confirm for visual consistency) --- */}
+            {/* --- DELETE CONFIRMATION MODAL --- */}
             <Modal
                 isOpen={!!userPendingDelete}
                 onClose={() => setUserPendingDelete(null)}
@@ -579,22 +615,27 @@ const UserManagement = () => {
                 size="max-w-md"
             >
                 <div className="space-y-4">
-                    <p className="text-sm text-slate-600">
-                        Are you sure you want to remove{' '}
-                        <span className="font-bold text-slate-900">{userPendingDelete?.username}</span>?
-                        This action cannot be undone.
-                    </p>
-                    <div className="flex justify-end gap-2 pt-2">
+                    <div className="bg-rose-50 border border-rose-100 p-4 rounded-2xl flex items-start gap-3">
+                        <NoSymbolIcon className="w-5 h-5 text-rose-600 flex-shrink-0 mt-0.5" />
+                        <div className="space-y-1">
+                            <h4 className="text-xs font-bold text-rose-900 uppercase tracking-wider">Warning: Revoke Access</h4>
+                            <p className="text-xs text-rose-700 leading-relaxed">
+                                Are you sure you want to remove user account <strong className="font-bold">{userPendingDelete?.username}</strong>?
+                            </p>
+                        </div>
+                    </div>
+                    
+                    <div className="flex justify-end gap-3 pt-2">
                         <button
                             onClick={() => setUserPendingDelete(null)}
-                            className="px-4 py-2 rounded-lg text-sm font-bold text-slate-600 hover:bg-slate-100 transition-colors"
+                            className="px-4 py-2.5 rounded-xl text-xs font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors"
                         >
                             Cancel
                         </button>
                         <button
                             onClick={confirmDeleteUser}
                             disabled={deletingId === userPendingDelete?.id}
-                            className="px-4 py-2 rounded-lg text-sm font-bold text-white bg-rose-600 hover:bg-rose-700 transition-colors disabled:opacity-60"
+                            className="px-4 py-2.5 rounded-xl text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 transition-colors shadow-md disabled:opacity-60"
                         >
                             {deletingId === userPendingDelete?.id ? 'Removing...' : 'Remove User'}
                         </button>
@@ -606,4 +647,4 @@ const UserManagement = () => {
     );
 };
 
-export default UserManagement;  
+export default UserManagement;

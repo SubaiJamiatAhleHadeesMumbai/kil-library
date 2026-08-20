@@ -47,6 +47,8 @@ class UserBase(BaseModel):
     username: str = Field(..., min_length=3, max_length=50)
     email: EmailStr
     full_name: Optional[str] = Field(None, max_length=100)
+    education: Optional[str] = Field(None, max_length=500)
+    social_activities: Optional[str] = Field(None, max_length=1000)
 
 class UserCreate(UserBase):
     password: str = Field(..., min_length=8)
@@ -59,6 +61,8 @@ class UserUpdate(BaseModel):
 
 class UserMeUpdate(BaseModel):
     full_name: Optional[str] = Field(None, max_length=100)
+    education: Optional[str] = Field(None, max_length=500)
+    social_activities: Optional[str] = Field(None, max_length=1000)
 
 class ChangePasswordSchema(BaseModel):
     current_password: str

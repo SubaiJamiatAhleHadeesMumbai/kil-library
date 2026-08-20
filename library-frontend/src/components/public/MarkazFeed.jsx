@@ -1,8 +1,8 @@
 import React, { useEffect, useMemo, useState } from "react";
 import postService from "../../api/postService";
 
-// âœ… Backend URL for static files (images/pdf)
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || (import.meta.env.PROD ? "" : "http://127.0.0.1:8000");
+// ✅ Backend URL for static files (images/pdf)
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || (import.meta.env.PROD ? "https://kil2-backend.onrender.com" : "http://127.0.0.1:8000");
 
 // -------------------------------
 // Small UI Helpers
@@ -37,15 +37,21 @@ const formatDate = (dateString) => {
       day: "numeric",
     });
   } catch {
-    return "â€”";
+    return "—";
   }
 };
 
 const getFileUrl = (file_url) => {
   if (!file_url) return null;
-  // file_url example: /static/uploads/posts/abc.jpg
-  // Make full URL:
-  return `${API_BASE_URL}${file_url}`;
+
+  // Cloudinary and other absolute URLs should be used directly.
+  if (String(file_url).startsWith("http://") || String(file_url).startsWith("https://")) {
+    return file_url;
+  }
+
+  // Local/static relative paths should use API base URL.
+  const cleanPath = String(file_url).startsWith("/") ? file_url : `/${file_url}`;
+  return `${API_BASE_URL}${cleanPath}`;
 };
 
 const MarkazFeed = () => {
@@ -97,7 +103,7 @@ const MarkazFeed = () => {
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div>
               <h1 className="page-title text-gray-900 max-w-3xl">
-                ðŸ“¢ Markaz Updates
+                📢 Markaz Updates
               </h1>
               <p className="body-copy mt-1">
                 Official announcements, notices, circulars and important updates.
@@ -108,7 +114,7 @@ const MarkazFeed = () => {
               onClick={fetchPosts}
               className="inline-flex items-center justify-center px-4 py-2 rounded-xl border border-gray-200 bg-white hover:bg-gray-100 text-gray-700 font-semibold transition"
             >
-              ðŸ”„ Refresh
+              🔄 Refresh
             </button>
           </div>
         </div>
@@ -128,7 +134,7 @@ const MarkazFeed = () => {
         {/* Error */}
         {!loading && error && (
           <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-2xl">
-            <p className="font-semibold">âš ï¸ {error}</p>
+            <p className="font-semibold">⚠️ {error}</p>
             <p className="text-sm mt-1">Please check your internet or backend server.</p>
           </div>
         )}
@@ -136,7 +142,7 @@ const MarkazFeed = () => {
         {/* Empty */}
         {emptyState && (
           <div className="bg-white border border-gray-200 rounded-2xl shadow-sm p-10 text-center">
-            <div className="text-4xl mb-3">ðŸ“­</div>
+            <div className="text-4xl mb-3">📭</div>
             <h2 className="section-title text-gray-900">No announcements yet</h2>
             <p className="text-gray-500 mt-1">
               When admin publishes updates, they will appear here.
@@ -202,7 +208,7 @@ const MarkazFeed = () => {
                                 onClick={() => openImagePreview(fullFileUrl, post.title)}
                                 onError={(e) => {
                                   e.currentTarget.src =
-                                    "https://dummyimage.com/1200x600/e5e7eb/111827&text=Image+Not+Available";
+                                    "https://placehold.co/1200x600/e5e7eb/111827?text=Image+Not+Available";
                                 }}
                               />
                             </div>
@@ -215,7 +221,7 @@ const MarkazFeed = () => {
                                 onClick={() => openImagePreview(fullFileUrl, post.title)}
                                 className="text-sm font-semibold px-3 py-1 rounded-xl border border-gray-200 hover:bg-gray-100 transition"
                               >
-                                ðŸ” Preview
+                                🔍 Preview
                               </button>
                             </div>
                           </div>
@@ -230,7 +236,7 @@ const MarkazFeed = () => {
                           >
                             <div className="flex items-center gap-3">
                               <div className="w-10 h-10 rounded-xl bg-red-50 border border-red-100 flex items-center justify-center">
-                                ðŸ“„
+                                📄
                               </div>
                               <div>
                                 <p className="font-bold text-gray-900">View PDF Notice</p>
@@ -273,7 +279,7 @@ const MarkazFeed = () => {
                 onClick={closeImagePreview}
                 className="px-3 py-1 rounded-xl border border-gray-200 hover:bg-gray-100 font-semibold"
               >
-                âœ– Close
+                ✖ Close
               </button>
             </div>
 

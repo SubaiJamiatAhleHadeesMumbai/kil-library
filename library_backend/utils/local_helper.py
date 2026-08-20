@@ -14,6 +14,34 @@ PDF_DIR.mkdir(parents=True, exist_ok=True)
 TXT_DIR.mkdir(parents=True, exist_ok=True)
 
 
+def resolve_upload_path(url_path: str | None):
+    """Resolve an uploaded file URL to a real filesystem path.
+
+    The backend stores URLs like /uploads/texts/filename.txt. These should be
+    resolved relative to the library_backend/static directory so deep-search can
+    read uploaded text files regardless of the current working directory.
+    """
+    if not url_path:
+        return None
+
+    cleaned = str(url_path).strip()
+    if not cleaned:
+        return None
+
+    if cleaned.startswith("http://") or cleaned.startswith("https://"):
+        return cleaned
+
+    normalized = cleaned.replace("\\", "/")
+    if normalized.startswith("/uploads/"):
+        relative_path = normalized.lstrip("/")
+        return (BASE_DIR / "static" / relative_path).resolve()
+
+    if normalized.startswith("uploads/"):
+        return (BASE_DIR / "static" / normalized).resolve()
+
+    return (BASE_DIR / normalized).resolve()
+
+
 def _ensure_dir(path):
     path_obj = Path(path)
     path_obj.mkdir(parents=True, exist_ok=True)

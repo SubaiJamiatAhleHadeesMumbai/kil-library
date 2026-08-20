@@ -9,8 +9,8 @@ import {
 } from '@heroicons/react/24/outline';
 import { donationService } from '../../api/donationService';
 
-// âœ… Config: API Base URL
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || (import.meta.env.PROD ? "" : "http://127.0.0.1:8000");
+// ✅ Config: API Base URL
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || (import.meta.env.PROD ? "https://kil2-backend.onrender.com" : "http://127.0.0.1:8000");
 
 const DonationModal = ({ isOpen, onClose }) => {
     const [activeTab, setActiveTab] = useState('qr'); // 'qr', 'bank', 'appeal'
@@ -104,7 +104,7 @@ const DonationModal = ({ isOpen, onClose }) => {
                                ========================== */}
                             {activeTab === 'qr' && (
                                 <div className="w-full h-full flex flex-col items-center justify-center p-4">
-                                    {/* ðŸ“± MOBILE VIEW (Visible only on small screens) */}
+                                    {/* 📱 MOBILE VIEW (Visible only on small screens) */}
                                     <div className="block md:hidden w-full">
                                         {data?.qr_code_mobile ? (
                                             <img 
@@ -118,7 +118,7 @@ const DonationModal = ({ isOpen, onClose }) => {
                                         <p className="text-xs text-center text-gray-400 mt-2 flex items-center justify-center gap-1"><DevicePhoneMobileIcon className="w-3 h-3"/> Mobile View</p>
                                     </div>
 
-                                    {/* ðŸ’» DESKTOP VIEW (Visible only on medium/large screens) */}
+                                    {/* 💻 DESKTOP VIEW (Visible only on medium/large screens) */}
                                     <div className="hidden md:block w-full text-center">
                                         {data?.qr_code_desktop ? (
                                             <img 
@@ -139,7 +139,7 @@ const DonationModal = ({ isOpen, onClose }) => {
                                ========================== */}
                             {activeTab === 'bank' && (
                                 <div className="w-full h-full flex flex-col items-center justify-center p-4">
-                                    {/* ðŸ“± MOBILE */}
+                                    {/* 📱 MOBILE */}
                                     <div className="block md:hidden w-full">
                                         {data?.bank_mobile ? (
                                             <img 
@@ -152,7 +152,7 @@ const DonationModal = ({ isOpen, onClose }) => {
                                         )}
                                     </div>
 
-                                    {/* ðŸ’» DESKTOP */}
+                                    {/* 💻 DESKTOP */}
                                     <div className="hidden md:block w-full text-center">
                                         {data?.bank_desktop ? (
                                             <img 
@@ -172,7 +172,7 @@ const DonationModal = ({ isOpen, onClose }) => {
                                ========================== */}
                             {activeTab === 'appeal' && (
                                 <div className="w-full h-full flex flex-col items-center justify-center p-4">
-                                    {/* ðŸ“± MOBILE */}
+                                    {/* 📱 MOBILE */}
                                     <div className="block md:hidden w-full">
                                         {data?.appeal_mobile ? (
                                             <img 
@@ -185,7 +185,7 @@ const DonationModal = ({ isOpen, onClose }) => {
                                         )}
                                     </div>
 
-                                    {/* ðŸ’» DESKTOP */}
+                                    {/* 💻 DESKTOP */}
                                     <div className="hidden md:block w-full text-center">
                                         {data?.appeal_desktop ? (
                                             <img 

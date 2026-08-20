@@ -5,7 +5,7 @@ from models import DonationInfo
 from schemas import DonationInfoResponse
 
 # ✅ Cloudinary Helper Import
-from utils.storage_helper import smart_upload
+from utils.cloudinary_helper import upload_to_cloudinary
 
 router = APIRouter(
     prefix="/donation",  # ✅ Fixed: main.py ka api_router pehle se /api laga raha hai
@@ -67,8 +67,8 @@ def update_donation_details(
     for field_name, file_obj in files_map.items():
         if file_obj and file_obj.filename:
             try:
-                print(f"🚀 Uploading {field_name}: {file_obj.filename}...")
-                url = smart_upload(file_obj, folder="library_donations", resource_type="image")
+                print(f"🚀 Uploading {field_name}: {file_obj.filename} to Cloudinary...")
+                url = upload_to_cloudinary(file_obj, folder="library_donations")
                 
                 if url:
                     # Dynamically attribute set karein (e.g., info.qr_code_desktop = url)

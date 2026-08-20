@@ -11,7 +11,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import GlobalSearchModal from "../book/GlobalSearchModal";
 import BookDetailsModal from "../book/BookDetailsModal";
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || (import.meta.env.PROD ? "" : "http://127.0.0.1:8000");
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
 
 /* ---------------- Debounce Hook ---------------- */
 const useDebounce = (value, delay = 300) => {
@@ -31,6 +31,7 @@ const LibrarySearchStrip = ({
   onSearchChange,
   suggestions = [],
   loading = false,
+  autoFocus = false,
   onDeepSearchResultClick,
   title = "Library Search",
   subtitle = "Search the library collection",
@@ -48,6 +49,7 @@ const LibrarySearchStrip = ({
   
   // ✅ Deep Search Modal ka State
   const [isDeepSearchOpen, setIsDeepSearchOpen] = useState(false);
+  const [deepSearchQuery, setDeepSearchQuery] = useState("");
 
   // ✅ Auto-Opening the Book States
   const [deepSearchBook, setDeepSearchBook] = useState(null);
@@ -56,6 +58,14 @@ const LibrarySearchStrip = ({
 
   const inputRef = useRef(null);
   const debouncedValue = useDebounce(localValue, 300);
+
+  useEffect(() => {
+    if (autoFocus) {
+      // Small delay so component layout settles
+      const t = setTimeout(() => inputRef.current?.focus(), 120);
+      return () => clearTimeout(t);
+    }
+  }, [autoFocus]);
 
   /* -------- Apply debounced value -------- */
   useEffect(() => {
@@ -107,6 +117,7 @@ const LibrarySearchStrip = ({
   /* -------- Deep Search Result Click Handler -------- */
   const handleDeepResultClick = async (bookId, pageNumber, searchQuery) => {
     setIsDeepSearchOpen(false); // Modal band karo
+    setDeepSearchQuery(searchQuery || "");
     setIsFetchingBook(true);    // Loading spinner shuru karo
     
     try {
@@ -138,6 +149,11 @@ const LibrarySearchStrip = ({
 
   const openDeepSearch = () => {
     setMobileMode("deep");
+    setIsDeepSearchOpen(true);
+  };
+
+  const returnToDeepSearch = () => {
+    setDeepSearchBook(null);
     setIsDeepSearchOpen(true);
   };
 
@@ -341,6 +357,7 @@ const LibrarySearchStrip = ({
         isOpen={isDeepSearchOpen}
         onClose={() => setIsDeepSearchOpen(false)}
         onResultClick={handleDeepResultClick}
+        initialQuery={deepSearchQuery}
       />
 
       {/* ✅ HIDDEN BOOK MODAL (Auto-opens SmartReader when deepSearchBook is set) */}
@@ -348,6 +365,7 @@ const LibrarySearchStrip = ({
         <BookDetailsModal
           book={deepSearchBook}
           onClose={() => setDeepSearchBook(null)}
+          onBackToSearch={returnToDeepSearch}
           startView="details"
           autoOpenReader={true} // Seedha reader me khulega
           initialPage={deepSearchConfig.page}

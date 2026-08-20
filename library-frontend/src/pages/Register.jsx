@@ -1,4 +1,22 @@
-// src/pages/Register.jsx
+/**
+ * ✅ ULTRA-PRO Register.jsx — Markaz Library Management System
+ *
+ * ENHANCEMENTS:
+ * ─────────────────────────────────────────────────────────
+ * LOGIC:
+ *   ✅ Real-time multi-criteria password strength calculator
+ *   ✅ Immediate field-level validation with inline alerts
+ *   ✅ Exact password match verification tag
+ *   ✅ Clean API error handling with custom toast notifications
+ *   ✅ Seamless transition to /login on registration success
+ *
+ * UI/UX:
+ *   ✅ Ambient lighting blobs + glassmorphism backdrop container
+ *   ✅ Responsive 2-column input layout for Full Name and Username
+ *   ✅ Full accessibility attributes (ARIA roles, invalid markers)
+ *   ✅ Framer-motion shake feedback on validation errors
+ */
+
 import React, { useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
@@ -12,14 +30,37 @@ import {
   EyeSlashIcon,
   IdentificationIcon,
   UserPlusIcon,
+  CheckCircleIcon,
+  XCircleIcon,
+  ShieldCheckIcon,
 } from "@heroicons/react/24/outline";
 
 import { authService } from "../api/authService";
 
+// ─── Field Error Alert Component ───────────────────────────
+const FieldError = ({ id, message }) => (
+  <AnimatePresence>
+    {message && (
+      <motion.p
+        id={id}
+        role="alert"
+        initial={{ opacity: 0, y: -4 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -4 }}
+        transition={{ duration: 0.2 }}
+        className="mt-1 flex items-center gap-1.5 text-xs font-semibold text-rose-600"
+      >
+        <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-rose-600 flex-shrink-0" />
+        {message}
+      </motion.p>
+    )}
+  </AnimatePresence>
+);
+
 const Register = () => {
   const navigate = useNavigate();
 
-  // --- FORM STATE ---
+  // --- Form State ---
   const [formData, setFormData] = useState({
     username: "",
     email: "",
@@ -28,11 +69,12 @@ const Register = () => {
     confirmPassword: "",
   });
 
-  // --- UI STATE ---
+  const [fieldErrors, setFieldErrors] = useState({});
+
+  // --- UI & Interaction States ---
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-
   const [passwordStrength, setPasswordStrength] = useState(0);
   const [shake, setShake] = useState(false);
 
@@ -41,12 +83,12 @@ const Register = () => {
     setTimeout(() => setShake(false), 500);
   };
 
-  // --- Password Strength ---
+  // --- Password Strength Calculation ---
   const calculateStrength = (pass) => {
     let score = 0;
     if (!pass) return setPasswordStrength(0);
-    if (pass.length > 5) score += 1;
-    if (pass.length > 8) score += 1;
+    if (pass.length >= 6) score += 1;
+    if (pass.length >= 9) score += 1;
     if (/[A-Z]/.test(pass)) score += 1;
     if (/[0-9]/.test(pass)) score += 1;
     if (/[^A-Za-z0-9]/.test(pass)) score += 1;
@@ -56,65 +98,77 @@ const Register = () => {
   const strengthLabel = useMemo(() => {
     if (passwordStrength <= 1) return "Very Weak";
     if (passwordStrength <= 2) return "Weak";
-    if (passwordStrength <= 3) return "Good";
+    if (passwordStrength <= 3) return "Fair";
     if (passwordStrength <= 4) return "Strong";
-    return "Very Strong";
+    return "Excellent";
   }, [passwordStrength]);
 
   const strengthColor = useMemo(() => {
-    if (passwordStrength <= 2) return "bg-red-500";
-    if (passwordStrength <= 3) return "bg-yellow-500";
+    if (passwordStrength <= 2) return "bg-rose-500";
+    if (passwordStrength <= 3) return "bg-amber-500";
     return "bg-emerald-500";
   }, [passwordStrength]);
 
-  // --- HANDLERS ---
+  // --- Change Handler ---
   const handleChange = (e) => {
     const { name, value } = e.target;
-
     setFormData((prev) => ({ ...prev, [name]: value }));
+
+    if (fieldErrors[name]) {
+      setFieldErrors((prev) => ({ ...prev, [name]: "" }));
+    }
 
     if (name === "password") calculateStrength(value);
   };
 
+  // --- Form Validation ---
+  const validateForm = () => {
+    const errors = {};
+    const fn = formData.full_name.trim();
+    const un = formData.username.trim();
+    const em = formData.email.trim();
+    const pw = formData.password;
+    const cp = formData.confirmPassword;
+
+    if (!fn) errors.full_name = "Full name is required.";
+    if (!un) errors.username = "Username is required.";
+    else if (un.length < 3) errors.username = "Username must be at least 3 characters.";
+
+    if (!em) errors.email = "Email address is required.";
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)) errors.email = "Please enter a valid email address.";
+
+    if (!pw) errors.password = "Password is required.";
+    else if (passwordStrength < 2) errors.password = "Password is too weak.";
+
+    if (!cp) errors.confirmPassword = "Please confirm your password.";
+    else if (pw !== cp) errors.confirmPassword = "Passwords do not match.";
+
+    setFieldErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  // --- Submit Handler ---
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    const full_name = formData.full_name?.trim();
-    const username = formData.username?.trim();
-    const email = formData.email?.trim();
-    const password = formData.password;
-    const confirmPassword = formData.confirmPassword;
-
-    if (!full_name || !username || !email || !password || !confirmPassword) {
-      toast.error("Please fill all fields.");
-      triggerShake();
-      return;
-    }
-
-    if (password !== confirmPassword) {
-      toast.error("Passwords do not match.");
-      triggerShake();
-      return;
-    }
-
-    if (passwordStrength < 2) {
-      toast.error("Password is too weak.");
+    if (!validateForm()) {
+      toast.error("Please resolve highlighted form errors.");
       triggerShake();
       return;
     }
 
     setLoading(true);
-    const toastId = toast.loading("Creating your account...");
+    const toastId = toast.loading("Creating your Markaz account...");
 
     try {
       await authService.register({
-        username,
-        email,
-        full_name,
-        password,
+        username: formData.username.trim(),
+        email: formData.email.trim(),
+        full_name: formData.full_name.trim(),
+        password: formData.password,
       });
 
-      toast.success("Account created successfully!", { id: toastId });
+      toast.success("Account created successfully! Redirecting...", { id: toastId });
 
       setTimeout(() => {
         navigate("/login", { replace: true });
@@ -123,7 +177,7 @@ const Register = () => {
       const msg =
         err?.response?.data?.detail ||
         (Array.isArray(err?.response?.data) ? err?.response?.data?.[0]?.msg : null) ||
-        "Registration failed.";
+        "Registration failed. Please try again.";
 
       toast.error(msg, { id: toastId });
       triggerShake();
@@ -133,232 +187,280 @@ const Register = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center overflow-hidden bg-gradient-to-br from-slate-50 via-white to-cyan-50 px-3 py-6 sm:px-6 sm:py-10 lg:px-8">
+    <div className="relative min-h-screen flex items-center justify-center overflow-hidden bg-gradient-to-br from-slate-50 via-slate-100/60 to-indigo-50/50 px-4 py-8 sm:px-6 sm:py-12">
+      {/* Background Decorative Gradient Orbs */}
+      <div aria-hidden="true" className="absolute top-0 right-0 w-[30rem] h-[30rem] bg-indigo-500/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none" />
+      <div aria-hidden="true" className="absolute bottom-0 left-0 w-[24rem] h-[24rem] bg-cyan-500/10 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2 pointer-events-none" />
 
-      <div className="flex-1 flex flex-col items-center justify-center overflow-y-auto relative">
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, ease: "easeOut" }}
+        className="relative z-10 w-full max-w-[34rem] rounded-3xl border border-slate-200/80 bg-white/90 backdrop-blur-md p-6 sm:p-8 shadow-xl shadow-slate-900/5"
+      >
+        {/* Brand Header */}
+        <div className="flex items-center gap-3.5 mb-7">
+          <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-[#002147] to-indigo-900 flex items-center justify-center shadow-md shadow-indigo-950/20 text-white">
+            <UserPlusIcon className="w-6 h-6" />
+          </div>
+          <div>
+            <h1 className="text-base font-extrabold tracking-tight text-slate-900">Markaz Library System</h1>
+            <p className="text-xs text-slate-500 font-medium">New Account Registration</p>
+          </div>
+        </div>
 
-        <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none opacity-70" />
-        <div className="absolute bottom-0 left-0 w-72 h-72 bg-gradient-to-tr from-sky-50 to-cyan-50 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2 pointer-events-none opacity-70" />
+        <div className="mb-6">
+          <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">Create Account</h2>
+          <p className="text-slate-500 text-sm mt-1 font-medium">
+            Fill in your details to get started with your research profile.
+          </p>
+        </div>
 
         <motion.div
-          initial={{ opacity: 0, y: 24 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.45, ease: "easeOut" }}
-          className="relative z-10 w-full max-w-[34rem] rounded-3xl border border-slate-200 bg-white/90 backdrop-blur-sm p-4 sm:p-6 lg:p-8 shadow-xl"
+          animate={shake ? { x: [0, -10, 10, -6, 6, 0] } : { x: 0 }}
+          transition={{ duration: 0.4 }}
         >
-          <div className="flex items-center gap-3 mb-8">
-            <div className="w-10 h-10 rounded-2xl bg-[#002147] flex items-center justify-center shadow-lg shadow-blue-900/25">
-              <UserPlusIcon className="w-5 h-5 text-white" />
+          <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+            {/* Full Name & Username Row */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* Full Name */}
+              <div className="space-y-1.5">
+                <label htmlFor="full_name" className="text-[11px] font-extrabold text-slate-500 uppercase tracking-wider">
+                  Full Name
+                </label>
+                <div className="relative group">
+                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-400 group-focus-within:text-[#002147] transition-colors pointer-events-none" aria-hidden="true">
+                    <IdentificationIcon className="w-5 h-5" />
+                  </div>
+                  <input
+                    id="full_name"
+                    name="full_name"
+                    type="text"
+                    value={formData.full_name}
+                    onChange={handleChange}
+                    disabled={loading}
+                    placeholder="Your full name"
+                    autoComplete="name"
+                    aria-invalid={!!fieldErrors.full_name}
+                    aria-describedby={fieldErrors.full_name ? "fn-error" : undefined}
+                    className={`w-full pl-10 pr-3 py-3 rounded-2xl outline-none transition-all text-sm font-medium text-slate-800 placeholder:text-slate-400 disabled:opacity-60 border-2 ${
+                      fieldErrors.full_name
+                        ? "bg-rose-50/50 border-rose-300 focus:border-rose-500 focus:ring-4 focus:ring-rose-500/10"
+                        : "bg-slate-50/80 border-slate-200/80 focus:border-[#002147] focus:bg-white focus:ring-4 focus:ring-[#002147]/10"
+                    }`}
+                  />
+                </div>
+                <FieldError id="fn-error" message={fieldErrors.full_name} />
+              </div>
+
+              {/* Username */}
+              <div className="space-y-1.5">
+                <label htmlFor="username" className="text-[11px] font-extrabold text-slate-500 uppercase tracking-wider">
+                  Username
+                </label>
+                <div className="relative group">
+                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-400 group-focus-within:text-[#002147] transition-colors pointer-events-none" aria-hidden="true">
+                    <UserIcon className="w-5 h-5" />
+                  </div>
+                  <input
+                    id="username"
+                    name="username"
+                    type="text"
+                    value={formData.username}
+                    onChange={handleChange}
+                    disabled={loading}
+                    placeholder="Choose username"
+                    autoComplete="username"
+                    aria-invalid={!!fieldErrors.username}
+                    aria-describedby={fieldErrors.username ? "un-error" : undefined}
+                    className={`w-full pl-10 pr-3 py-3 rounded-2xl outline-none transition-all text-sm font-medium text-slate-800 placeholder:text-slate-400 disabled:opacity-60 border-2 ${
+                      fieldErrors.username
+                        ? "bg-rose-50/50 border-rose-300 focus:border-rose-500 focus:ring-4 focus:ring-rose-500/10"
+                        : "bg-slate-50/80 border-slate-200/80 focus:border-[#002147] focus:bg-white focus:ring-4 focus:ring-[#002147]/10"
+                    }`}
+                  />
+                </div>
+                <FieldError id="un-error" message={fieldErrors.username} />
+              </div>
             </div>
-            <div>
-              <p className="text-sm font-black text-slate-800">Markaz Library</p>
-              <p className="text-[11px] text-slate-500 font-medium">Account Registration</p>
+
+            {/* Email Address */}
+            <div className="space-y-1.5">
+              <label htmlFor="email" className="text-[11px] font-extrabold text-slate-500 uppercase tracking-wider">
+                Email Address
+              </label>
+              <div className="relative group">
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center text-slate-400 group-focus-within:text-[#002147] transition-colors pointer-events-none" aria-hidden="true">
+                  <EnvelopeIcon className="w-5 h-5" />
+                </div>
+                <input
+                  id="email"
+                  name="email"
+                  type="email"
+                  value={formData.email}
+                  onChange={handleChange}
+                  disabled={loading}
+                  placeholder="you@example.com"
+                  autoComplete="email"
+                  aria-invalid={!!fieldErrors.email}
+                  aria-describedby={fieldErrors.email ? "em-error" : undefined}
+                  className={`w-full pl-11 pr-4 py-3.5 rounded-2xl outline-none transition-all text-sm font-medium text-slate-800 placeholder:text-slate-400 disabled:opacity-60 border-2 ${
+                    fieldErrors.email
+                      ? "bg-rose-50/50 border-rose-300 focus:border-rose-500 focus:ring-4 focus:ring-rose-500/10"
+                      : "bg-slate-50/80 border-slate-200/80 focus:border-[#002147] focus:bg-white focus:ring-4 focus:ring-[#002147]/10"
+                  }`}
+                />
+              </div>
+              <FieldError id="em-error" message={fieldErrors.email} />
             </div>
-          </div>
 
-          {/* Heading */}
-          <div className="mb-7">
-            <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">Create Account</h2>
-            <p className="text-slate-500 text-sm mt-1.5 font-medium">Fill details and start using your library profile</p>
-          </div>
+            {/* Password Field */}
+            <div className="space-y-1.5">
+              <label htmlFor="password" className="text-[11px] font-extrabold text-slate-500 uppercase tracking-wider">
+                Password
+              </label>
+              <div className="relative group">
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center text-slate-400 group-focus-within:text-[#002147] transition-colors pointer-events-none" aria-hidden="true">
+                  <LockClosedIcon className="w-5 h-5" />
+                </div>
+                <input
+                  id="password"
+                  name="password"
+                  type={showPassword ? "text" : "password"}
+                  value={formData.password}
+                  onChange={handleChange}
+                  disabled={loading}
+                  placeholder="Create a strong password"
+                  autoComplete="new-password"
+                  aria-invalid={!!fieldErrors.password}
+                  aria-describedby={fieldErrors.password ? "pw-error" : undefined}
+                  className={`w-full pl-11 pr-12 py-3.5 rounded-2xl outline-none transition-all text-sm font-medium text-slate-800 placeholder:text-slate-400 disabled:opacity-60 border-2 ${
+                    fieldErrors.password
+                      ? "bg-rose-50/50 border-rose-300 focus:border-rose-500 focus:ring-4 focus:ring-rose-500/10"
+                      : "bg-slate-50/80 border-slate-200/80 focus:border-[#002147] focus:bg-white focus:ring-4 focus:ring-[#002147]/10"
+                  }`}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((prev) => !prev)}
+                  disabled={loading}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-[#002147] transition-colors focus:outline-none"
+                >
+                  {showPassword ? <EyeSlashIcon className="w-5 h-5" /> : <EyeIcon className="w-5 h-5" />}
+                </button>
+              </div>
+              <FieldError id="pw-error" message={fieldErrors.password} />
 
-          <motion.div
-            animate={shake ? { x: [0, -10, 10, -6, 6, 0] } : { x: 0 }}
-            transition={{ duration: 0.5 }}
-          >
-            <form onSubmit={handleSubmit} className="space-y-4">
-
-              {/* Full Name + Username row */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {/* Full Name */}
-                <div className="space-y-1.5">
-                  <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Full Name</label>
-                  <div className="relative group">
-                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-400 group-focus-within:text-[#002147] transition-colors pointer-events-none">
-                      <IdentificationIcon className="w-4.5 h-4.5" />
-                    </div>
-                    <input
-                      name="full_name"
-                      type="text"
-                      value={formData.full_name}
-                      onChange={handleChange}
-                      disabled={loading}
-                      className="w-full pl-10 pr-3 py-3 bg-slate-50 border-2 border-slate-200 rounded-xl outline-none focus:border-[#002147] focus:bg-white focus:shadow-[0_0_0_3px_rgba(0,33,71,0.07)] transition-all text-sm font-medium text-slate-800 placeholder:text-slate-400 placeholder:font-normal disabled:opacity-60"
-                      placeholder="Your full name"
-                      autoComplete="name"
+              {/* Password Strength Dynamic Meter */}
+              {formData.password && (
+                <div className="mt-2 space-y-1">
+                  <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+                    <div
+                      className={`h-full ${strengthColor} transition-all duration-300 rounded-full`}
+                      style={{ width: `${(passwordStrength / 5) * 100}%` }}
                     />
                   </div>
-                </div>
-
-                {/* Username */}
-                <div className="space-y-1.5">
-                  <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Username</label>
-                  <div className="relative group">
-                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-400 group-focus-within:text-[#002147] transition-colors pointer-events-none">
-                      <UserIcon className="w-4.5 h-4.5" />
-                    </div>
-                    <input
-                      name="username"
-                      type="text"
-                      value={formData.username}
-                      onChange={handleChange}
-                      disabled={loading}
-                      className="w-full pl-10 pr-3 py-3 bg-slate-50 border-2 border-slate-200 rounded-xl outline-none focus:border-[#002147] focus:bg-white focus:shadow-[0_0_0_3px_rgba(0,33,71,0.07)] transition-all text-sm font-medium text-slate-800 placeholder:text-slate-400 placeholder:font-normal disabled:opacity-60"
-                      placeholder="Choose username"
-                      autoComplete="username"
-                    />
+                  <div className="flex justify-between items-center text-[11px] text-slate-500 font-medium">
+                    <span>Password Strength:</span>
+                    <span className="font-bold text-slate-800">{strengthLabel}</span>
                   </div>
                 </div>
+              )}
+            </div>
+
+            {/* Confirm Password Field */}
+            <div className="space-y-1.5">
+              <label htmlFor="confirmPassword" className="text-[11px] font-extrabold text-slate-500 uppercase tracking-wider">
+                Confirm Password
+              </label>
+              <div className="relative group">
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center text-slate-400 group-focus-within:text-[#002147] transition-colors pointer-events-none" aria-hidden="true">
+                  <LockClosedIcon className="w-5 h-5" />
+                </div>
+                <input
+                  id="confirmPassword"
+                  name="confirmPassword"
+                  type={showConfirmPassword ? "text" : "password"}
+                  value={formData.confirmPassword}
+                  onChange={handleChange}
+                  disabled={loading}
+                  placeholder="Re-enter password"
+                  autoComplete="new-password"
+                  aria-invalid={!!fieldErrors.confirmPassword}
+                  aria-describedby={fieldErrors.confirmPassword ? "cp-error" : undefined}
+                  className={`w-full pl-11 pr-12 py-3.5 rounded-2xl outline-none transition-all text-sm font-medium text-slate-800 placeholder:text-slate-400 disabled:opacity-60 border-2 ${
+                    fieldErrors.confirmPassword
+                      ? "bg-rose-50/50 border-rose-300 focus:border-rose-500 focus:ring-4 focus:ring-rose-500/10"
+                      : "bg-slate-50/80 border-slate-200/80 focus:border-[#002147] focus:bg-white focus:ring-4 focus:ring-[#002147]/10"
+                  }`}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword((prev) => !prev)}
+                  disabled={loading}
+                  aria-label={showConfirmPassword ? "Hide password" : "Show password"}
+                  className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-[#002147] transition-colors focus:outline-none"
+                >
+                  {showConfirmPassword ? <EyeSlashIcon className="w-5 h-5" /> : <EyeIcon className="w-5 h-5" />}
+                </button>
               </div>
+              <FieldError id="cp-error" message={fieldErrors.confirmPassword} />
 
-              {/* Email */}
-              <div className="space-y-1.5">
-                <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Email Address</label>
-                <div className="relative group">
-                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center text-slate-400 group-focus-within:text-[#002147] transition-colors pointer-events-none">
-                    <EnvelopeIcon className="w-5 h-5" />
-                  </div>
-                  <input
-                    name="email"
-                    type="email"
-                    value={formData.email}
-                    onChange={handleChange}
-                    disabled={loading}
-                    className="w-full pl-11 pr-4 py-3.5 bg-slate-50 border-2 border-slate-200 rounded-2xl outline-none focus:border-[#002147] focus:bg-white focus:shadow-[0_0_0_4px_rgba(0,33,71,0.07)] transition-all text-sm font-medium text-slate-800 placeholder:text-slate-400 placeholder:font-normal disabled:opacity-60"
-                    placeholder="you@example.com"
-                    autoComplete="email"
-                  />
-                </div>
-              </div>
-
-              {/* Password */}
-              <div className="space-y-1.5">
-                <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Password</label>
-                <div className="relative group">
-                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center text-slate-400 group-focus-within:text-[#002147] transition-colors pointer-events-none">
-                    <LockClosedIcon className="w-5 h-5" />
-                  </div>
-                  <input
-                    name="password"
-                    type={showPassword ? "text" : "password"}
-                    value={formData.password}
-                    onChange={handleChange}
-                    disabled={loading}
-                    className="w-full pl-11 pr-12 py-3.5 bg-slate-50 border-2 border-slate-200 rounded-2xl outline-none focus:border-[#002147] focus:bg-white focus:shadow-[0_0_0_4px_rgba(0,33,71,0.07)] transition-all text-sm font-medium text-slate-800 placeholder:text-slate-400 placeholder:font-normal disabled:opacity-60"
-                    placeholder="Create a strong password"
-                    autoComplete="new-password"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword((p) => !p)}
-                    disabled={loading}
-                    className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-[#002147] transition-colors"
-                  >
-                    {showPassword ? <EyeSlashIcon className="w-5 h-5" /> : <EyeIcon className="w-5 h-5" />}
-                  </button>
-                </div>
-
-                {/* Strength bar */}
-                {formData.password && (
-                  <div className="mt-2">
-                    <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
-                      <div
-                        className={`h-full ${strengthColor} transition-all duration-400 rounded-full`}
-                        style={{ width: `${(passwordStrength / 5) * 100}%` }}
-                      />
-                    </div>
-                    <p className="text-[11px] text-slate-500 mt-1 flex justify-between">
-                      <span>Password strength</span>
-                      <span className="font-bold">{strengthLabel}</span>
-                    </p>
-                  </div>
-                )}
-              </div>
-
-              {/* Confirm Password */}
-              <div className="space-y-1.5">
-                <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Confirm Password</label>
-                <div className="relative group">
-                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center text-slate-400 group-focus-within:text-[#002147] transition-colors pointer-events-none">
-                    <LockClosedIcon className="w-5 h-5" />
-                  </div>
-                  <input
-                    name="confirmPassword"
-                    type={showConfirmPassword ? "text" : "password"}
-                    value={formData.confirmPassword}
-                    onChange={handleChange}
-                    disabled={loading}
-                    className="w-full pl-11 pr-12 py-3.5 bg-slate-50 border-2 border-slate-200 rounded-2xl outline-none focus:border-[#002147] focus:bg-white focus:shadow-[0_0_0_4px_rgba(0,33,71,0.07)] transition-all text-sm font-medium text-slate-800 placeholder:text-slate-400 placeholder:font-normal disabled:opacity-60"
-                    placeholder="Re-enter password"
-                    autoComplete="new-password"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowConfirmPassword((p) => !p)}
-                    disabled={loading}
-                    className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-[#002147] transition-colors"
-                  >
-                    {showConfirmPassword ? <EyeSlashIcon className="w-5 h-5" /> : <EyeIcon className="w-5 h-5" />}
-                  </button>
-                </div>
-
-                {formData.confirmPassword && (
-                  <p className={`text-[11px] mt-1 font-semibold ${formData.password === formData.confirmPassword ? "text-emerald-600" : "text-red-500"}`}>
-                    {formData.password === formData.confirmPassword ? "✅ Passwords match" : "❌ Passwords do not match"}
-                  </p>
-                )}
-              </div>
-
-              {/* Submit */}
-              <motion.button
-                whileHover={{ scale: loading ? 1 : 1.01, y: loading ? 0 : -1 }}
-                whileTap={{ scale: loading ? 1 : 0.98 }}
-                type="submit"
-                disabled={loading}
-                className="w-full py-4 rounded-2xl bg-[#002147] text-white font-bold text-sm shadow-lg shadow-[#002147]/20 hover:bg-[#003166] hover:shadow-[#002147]/35 transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center gap-2.5 mt-2"
-              >
-                <AnimatePresence mode="wait">
-                  {loading ? (
-                    <motion.span
-                      key="loading"
-                      initial={{ opacity: 0, y: 6 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -6 }}
-                      className="flex items-center gap-2"
-                    >
-                      <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
-                      Creating Account...
-                    </motion.span>
+              {/* Real-time Match Indicator */}
+              {formData.confirmPassword && !fieldErrors.confirmPassword && (
+                <div className="mt-1 flex items-center gap-1.5 text-[11px] font-bold">
+                  {formData.password === formData.confirmPassword ? (
+                    <span className="text-emerald-600 flex items-center gap-1">
+                      <CheckCircleIcon className="w-4 h-4" /> Passwords match
+                    </span>
                   ) : (
-                    <motion.span
-                      key="normal"
-                      initial={{ opacity: 0, y: 6 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -6 }}
-                      className="flex items-center gap-2"
-                    >
-                      <UserPlusIcon className="w-4 h-4" />
-                      Create Account
-                    </motion.span>
+                    <span className="text-rose-500 flex items-center gap-1">
+                      <XCircleIcon className="w-4 h-4" /> Passwords do not match
+                    </span>
                   )}
-                </AnimatePresence>
-              </motion.button>
-            </form>
+                </div>
+              )}
+            </div>
 
-            {/* Login link */}
-            <p className="mt-7 text-center text-sm text-slate-500 font-medium">
-              Already have an account?{" "}
-              <Link to="/login" className="text-[#002147] font-bold hover:underline transition-colors">
-                Sign In
-              </Link>
-            </p>
-          </motion.div>
+            {/* Submit Button */}
+            <motion.button
+              whileHover={{ scale: loading ? 1 : 1.01, y: loading ? 0 : -1 }}
+              whileTap={{ scale: loading ? 1 : 0.98 }}
+              type="submit"
+              disabled={loading}
+              className="w-full py-4 rounded-2xl bg-[#002147] text-white font-bold text-sm shadow-md shadow-[#002147]/20 hover:bg-[#002f66] hover:shadow-lg hover:shadow-[#002147]/30 transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2.5 mt-2 focus:outline-none focus:ring-4 focus:ring-[#002147]/25"
+            >
+              {loading ? (
+                <>
+                  <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" aria-hidden="true" />
+                  <span>Creating Account...</span>
+                </>
+              ) : (
+                <>
+                  <UserPlusIcon className="w-5 h-5" aria-hidden="true" />
+                  <span>Create Account</span>
+                </>
+              )}
+            </motion.button>
+          </form>
+
+          {/* Login Link */}
+          <p className="mt-8 text-center text-sm text-slate-500 font-medium">
+            Already have an account?{" "}
+            <Link
+              to="/login"
+              className="text-[#002147] font-bold hover:text-indigo-600 transition-colors focus:outline-none focus:underline"
+            >
+              Sign In
+            </Link>
+          </p>
 
           <p className="mt-8 text-center text-xs text-slate-400">
-            &copy; {new Date().getFullYear()} Markaz Library System
+            &copy; {new Date().getFullYear()} Markaz Library System &bull; All Rights Reserved
           </p>
         </motion.div>
-      </div>
+      </motion.div>
     </div>
   );
 };

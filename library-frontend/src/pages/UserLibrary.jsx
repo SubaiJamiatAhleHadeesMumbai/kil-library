@@ -29,7 +29,7 @@ import {
   Squares2X2Icon,
   ListBulletIcon,
   ArrowUpIcon,
-  DocumentTextIcon, // âœ… Added for Text Mode
+  DocumentTextIcon, // ✅ Added for Text Mode
 } from "@heroicons/react/24/outline";
 
 // --- Icons (Solid - for PublicBookCard) ---
@@ -40,7 +40,7 @@ import {
 } from "@heroicons/react/24/solid";
 
 // --- Constants ---
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || (import.meta.env.PROD ? "" : "http://127.0.0.1:8000");
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || (import.meta.env.PROD ? "https://kil2-backend.onrender.com" : "http://127.0.0.1:8000");
 const FALLBACK_NO_COVER = "https://via.placeholder.com/400x600?text=No+Cover";
 const FALLBACK_BROKEN = "https://via.placeholder.com/400x600?text=Image+Not+Found";
 
@@ -171,14 +171,14 @@ const PublicBookCard = ({
         </div>
       </div>
 
-      {/* â¤ï¸ Favorite */}
+      {/* ❤️ Favorite */}
       {typeof onToggleFavorite === "function" && (
         <button
           onClick={(e) => onToggleFavorite(e, book?.id)}
           className="absolute bottom-2 right-2 z-20 rounded-full border border-gray-200 bg-white px-2.5 py-1 text-[10px] font-bold shadow-md transition hover:bg-gray-50 sm:bottom-3 sm:right-3 sm:px-3 sm:py-1.5 sm:text-[11px]"
           title={isFavorite ? "Remove Favorite" : "Add Favorite"}
         >
-          {isFavorite ? "â¤ï¸ Saved" : "ðŸ¤ Save"}
+          {isFavorite ? "❤️ Saved" : "🤍 Save"}
         </button>
       )}
 
@@ -257,7 +257,7 @@ const UserLibrary = () => {
   const [books, setBooks] = useState([]);
   const [loading, setLoading] = useState(true);
   const activeRequestRef = useRef(0);
-  const [dynamicCategories, setDynamicCategories] = useState([]);  // âœ… Dynamic Categories from DB
+  const [dynamicCategories, setDynamicCategories] = useState([]);  // ✅ Dynamic Categories from DB
 
   const [sortBy, setSortBy] = useState("newest");
 
@@ -287,7 +287,7 @@ const UserLibrary = () => {
   // --- CATEGORIES ---
   const categories = useMemo(
     () => {
-      // âœ… If dynamic categories loaded from DB, use them
+      // ✅ If dynamic categories loaded from DB, use them
       if (dynamicCategories.length > 0) {
         return [
           { value: "all", label: "All Categories" },
@@ -299,7 +299,7 @@ const UserLibrary = () => {
         ];
       }
       
-      // âœ… Fallback to hardcoded if DB load fails
+      // ✅ Fallback to hardcoded if DB load fails
       return [
         { value: "all", label: "All Categories" },
         { value: "aqeedah_fiqh", label: "Aqeedah & Fiqh" },
@@ -352,16 +352,16 @@ const UserLibrary = () => {
   };
 
   // --- EFFECTS ---
-  // âœ… NEW: Fetch categories from database (admin-added)
+  // ✅ NEW: Fetch categories from database (admin-added)
   useEffect(() => {
     const loadCategories = async () => {
       try {
         const data = await categoryService.getAllCategories();
         const categoryList = Array.isArray(data) ? data : data?.categories || [];
         setDynamicCategories(categoryList);
-        console.log("âœ… Dynamic categories loaded:", categoryList);
+        console.log("✅ Dynamic categories loaded:", categoryList);
       } catch (error) {
-        console.warn("âš ï¸ Could not load categories from DB, using fallback:", error);
+        console.warn("⚠️ Could not load categories from DB, using fallback:", error);
         setDynamicCategories([]);
       }
     };
@@ -369,7 +369,7 @@ const UserLibrary = () => {
     loadCategories();
   }, []);
 
-  // âœ… NEW: Apply search from URL params or navigation state
+  // ✅ NEW: Apply search from URL params or navigation state
   useEffect(() => {
     // Only run once books have loaded and we have books to search through
     if (loading || !Array.isArray(books) || books.length === 0) return;
@@ -379,7 +379,7 @@ const UserLibrary = () => {
     const searchValue = urlSearch || stateSearch;
 
     if (searchValue && searchValue.trim()) {
-      console.log("âœ… Setting search term from URL/state:", searchValue);
+      console.log("✅ Setting search term from URL/state:", searchValue);
       setSearchTerm(searchValue);
 
       // Smooth scroll to grid
@@ -411,7 +411,7 @@ const UserLibrary = () => {
     return String(v);
   };
 
-  // âœ… IMPROVED CATEGORY HELPER
+  // ✅ IMPROVED CATEGORY HELPER
   const safeCategory = (book) => {
       // 1. Try nested category object
       if (book.category && typeof book.category === 'object') {
@@ -550,31 +550,27 @@ const UserLibrary = () => {
       </div>
 
       {/* FILTER BAR */}
-      <div className="relative z-30 max-w-7xl mx-auto px-4 mt-6 md:sticky md:top-16 md:-mt-20">
+      <div className="relative z-30 max-w-7xl mx-auto px-4 mt-4 md:sticky md:top-16 md:mt-4">
         <motion.div
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
-          className="rounded-[1.75rem] border border-white/50 bg-white/78 p-3 shadow-[0_18px_55px_-30px_rgba(15,23,42,0.45)] backdrop-blur-2xl flex flex-col gap-3 justify-between items-center md:p-4 xl:flex-row xl:gap-4"
+          className="rounded-2xl border border-white/60 bg-white/85 p-2.5 shadow-[0_12px_35px_-24px_rgba(15,23,42,0.4)] backdrop-blur-xl flex flex-col gap-2.5 justify-between items-stretch md:p-3 xl:flex-row xl:items-center xl:gap-3"
         >
           {/* Filters */}
-          <div className="flex flex-wrap items-center gap-2.5 w-full xl:w-auto justify-center md:justify-start">
-            <div className="hidden md:flex items-center gap-2 text-slate-500 text-sm font-bold bg-slate-100/50 px-3 py-2 rounded-xl">
-              <FunnelIcon className="h-4 w-4" /> Filters
-            </div>
-
+          <div className="flex flex-wrap items-center gap-2 w-full xl:w-auto justify-start">
             <select
-              className="min-w-[150px] rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold outline-none transition hover:border-emerald-500 cursor-pointer"
+              className="min-w-[140px] rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-sm font-medium outline-none transition hover:border-emerald-500 cursor-pointer"
               value={selectedLanguage}
               onChange={(e) => setSelectedLanguage(e.target.value)}
             >
-              <option value="all">ðŸŒ All Languages</option>
+              <option value="all">🌍 All Languages</option>
               <option value="english">English</option>
               <option value="urdu">Urdu</option>
               <option value="arabic">Arabic</option>
             </select>
 
             <select
-              className="max-w-[220px] rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold outline-none transition hover:border-emerald-500 cursor-pointer"
+              className="max-w-[220px] rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-sm font-medium outline-none transition hover:border-emerald-500 cursor-pointer"
               value={selectedCategory}
               onChange={(e) => setSelectedCategory(e.target.value)}
             >
@@ -587,9 +583,9 @@ const UserLibrary = () => {
           </div>
 
           {/* Controls */}
-          <div className="flex w-full items-center justify-between gap-3 border-t border-slate-200 pt-3 xl:w-auto xl:justify-end xl:border-t-0 xl:pt-0">
+          <div className="flex w-full items-center justify-between gap-3 border-t border-slate-100 pt-2.5 xl:w-auto xl:justify-end xl:border-t-0 xl:pt-0">
             {/* View Toggle */}
-            <div className="flex rounded-2xl bg-slate-100 p-1">
+            <div className="flex rounded-xl bg-slate-100 p-0.5">
               <button
                 onClick={() => setViewMode("grid")}
                 className={`p-1.5 rounded-md transition-all ${
@@ -616,10 +612,10 @@ const UserLibrary = () => {
             </div>
 
             {/* Sort */}
-            <div className="flex items-center gap-2 whitespace-nowrap">
+            <div className="flex items-center gap-1.5 whitespace-nowrap rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5">
               <ArrowsUpDownIcon className="h-4 w-4 text-slate-400" />
               <select
-                className="bg-transparent text-sm font-bold text-slate-700 outline-none cursor-pointer"
+                className="bg-transparent text-sm font-medium text-slate-700 outline-none cursor-pointer"
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
               >
@@ -757,7 +753,7 @@ const UserLibrary = () => {
                                   {book.is_restricted ? "Request Access" : "Read Now"}
                                 </button>
 
-                                <span className="text-slate-300">â€¢</span>
+                                <span className="text-slate-300">•</span>
 
                                 <button
                                   className="text-xs font-bold text-slate-500 hover:text-red-500"
@@ -855,7 +851,7 @@ const UserLibrary = () => {
                   {selectedBook.description || "No description provided."}
                 </p>
 
-                {/* âœ… UPDATED ACTION BUTTONS */}
+                {/* ✅ UPDATED ACTION BUTTONS */}
                 <div className="flex flex-col gap-3 pt-6 border-t border-slate-100 mt-auto">
                   {selectedBook.is_restricted ? (
                     <button

@@ -5,14 +5,15 @@ from fastapi import APIRouter, Depends, HTTPException, status, File, UploadFile,
 from sqlalchemy.orm import Session, joinedload
 
 # --- Imports ---
-from models import book_model, language_model, user_model, request_model, request_user_model
+from models import book_model, language_model, user_model, request_model, request_user_model, fatawa_model
 from schemas import book_schema
 from auth import require_permission, get_current_user_optional 
 from database import get_db
 from utils import create_log
 
-# ✅ Smart Upload Helper (Cloudflare R2 for production, Cloudinary/Local fallback)
-from utils.storage_helper import smart_upload
+# ✅ Changed Imports: Cover image ke liye Cloudinary, PDF aur TXT ke liye Local Helper
+from utils.cloudinary_helper import upload_to_cloudinary
+from utils.local_helper import save_pdf_locally, save_txt_locally
 
 router = APIRouter()
 
@@ -45,6 +46,7 @@ async def create_book(
     parts_or_volumes: Optional[str] = Form(None),
     subject_number: Optional[str] = Form(None),
     language_id: int = Form(...),
+    fatawa_category_id: Optional[int] = Form(None),
     page_count: Optional[int] = Form(None),
     publication_year: Optional[int] = Form(None),
     serial_number: Optional[str] = Form(None),
@@ -69,6 +71,13 @@ async def create_book(
     if not db.query(language_model.Language).filter(language_model.Language.id == language_id).first():
         raise HTTPException(status_code=400, detail=f"Language ID {language_id} not found.")
 
+    if fatawa_category_id is not None:
+        if not db.query(fatawa_model.FatawaCategory).filter(
+            fatawa_model.FatawaCategory.id == fatawa_category_id,
+            fatawa_model.FatawaCategory.deleted_at.is_(None),
+        ).first():
+            raise HTTPException(status_code=400, detail=f"Fatawa category ID {fatawa_category_id} not found.")
+
     # 2. Validation: ISBN
     if isbn:
         existing = db.query(book_model.Book).filter(
@@ -88,24 +97,26 @@ async def create_book(
             except ValueError:
                 continue
 
-    # 4. Handle Files (Smart Multi-Storage Upload)
+    # 4. Handle Files (Hybrid Upload)
     cover_image_url = None
     pdf_url = None
     txt_file_url = None 
 
     print(f"📥 Received Files -> Cover: {cover_image.filename if cover_image else 'No'}, PDF: {pdf_file.filename if pdf_file else 'No'}, TXT: {txt_file.filename if txt_file else 'No'}")
 
-    # A. Cover Image -> Smart Upload (R2 / Cloudinary / Local)
+    # A. Cover Image -> Cloudinary
     if cover_image:
-        cover_image_url = smart_upload(cover_image, folder="booknest/covers", resource_type="image")
+        cover_image_url = upload_to_cloudinary(cover_image, folder="booknest/covers", resource_type="image")
     
-    # B. PDF -> Smart Upload (R2 / Local)
+    # B. PDF -> Local Directory ✅
     if pdf_file:
-        pdf_url = smart_upload(pdf_file, folder="booknest/pdfs", resource_type="raw")
+        pdf_url = save_pdf_locally(pdf_file)
 
-    # C. Text File -> Smart Upload (R2 / Local)
+    # C. Text File -> Local Directory ✅
     if txt_file:
-        txt_file_url = smart_upload(txt_file, folder="booknest/texts", resource_type="raw")
+        print(f"🚀 Uploading Text File Locally: {txt_file.filename}")
+        txt_file_url = save_txt_locally(txt_file)
+        print(f"✅ Text File Uploaded: {txt_file_url}")
 
     # 5. Handle Subcategories
     db_subcategories = []
@@ -125,6 +136,7 @@ async def create_book(
         parts_or_volumes=parts_or_volumes,
         subject_number=subject_number,
         language_id=language_id,
+        fatawa_category_id=fatawa_category_id,
         page_count=page_count,
         serial_number=serial_number,
         book_number=book_number,
@@ -182,6 +194,7 @@ async def update_book(
     publisher: Optional[str] = Form(None),
     isbn: Optional[str] = Form(None),
     language_id: Optional[int] = Form(None),
+    fatawa_category_id: Optional[int] = Form(None),
     page_count: Optional[int] = Form(None),
     publication_year: Optional[int] = Form(None),
     serial_number: Optional[str] = Form(None),
@@ -226,23 +239,33 @@ async def update_book(
          if not db.query(language_model.Language).filter(language_model.Language.id == language_id).first():
              raise HTTPException(status_code=400, detail="Invalid Language ID")
          db_book.language_id = language_id
+
+    if fatawa_category_id is not None:
+        if not db.query(fatawa_model.FatawaCategory).filter(
+            fatawa_model.FatawaCategory.id == fatawa_category_id,
+            fatawa_model.FatawaCategory.deleted_at.is_(None),
+        ).first():
+            raise HTTPException(status_code=400, detail="Invalid Fatawa category ID")
+        db_book.fatawa_category_id = fatawa_category_id
     
     if isbn is not None and isbn != db_book.isbn:
          if db.query(book_model.Book).filter(book_model.Book.isbn == isbn, book_model.Book.id != book_id).first():
              raise HTTPException(status_code=409, detail="ISBN already exists.")
          db_book.isbn = isbn
 
-    # Update Files (Smart Multi-Storage Upload)
+    # Update Files
     if cover_image:
-        db_book.cover_image_url = smart_upload(cover_image, folder="booknest/covers", resource_type="image")
+        db_book.cover_image_url = upload_to_cloudinary(cover_image, folder="booknest/covers", resource_type="image")
 
-    # PDF Update -> Smart Upload (R2 / Local)
+    # ✅ PDF Update -> Local Directory
     if pdf_file:
-        db_book.pdf_url = smart_upload(pdf_file, folder="booknest/pdfs", resource_type="raw")
+        db_book.pdf_url = save_pdf_locally(pdf_file)
 
-    # Text File Update -> Smart Upload (R2 / Local)
+    # ✅ Text File Update -> Local Directory
     if txt_file:
-        db_book.txt_file_url = smart_upload(txt_file, folder="booknest/texts", resource_type="raw")
+        print(f"🚀 Updating Text File Locally: {txt_file.filename}")
+        db_book.txt_file_url = save_txt_locally(txt_file)
+        print(f"✅ Text File Updated: {db_book.txt_file_url}")
 
     # Approval Reset Logic
     db_book.is_approved = False 

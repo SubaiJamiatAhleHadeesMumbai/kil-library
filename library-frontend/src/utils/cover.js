@@ -4,7 +4,7 @@
 export const FALLBACK_COVER = "https://via.placeholder.com/300x450?text=No+Cover";
 
 // 2. Base URL (Safe check)
-const API_BASE_URL = (import.meta.env.VITE_API_URL || (import.meta.env.PROD ? "" : "http://127.0.0.1:8000")).replace(/\/$/, ""); // End ka slash hata diya taaki double slash na bane
+const API_BASE_URL = (import.meta.env.VITE_API_URL || (import.meta.env.PROD ? "https://kil2-backend.onrender.com" : "http://127.0.0.1:8000")).replace(/\/$/, ""); // End ka slash hata diya taaki double slash na bane
 
 /**
  * [INTERNAL HELPER]
@@ -53,7 +53,7 @@ export const getBookCover = (book) => {
 };
 
 /**
- * [FOR PDFS] - ðŸ”¥ NEW ADDITION
+ * [FOR PDFS] - 🔥 NEW ADDITION
  * Ye function PDF ka URL deta hai.
  * Agar PDF nahi hai to ye 'null' return karega (Image nahi).
  * Isse aap 'Read Now' button ko hide/disable kar sakte hain.

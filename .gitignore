@@ -54,6 +54,4 @@ Thumbs.db
 # ==========================================
 *.exe
 *.log
-static/uploads/library.db
-*.db
-library_backend/library.db
+static/uploads/

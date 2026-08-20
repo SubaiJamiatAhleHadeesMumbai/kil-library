@@ -10,7 +10,7 @@ import '../assets/css/ManagementPages.css'; // Common styles
 // Helper to get full URL for images
 const getStaticUrl = (relativePath) => {
     if (!relativePath) return null;
-    const baseUrl = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '' : 'http://127.0.0.1:8000');
+    const baseUrl = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? 'https://kil2-backend.onrender.com' : 'http://127.0.0.1:8000');
     return `${baseUrl}${relativePath}`;
 };
 
@@ -92,7 +92,7 @@ const PublicBookList = () => {
     return (
         <div className="p-4 md:p-6 space-y-6">
             {/* Page Header */}
-            <h2 className="text-2xl md:text-3xl font-semibold text-gray-700">ðŸ“š Book Catalog</h2>
+            <h2 className="text-2xl md:text-3xl font-semibold text-gray-700">📚 Book Catalog</h2>
             
             {error && <p className="error-message p-3 bg-red-100 border border-red-300 text-red-700 text-sm rounded-md text-center">{error}</p>}
 

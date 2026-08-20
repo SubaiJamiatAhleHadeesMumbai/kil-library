@@ -26,6 +26,8 @@ from models.interaction_model import *
 from models.issue_model import *
 from models.post_model import *
 from models.request_user_model import *
+from models.fatawa_model import *
+from models.poster_model import *
 
 print("Creating all tables...")
 Base.metadata.create_all(bind=engine)

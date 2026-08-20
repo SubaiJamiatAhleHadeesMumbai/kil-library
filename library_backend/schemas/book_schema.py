@@ -20,6 +20,7 @@ class BookBase(BaseModel):
     description: Optional[str] = None
     language_id: int = Field(...) 
     is_restricted: bool = Field(False)
+    fatawa_category_id: Optional[int] = None
     
     # Additional Fields
     serial_number: Optional[str] = Field(None, max_length=100)
@@ -65,6 +66,7 @@ class BookUpdate(BaseModel):
     description: Optional[str] = None
     language_id: Optional[int] = None
     is_restricted: Optional[bool] = None
+    fatawa_category_id: Optional[int] = None
     
     serial_number: Optional[str] = Field(None, max_length=100)
     book_number: Optional[str] = Field(None, max_length=100)

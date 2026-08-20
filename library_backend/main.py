@@ -60,10 +60,13 @@ from controllers import (
     book_management_controller,
     password_controller,
     post_controller,
+    poster_controller,
     donation_controller,
     interaction_controller,
     analytics_controller,
-    settings_controller
+    settings_controller,
+    about_controller,
+    fatawa_controller
 )
 
 # --- Lifespan Manager (Startup/Shutdown Logic) ---
@@ -308,9 +311,12 @@ api_router.include_router(public_user_controller.router, prefix="/public", tags=
 api_router.include_router(book_read_controller.router, prefix="/books", tags=["Books (Read)"])
 api_router.include_router(book_management_controller.router, prefix="/books", tags=["Books (Manage)"])
 api_router.include_router(post_controller.router, prefix="/posts", tags=["Markaz News"])
+api_router.include_router(poster_controller.router, prefix="/posters", tags=["Homepage Posters"])
 api_router.include_router(donation_controller.router, tags=["Donation"]) # ✅ Moved INSIDE /api to fix 404
 api_router.include_router(analytics_controller.router, prefix="/analytics", tags=["Analytics"])
 api_router.include_router(settings_controller.router, prefix="/settings", tags=["Homepage Settings"])
+api_router.include_router(about_controller.router, prefix="/settings", tags=["About Settings"])
+api_router.include_router(fatawa_controller.router, prefix="/fatawa", tags=["Fatawa"])
 
 # Register Main Router
 app.include_router(api_router)

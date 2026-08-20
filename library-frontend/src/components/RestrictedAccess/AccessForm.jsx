@@ -15,7 +15,7 @@ import {
 import axios from "axios";
 import toast from "react-hot-toast";
 
-// âœ… If PURPOSES file missing, this fallback will work
+// ✅ If PURPOSES file missing, this fallback will work
 import { PURPOSES as PURPOSES_FROM_FILE } from "./types";
 const COUNTRY_CODES = [
   { code: "+91", name: "" },
@@ -31,7 +31,7 @@ const COUNTRY_CODES = [
 ];
 
 
-const API_URL = import.meta.env.VITE_API_BASE_URL || (import.meta.env.PROD ? "" : "http://127.0.0.1:8000");
+const API_URL = import.meta.env.VITE_API_BASE_URL || (import.meta.env.PROD ? "https://kil2-backend.onrender.com" : "http://127.0.0.1:8000");
 
 const PURPOSES_FALLBACK = [
   "Academic Research",
@@ -61,8 +61,8 @@ const AccessForm = ({ book, onSuccess, onCancel }) => {
   const [formData, setFormData] = useState({
     fullName: "",
     whatsapp: "",
-    countryCode: "+91",     // âœ… NEW
-    whatsappNumber: "",     // âœ… NEW
+    countryCode: "+91",     // ✅ NEW
+    whatsappNumber: "",     // ✅ NEW
     qualification: "",
     institution: "",
     isSalafi: false,
@@ -293,7 +293,7 @@ const AccessForm = ({ book, onSuccess, onCancel }) => {
                   name="whatsappNumber"
                   value={formData.whatsappNumber}
                   onChange={(e) => {
-                    // âœ… Only digits allowed
+                    // ✅ Only digits allowed
                     const onlyDigits = e.target.value.replace(/\D/g, "");
                     setFormData((prev) => ({ ...prev, whatsappNumber: onlyDigits }));
                   }}

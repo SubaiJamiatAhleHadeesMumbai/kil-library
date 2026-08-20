@@ -1,21 +1,27 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { createPortal } from 'react-dom';
+import { ArrowLeft, BookText, FileText, LayoutGrid } from 'lucide-react';
 import Toolbar from './Toolbar';
 import PdfViewer from './PdfViewer';
 import TextEditor from './TextEditor';
 
-// ✅ Yahan initialPage aur initialSearchText props add kiye hain
+const LANDING_UNLOCK_DELAY_MS = 200;
+const SEARCH_DEBOUNCE_MS = 400;
+
 const SmartReader = ({ 
   pdfUrl, 
   txtUrl, 
   onClose, 
+  onBackToSearch,
   initialPage = 1, 
   initialSearchText = "" 
 }) => {
-  // Shared States
-  const [layoutMode, setLayoutMode] = useState('split'); 
-  const [viewMode, setViewMode] = useState('scroll'); 
   
-  // ✅ States ko initial props se start karwaya hai
+  const [isMobile, setIsMobile] = useState(() => (typeof window !== 'undefined' ? window.innerWidth < 768 : false));
+  // Shared States
+  const [layoutMode, setLayoutMode] = useState(() => (typeof window !== 'undefined' && window.innerWidth < 768 ? 'pdf' : 'split')); 
+  const [viewMode, setViewMode] = useState(() => (typeof window !== 'undefined' && window.innerWidth < 768 ? 'single' : 'scroll')); 
+  
   const [currentPage, setCurrentPage] = useState(initialPage);
   const [searchText, setSearchText] = useState(initialSearchText);
   const [totalPages, setTotalPages] = useState(1);
@@ -29,66 +35,148 @@ const SmartReader = ({
   // Text Data State
   const [allPagesContent, setAllPagesContent] = useState({});
   const [isLoadingText, setIsLoadingText] = useState(false);
-
-  const pageInputRef = useRef(null);
+  const [pendingLandingPage, setPendingLandingPage] = useState(() => (initialPage > 1 ? initialPage : null));
+  const [isLandingLocked, setIsLandingLocked] = useState(() => initialPage > 1 || Boolean(initialSearchText));
+  const [pdfReady, setPdfReady] = useState(() => !pdfUrl);
+  const [textReady, setTextReady] = useState(() => !txtUrl);
 
   // ---------------------------------------------------------
-  // 1. FETCH & SPLIT TEXT BY DELIMITERS 
+  // Lock body scroll while reader is mounted
   // ---------------------------------------------------------
   useEffect(() => {
-    if (!txtUrl) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, []);
+
+  useEffect(() => {
+    const shouldLock = initialPage > 1 || Boolean(initialSearchText);
+    setPendingLandingPage(initialPage > 1 ? initialPage : null);
+    setIsLandingLocked(shouldLock);
+    setPdfReady(!pdfUrl);
+    setTextReady(!txtUrl);
+    setCurrentPage(initialPage);
+  }, [initialPage, initialSearchText, pdfUrl, txtUrl]);
+
+  useEffect(() => {
+    if (!isLandingLocked) return;
+    if (pendingLandingPage !== null) return;
+
+    const needsPdf = Boolean(pdfUrl) && (layoutMode === 'pdf' || layoutMode === 'split');
+    const needsText = Boolean(txtUrl) && (layoutMode === 'text' || layoutMode === 'split');
+
+    const pdfSettled = !needsPdf || pdfReady;
+    const textSettled = !needsText || textReady;
+
+    if (pdfSettled && textSettled) {
+      setIsLandingLocked(false);
+    }
+  }, [isLandingLocked, pendingLandingPage, layoutMode, pdfUrl, txtUrl, pdfReady, textReady]);
+
+  useEffect(() => {
+    setSearchText(initialSearchText || "");
+  }, [initialSearchText]);
+
+  useEffect(() => {
+    const onResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
+
+  useEffect(() => {
+    if (isMobile) {
+      if (layoutMode === 'split') setLayoutMode('pdf');
+      if (viewMode !== 'single') setViewMode('single');
+    }
+  }, [isMobile, layoutMode, viewMode]);
+
+  // ---------------------------------------------------------
+  // 1. FETCH & SPLIT TEXT BY DELIMITERS (race-condition safe)
+  // ---------------------------------------------------------
+  useEffect(() => {
+    if (!txtUrl) {
+      setTextReady(true);
+      return;
+    }
+
+    let cancelled = false;
+    setTextReady(false);
+
     const fetchText = async () => {
       setIsLoadingText(true);
       try {
         const response = await fetch(txtUrl);
         const text = await response.text();
-        
+
+        if (cancelled) return;
+
         // Split by Underscores, ===PAGE===, or PAGE_SEPARATOR
         const rawPages = text.split(/_{5,}|===PAGE===|PAGE_SEPARATOR/gi);
-        
+
         let pages = {};
         rawPages.forEach((content, index) => {
           pages[index + 1] = content.trim(); // 1-based index
         });
-        
-        setAllPagesContent(pages);
+
+        if (!cancelled) {
+          setAllPagesContent(pages);
+        }
       } catch (error) {
-        console.error("Failed to load text:", error);
+        if (!cancelled) console.error("Failed to load text:", error);
       } finally {
-        setIsLoadingText(false);
+        if (!cancelled) {
+          setTextReady(true);
+          setIsLoadingText(false);
+        }
       }
     };
+
     fetchText();
+
+    return () => {
+      cancelled = true;
+    };
   }, [txtUrl]);
 
   // ---------------------------------------------------------
-  // 2. FAST GLOBAL SEARCH LOGIC (Updated for Smart Jump)
+  // 2. FAST GLOBAL SEARCH LOGIC (Smart Jump + safe regex)
   // ---------------------------------------------------------
   useEffect(() => {
-    if (!searchText.trim() || Object.keys(allPagesContent).length === 0) {
+    const trimmedSearch = searchText.trim();
+
+    if (!trimmedSearch || Object.keys(allPagesContent).length === 0) {
       setGlobalMatches([]);
       setCurrentMatchIndex(-1);
       return;
     }
 
-    // Debounce search for performance
     setIsIndexing(true);
     const timer = setTimeout(() => {
       const matches = [];
-      const safeSearchText = searchText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      const regex = new RegExp(`(${safeSearchText})`, 'gi');
+      const safeSearchText = trimmedSearch.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
-      // Scan all pages for matches
+      if (!safeSearchText) {
+        setGlobalMatches([]);
+        setCurrentMatchIndex(-1);
+        setIsIndexing(false);
+        return;
+      }
+
+      const regex = new RegExp(`(${safeSearchText})`, 'gi');
+      const lowerSearch = trimmedSearch.toLowerCase();
+
       Object.keys(allPagesContent).forEach(pageNum => {
         const text = allPagesContent[pageNum] || "";
         const parts = text.split(regex);
         let localMatchCount = 0;
-        
+
         parts.forEach(part => {
-          if (part.toLowerCase() === searchText.toLowerCase()) {
-            matches.push({ 
-              page: parseInt(pageNum), 
-              localIndex: localMatchCount 
+          if (part.toLowerCase() === lowerSearch) {
+            matches.push({
+              page: parseInt(pageNum),
+              localIndex: localMatchCount
             });
             localMatchCount++;
           }
@@ -96,123 +184,207 @@ const SmartReader = ({
       });
 
       setGlobalMatches(matches);
-      
+
       if (matches.length > 0) {
-        // ✅ SMART JUMP LOGIC:
-        // Agar user search result click karke aaya hai, toh uske exact page par jump karo
+        // Smart jump: if current page already has a match, stay there
         const targetMatchIndex = matches.findIndex(m => m.page === currentPage);
         if (targetMatchIndex !== -1) {
           setCurrentMatchIndex(targetMatchIndex);
         } else {
           setCurrentMatchIndex(0);
-          setCurrentPage(matches[0].page); 
+          setCurrentPage(matches[0].page);
         }
       } else {
         setCurrentMatchIndex(-1);
       }
       setIsIndexing(false);
-    }, 400); 
+    }, SEARCH_DEBOUNCE_MS);
 
     return () => clearTimeout(timer);
-  }, [searchText, allPagesContent]); // currentPage is deliberately excluded to prevent loops
+    // currentPage deliberately excluded to prevent loops
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchText, allPagesContent]);
 
   // ---------------------------------------------------------
-  // 3. HANDLERS
+  // 3. HANDLERS (memoized to avoid unnecessary child re-renders)
   // ---------------------------------------------------------
-  const handleNextMatch = () => {
-    if (globalMatches.length === 0) return;
-    const nextIndex = (currentMatchIndex + 1) % globalMatches.length;
-    setCurrentMatchIndex(nextIndex);
-    setCurrentPage(globalMatches[nextIndex].page); 
-  };
+  const handleNextMatch = useCallback(() => {
+    setIsLandingLocked(false);
+    setGlobalMatches(matches => {
+      if (matches.length === 0) return matches;
+      setCurrentMatchIndex(prevIndex => {
+        const nextIndex = (prevIndex + 1) % matches.length;
+        setCurrentPage(matches[nextIndex].page);
+        return nextIndex;
+      });
+      return matches;
+    });
+  }, []);
 
-  const handlePrevMatch = () => {
-    if (globalMatches.length === 0) return;
-    const prevIndex = currentMatchIndex === 0 ? globalMatches.length - 1 : currentMatchIndex - 1;
-    setCurrentMatchIndex(prevIndex);
-    setCurrentPage(globalMatches[prevIndex].page); 
-  };
+  const handlePrevMatch = useCallback(() => {
+    setIsLandingLocked(false);
+    setGlobalMatches(matches => {
+      if (matches.length === 0) return matches;
+      setCurrentMatchIndex(prevIndex => {
+        const nextIndex = prevIndex === 0 ? matches.length - 1 : prevIndex - 1;
+        setCurrentPage(matches[nextIndex].page);
+        return nextIndex;
+      });
+      return matches;
+    });
+  }, []);
 
-  const handlePageSubmit = (e) => {
+  const handleSearchChange = useCallback((value) => {
+    setIsLandingLocked(false);
+    setSearchText(value);
+  }, []);
+
+  const clearSearch = useCallback(() => {
+    setIsLandingLocked(false);
+    setSearchText('');
+    setGlobalMatches([]);
+    setCurrentMatchIndex(-1);
+  }, []);
+
+  const handlePageSubmit = useCallback((e) => {
     if (e.key === 'Enter') {
+      setIsLandingLocked(false);
       const page = Math.max(1, Math.min(totalPages, parseInt(e.target.value) || 1));
       setCurrentPage(page);
       e.target.value = '';
       e.target.blur();
     }
-  };
+  }, [totalPages]);
 
-  return (
-    <div className="fixed inset-0 z-[200] bg-white flex flex-col h-screen w-screen overflow-hidden">
-      {/* Top Header / Toolbar */}
+  const handleAutoPageChange = useCallback((pageNumber) => {
+    setIsLandingLocked(locked => {
+      if (locked) return locked;
+      setCurrentPage(pageNumber);
+      return locked;
+    });
+  }, []);
+
+  const handleLandingResolved = useCallback((landedPage) => {
+    setPendingLandingPage(prev => {
+      if (prev === null || landedPage !== prev) return prev;
+      window.setTimeout(() => {
+        setIsLandingLocked(false);
+      }, LANDING_UNLOCK_DELAY_MS);
+      return null;
+    });
+  }, []);
+
+  const readerContent = (
+    <div className="fixed inset-0 z-[10080] bg-white flex flex-col min-h-0 h-screen w-screen overflow-hidden">
+      <div className="flex items-center justify-between gap-3 border-b border-slate-200 bg-white/95 px-3 py-3 backdrop-blur md:px-4">
+        <div className="flex min-w-0 items-center gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              if (onBackToSearch) {
+                onBackToSearch();
+                return;
+              }
+              onClose?.();
+            }}
+            className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-100"
+            title="Back to search"
+          >
+            <ArrowLeft size={16} />
+            <span className="hidden sm:inline">Back to Search</span>
+            <span className="sm:hidden">Back</span>
+          </button>
+          <div className="hidden min-w-0 flex-col sm:flex">
+            <span className="truncate text-[11px] font-bold uppercase tracking-[0.3em] text-slate-400">Smart Reader</span>
+            <span className="truncate text-sm font-semibold text-slate-800">Page {currentPage} of {totalPages}</span>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50 p-1 shadow-sm">
+          <button
+            type="button"
+            onClick={() => setLayoutMode('pdf')}
+            aria-pressed={layoutMode === 'pdf'}
+            className={`inline-flex items-center gap-1.5 rounded-full px-3 py-2 text-xs font-semibold transition ${layoutMode === 'pdf' ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
+            title="PDF only"
+          >
+            <FileText size={14} />
+            <span className="hidden sm:inline">PDF Only</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setLayoutMode('text')}
+            aria-pressed={layoutMode === 'text'}
+            className={`inline-flex items-center gap-1.5 rounded-full px-3 py-2 text-xs font-semibold transition ${layoutMode === 'text' ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
+            title="TXT only"
+            disabled={!txtUrl}
+          >
+            <BookText size={14} />
+            <span className="hidden sm:inline">TXT Only</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setLayoutMode('split')}
+            aria-pressed={layoutMode === 'split'}
+            className={`inline-flex items-center gap-1.5 rounded-full px-3 py-2 text-xs font-semibold transition ${layoutMode === 'split' ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
+            title="Both PDF and TXT"
+            disabled={!pdfUrl || !txtUrl}
+          >
+            <LayoutGrid size={14} />
+            <span className="hidden sm:inline">Both</span>
+          </button>
+        </div>
+      </div>
+
       <Toolbar 
-        pdfUrl={pdfUrl}
-        currentPage={currentPage}
-        totalPages={totalPages}
-        
-        // Search Props
         searchText={searchText}
-        setSearchText={setSearchText}
+        onSearchChange={handleSearchChange}
+        searchCount={globalMatches.length}
+        activeSearchIndex={currentMatchIndex}
+        onSearchPrev={handlePrevMatch}
+        onSearchNext={handleNextMatch}
+        onClearSearch={clearSearch}
+        isIndexing={isIndexing}
+        onPageSubmit={handlePageSubmit}
+        viewMode={viewMode}
+        onPageChange={handleAutoPageChange}
+        pdfComponent={(
+          <PdfViewer 
+            pdfUrl={pdfUrl}
+            isMobile={isMobile}
+            viewMode={viewMode}
+            scale={scale}
+            setScale={setScale}
+            totalPages={totalPages}
+            setTotalPages={setTotalPages}
+            currentPage={currentPage}
+            setCurrentPage={setCurrentPage}
+            onAutoPageChange={handleAutoPageChange}
+            suppressAutoPageTracking={isLandingLocked}
+            onDocumentReady={() => setPdfReady(true)}
+            onDocumentError={() => setPdfReady(true)}
+            onLandingResolved={handleLandingResolved}
+            searchText={searchText}
+          />
+        )}
+        textContent={allPagesContent[currentPage] || ""}
+        allPagesContent={allPagesContent}
+        isLoading={isLoadingText}
+        layoutMode={layoutMode}
+        suppressAutoPageTracking={isLandingLocked}
         globalMatches={globalMatches}
         currentMatchIndex={currentMatchIndex}
-        isIndexing={isIndexing}
-        onNextMatch={handleNextMatch}
-        onPrevMatch={handlePrevMatch}
-        
-        pageInputRef={pageInputRef}
-        viewMode={viewMode}
-        setViewMode={setViewMode}
-        layoutMode={layoutMode}
-        setLayoutMode={setLayoutMode}
-        handlePageSubmit={handlePageSubmit}
-        onNextPage={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-        onPrevPage={() => setCurrentPage(p => Math.max(1, p - 1))}
-        onClose={onClose}
+        totalPages={totalPages}
+        currentPage={currentPage}
       />
-
-      {/* Main Content Area */}
-      <div className="flex-1 flex w-full h-[calc(100vh-64px)] overflow-hidden bg-gray-100">
-        
-        {/* PDF VIEWER SECTION */}
-        {(layoutMode === 'split' || layoutMode === 'pdf') && (
-          <div className={`${layoutMode === 'split' ? 'w-1/2' : 'w-full'} h-full border-r border-gray-300`}>
-            <PdfViewer 
-              pdfUrl={pdfUrl}
-              viewMode={viewMode}
-              scale={scale}
-              setScale={setScale}
-              totalPages={totalPages}
-              setTotalPages={setTotalPages}
-              currentPage={currentPage}
-              setCurrentPage={setCurrentPage} 
-            />
-          </div>
-        )}
-
-        {/* TEXT EDITOR SECTION */}
-        {(layoutMode === 'split' || layoutMode === 'text') && (
-          <div className={`${layoutMode === 'split' ? 'w-1/2' : 'w-full'} h-full`}>
-            <TextEditor 
-              textContent={allPagesContent[currentPage] || ""}
-              textSize={18}
-              isLoading={isLoadingText}
-              pdfUrl={pdfUrl}
-              searchText={searchText}
-              viewMode={viewMode}
-              totalPages={totalPages}
-              onPageChange={setCurrentPage} 
-              allPagesContent={allPagesContent}
-              
-              // Search Highlights Props
-              globalMatches={globalMatches}
-              currentMatchIndex={currentMatchIndex}
-              currentPage={currentPage}
-            />
-          </div>
-        )}
-      </div>
     </div>
   );
+
+  if (typeof document === 'undefined') {
+    return readerContent;
+  }
+
+  return createPortal(readerContent, document.body);
 };
 
 export default SmartReader;

@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { toast } from 'react-hot-toast';
 import { bookService } from '../../api/bookService'; // Ensure path is correct
 import BookFormUI from './BookFormUI';
+import ErrorBoundary from '../ErrorBoundary';
 
 const BookForm = ({ initialData, isEditing, onBookAdded, onBookUpdated, onCancel }) => {
     
@@ -13,6 +14,7 @@ const BookForm = ({ initialData, isEditing, onBookAdded, onBookUpdated, onCancel
     // Dropdown Data
     const [languages, setLanguages] = useState([]);
     const [subcategories, setSubcategories] = useState([]);
+    const [fatawaCategories, setFatawaCategories] = useState([]);
 
     // File Names for UI Display
     const [coverImageName, setCoverImageName] = useState("");
@@ -30,6 +32,7 @@ const BookForm = ({ initialData, isEditing, onBookAdded, onBookUpdated, onCancel
         parts_or_volumes: "",
         subject_number: "",
         language_id: "",
+        fatawa_category_id: "",
         page_count: "",
         publication_year: "",
         price: "",
@@ -55,12 +58,14 @@ const BookForm = ({ initialData, isEditing, onBookAdded, onBookUpdated, onCancel
         const fetchDropdowns = async () => {
             try {
                 // Parallel Fetching for speed
-                const [langRes, subRes] = await Promise.all([
+                const [langRes, subRes, fatawaRes] = await Promise.all([
                     bookService.getLanguages(),
-                    bookService.getSubcategories()
+                    bookService.getSubcategories(),
+                    bookService.getFatawaCategories(),
                 ]);
                 setLanguages(langRes || []);
                 setSubcategories(subRes || []);
+                setFatawaCategories(fatawaRes || []);
             } catch (err) {
                 console.error("Error loading dropdowns:", err);
                 toast.error("Failed to load form options.");
@@ -85,6 +90,7 @@ const BookForm = ({ initialData, isEditing, onBookAdded, onBookUpdated, onCancel
                 parts_or_volumes: initialData.parts_or_volumes || "",
                 subject_number: initialData.subject_number || "",
                 language_id: initialData.language?.id || "",
+                fatawa_category_id: initialData.fatawa_category_id || "",
                 page_count: initialData.page_count || "",
                 publication_year: initialData.publication_year || "",
                 price: initialData.price || "",
@@ -111,45 +117,57 @@ const BookForm = ({ initialData, isEditing, onBookAdded, onBookUpdated, onCancel
     // --- 3. HANDLERS ---
 
     const handleChange = (e) => {
-        const { name, value, type, checked } = e.target;
-        setFormData(prev => ({
-            ...prev,
-            [name]: type === 'checkbox' ? checked : value
-        }));
+        try {
+            const { name, value, type, checked } = e.target;
+            setFormData(prev => ({
+                ...prev,
+                [name]: type === 'checkbox' ? checked : value
+            }));
+        } catch (err) {
+            console.error('handleChange: unexpected event shape', err, e);
+        }
     };
 
     const handleSubcategoryChange = (e) => {
-        // ✅ FIX: SubcategorySelect sends custom event with value as array
-        const { name, value } = e.target;
-        if (name === 'subcategory_ids') {
-            const categoryIds = Array.isArray(value) 
-                ? value.map(v => Number(v))
-                : [];
-            setFormData(prev => ({ ...prev, subcategory_ids: categoryIds }));
-            console.log("📌 Categories selected:", categoryIds);
+        try {
+            // ✅ FIX: SubcategorySelect sends custom event with value as array
+            const { name, value } = e.target;
+            if (name === 'subcategory_ids') {
+                const categoryIds = Array.isArray(value) 
+                    ? value.map(v => Number(v))
+                    : [];
+                setFormData(prev => ({ ...prev, subcategory_ids: categoryIds }));
+                console.log("📌 Categories selected:", categoryIds);
+            }
+        } catch (err) {
+            console.error('handleSubcategoryChange: unexpected event shape', err, e);
         }
     };
 
     // 🔥 CRITICAL FIX: Handle File Selection correctly
     const handleFileChange = (e) => {
-        const { name, files } = e.target;
-        if (files && files[0]) {
-            const file = files[0];
+        try {
+            const { name, files } = e.target;
+            if (files && files[0]) {
+                const file = files[0];
 
-            if (name === "coverImageFile") {
-                setFormData(prev => ({ ...prev, cover_image: file }));
-                setCoverImageName(file.name);
-            } 
-            else if (name === "pdfFile") {
-                setFormData(prev => ({ ...prev, pdf_file: file }));
-                setPdfFileName(file.name);
-            } 
-            // ✅ THIS IS THE FIX YOU NEEDED
-            else if (name === "txtFile") { 
-                console.log("📄 Selected Text File:", file.name); // Debug
-                setFormData(prev => ({ ...prev, txt_file: file }));
-                setTxtFileName(file.name); // Update UI Name
+                if (name === "coverImageFile") {
+                    setFormData(prev => ({ ...prev, cover_image: file }));
+                    setCoverImageName(file.name);
+                } 
+                else if (name === "pdfFile") {
+                    setFormData(prev => ({ ...prev, pdf_file: file }));
+                    setPdfFileName(file.name);
+                } 
+                // ✅ THIS IS THE FIX YOU NEEDED
+                else if (name === "txtFile") { 
+                    console.log("📄 Selected Text File:", file.name); // Debug
+                    setFormData(prev => ({ ...prev, txt_file: file }));
+                    setTxtFileName(file.name); // Update UI Name
+                }
             }
+        } catch (err) {
+            console.error('handleFileChange: unexpected event shape', err, e);
         }
     };
 
@@ -214,10 +232,12 @@ const BookForm = ({ initialData, isEditing, onBookAdded, onBookUpdated, onCancel
 
     // --- 4. RENDER UI ---
     return (
-        <BookFormUI 
+        <ErrorBoundary>
+            <BookFormUI 
             formData={formData}
             languages={languages}
             subcategories={subcategories}
+            fatawaCategories={fatawaCategories}
             initialData={initialData}
             isEditing={isEditing}
             isLoading={loading}
@@ -233,8 +253,9 @@ const BookForm = ({ initialData, isEditing, onBookAdded, onBookUpdated, onCancel
             onSubcategoryChange={handleSubcategoryChange}
             onFileChange={handleFileChange}
             onSubmit={handleSubmit}
-            onCancel={onCancel}
-        />
+                onCancel={onCancel}
+            />
+        </ErrorBoundary>
     );
 };
 

@@ -1,6 +1,7 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import App from "./App.jsx";
 import { AuthProvider } from "./context/AuthProvider";
 import { GoogleOAuthProvider } from "@react-oauth/google";
@@ -8,6 +9,18 @@ import "./index.css";
 
 const GOOGLE_CLIENT_ID = (import.meta.env.VITE_GOOGLE_CLIENT_ID || "").trim();
 const googleAuthEnabled = Boolean(GOOGLE_CLIENT_ID);
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 60 * 1000,
+      refetchOnWindowFocus: false,
+      retry: 1,
+    },
+    mutations: {
+      retry: 0,
+    },
+  },
+});
 
 // ✅ SUPPRESS DEVELOPMENT-ONLY WARNINGS
 if (import.meta.env.MODE === "development") {
@@ -61,9 +74,11 @@ clearStaleRuntime().finally(() => {
     <React.StrictMode>
       {/* ✅ ADDED: React Router v7 Future Flags for smooth transition */}
       <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-        <AuthProvider>
-          <App />
-        </AuthProvider>
+        <QueryClientProvider client={queryClient}>
+          <AuthProvider>
+            <App />
+          </AuthProvider>
+        </QueryClientProvider>
       </BrowserRouter>
     </React.StrictMode>
   );

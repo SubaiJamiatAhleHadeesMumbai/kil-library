@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom'; // âœ… useNavigate added
+import { Link, useNavigate } from 'react-router-dom'; // ✅ useNavigate added
 import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
 import axios from 'axios';
@@ -11,14 +11,14 @@ import {
   KeyIcon 
 } from '@heroicons/react/24/outline';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || (import.meta.env.PROD ? "" : "http://127.0.0.1:8000");
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || (import.meta.env.PROD ? "https://kil2-backend.onrender.com" : "http://127.0.0.1:8000");
 
 const ForgotPassword = () => {
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
   
-  // âœ… Hook for navigation
+  // ✅ Hook for navigation
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
@@ -46,7 +46,7 @@ const ForgotPassword = () => {
     }
   };
 
-  // âœ… Function to go to Reset Password Page
+  // ✅ Function to go to Reset Password Page
   const handleProceedToOtp = () => {
     // We pass the email in 'state' so the next page can use it automatically
     navigate('/reset-password', { state: { email: email } });
@@ -135,7 +135,7 @@ const ForgotPassword = () => {
           ) : (
             <div className="space-y-4">
               
-              {/* âœ… Primary Action: Enter OTP */}
+              {/* ✅ Primary Action: Enter OTP */}
               <motion.button
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}

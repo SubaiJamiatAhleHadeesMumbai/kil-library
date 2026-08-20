@@ -40,6 +40,8 @@ class User(Base):
     id = Column(Integer, primary_key=True, index=True)
 
     full_name = Column("FullName", String(255), nullable=True)
+    education = Column("Education", String(500), nullable=True)
+    social_activities = Column("SocialActivities", String(1000), nullable=True)
     email = Column("Email", String(255), unique=True, nullable=False, index=True)
     username = Column("Username", String(100), unique=True, nullable=False, index=True)
     password_hash = Column("PasswordHash", String(255), nullable=False)

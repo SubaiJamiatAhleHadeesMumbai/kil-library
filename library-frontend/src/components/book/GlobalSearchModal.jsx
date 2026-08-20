@@ -1,9 +1,10 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Search, X, Loader2, BookOpen, ChevronRight, FileText } from 'lucide-react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { createPortal } from 'react-dom';
+import { Search, X, Loader2, BookOpen, ChevronRight, FileText, AlertCircle } from 'lucide-react';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || (import.meta.env.PROD ? "" : "http://127.0.0.1:8000");
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || (import.meta.env.PROD ? "https://kil2-backend.onrender.com" : "http://127.0.0.1:8000");
 
-// Fallback cover agar book ki image na ho
+// Fallback SVG cover when book image is missing
 const FALLBACK_COVER = "data:image/svg+xml;utf8," + encodeURIComponent(`
   <svg xmlns="http://www.w3.org/2000/svg" width="360" height="520">
     <rect width="100%" height="100%" fill="#f1f5f9"/>
@@ -19,163 +20,359 @@ const getMediaUrl = (path) => {
   return `${API_BASE_URL}${clean}`;
 };
 
-const GlobalSearchModal = ({ isOpen, onClose, onResultClick }) => {
-  const [query, setQuery] = useState('');
+const HISTORY_STORAGE_KEY = 'kil2-deep-search-history';
+const MAX_HISTORY_ITEMS = 8;
+
+const highlightQueryText = (text, query) => {
+  if (!text) return null;
+  const value = String(text);
+  const term = String(query || '').trim();
+  if (!term) return value;
+
+  const safe = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const parts = value.split(new RegExp(`(${safe})`, 'gi'));
+
+  return parts.map((part, index) => (
+    part.toLowerCase() === term.toLowerCase()
+      ? <mark key={`${part}-${index}`} className="rounded bg-amber-200 px-0.5 font-semibold text-slate-900">{part}</mark>
+      : <span key={`${part}-${index}`}>{part}</span>
+  ));
+};
+
+const GlobalSearchModal = ({ isOpen, onClose, onResultClick, initialQuery = '' }) => {
+  const [query, setQuery] = useState(initialQuery);
   const [results, setResults] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
-  const inputRef = useRef(null);
+  const [error, setError] = useState(null);
+  const [recentSearches, setRecentSearches] = useState([]);
+  const [isMobile, setIsMobile] = useState(() => 
+    typeof window !== 'undefined' ? window.matchMedia('(max-width: 639px)').matches : false
+  );
 
-  // Focus input when modal opens
+  const inputRef = useRef(null);
+  const searchCacheRef = useRef(new Map());
+  const activeRequestRef = useRef(null);
+
+  const addRecentSearch = useCallback((value) => {
+    const term = String(value || '').trim();
+    if (!term) return;
+
+    setRecentSearches((current) => {
+      const next = [term, ...current.filter((item) => item.toLowerCase() !== term.toLowerCase())].slice(0, MAX_HISTORY_ITEMS);
+      try {
+        window.localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(next));
+      } catch (err) {
+        console.warn('Unable to save deep search history', err);
+      }
+      return next;
+    });
+  }, []);
+
+  // Handle ESC key press to close modal
+  const handleKeyDown = useCallback((e) => {
+    if (e.key === 'Escape') {
+      onClose();
+    }
+  }, [onClose]);
+
+  // Modal open/close lifecycle & keyboard listener
   useEffect(() => {
     if (isOpen) {
-      setTimeout(() => inputRef.current?.focus(), 100);
-      document.body.style.overflow = "hidden";
+      document.body.style.overflow = 'hidden';
+      window.addEventListener('keydown', handleKeyDown);
+      setQuery(initialQuery || '');
+      try {
+        const savedHistory = JSON.parse(window.localStorage.getItem(HISTORY_STORAGE_KEY) || '[]');
+        if (Array.isArray(savedHistory)) {
+          setRecentSearches(savedHistory.filter(Boolean).slice(0, MAX_HISTORY_ITEMS));
+        }
+      } catch (err) {
+        setRecentSearches([]);
+      }
+      const timer = setTimeout(() => inputRef.current?.focus(), 50);
+      return () => {
+        clearTimeout(timer);
+        window.removeEventListener('keydown', handleKeyDown);
+      };
     } else {
-      document.body.style.overflow = "auto";
+      document.body.style.overflow = 'auto';
       setQuery('');
       setResults([]);
       setHasSearched(false);
+      setError(null);
+      if (activeRequestRef.current) {
+        activeRequestRef.current.abort();
+      }
     }
-  }, [isOpen]);
+  }, [isOpen, handleKeyDown]);
 
-  // Debounced API Call Logic
   useEffect(() => {
-    if (!query.trim() || query.length < 3) {
+    if (isOpen) {
+      setQuery(initialQuery || '');
+    }
+  }, [initialQuery, isOpen]);
+
+  // Efficient mobile media query listener
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(max-width: 639px)');
+    const handleMediaChange = (e) => setIsMobile(e.matches);
+    mediaQuery.addEventListener('change', handleMediaChange);
+    return () => mediaQuery.removeEventListener('change', handleMediaChange);
+  }, []);
+
+  // Debounced API search with caching & AbortController
+  useEffect(() => {
+    if (!query.trim() || query.trim().length < 3) {
       setResults([]);
       setHasSearched(false);
+      setIsLoading(false);
+      setError(null);
+      return;
+    }
+
+    const normalizedQuery = query.trim().toLowerCase();
+    const cached = searchCacheRef.current.get(normalizedQuery);
+    if (cached) {
+      setResults(cached);
+      setHasSearched(true);
+      setIsLoading(false);
+      setError(null);
       return;
     }
 
     const timer = setTimeout(async () => {
       setIsLoading(true);
       setHasSearched(true);
+      setError(null);
+
+      if (activeRequestRef.current) {
+        activeRequestRef.current.abort();
+      }
+
+      const controller = new AbortController();
+      activeRequestRef.current = controller;
+
       try {
-        const response = await fetch(`${API_BASE_URL}/api/books/deep-search?query=${encodeURIComponent(query)}`);
+        const response = await fetch(
+          `${API_BASE_URL}/api/books/deep-search?query=${encodeURIComponent(query.trim())}`,
+          { signal: controller.signal }
+        );
+
         if (response.ok) {
           const data = await response.json();
-          setResults(data.results || []);
+          const nextResults = data.results || [];
+          searchCacheRef.current.set(normalizedQuery, nextResults);
+          setResults(nextResults);
+          addRecentSearch(query.trim());
         } else {
+          setError('Unable to fetch search results. Please try again.');
           setResults([]);
         }
-      } catch (error) {
-        console.error("Deep search failed:", error);
-        setResults([]);
+      } catch (err) {
+        if (err?.name !== 'AbortError') {
+          console.error('Deep search failed:', err);
+          setError('Network error occurred while searching.');
+          setResults([]);
+        }
       } finally {
         setIsLoading(false);
       }
-    }, 500); // 500ms delay taaki har keypress par server request na jaye
+    }, 250);
 
     return () => clearTimeout(timer);
   }, [query]);
 
+  const runRecentSearch = (term) => {
+    setQuery(term);
+    setHasSearched(true);
+    setError(null);
+    inputRef.current?.focus();
+  };
+
+  const clearRecentSearches = () => {
+    setRecentSearches([]);
+    try {
+      window.localStorage.removeItem(HISTORY_STORAGE_KEY);
+    } catch (err) {
+      console.warn('Unable to clear deep search history', err);
+    }
+  };
+
   if (!isOpen) return null;
 
-  return (
-    <div className="fixed inset-0 z-[300] flex items-start justify-center pt-[10vh] px-4 bg-slate-900/60 backdrop-blur-sm" onClick={onClose}>
-      
-      {/* Search Container */}
+  const modalContent = (
+    <div 
+      className="fixed inset-0 z-[10050] flex items-end justify-center bg-slate-900/60 backdrop-blur-sm sm:items-start sm:pt-[10vh] px-0 sm:px-4"
+      onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Global Book Search"
+    >
+      {/* Search Modal Container */}
       <div 
-        className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl overflow-hidden flex flex-col max-h-[80vh] animate-in fade-in zoom-in-95 duration-200"
+        className={`bg-white shadow-2xl w-full max-w-3xl overflow-hidden flex flex-col max-h-[92vh] sm:max-h-[80vh] animate-in fade-in zoom-in-95 duration-200 ${
+          isMobile ? 'rounded-t-[1.5rem]' : 'rounded-2xl'
+        }`}
         onClick={(e) => e.stopPropagation()}
       >
-        
         {/* Search Input Header */}
-        <div className="flex items-center px-4 py-4 border-b border-gray-100 bg-gray-50/50 relative">
-          <Search className="text-indigo-500 mr-3 shrink-0" size={24} />
+        <div className="sticky top-0 z-10 flex items-center gap-2 border-b border-gray-100 bg-white/95 px-3 py-3 backdrop-blur sm:px-4 sm:py-4">
+          <div className="rounded-full bg-indigo-50 p-2 text-indigo-600 shrink-0">
+            <Search size={isMobile ? 18 : 24} />
+          </div>
           <input
             ref={inputRef}
             type="text"
-            placeholder="Search any topic, word, or phrase across all books..."
-            className="flex-1 bg-transparent text-lg text-gray-800 placeholder-gray-400 outline-none"
+            placeholder={isMobile ? "Search book text..." : "Search any topic, word, or phrase across all books..."}
+            className="flex-1 bg-transparent text-base sm:text-lg text-gray-800 placeholder-gray-400 outline-none"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
+            aria-label="Search input"
           />
-          {isLoading && <Loader2 className="animate-spin text-indigo-400 mx-3 shrink-0" size={20} />}
+          {isLoading && <Loader2 className="animate-spin text-indigo-500 shrink-0" size={20} />}
           
-          <button onClick={onClose} className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors">
+          <button 
+            onClick={onClose} 
+            className="rounded-full p-2 text-gray-400 transition-colors hover:bg-red-50 hover:text-red-500"
+            aria-label="Close search modal"
+          >
             <X size={20} />
           </button>
         </div>
 
         {/* Search Results Area */}
-        <div className="flex-1 overflow-y-auto bg-white p-2 custom-scrollbar">
-          
-          {/* Empty State / Initial State */}
-          {!hasSearched && query.length < 3 && (
-            <div className="flex flex-col items-center justify-center py-16 text-gray-400">
-              <BookOpen size={48} className="mb-4 text-gray-200" strokeWidth={1.5} />
-              <p className="text-lg">Type at least 3 characters to search</p>
-              <p className="text-sm text-gray-400 mt-1">We will scan all text files in your library.</p>
+        <div className="flex-1 overflow-y-auto bg-slate-50 p-2 sm:bg-white sm:p-2 custom-scrollbar">
+          {/* Initial State */}
+          {!hasSearched && query.trim().length < 3 && (
+            <div className="flex flex-col items-center justify-center px-4 py-14 text-center text-gray-400">
+              <div className="mb-4 rounded-3xl bg-white p-4 shadow-sm ring-1 ring-slate-100">
+                <BookOpen size={36} className="text-indigo-200" strokeWidth={1.5} />
+              </div>
+              <p className="text-base font-semibold text-slate-700 sm:text-lg">Type at least 1 character</p>
+              <p className="mt-1 text-sm text-slate-500">Deep search scans book text and returns matching pages fast.</p>
             </div>
           )}
 
-          {/* No Results Found */}
-          {hasSearched && !isLoading && results.length === 0 && (
-            <div className="flex flex-col items-center justify-center py-16 text-gray-500">
-              <FileText size={48} className="mb-4 text-gray-200" strokeWidth={1.5} />
-              <p className="text-lg font-medium text-gray-700">No matching text found.</p>
-              <p className="text-sm mt-1">Try a different keyword or check spelling.</p>
+          {/* Error State */}
+          {error && (
+            <div className="flex flex-col items-center justify-center px-4 py-14 text-center text-red-500">
+              <div className="mb-4 rounded-3xl bg-red-50 p-4">
+                <AlertCircle size={36} className="text-red-400" strokeWidth={1.5} />
+              </div>
+              <p className="text-base font-semibold text-slate-700 sm:text-lg">Search Failed</p>
+              <p className="mt-1 text-sm text-slate-500">{error}</p>
+            </div>
+          )}
+
+          {/* No Results State */}
+          {hasSearched && !isLoading && !error && results.length === 0 && (
+            <div className="flex flex-col items-center justify-center px-4 py-14 text-center text-gray-500">
+              <div className="mb-4 rounded-3xl bg-white p-4 shadow-sm ring-1 ring-slate-100">
+                <FileText size={36} className="text-slate-300" strokeWidth={1.5} />
+              </div>
+              <p className="text-base font-semibold text-slate-700 sm:text-lg">No matching text found.</p>
+              <p className="mt-1 text-sm text-slate-500">Try a different keyword or check spelling.</p>
             </div>
           )}
 
           {/* Results List */}
           {results.length > 0 && (
-            <div className="p-2 space-y-2">
-              <div className="px-3 pb-2 text-xs font-bold text-gray-400 uppercase tracking-wider">
-                Found {results.length} Matches
+            <div className="space-y-2 p-2 sm:p-3">
+              <div className="px-2 pb-1 text-[11px] font-bold uppercase tracking-[0.22em] text-slate-400 sm:px-3">
+                Found {results.length} matches
               </div>
               
               {results.map((result, index) => (
-                <div 
-                  key={`${result.book_id}-${index}`}
+                <button
+                  key={`${result.book_id}-${result.page_number}-${index}`}
                   onClick={() => onResultClick(result.book_id, result.page_number, query)}
-                  className="group flex gap-4 p-3 rounded-xl hover:bg-indigo-50 border border-transparent hover:border-indigo-100 cursor-pointer transition-all"
+                  className="group flex w-full text-left gap-3 rounded-2xl border border-transparent bg-white p-3 shadow-sm transition-all hover:border-indigo-100 hover:bg-indigo-50/60 focus:outline-none focus:ring-2 focus:ring-indigo-500 sm:gap-4"
                 >
                   {/* Book Cover Thumbnail */}
                   <img 
                     src={getMediaUrl(result.cover_image)} 
                     alt={result.title} 
-                    className="w-12 h-16 object-cover rounded shadow-sm shrink-0 border border-gray-100"
+                    onError={(e) => { e.target.src = FALLBACK_COVER; }}
+                    className="h-16 w-12 shrink-0 rounded-xl border border-gray-100 object-cover shadow-sm sm:h-18 sm:w-14"
                   />
                   
                   {/* Book Info & Snippet */}
                   <div className="flex-1 min-w-0 flex flex-col justify-center">
-                    <div className="flex items-center justify-between mb-1">
-                      <h4 className="font-bold text-gray-800 text-sm truncate group-hover:text-indigo-700 transition-colors">
-                        {result.title}
+                    <div className="mb-1 flex items-start justify-between gap-2">
+                      <h4 className="truncate text-sm font-bold text-slate-800 transition-colors group-hover:text-indigo-700">
+                        {highlightQueryText(result.title, query)}
                       </h4>
-                      <span className="text-xs font-bold bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full whitespace-nowrap ml-2">
+                      <span className="whitespace-nowrap rounded-full bg-indigo-100 px-2 py-0.5 text-[11px] font-bold text-indigo-700">
                         Page {result.page_number}
                       </span>
                     </div>
                     
-                    <p className="text-xs text-gray-500 mb-1 truncate">{result.author || "Unknown Author"}</p>
+                    <p className="mb-1 truncate text-xs text-slate-500">
+                      {highlightQueryText(result.author || "Unknown Author", query)}
+                    </p>
                     
-                    {/* The matching text snippet from the backend */}
+                    {/* Matching text snippet with highlight tags (<mark>) */}
                     <div 
-                      className="text-sm text-gray-600 line-clamp-2 italic bg-white group-hover:bg-indigo-50 border border-gray-100 group-hover:border-transparent p-2 rounded-lg"
+                      className="line-clamp-2 rounded-xl border border-gray-100 bg-slate-50 p-2 text-sm italic text-slate-600 group-hover:border-transparent group-hover:bg-white [&>mark]:bg-amber-200 [&>mark]:font-semibold [&>mark]:text-slate-900 [&>mark]:px-0.5 [&>mark]:rounded"
                       dangerouslySetInnerHTML={{ __html: result.snippet }}
-                      // Notice: Backend sends <mark> tags inside the snippet which makes it highlight automatically!
                     />
                   </div>
                   
-                  {/* Arrow Icon */}
-                  <div className="flex items-center justify-center text-gray-300 group-hover:text-indigo-500 transition-colors pl-2 shrink-0">
+                  {/* Navigation Arrow */}
+                  <div className="flex shrink-0 items-center justify-center pl-1 text-gray-300 transition-colors group-hover:text-indigo-500">
                     <ChevronRight size={20} />
                   </div>
-                </div>
+                </button>
               ))}
+            </div>
+          )}
+
+          {/* Recent Search History */}
+          {recentSearches.length > 0 && (
+            <div className="space-y-3 border-t border-slate-100 px-3 py-4 sm:px-4">
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-slate-400">
+                  Recent Searches
+                </p>
+                <button
+                  type="button"
+                  onClick={clearRecentSearches}
+                  className="text-[11px] font-semibold text-slate-400 transition hover:text-rose-600"
+                >
+                  Clear
+                </button>
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                {recentSearches.map((term) => (
+                  <button
+                    key={term}
+                    type="button"
+                    onClick={() => runRecentSearch(term)}
+                    className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700"
+                  >
+                    {term}
+                  </button>
+                ))}
+              </div>
             </div>
           )}
         </div>
         
-        <div className="bg-gray-50 border-t border-gray-100 p-3 text-center text-xs text-gray-400">
-          Press <kbd className="bg-white border border-gray-200 px-1.5 py-0.5 rounded font-mono text-gray-500">ESC</kbd> to close
+        {/* Footer */}
+        <div className="border-t border-gray-100 bg-white px-3 py-2 text-center text-[11px] text-gray-400 sm:bg-gray-50 sm:p-3 sm:text-xs">
+          Press <kbd className="bg-white border border-gray-200 px-1.5 py-0.5 rounded font-mono text-gray-500 shadow-2xs">ESC</kbd> to close
         </div>
       </div>
     </div>
   );
+
+  if (typeof document === 'undefined') {
+    return modalContent;
+  }
+
+  return createPortal(modalContent, document.body);
 };
 
 export default GlobalSearchModal;

@@ -65,6 +65,7 @@ class Book(Base):
     
     # 2. Categorization & Language
     language_id = Column(Integer, ForeignKey("languages.LanguageID", ondelete="SET NULL"), nullable=True)
+    fatawa_category_id = Column(Integer, ForeignKey("fatawa_categories.id", ondelete="SET NULL"), nullable=True, index=True)
     
     # 3. Digital & Media
     is_digital = Column(Boolean, default=False)
@@ -104,6 +105,7 @@ class Book(Base):
     # --- Relationships ---
     
     language = relationship("Language") 
+    fatawa_category = relationship("FatawaCategory")
     subcategories = relationship("Subcategory", secondary=book_subcategory_link, back_populates="books")
     location = relationship("Location")
     
@@ -118,6 +120,7 @@ class Book(Base):
         Index('idx_book_restricted', 'is_restricted', 'deleted_at'),  # Restricted books
         Index('idx_book_location', 'location_id', 'deleted_at'),  # Location filter
         Index('idx_book_language', 'language_id', 'deleted_at'),  # Language filter
+        Index('idx_book_fatawa_category', 'fatawa_category_id', 'deleted_at'),  # Fatawa category filter
         {'mysql_engine': 'InnoDB'}
     )
 
