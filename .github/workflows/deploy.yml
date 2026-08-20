@@ -1,4 +1,4 @@
-name: 🚀 Deploy to Hostinger VPS
+name: 🚀 Deploy to Hostinger VPS & Sync Master
 
 on:
   push:
@@ -6,13 +6,23 @@ on:
       - main
 
 jobs:
-  deploy:
-    name: 🔄 Deploy to VPS
+  sync-and-deploy:
+    name: 🔄 Sync Master & Deploy to VPS
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
 
     steps:
       - name: 📥 Checkout Repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 🔀 Auto-sync main to master branch
+        run: |
+          echo "🔄 Syncing main branch to master branch..."
+          git push origin HEAD:refs/heads/master --force
+          echo "✅ Master branch is now 100% synchronized with main!"
 
       - name: 🌐 Deploy via SSH to VPS
         uses: appleboy/ssh-action@v1.0.3
