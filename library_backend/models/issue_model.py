@@ -15,8 +15,8 @@ class Issue(Base):
     # --- Foreign Keys ---
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     
-    # Note: Aapke BookCopy table mein primary key "CopyID" hai
-    book_copy_id = Column(Integer, ForeignKey("book_copies.CopyID"), nullable=False)
+    # ForeignKey to BookCopy
+    book_copy_id = Column(Integer, ForeignKey("book_copies.id"), nullable=False)
 
     # --- Dates & Status ---
     issue_date = Column(DateTime, default=datetime.utcnow)
