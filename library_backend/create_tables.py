@@ -29,86 +29,137 @@ from models.request_user_model import *
 from models.fatawa_model import *
 from models.poster_model import *
 
-from sqlalchemy import text
+from sqlalchemy import text, inspect
 
 print("Creating all tables...")
 Base.metadata.create_all(bind=engine)
 
 print("Synchronizing schema columns...")
+inspector = inspect(engine)
 
-rename_statements = [
-    'ALTER TABLE users RENAME COLUMN "FullName" TO full_name;',
-    'ALTER TABLE users RENAME COLUMN "Education" TO education;',
-    'ALTER TABLE users RENAME COLUMN "SocialActivities" TO social_activities;',
-    'ALTER TABLE users RENAME COLUMN "Email" TO email;',
-    'ALTER TABLE users RENAME COLUMN "Username" TO username;',
-    'ALTER TABLE users RENAME COLUMN "PasswordHash" TO password_hash;',
-    'ALTER TABLE users RENAME COLUMN "DateJoined" TO date_joined;',
-    'ALTER TABLE users RENAME COLUMN "Status" TO status;',
-    'ALTER TABLE users RENAME COLUMN "RoleID" TO role_id;',
-    'ALTER TABLE languages RENAME COLUMN "LanguageID" TO id;',
-    'ALTER TABLE languages RENAME COLUMN "LanguageName" TO name;',
-    'ALTER TABLE languages RENAME COLUMN "LanguageCode" TO code;',
-    'ALTER TABLE languages RENAME COLUMN "Description" TO description;',
-    'ALTER TABLE book_copies RENAME COLUMN "CopyID" TO id;',
-    'ALTER TABLE book_copies RENAME COLUMN "BookID" TO book_id;',
-    'ALTER TABLE book_copies RENAME COLUMN "LocationID" TO location_id;',
-    'ALTER TABLE book_copies RENAME COLUMN "Status" TO status;',
-    'ALTER TABLE issued_books RENAME COLUMN "IssuedBookID" TO id;',
-    'ALTER TABLE issued_books RENAME COLUMN "ClientID" TO client_id;',
-    'ALTER TABLE issued_books RENAME COLUMN "CopyID" TO copy_id;',
-    'ALTER TABLE issued_books RENAME COLUMN "IssueDate" TO issue_date;',
-    'ALTER TABLE issued_books RENAME COLUMN "ReturnDate" TO due_date;',
-    'ALTER TABLE issued_books RENAME COLUMN "ActualReturnDate" TO actual_return_date;',
-    'ALTER TABLE issued_books RENAME COLUMN "Status" TO status;',
-    'ALTER TABLE digital_access RENAME COLUMN "DigitalAccessID" TO id;',
-    'ALTER TABLE digital_access RENAME COLUMN "ClientID" TO client_id;',
-    'ALTER TABLE digital_access RENAME COLUMN "BookID" TO book_id;',
-    'ALTER TABLE digital_access RENAME COLUMN "AccessGranted" TO access_granted;',
-    'ALTER TABLE digital_access RENAME COLUMN "AccessTimestamp" TO access_timestamp;'
-]
-
-alter_queries = [
-    # users table columns
-    "ALTER TABLE users ADD COLUMN IF NOT EXISTS education VARCHAR(500);",
-    "ALTER TABLE users ADD COLUMN IF NOT EXISTS social_activities VARCHAR(1000);",
-    "ALTER TABLE users ADD COLUMN IF NOT EXISTS otp_code VARCHAR(6);",
-    "ALTER TABLE users ADD COLUMN IF NOT EXISTS otp_expires_at TIMESTAMP;",
-    "ALTER TABLE users ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;",
-    "ALTER TABLE users ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP;",
-    "ALTER TABLE users ADD COLUMN IF NOT EXISTS full_name VARCHAR(255);",
-    "ALTER TABLE users ADD COLUMN IF NOT EXISTS status VARCHAR(50) DEFAULT 'Active';",
-    "ALTER TABLE users ADD COLUMN IF NOT EXISTS date_joined TIMESTAMP DEFAULT CURRENT_TIMESTAMP;",
-    
-    # books table columns
-    "ALTER TABLE books ADD COLUMN IF NOT EXISTS fatawa_category_id INTEGER;",
-    "ALTER TABLE books ADD COLUMN IF NOT EXISTS txt_file_url VARCHAR;",
-    "ALTER TABLE books ADD COLUMN IF NOT EXISTS is_digital BOOLEAN DEFAULT FALSE;",
-    "ALTER TABLE books ADD COLUMN IF NOT EXISTS is_approved BOOLEAN DEFAULT FALSE;",
-    "ALTER TABLE books ADD COLUMN IF NOT EXISTS is_restricted BOOLEAN DEFAULT FALSE;",
-    "ALTER TABLE books ADD COLUMN IF NOT EXISTS total_copies INTEGER DEFAULT 1;",
-    "ALTER TABLE books ADD COLUMN IF NOT EXISTS available_copies INTEGER DEFAULT 1;",
-    "ALTER TABLE books ADD COLUMN IF NOT EXISTS published_date DATE;",
-    "ALTER TABLE books ADD COLUMN IF NOT EXISTS edition VARCHAR(100);",
-    
-    # roles table columns
-    "ALTER TABLE roles ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;",
-    "ALTER TABLE roles ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;",
-    "ALTER TABLE roles ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP;",
-]
-
-for stmt in rename_statements:
+def sync_table_columns(table_name, column_mappings, required_columns):
     try:
-        with engine.begin() as conn:
-            conn.execute(text(stmt))
+        existing_cols = {c['name']: c for c in inspector.get_columns(table_name)}
     except Exception:
-        pass
-
-for q in alter_queries:
+        return
+    
+    print(f"Table '{table_name}' existing columns:", list(existing_cols.keys()))
+    
+    for old_name, new_name in column_mappings.items():
+        if old_name in existing_cols and new_name not in existing_cols:
+            try:
+                with engine.begin() as conn:
+                    conn.execute(text(f'ALTER TABLE {table_name} RENAME COLUMN "{old_name}" TO {new_name};'))
+                print(f"  -> Renamed {table_name}.\"{old_name}\" to {new_name}")
+            except Exception as e:
+                print(f"  -> Error renaming {old_name}: {e}")
+        elif old_name in existing_cols and new_name in existing_cols and old_name != new_name:
+            try:
+                with engine.begin() as conn:
+                    conn.execute(text(f'ALTER TABLE {table_name} DROP COLUMN "{old_name}";'))
+                print(f"  -> Dropped duplicate {table_name}.\"{old_name}\"")
+            except Exception as e:
+                print(f"  -> Error dropping {old_name}: {e}")
+                
+    # Refresh existing columns
     try:
-        with engine.begin() as conn:
-            conn.execute(text(q))
+        existing_cols = {c['name']: c for c in inspect(engine).get_columns(table_name)}
     except Exception:
-        pass
+        existing_cols = {}
+
+    for col_name, col_type in required_columns.items():
+        if col_name not in existing_cols:
+            try:
+                with engine.begin() as conn:
+                    conn.execute(text(f"ALTER TABLE {table_name} ADD COLUMN IF NOT EXISTS {col_name} {col_type};"))
+                print(f"  -> Added {table_name}.{col_name} {col_type}")
+            except Exception as e:
+                print(f"  -> Error adding {col_name}: {e}")
+
+# 1. Users table
+sync_table_columns(
+    "users",
+    {
+        "FullName": "full_name",
+        "Education": "education",
+        "SocialActivities": "social_activities",
+        "Email": "email",
+        "Username": "username",
+        "PasswordHash": "password_hash",
+        "DateJoined": "date_joined",
+        "Status": "status",
+        "RoleID": "role_id"
+    },
+    {
+        "full_name": "VARCHAR(255)",
+        "education": "VARCHAR(500)",
+        "social_activities": "VARCHAR(1000)",
+        "email": "VARCHAR(255)",
+        "username": "VARCHAR(100)",
+        "password_hash": "VARCHAR(255)",
+        "date_joined": "TIMESTAMP DEFAULT CURRENT_TIMESTAMP",
+        "status": "VARCHAR(50) DEFAULT 'Active'",
+        "role_id": "INTEGER",
+        "otp_code": "VARCHAR(6)",
+        "otp_expires_at": "TIMESTAMP",
+        "updated_at": "TIMESTAMP DEFAULT CURRENT_TIMESTAMP",
+        "deleted_at": "TIMESTAMP"
+    }
+)
+
+# 2. Languages table
+sync_table_columns(
+    "languages",
+    {
+        "LanguageID": "id",
+        "LanguageName": "name",
+        "LanguageCode": "code",
+        "Description": "description"
+    },
+    {
+        "name": "VARCHAR(100)",
+        "code": "VARCHAR(10)",
+        "description": "TEXT",
+        "created_at": "TIMESTAMP DEFAULT CURRENT_TIMESTAMP",
+        "updated_at": "TIMESTAMP DEFAULT CURRENT_TIMESTAMP",
+        "deleted_at": "TIMESTAMP"
+    }
+)
+
+# 3. Book copies
+sync_table_columns(
+    "book_copies",
+    {
+        "CopyID": "id",
+        "BookID": "book_id",
+        "LocationID": "location_id",
+        "Status": "status"
+    },
+    {
+        "book_id": "INTEGER",
+        "location_id": "INTEGER",
+        "status": "VARCHAR(50) DEFAULT 'Available'",
+        "created_at": "TIMESTAMP DEFAULT CURRENT_TIMESTAMP",
+        "updated_at": "TIMESTAMP DEFAULT CURRENT_TIMESTAMP",
+        "deleted_at": "TIMESTAMP"
+    }
+)
+
+# 4. Books
+sync_table_columns(
+    "books",
+    {},
+    {
+        "fatawa_category_id": "INTEGER",
+        "txt_file_url": "VARCHAR",
+        "is_digital": "BOOLEAN DEFAULT FALSE",
+        "is_approved": "BOOLEAN DEFAULT FALSE",
+        "is_restricted": "BOOLEAN DEFAULT FALSE",
+        "total_copies": "INTEGER DEFAULT 1",
+        "available_copies": "INTEGER DEFAULT 1",
+        "published_date": "DATE",
+        "edition": "VARCHAR(100)"
+    }
+)
 
 print("✅ All tables and columns synchronized successfully!")
