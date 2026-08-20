@@ -13,7 +13,7 @@ import postService from "../../api/postService";
 
 const MAX_FILE_SIZE_MB = 10;
 const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || (import.meta.env.PROD ? "https://kil2-backend.onrender.com" : "http://127.0.0.1:8000");
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || (import.meta.env.PROD ? "" : "http://127.0.0.1:8000");
 
 const CreatePost = () => {
   const [posts, setPosts] = useState([]);
@@ -367,7 +367,7 @@ const CreatePost = () => {
                     </div>
                 </div>
 
-                {/* ✅ IMAGE SIZE INSTRUCTION */}
+                {/* âœ… IMAGE SIZE INSTRUCTION */}
                 <div className="mt-4 bg-blue-50 border border-blue-100 rounded-lg p-3 text-sm text-blue-800">
                   <p className="font-bold mb-1">Recommended Image Size:</p>
                     <ul className="list-disc list-inside space-y-1 text-xs text-blue-700">

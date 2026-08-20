@@ -12,8 +12,8 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import postService from "../../api/postService";
 
-// ✅ Config: API Base URL
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || (import.meta.env.PROD ? "https://kil2-backend.onrender.com" : "http://127.0.0.1:8000");
+// âœ… Config: API Base URL
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || (import.meta.env.PROD ? "" : "http://127.0.0.1:8000");
 
 const LatestPosts = () => {
   const [posts, setPosts] = useState([]);
@@ -29,7 +29,7 @@ const LatestPosts = () => {
     fetchPosts();
   }, []);
 
-  // ✅ ESC to close modal
+  // âœ… ESC to close modal
   useEffect(() => {
     const onKeyDown = (e) => {
       if (e.key === "Escape") setSelectedPost(null);
@@ -55,7 +55,7 @@ const LatestPosts = () => {
     }
   };
 
-  // ✅ Robust Image/File URL helper
+  // âœ… Robust Image/File URL helper
   const getFileUrl = (path) => {
     if (!path) return null;
 
@@ -69,7 +69,7 @@ const LatestPosts = () => {
     return `${API_BASE_URL}${cleanPath}`;
   };
 
-  // ✅ Detect file type (image/pdf/unknown)
+  // âœ… Detect file type (image/pdf/unknown)
   const getFileType = (fileUrl) => {
     if (!fileUrl) return "none";
     const lower = fileUrl.toLowerCase();

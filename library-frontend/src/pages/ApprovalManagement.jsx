@@ -21,9 +21,9 @@ import '../assets/css/ManagementPages.css';
 import '../assets/css/ApprovalManagement.css';
 
 // --- Constants ---
-const API_BASE_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? 'https://kil2-backend.onrender.com' : 'http://127.0.0.1:8000');
+const API_BASE_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '' : 'http://127.0.0.1:8000');
 
-// ✅ FIXED: Hybrid URL Generator (Works for Cloudinary & Local)
+// âœ… FIXED: Hybrid URL Generator (Works for Cloudinary & Local)
 const getStaticUrl = (relativePath) => {
     if (!relativePath) return null;
     
@@ -406,7 +406,7 @@ const ApprovalManagement = () => {
                                     Reviewing: {previewBook.book?.title}
                                 </h3>
                                 <div className="flex gap-2">
-                                    {/* ✅ Added Safety Button: Open in New Tab if iframe fails */}
+                                    {/* âœ… Added Safety Button: Open in New Tab if iframe fails */}
                                     {getStaticUrl(previewBook.book?.pdf_file || previewBook.book?.pdf_url) && (
                                         <a 
                                             href={getStaticUrl(previewBook.book?.pdf_file || previewBook.book?.pdf_url)} 

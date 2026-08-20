@@ -8,7 +8,7 @@ from auth import get_current_user
 from database import get_db
 from models import poster_model, user_model
 from schemas.poster_schema import PosterResponse
-from utils.cloudinary_helper import upload_to_cloudinary
+from utils.storage_helper import smart_upload
 
 router = APIRouter()
 
@@ -101,7 +101,7 @@ def _upload_if_present(file_obj: Optional[UploadFile], folder: str) -> Optional[
     if file_obj.content_type not in ALLOWED_IMAGE_TYPES:
         raise HTTPException(status_code=400, detail="Only JPG/PNG/WebP images are allowed.")
 
-    url = upload_to_cloudinary(file_obj, folder=folder)
+    url = smart_upload(file_obj, folder=folder, resource_type="image")
     if not url:
         raise HTTPException(status_code=500, detail="Image upload failed")
     return url

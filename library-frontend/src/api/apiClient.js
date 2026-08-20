@@ -2,7 +2,7 @@ import axios from "axios";
 
 export const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL ||
-  (import.meta.env.PROD ? "https://kil2-backend.onrender.com" : "http://127.0.0.1:8000");
+  (import.meta.env.PROD ? "" : "http://127.0.0.1:8000");
 
 export const ACCESS_TOKEN_KEY = "access_token";
 export const USER_KEY = "user_details";
@@ -74,7 +74,7 @@ const refreshAccessToken = async () => {
   return access_token;
 };
 
-// ✅ Attach token to every request
+// âœ… Attach token to every request
 apiClient.interceptors.request.use(
   (config) => {
     const token =
@@ -92,7 +92,7 @@ apiClient.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// ✅ Handle 401 (do NOT auto redirect spam)
+// âœ… Handle 401 (do NOT auto redirect spam)
 apiClient.interceptors.response.use(
   (response) => response,
   async (error) => {

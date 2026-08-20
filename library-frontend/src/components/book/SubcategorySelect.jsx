@@ -1,5 +1,5 @@
 /**
- * ✅ FIXED BookFormUI.jsx - Category Selection Fix
+ * âœ… FIXED BookFormUI.jsx - Category Selection Fix
  * 
  * ISSUES FIXED:
  * 1. Category dropdown click handler not working (event bubbling issue)
@@ -19,15 +19,15 @@ import {
   ComputerDesktopIcon, CheckIcon, ChevronDownIcon,
 } from '@heroicons/react/24/outline';
 
-const API_URL = import.meta.env.VITE_API_BASE_URL || (import.meta.env.PROD ? 'https://kil2-backend.onrender.com' : 'http://127.0.0.1:8000');
+const API_URL = import.meta.env.VITE_API_BASE_URL || (import.meta.env.PROD ? '' : 'http://127.0.0.1:8000');
 
-// ✅ FIXED: Multi-select subcategories with proper event handling
+// âœ… FIXED: Multi-select subcategories with proper event handling
 const SubcategorySelect = ({ subcategories, selectedIds, onChange, loading }) => {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
   const dropdownRef = useRef(null);
 
-  // ✅ FIX: Improved click outside detection
+  // âœ… FIX: Improved click outside detection
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (ref.current && !ref.current.contains(e.target)) {
@@ -48,7 +48,7 @@ const SubcategorySelect = ({ subcategories, selectedIds, onChange, loading }) =>
     }
   }, [open]);
 
-  // ✅ FIX: Prevent event propagation
+  // âœ… FIX: Prevent event propagation
   const handleButtonClick = (e) => {
     e.preventDefault();
     e.stopPropagation();
@@ -89,7 +89,7 @@ const SubcategorySelect = ({ subcategories, selectedIds, onChange, loading }) =>
       >
         <span className="flex flex-wrap gap-1.5 flex-1 min-w-0">
           {selected.length === 0 ? (
-            <span className="text-slate-400 font-normal">Select categories…</span>
+            <span className="text-slate-400 font-normal">Select categoriesâ€¦</span>
           ) : (
             selected.map(s => (
               <span 
@@ -130,7 +130,7 @@ const SubcategorySelect = ({ subcategories, selectedIds, onChange, loading }) =>
           >
             <div className="max-h-56 overflow-y-auto p-2">
               {loading && (
-                <p className="text-xs text-center text-slate-400 py-6 font-medium">Loading categories…</p>
+                <p className="text-xs text-center text-slate-400 py-6 font-medium">Loading categoriesâ€¦</p>
               )}
               
               {!loading && subcategories.length === 0 && (
@@ -165,7 +165,7 @@ const SubcategorySelect = ({ subcategories, selectedIds, onChange, loading }) =>
                     </span>
                     <span className="flex-1 min-w-0">
                       <span className={`text-xs ${checked ? 'text-white/70' : 'text-slate-400'}`}>
-                        {sub.category?.name} › 
+                        {sub.category?.name} â€º 
                       </span>
                       <div className="font-medium">{sub.name}</div>
                     </span>

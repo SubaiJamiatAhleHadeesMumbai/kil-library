@@ -29,7 +29,7 @@ import {
   Squares2X2Icon,
   ListBulletIcon,
   ArrowUpIcon,
-  DocumentTextIcon, // ✅ Added for Text Mode
+  DocumentTextIcon, // âœ… Added for Text Mode
 } from "@heroicons/react/24/outline";
 
 // --- Icons (Solid - for PublicBookCard) ---
@@ -40,7 +40,7 @@ import {
 } from "@heroicons/react/24/solid";
 
 // --- Constants ---
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || (import.meta.env.PROD ? "https://kil2-backend.onrender.com" : "http://127.0.0.1:8000");
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || (import.meta.env.PROD ? "" : "http://127.0.0.1:8000");
 const FALLBACK_NO_COVER = "https://via.placeholder.com/400x600?text=No+Cover";
 const FALLBACK_BROKEN = "https://via.placeholder.com/400x600?text=Image+Not+Found";
 
@@ -171,14 +171,14 @@ const PublicBookCard = ({
         </div>
       </div>
 
-      {/* ❤️ Favorite */}
+      {/* â¤ï¸ Favorite */}
       {typeof onToggleFavorite === "function" && (
         <button
           onClick={(e) => onToggleFavorite(e, book?.id)}
           className="absolute bottom-2 right-2 z-20 rounded-full border border-gray-200 bg-white px-2.5 py-1 text-[10px] font-bold shadow-md transition hover:bg-gray-50 sm:bottom-3 sm:right-3 sm:px-3 sm:py-1.5 sm:text-[11px]"
           title={isFavorite ? "Remove Favorite" : "Add Favorite"}
         >
-          {isFavorite ? "❤️ Saved" : "🤍 Save"}
+          {isFavorite ? "â¤ï¸ Saved" : "ðŸ¤ Save"}
         </button>
       )}
 
@@ -257,7 +257,7 @@ const UserLibrary = () => {
   const [books, setBooks] = useState([]);
   const [loading, setLoading] = useState(true);
   const activeRequestRef = useRef(0);
-  const [dynamicCategories, setDynamicCategories] = useState([]);  // ✅ Dynamic Categories from DB
+  const [dynamicCategories, setDynamicCategories] = useState([]);  // âœ… Dynamic Categories from DB
 
   const [sortBy, setSortBy] = useState("newest");
 
@@ -287,7 +287,7 @@ const UserLibrary = () => {
   // --- CATEGORIES ---
   const categories = useMemo(
     () => {
-      // ✅ If dynamic categories loaded from DB, use them
+      // âœ… If dynamic categories loaded from DB, use them
       if (dynamicCategories.length > 0) {
         return [
           { value: "all", label: "All Categories" },
@@ -299,7 +299,7 @@ const UserLibrary = () => {
         ];
       }
       
-      // ✅ Fallback to hardcoded if DB load fails
+      // âœ… Fallback to hardcoded if DB load fails
       return [
         { value: "all", label: "All Categories" },
         { value: "aqeedah_fiqh", label: "Aqeedah & Fiqh" },
@@ -352,16 +352,16 @@ const UserLibrary = () => {
   };
 
   // --- EFFECTS ---
-  // ✅ NEW: Fetch categories from database (admin-added)
+  // âœ… NEW: Fetch categories from database (admin-added)
   useEffect(() => {
     const loadCategories = async () => {
       try {
         const data = await categoryService.getAllCategories();
         const categoryList = Array.isArray(data) ? data : data?.categories || [];
         setDynamicCategories(categoryList);
-        console.log("✅ Dynamic categories loaded:", categoryList);
+        console.log("âœ… Dynamic categories loaded:", categoryList);
       } catch (error) {
-        console.warn("⚠️ Could not load categories from DB, using fallback:", error);
+        console.warn("âš ï¸ Could not load categories from DB, using fallback:", error);
         setDynamicCategories([]);
       }
     };
@@ -369,7 +369,7 @@ const UserLibrary = () => {
     loadCategories();
   }, []);
 
-  // ✅ NEW: Apply search from URL params or navigation state
+  // âœ… NEW: Apply search from URL params or navigation state
   useEffect(() => {
     // Only run once books have loaded and we have books to search through
     if (loading || !Array.isArray(books) || books.length === 0) return;
@@ -379,7 +379,7 @@ const UserLibrary = () => {
     const searchValue = urlSearch || stateSearch;
 
     if (searchValue && searchValue.trim()) {
-      console.log("✅ Setting search term from URL/state:", searchValue);
+      console.log("âœ… Setting search term from URL/state:", searchValue);
       setSearchTerm(searchValue);
 
       // Smooth scroll to grid
@@ -411,7 +411,7 @@ const UserLibrary = () => {
     return String(v);
   };
 
-  // ✅ IMPROVED CATEGORY HELPER
+  // âœ… IMPROVED CATEGORY HELPER
   const safeCategory = (book) => {
       // 1. Try nested category object
       if (book.category && typeof book.category === 'object') {
@@ -563,7 +563,7 @@ const UserLibrary = () => {
               value={selectedLanguage}
               onChange={(e) => setSelectedLanguage(e.target.value)}
             >
-              <option value="all">🌍 All Languages</option>
+              <option value="all">ðŸŒ All Languages</option>
               <option value="english">English</option>
               <option value="urdu">Urdu</option>
               <option value="arabic">Arabic</option>
@@ -753,7 +753,7 @@ const UserLibrary = () => {
                                   {book.is_restricted ? "Request Access" : "Read Now"}
                                 </button>
 
-                                <span className="text-slate-300">•</span>
+                                <span className="text-slate-300">â€¢</span>
 
                                 <button
                                   className="text-xs font-bold text-slate-500 hover:text-red-500"
@@ -851,7 +851,7 @@ const UserLibrary = () => {
                   {selectedBook.description || "No description provided."}
                 </p>
 
-                {/* ✅ UPDATED ACTION BUTTONS */}
+                {/* âœ… UPDATED ACTION BUTTONS */}
                 <div className="flex flex-col gap-3 pt-6 border-t border-slate-100 mt-auto">
                   {selectedBook.is_restricted ? (
                     <button

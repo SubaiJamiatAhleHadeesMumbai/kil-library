@@ -19,7 +19,7 @@ import settingsService from '../api/settingsService';
 // Constants & Utilities
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL ||
-  (import.meta.env.PROD ? 'https://kil2-backend.onrender.com' : 'http://127.0.0.1:8000');
+  (import.meta.env.PROD ? '' : 'http://127.0.0.1:8000');
 
 const PUBLIC_GALLERY_PREVIEW = 4;
 const PUBLIC_ULMA_PREVIEW = 4;
@@ -314,7 +314,7 @@ const UlmaPreviewSection = ({ quotes, ulmaPreview, ulmaPreviewLimit, onOpenModal
               className="group flex flex-col justify-between rounded-2xl border border-slate-200/90 bg-gradient-to-b from-slate-50/60 to-white p-5 shadow-sm transition-all duration-300 hover:shadow-md hover:border-slate-300 relative overflow-hidden"
             >
               <div className="absolute top-2 right-4 text-slate-200 text-6xl font-serif select-none pointer-events-none opacity-40">
-                “
+                â€œ
               </div>
               <div className="relative z-10">
                 <div className="flex items-center gap-4">
@@ -337,7 +337,7 @@ const UlmaPreviewSection = ({ quotes, ulmaPreview, ulmaPreviewLimit, onOpenModal
                 </div>
 
                 <p className="mt-4 line-clamp-4 text-sm leading-6 text-slate-700 italic">
-                  “{item.quote || 'Add a quote from the admin panel.'}”
+                  â€œ{item.quote || 'Add a quote from the admin panel.'}â€
                 </p>
               </div>
 
@@ -453,7 +453,7 @@ const UlmaModal = ({ isOpen, onClose, quotes, page, setPage, totalPages }) => {
                         </p>
                       </div>
                     </div>
-                    <p className="mt-4 text-sm leading-7 text-slate-700 italic">“{item.quote || 'No quote provided.'}”</p>
+                    <p className="mt-4 text-sm leading-7 text-slate-700 italic">â€œ{item.quote || 'No quote provided.'}â€</p>
                   </div>
 
                   {item.source_url ? (

@@ -18,16 +18,16 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "react-hot-toast";
 import { motion, AnimatePresence } from "framer-motion";
 
-// ✅ Services
+// âœ… Services
 import authService from "../../api/authService";
 
-// ✅ Components
+// âœ… Components
 import PolicyStatement from "../book/PolicyStatement";
 import AccessForm from "../RestrictedAccess/AccessForm";
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || (import.meta.env.PROD ? "https://kil2-backend.onrender.com" : "http://127.0.0.1:8000");
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || (import.meta.env.PROD ? "" : "http://127.0.0.1:8000");
 
-// ✅ Offline fallback cover
+// âœ… Offline fallback cover
 const FALLBACK_COVER =
   "data:image/svg+xml;utf8," +
   encodeURIComponent(`
@@ -62,7 +62,7 @@ const getSafeName = (value, fallback = "N/A") => {
   return fallback;
 };
 
-// ✅ ADDED PROPS FOR DEEP SEARCH INTEGRATION
+// âœ… ADDED PROPS FOR DEEP SEARCH INTEGRATION
 const BookDetailsModal = ({ 
   book, 
   onClose, 
@@ -75,7 +75,7 @@ const BookDetailsModal = ({
   const navigate = useNavigate();
   const [view, setView] = useState(startView);
 
-  // ✅ Initialize SmartReader state based on Deep Search prop
+  // âœ… Initialize SmartReader state based on Deep Search prop
   const [showSmartReader, setShowSmartReader] = useState(autoOpenReader);
   
   const [textContent, setTextContent] = useState("");
@@ -172,7 +172,7 @@ const BookDetailsModal = ({
   // UI
   // -----------------------------
   
-  // ✅ SMART READER VIEW (Takes over the screen if true)
+  // âœ… SMART READER VIEW (Takes over the screen if true)
   if (showSmartReader) {
     return (
       <SmartReader 
@@ -191,7 +191,7 @@ const BookDetailsModal = ({
     );
   }
 
-  // ✅ DEFAULT MODAL VIEW
+  // âœ… DEFAULT MODAL VIEW
   return (
     <AnimatePresence>
       <motion.div
@@ -209,7 +209,7 @@ const BookDetailsModal = ({
           onClick={(e) => e.stopPropagation()}
           className="bg-white rounded-3xl shadow-2xl w-full max-w-6xl overflow-hidden relative max-h-[92vh] border border-white/30 flex flex-col"
         >
-          {/* ✅ PREMIUM STICKY HEADER */}
+          {/* âœ… PREMIUM STICKY HEADER */}
           <motion.div 
             className="sticky top-0 z-[120] bg-gradient-to-r from-white via-white to-blue-50/50 backdrop-blur border-b border-slate-200 shrink-0"
             initial={{ y: -10, opacity: 0 }}
@@ -234,7 +234,7 @@ const BookDetailsModal = ({
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                   >
-                    {view === "read_text" ? "📖 Reading Mode" : "✨ Book Details"}
+                    {view === "read_text" ? "ðŸ“– Reading Mode" : "âœ¨ Book Details"}
                   </motion.p>
                   <motion.h2 
                     className="text-lg md:text-xl font-black text-slate-900 truncate"
@@ -310,8 +310,8 @@ const BookDetailsModal = ({
                         transition={{ staggerChildren: 0.1 }}
                       >
                         {[
-                          { label: category, icon: "🏷️", color: "emerald" },
-                          { label: language, icon: "🌐", color: "blue" },
+                          { label: category, icon: "ðŸ·ï¸", color: "emerald" },
+                          { label: language, icon: "ðŸŒ", color: "blue" },
                         ].map((badge, idx) => (
                           <motion.span
                             key={idx}
@@ -360,7 +360,7 @@ const BookDetailsModal = ({
                           className="text-lg text-blue-600 font-bold flex items-center gap-2"
                           whileHover={{ x: 5 }}
                         >
-                          ✍️ By <span className="text-slate-800">{author}</span>
+                          âœï¸ By <span className="text-slate-800">{author}</span>
                         </motion.p>
                       </motion.div>
 
@@ -396,7 +396,7 @@ const BookDetailsModal = ({
                       </div>
                     </motion.div>
 
-                    {/* ✅ PREMIUM STICKY FOOTER ACTIONS */}
+                    {/* âœ… PREMIUM STICKY FOOTER ACTIONS */}
                     <motion.div 
                       className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-white via-white to-transparent border-t border-slate-100 px-6 md:px-8 py-4"
                       initial={{ y: 20, opacity: 0 }}

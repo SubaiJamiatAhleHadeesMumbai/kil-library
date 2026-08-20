@@ -45,7 +45,7 @@ import DonationPanel from "../components/donation/DonationPanel";
 // --- API & IMAGE HELPERS ---
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL ||
-  (import.meta.env.PROD ? "https://kil2-backend.onrender.com" : "http://127.0.0.1:8000");
+  (import.meta.env.PROD ? "" : "http://127.0.0.1:8000");
 
 const resolveImageUrl = (value) => {
   if (!value || typeof value !== "string") return "";
@@ -179,7 +179,7 @@ const PublicHome = () => {
   // Smart Admin Redirect
   useEffect(() => {
     if (!authLoading && user && isAdmin) {
-      console.log("👮‍♂️ Admin Detected on Public Home -> Redirecting to Dashboard");
+      console.log("ðŸ‘®â€â™‚ï¸ Admin Detected on Public Home -> Redirecting to Dashboard");
       navigate('/admin/dashboard', { replace: true });
     }
   }, [user, isAdmin, authLoading, navigate]);
@@ -275,7 +275,7 @@ const PublicHome = () => {
         });
       }
     } catch (error) {
-      console.error("❌ PublicHome Master Load Error:", error);
+      console.error("âŒ PublicHome Master Load Error:", error);
       toast.error("Could not load library catalog.");
     } finally {
       setLoading(false);

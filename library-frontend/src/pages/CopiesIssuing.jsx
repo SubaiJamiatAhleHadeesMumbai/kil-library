@@ -32,7 +32,7 @@ const BookCard = ({ book, type = 'book' }) => {
     const isBook = type === 'book';
     
     // Construct Image URL safely
-    const BASE_URL = import.meta.env.VITE_API_BASE_URL || (import.meta.env.PROD ? "https://kil2-backend.onrender.com" : "http://127.0.0.1:8000");
+    const BASE_URL = import.meta.env.VITE_API_BASE_URL || (import.meta.env.PROD ? "" : "http://127.0.0.1:8000");
     const imgUrl = book.cover_image_url 
         ? (book.cover_image_url.startsWith('http') ? book.cover_image_url : `${BASE_URL}/${book.cover_image_url}`)
         : null;
@@ -167,10 +167,10 @@ const InventoryTab = ({ books, locations, copies, loading, onAddCopy }) => {
                             <select className="w-full rounded-lg border-gray-300 text-sm focus:ring-indigo-500 focus:border-indigo-500 shadow-sm py-2.5"
                                 value={newCopy.location_id} onChange={e => setNewCopy({...newCopy, location_id: e.target.value})} required disabled={loading}>
                                 <option value="">Select Location...</option>
-                                {/* ✅ FIX: Showing Rack and Shelf Details */}
+                                {/* âœ… FIX: Showing Rack and Shelf Details */}
                                 {locations.map(l => (
                                     <option key={l.id} value={l.id}>
-                                        {l.name} — Rack: {l.rack || 'N/A'}, Shelf: {l.shelf || 'N/A'}
+                                        {l.name} â€” Rack: {l.rack || 'N/A'}, Shelf: {l.shelf || 'N/A'}
                                     </option>
                                 ))}
                             </select>
@@ -216,7 +216,7 @@ const InventoryTab = ({ books, locations, copies, loading, onAddCopy }) => {
                                         <td className="px-6 py-4 text-sm font-mono text-gray-500">#{copy.id}</td>
                                         <td className="px-6 py-4 text-sm text-gray-900 font-medium">{copy.book?.title}</td>
                                         <td className="px-6 py-4 text-sm text-gray-500">
-                                            {/* ✅ FIX: Showing Full Location Details in Table */}
+                                            {/* âœ… FIX: Showing Full Location Details in Table */}
                                             {copy.location ? (
                                                 <span>
                                                     {copy.location.name} 

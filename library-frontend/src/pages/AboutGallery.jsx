@@ -5,7 +5,7 @@ import toast from 'react-hot-toast';
 import aboutService from '../api/aboutService';
 import settingsService from '../api/settingsService';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || (import.meta.env.PROD ? 'https://kil2-backend.onrender.com' : 'http://127.0.0.1:8000');
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || (import.meta.env.PROD ? '' : 'http://127.0.0.1:8000');
 const PAGE_SIZE = 18;
 
 const resolveImageUrl = (value) => {

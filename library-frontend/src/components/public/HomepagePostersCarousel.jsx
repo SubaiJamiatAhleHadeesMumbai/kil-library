@@ -17,7 +17,7 @@ import 'swiper/css/effect-fade';
 
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL ||
-  (import.meta.env.PROD ? 'https://kil2-backend.onrender.com' : 'http://127.0.0.1:8000');
+  (import.meta.env.PROD ? '' : 'http://127.0.0.1:8000');
 
 const toAbsoluteUrl = (value) => {
   if (!value) return null;
@@ -254,7 +254,7 @@ const HomepagePostersCarousel = () => {
         })}
       </Swiper>
 
-      {/* React Portal Lightbox Dialog — Rendered on document.body */}
+      {/* React Portal Lightbox Dialog â€” Rendered on document.body */}
       {activePoster &&
         createPortal(
           <div
