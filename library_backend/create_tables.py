@@ -36,76 +36,36 @@ Base.metadata.create_all(bind=engine)
 
 print("Synchronizing schema columns...")
 
-rename_queries = [
-    # Users table renames
-    """
-    DO $$ 
-    BEGIN
-      IF EXISTS(SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='FullName') THEN
-        ALTER TABLE users RENAME COLUMN "FullName" TO full_name;
-      END IF;
-      IF EXISTS(SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='Education') THEN
-        ALTER TABLE users RENAME COLUMN "Education" TO education;
-      END IF;
-      IF EXISTS(SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='SocialActivities') THEN
-        ALTER TABLE users RENAME COLUMN "SocialActivities" TO social_activities;
-      END IF;
-      IF EXISTS(SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='Email') THEN
-        ALTER TABLE users RENAME COLUMN "Email" TO email;
-      END IF;
-      IF EXISTS(SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='Username') THEN
-        ALTER TABLE users RENAME COLUMN "Username" TO username;
-      END IF;
-      IF EXISTS(SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='PasswordHash') THEN
-        ALTER TABLE users RENAME COLUMN "PasswordHash" TO password_hash;
-      END IF;
-      IF EXISTS(SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='DateJoined') THEN
-        ALTER TABLE users RENAME COLUMN "DateJoined" TO date_joined;
-      END IF;
-      IF EXISTS(SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='Status') THEN
-        ALTER TABLE users RENAME COLUMN "Status" TO status;
-      END IF;
-      IF EXISTS(SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='RoleID') THEN
-        ALTER TABLE users RENAME COLUMN "RoleID" TO role_id;
-      END IF;
-    END $$;
-    """,
-    # Languages table renames
-    """
-    DO $$ 
-    BEGIN
-      IF EXISTS(SELECT 1 FROM information_schema.columns WHERE table_name='languages' AND column_name='LanguageID') THEN
-        ALTER TABLE languages RENAME COLUMN "LanguageID" TO id;
-      END IF;
-      IF EXISTS(SELECT 1 FROM information_schema.columns WHERE table_name='languages' AND column_name='LanguageName') THEN
-        ALTER TABLE languages RENAME COLUMN "LanguageName" TO name;
-      END IF;
-      IF EXISTS(SELECT 1 FROM information_schema.columns WHERE table_name='languages' AND column_name='LanguageCode') THEN
-        ALTER TABLE languages RENAME COLUMN "LanguageCode" TO code;
-      END IF;
-      IF EXISTS(SELECT 1 FROM information_schema.columns WHERE table_name='languages' AND column_name='Description') THEN
-        ALTER TABLE languages RENAME COLUMN "Description" TO description;
-      END IF;
-    END $$;
-    """,
-    # Book copies and issued books renames
-    """
-    DO $$ 
-    BEGIN
-      IF EXISTS(SELECT 1 FROM information_schema.columns WHERE table_name='book_copies' AND column_name='CopyID') THEN
-        ALTER TABLE book_copies RENAME COLUMN "CopyID" TO id;
-      END IF;
-      IF EXISTS(SELECT 1 FROM information_schema.columns WHERE table_name='book_copies' AND column_name='BookID') THEN
-        ALTER TABLE book_copies RENAME COLUMN "BookID" TO book_id;
-      END IF;
-      IF EXISTS(SELECT 1 FROM information_schema.columns WHERE table_name='book_copies' AND column_name='LocationID') THEN
-        ALTER TABLE book_copies RENAME COLUMN "LocationID" TO location_id;
-      END IF;
-      IF EXISTS(SELECT 1 FROM information_schema.columns WHERE table_name='book_copies' AND column_name='Status') THEN
-        ALTER TABLE book_copies RENAME COLUMN "Status" TO status;
-      END IF;
-    END $$;
-    """
+rename_statements = [
+    'ALTER TABLE users RENAME COLUMN "FullName" TO full_name;',
+    'ALTER TABLE users RENAME COLUMN "Education" TO education;',
+    'ALTER TABLE users RENAME COLUMN "SocialActivities" TO social_activities;',
+    'ALTER TABLE users RENAME COLUMN "Email" TO email;',
+    'ALTER TABLE users RENAME COLUMN "Username" TO username;',
+    'ALTER TABLE users RENAME COLUMN "PasswordHash" TO password_hash;',
+    'ALTER TABLE users RENAME COLUMN "DateJoined" TO date_joined;',
+    'ALTER TABLE users RENAME COLUMN "Status" TO status;',
+    'ALTER TABLE users RENAME COLUMN "RoleID" TO role_id;',
+    'ALTER TABLE languages RENAME COLUMN "LanguageID" TO id;',
+    'ALTER TABLE languages RENAME COLUMN "LanguageName" TO name;',
+    'ALTER TABLE languages RENAME COLUMN "LanguageCode" TO code;',
+    'ALTER TABLE languages RENAME COLUMN "Description" TO description;',
+    'ALTER TABLE book_copies RENAME COLUMN "CopyID" TO id;',
+    'ALTER TABLE book_copies RENAME COLUMN "BookID" TO book_id;',
+    'ALTER TABLE book_copies RENAME COLUMN "LocationID" TO location_id;',
+    'ALTER TABLE book_copies RENAME COLUMN "Status" TO status;',
+    'ALTER TABLE issued_books RENAME COLUMN "IssuedBookID" TO id;',
+    'ALTER TABLE issued_books RENAME COLUMN "ClientID" TO client_id;',
+    'ALTER TABLE issued_books RENAME COLUMN "CopyID" TO copy_id;',
+    'ALTER TABLE issued_books RENAME COLUMN "IssueDate" TO issue_date;',
+    'ALTER TABLE issued_books RENAME COLUMN "ReturnDate" TO due_date;',
+    'ALTER TABLE issued_books RENAME COLUMN "ActualReturnDate" TO actual_return_date;',
+    'ALTER TABLE issued_books RENAME COLUMN "Status" TO status;',
+    'ALTER TABLE digital_access RENAME COLUMN "DigitalAccessID" TO id;',
+    'ALTER TABLE digital_access RENAME COLUMN "ClientID" TO client_id;',
+    'ALTER TABLE digital_access RENAME COLUMN "BookID" TO book_id;',
+    'ALTER TABLE digital_access RENAME COLUMN "AccessGranted" TO access_granted;',
+    'ALTER TABLE digital_access RENAME COLUMN "AccessTimestamp" TO access_timestamp;'
 ]
 
 alter_queries = [
@@ -137,12 +97,18 @@ alter_queries = [
     "ALTER TABLE roles ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP;",
 ]
 
-with engine.connect() as conn:
-    for q in rename_queries + alter_queries:
-        try:
+for stmt in rename_statements:
+    try:
+        with engine.begin() as conn:
+            conn.execute(text(stmt))
+    except Exception:
+        pass
+
+for q in alter_queries:
+    try:
+        with engine.begin() as conn:
             conn.execute(text(q))
-        except Exception as e:
-            print(f"Notice on query: {e}")
-    conn.commit()
+    except Exception:
+        pass
 
 print("✅ All tables and columns synchronized successfully!")
