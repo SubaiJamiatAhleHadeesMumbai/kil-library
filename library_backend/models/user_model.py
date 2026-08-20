@@ -96,9 +96,9 @@ class User(Base):
 
     # ✅ COMPOSITE INDEXES FOR PERFORMANCE (Issue #9 Fix)
     __table_args__ = (
-        Index('idx_user_username_status', 'Username', 'Status'),  # Username + Status
-        Index('idx_user_email_status', 'Email', 'Status'),  # Email + Status lookup
-        Index('idx_user_role_status', 'RoleID', 'Status'),  # Role filter
-        Index('idx_user_active', 'Status', 'deleted_at'),  # Active users query
+        Index('idx_user_username_status', 'username', 'status'),  # Username + Status
+        Index('idx_user_email_status', 'email', 'status'),  # Email + Status lookup
+        Index('idx_user_role_status', 'role_id', 'status'),  # Role filter
+        Index('idx_user_active', 'status', 'deleted_at'),  # Active users query
         {'mysql_engine': 'InnoDB'}
     )
