@@ -28,8 +28,7 @@ import NotificationBell from "../common/NotificationBell";
 import DonationModal from "../donation/DonationModal";
 
 // âœ… CONFIG
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || (import.meta.env.PROD ? "" : "http://127.0.0.1:8000");
-const MARKAZ_LOGO_URL = `${API_BASE_URL}/static/images/MarkazLogo.png`;
+const MARKAZ_LOGO_URL = "/logo.png";
 
 // ==========================================
 // 1. SUB-COMPONENTS
