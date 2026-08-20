@@ -44,16 +44,16 @@ class BookCopy(BookCopyBase):
 class IssuedBookBase(BaseModel):
     client_id: int
     copy_id: int
-    due_date: datetime
+    due_date: Optional[datetime] = None
 
 class IssuedBookCreate(IssuedBookBase):
     pass
     
 class IssuedBook(IssuedBookBase):
     id: int
-    issue_date: datetime
+    issue_date: Optional[datetime] = None
     actual_return_date: Optional[datetime] = None
-    status: str
+    status: Optional[str] = "Issued"
     client: Optional[user_schema.User] = None
     book_copy: Optional[BookCopy] = None
     class Config:
