@@ -162,4 +162,45 @@ sync_table_columns(
     }
 )
 
+# 5. Issued Books
+sync_table_columns(
+    "issued_books",
+    {
+        "IssuedBookID": "id",
+        "ClientID": "client_id",
+        "CopyID": "copy_id",
+        "IssueDate": "issue_date",
+        "ReturnDate": "due_date",
+        "ActualReturnDate": "actual_return_date",
+        "Status": "status"
+    },
+    {
+        "client_id": "INTEGER",
+        "copy_id": "INTEGER",
+        "issue_date": "TIMESTAMP DEFAULT CURRENT_TIMESTAMP",
+        "due_date": "TIMESTAMP",
+        "actual_return_date": "TIMESTAMP",
+        "status": "VARCHAR(50) DEFAULT 'Issued'",
+        "updated_at": "TIMESTAMP DEFAULT CURRENT_TIMESTAMP"
+    }
+)
+
+# 6. Digital Access
+sync_table_columns(
+    "digital_access",
+    {
+        "DigitalAccessID": "id",
+        "ClientID": "client_id",
+        "BookID": "book_id",
+        "AccessGranted": "access_granted",
+        "AccessTimestamp": "access_timestamp"
+    },
+    {
+        "client_id": "INTEGER",
+        "book_id": "INTEGER",
+        "access_granted": "BOOLEAN DEFAULT TRUE",
+        "access_timestamp": "TIMESTAMP DEFAULT CURRENT_TIMESTAMP"
+    }
+)
+
 print("✅ All tables and columns synchronized successfully!")
