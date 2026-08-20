@@ -30,8 +30,7 @@ def get_all_issues(
     """
     return db.query(models.IssuedBook).options(
         joinedload(models.IssuedBook.book_copy).joinedload(models.BookCopy.book),
-        # Agar user relationship defined hai model me to use load karein
-        # joinedload(models.IssuedBook.user) 
+        joinedload(models.IssuedBook.client)
     ).order_by(models.IssuedBook.id.desc()).offset(skip).limit(limit).all()
 
 

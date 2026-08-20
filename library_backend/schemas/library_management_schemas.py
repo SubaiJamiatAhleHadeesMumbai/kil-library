@@ -54,8 +54,8 @@ class IssuedBook(IssuedBookBase):
     issue_date: datetime
     actual_return_date: Optional[datetime] = None
     status: str
-    client: user_schema.User
-    book_copy: BookCopy
+    client: Optional[user_schema.User] = None
+    book_copy: Optional[BookCopy] = None
     class Config:
         from_attributes = True
 
@@ -71,7 +71,7 @@ class DigitalAccess(DigitalAccessBase):
     id: int
     access_granted: bool
     access_timestamp: datetime
-    client: user_schema.User
-    book: book_schema.Book
+    client: Optional[user_schema.User] = None
+    book: Optional[book_schema.Book] = None
     class Config:
         from_attributes = True
