@@ -11,9 +11,8 @@ from auth import require_permission, get_current_user_optional
 from database import get_db
 from utils import create_log
 
-# ✅ Changed Imports: Cover image ke liye Cloudinary, PDF aur TXT ke liye Local Helper
-from utils.cloudinary_helper import upload_to_cloudinary
-from utils.local_helper import save_pdf_locally, save_txt_locally
+# ✅ Smart Upload Helper (Cloudflare R2 for production, Cloudinary/Local fallback)
+from utils.storage_helper import smart_upload
 
 router = APIRouter()
 
@@ -89,26 +88,24 @@ async def create_book(
             except ValueError:
                 continue
 
-    # 4. Handle Files (Hybrid Upload)
+    # 4. Handle Files (Smart Multi-Storage Upload)
     cover_image_url = None
     pdf_url = None
     txt_file_url = None 
 
     print(f"📥 Received Files -> Cover: {cover_image.filename if cover_image else 'No'}, PDF: {pdf_file.filename if pdf_file else 'No'}, TXT: {txt_file.filename if txt_file else 'No'}")
 
-    # A. Cover Image -> Cloudinary
+    # A. Cover Image -> Smart Upload (R2 / Cloudinary / Local)
     if cover_image:
-        cover_image_url = upload_to_cloudinary(cover_image, folder="booknest/covers", resource_type="image")
+        cover_image_url = smart_upload(cover_image, folder="booknest/covers", resource_type="image")
     
-    # B. PDF -> Local Directory ✅
+    # B. PDF -> Smart Upload (R2 / Local)
     if pdf_file:
-        pdf_url = save_pdf_locally(pdf_file)
+        pdf_url = smart_upload(pdf_file, folder="booknest/pdfs", resource_type="raw")
 
-    # C. Text File -> Local Directory ✅
+    # C. Text File -> Smart Upload (R2 / Local)
     if txt_file:
-        print(f"🚀 Uploading Text File Locally: {txt_file.filename}")
-        txt_file_url = save_txt_locally(txt_file)
-        print(f"✅ Text File Uploaded: {txt_file_url}")
+        txt_file_url = smart_upload(txt_file, folder="booknest/texts", resource_type="raw")
 
     # 5. Handle Subcategories
     db_subcategories = []
@@ -235,19 +232,17 @@ async def update_book(
              raise HTTPException(status_code=409, detail="ISBN already exists.")
          db_book.isbn = isbn
 
-    # Update Files
+    # Update Files (Smart Multi-Storage Upload)
     if cover_image:
-        db_book.cover_image_url = upload_to_cloudinary(cover_image, folder="booknest/covers", resource_type="image")
+        db_book.cover_image_url = smart_upload(cover_image, folder="booknest/covers", resource_type="image")
 
-    # ✅ PDF Update -> Local Directory
+    # PDF Update -> Smart Upload (R2 / Local)
     if pdf_file:
-        db_book.pdf_url = save_pdf_locally(pdf_file)
+        db_book.pdf_url = smart_upload(pdf_file, folder="booknest/pdfs", resource_type="raw")
 
-    # ✅ Text File Update -> Local Directory
+    # Text File Update -> Smart Upload (R2 / Local)
     if txt_file:
-        print(f"🚀 Updating Text File Locally: {txt_file.filename}")
-        db_book.txt_file_url = save_txt_locally(txt_file)
-        print(f"✅ Text File Updated: {db_book.txt_file_url}")
+        db_book.txt_file_url = smart_upload(txt_file, folder="booknest/texts", resource_type="raw")
 
     # Approval Reset Logic
     db_book.is_approved = False 

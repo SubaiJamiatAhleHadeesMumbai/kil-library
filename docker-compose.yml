@@ -1,0 +1,89 @@
+﻿services:
+  # ----------------------------------------------------
+  # 1. PostgreSQL Database (Isolated on VPS)
+  # ----------------------------------------------------
+  db:
+    image: postgres:16-alpine
+    container_name: library_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-library_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-library_secure_password_2026}
+      POSTGRES_DB: ${POSTGRES_DB:-library_db}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-library_user} -d ${POSTGRES_DB:-library_db}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - library_net
+
+  # ----------------------------------------------------
+  # 2. FastAPI Backend Application
+  # ----------------------------------------------------
+  backend:
+    build:
+      context: ./library_backend
+      dockerfile: Dockerfile
+    container_name: library_backend
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:8000:8000"
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-library_user}:${POSTGRES_PASSWORD:-library_secure_password_2026}@db:5432/${POSTGRES_DB:-library_db}
+      SECRET_KEY: ${SECRET_KEY:-super_secret_production_key_change_me_12345}
+      ALGORITHM: HS256
+      ACCESS_TOKEN_EXPIRE_MINUTES: 1440
+      REFRESH_TOKEN_EXPIRE_DAYS: 30
+      
+      # Cloudflare R2 Storage (10k+ Books & PDFs)
+      R2_ACCOUNT_ID: ${R2_ACCOUNT_ID:-}
+      R2_ACCESS_KEY_ID: ${R2_ACCESS_KEY_ID:-}
+      R2_SECRET_ACCESS_KEY: ${R2_SECRET_ACCESS_KEY:-}
+      R2_BUCKET_NAME: ${R2_BUCKET_NAME:-}
+      R2_PUBLIC_URL: ${R2_PUBLIC_URL:-}
+
+      # Cloudinary (Optional fallback)
+      CLOUDINARY_CLOUD_NAME: ${CLOUDINARY_CLOUD_NAME:-}
+      CLOUDINARY_API_KEY: ${CLOUDINARY_API_KEY:-}
+      CLOUDINARY_API_SECRET: ${CLOUDINARY_API_SECRET:-}
+
+      # CORS
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost,https://ahlehadeeskokan.com,https://www.ahlehadeeskokan.com}
+      TRUSTED_HOSTS: ${TRUSTED_HOSTS:-*}
+    volumes:
+      - backend_uploads:/app/static/uploads
+    networks:
+      - library_net
+
+  # ----------------------------------------------------
+  # 3. React Frontend Application (Nginx SPA)
+  # ----------------------------------------------------
+  frontend:
+    build:
+      context: ./library-frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: /api
+        VITE_API_URL: /api
+    container_name: library_frontend
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3000:80"
+    networks:
+      - library_net
+
+networks:
+  library_net:
+    driver: bridge
+
+volumes:
+  postgres_data:
+    driver: local
+  backend_uploads:
+    driver: local

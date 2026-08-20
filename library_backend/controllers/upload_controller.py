@@ -1,6 +1,6 @@
 from fastapi import APIRouter, File, UploadFile, HTTPException, Depends
 from auth import require_permission
-from utils.cloudinary_helper import upload_to_cloudinary  # ✅ New Import
+from utils.storage_helper import smart_upload
 from utils.file_validator import validate_image, validate_pdf  # ✅ NEW: File validation (Issue #11)
 
 router = APIRouter()
@@ -10,7 +10,7 @@ router = APIRouter()
 async def upload_image(file: UploadFile = File(...)):
     """
     ✅ Book cover image upload with file size validation.
-    Cloudinary URL return karta hai.
+    Cloudflare R2 / Cloudinary URL return karta hai.
     
     Max size: 10MB
     Allowed: JPEG, PNG, WEBP
@@ -18,8 +18,8 @@ async def upload_image(file: UploadFile = File(...)):
     # ✅ 1. Validation check - Size + Type (Issue #11 Fix)
     await validate_image(file)
     
-    # 2. Upload to Cloudinary (Folder: covers)
-    url = upload_to_cloudinary(file, folder="booknest/covers")
+    # 2. Upload using smart_upload (Cloudflare R2 / Cloudinary / Local)
+    url = smart_upload(file, folder="booknest/covers", resource_type="image")
     
     # 3. Error Handling
     if not url:
@@ -34,7 +34,7 @@ async def upload_image(file: UploadFile = File(...)):
 async def upload_pdf(file: UploadFile = File(...)):
     """
     ✅ Book PDF upload with file size validation.
-    Cloudinary URL return karta hai.
+    Cloudflare R2 / Cloudinary URL return karta hai.
     
     Max size: 50MB
     Allowed: PDF only
@@ -42,8 +42,8 @@ async def upload_pdf(file: UploadFile = File(...)):
     # ✅ 1. Validation check - Size + Type (Issue #11 Fix)
     await validate_pdf(file)
         
-    # 2. Upload to Cloudinary (Folder: pdfs)
-    url = upload_to_cloudinary(file, folder="booknest/pdfs")
+    # 2. Upload using smart_upload (Cloudflare R2 / Cloudinary / Local)
+    url = smart_upload(file, folder="booknest/pdfs", resource_type="raw")
     
     # 3. Error Handling
     if not url:

@@ -8,7 +8,7 @@ from schemas.post_schema import PostResponse
 from auth import require_permission
 
 # ✅ Cloudinary Helper Import
-from utils.cloudinary_helper import upload_to_cloudinary
+from utils.storage_helper import smart_upload
 
 router = APIRouter()
 
@@ -80,9 +80,9 @@ def create_post(
                 detail="Only JPG/PNG/WebP images and PDF files are allowed."
             )
 
-        # 2. Upload to Cloudinary
-        print(f"Uploading {file.filename} to Cloudinary...") # Debugging
-        file_url = upload_to_cloudinary(file, folder="library_posts")
+        # 2. Upload using Smart Upload (R2 / Cloudinary / Local)
+        print(f"Uploading {file.filename}...") # Debugging
+        file_url = smart_upload(file, folder="library_posts", resource_type=media_type)
 
         if not file_url:
             raise HTTPException(status_code=500, detail="File upload failed on server")

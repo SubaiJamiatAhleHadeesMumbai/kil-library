@@ -1,0 +1,96 @@
+import os
+import uuid
+import mimetypes
+import boto3
+from pathlib import Path
+from botocore.config import Config
+from fastapi import UploadFile
+from dotenv import load_dotenv
+
+# Explicitly load .env from backend directory
+backend_dir = Path(__file__).resolve().parent.parent
+load_dotenv(backend_dir / ".env")
+load_dotenv()
+
+def get_r2_config():
+    return {
+        "account_id": os.getenv("R2_ACCOUNT_ID"),
+        "access_key_id": os.getenv("R2_ACCESS_KEY_ID"),
+        "secret_access_key": os.getenv("R2_SECRET_ACCESS_KEY"),
+        "bucket_name": os.getenv("R2_BUCKET_NAME", "kil-library-storage"),
+        "public_url": os.getenv("R2_PUBLIC_URL", "").rstrip("/"),
+    }
+
+def is_r2_configured() -> bool:
+    """Checks if Cloudflare R2 environment variables are present."""
+    cfg = get_r2_config()
+    return bool(cfg["account_id"] and cfg["access_key_id"] and cfg["secret_access_key"] and cfg["bucket_name"])
+
+def get_r2_client():
+    """Initializes and returns boto3 S3 client configured for Cloudflare R2."""
+    if not is_r2_configured():
+        return None
+
+    cfg = get_r2_config()
+    endpoint_url = f"https://{cfg['account_id']}.r2.cloudflarestorage.com"
+    return boto3.client(
+        "s3",
+        endpoint_url=endpoint_url,
+        aws_access_key_id=cfg["access_key_id"],
+        aws_secret_access_key=cfg["secret_access_key"],
+        config=Config(signature_version="s3v4", s3={"addressing_style": "virtual"}),
+        region_name="auto"
+    )
+
+def upload_to_r2(file: UploadFile, folder: str = "uploads") -> str | None:
+    """
+    Uploads an UploadFile directly to Cloudflare R2.
+    Returns the public accessible URL of the uploaded file.
+    """
+    if not file or not is_r2_configured():
+        return None
+
+    client = get_r2_client()
+    if not client:
+        return None
+
+    try:
+        # Determine content type
+        content_type = file.content_type
+        if not content_type:
+            content_type, _ = mimetypes.guess_type(file.filename or "")
+        if not content_type:
+            content_type = "application/octet-stream"
+
+        # Unique key name to prevent collisions
+        file_ext = os.path.splitext(file.filename or "")[1]
+        unique_name = f"{uuid.uuid4().hex[:12]}_{file.filename}"
+        clean_folder = folder.strip("/")
+        object_key = f"{clean_folder}/{unique_name}" if clean_folder else unique_name
+
+        # Reset cursor to start
+        file.file.seek(0)
+
+        cfg = get_r2_config()
+        print(f"🚀 Uploading to Cloudflare R2: {object_key} (Type: {content_type})")
+        client.upload_fileobj(
+            file.file,
+            cfg["bucket_name"],
+            object_key,
+            ExtraArgs={
+                "ContentType": content_type,
+            }
+        )
+
+        # Build public URL
+        if cfg["public_url"]:
+            public_url = f"{cfg['public_url']}/{object_key}"
+        else:
+            public_url = f"https://{cfg['bucket_name']}.r2.cloudflarestorage.com/{object_key}"
+
+        print(f"✅ R2 Upload Success: {public_url}")
+        return public_url
+
+    except Exception as e:
+        print(f"❌ Cloudflare R2 Upload Error: {e}")
+        return None
