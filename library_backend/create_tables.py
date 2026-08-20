@@ -29,6 +29,47 @@ from models.request_user_model import *
 from models.fatawa_model import *
 from models.poster_model import *
 
+from sqlalchemy import text
+
 print("Creating all tables...")
 Base.metadata.create_all(bind=engine)
-print("✅ All tables created successfully!")
+
+print("Synchronizing schema columns...")
+alter_queries = [
+    # users table columns
+    "ALTER TABLE users ADD COLUMN IF NOT EXISTS education VARCHAR(500);",
+    "ALTER TABLE users ADD COLUMN IF NOT EXISTS social_activities VARCHAR(1000);",
+    "ALTER TABLE users ADD COLUMN IF NOT EXISTS otp_code VARCHAR(6);",
+    "ALTER TABLE users ADD COLUMN IF NOT EXISTS otp_expires_at TIMESTAMP;",
+    "ALTER TABLE users ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;",
+    "ALTER TABLE users ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP;",
+    "ALTER TABLE users ADD COLUMN IF NOT EXISTS full_name VARCHAR(255);",
+    "ALTER TABLE users ADD COLUMN IF NOT EXISTS status VARCHAR(50) DEFAULT 'Active';",
+    "ALTER TABLE users ADD COLUMN IF NOT EXISTS date_joined TIMESTAMP DEFAULT CURRENT_TIMESTAMP;",
+    
+    # books table columns
+    "ALTER TABLE books ADD COLUMN IF NOT EXISTS fatawa_category_id INTEGER;",
+    "ALTER TABLE books ADD COLUMN IF NOT EXISTS txt_file_url VARCHAR;",
+    "ALTER TABLE books ADD COLUMN IF NOT EXISTS is_digital BOOLEAN DEFAULT FALSE;",
+    "ALTER TABLE books ADD COLUMN IF NOT EXISTS is_approved BOOLEAN DEFAULT FALSE;",
+    "ALTER TABLE books ADD COLUMN IF NOT EXISTS is_restricted BOOLEAN DEFAULT FALSE;",
+    "ALTER TABLE books ADD COLUMN IF NOT EXISTS total_copies INTEGER DEFAULT 1;",
+    "ALTER TABLE books ADD COLUMN IF NOT EXISTS available_copies INTEGER DEFAULT 1;",
+    "ALTER TABLE books ADD COLUMN IF NOT EXISTS published_date DATE;",
+    "ALTER TABLE books ADD COLUMN IF NOT EXISTS edition VARCHAR(100);",
+    
+    # roles table columns
+    "ALTER TABLE roles ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;",
+    "ALTER TABLE roles ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;",
+    "ALTER TABLE roles ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP;",
+]
+
+with engine.connect() as conn:
+    for q in alter_queries:
+        try:
+            conn.execute(text(q))
+        except Exception as e:
+            print(f"Notice on query: {e}")
+    conn.commit()
+
+print("✅ All tables and columns synchronized successfully!")
