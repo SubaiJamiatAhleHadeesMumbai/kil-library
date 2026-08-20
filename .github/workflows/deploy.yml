@@ -40,7 +40,8 @@ jobs:
             
             # 2. Pull Latest Code from GitHub
             echo "📦 Pulling latest changes from main branch..."
-            git pull origin main
+            git fetch origin main
+            git reset --hard origin/main
             
             # 3. Build and Start Containers
             echo "🐳 Building & restarting Docker containers..."
