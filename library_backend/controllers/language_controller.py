@@ -28,10 +28,20 @@ def create_language(
     db.refresh(new_language)
     return new_language
 
+DEFAULT_LANGUAGES = ["Urdu", "Arabic", "English", "Hindi", "Marathi"]
+
 # --- READ ALL (Public) ---
 @router.get("/", response_model=List[language_schema.Language])
 def read_languages(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
-    """Fetches a list of all languages."""
+    """Fetches a list of all languages, auto-ensuring standard defaults exist."""
+    existing_count = db.query(language_model.Language).count()
+    if existing_count == 0:
+        for lang_name in DEFAULT_LANGUAGES:
+            db.add(language_model.Language(name=lang_name))
+        try:
+            db.commit()
+        except Exception:
+            db.rollback()
     return db.query(language_model.Language).offset(skip).limit(limit).all()
 
 # --- READ ONE (Public) ---
