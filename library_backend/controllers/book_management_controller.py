@@ -147,7 +147,7 @@ async def create_book(
         remarks=remarks,
         is_restricted=is_restricted,
         is_digital=is_digital,
-        is_approved=False, 
+        is_approved=True, 
         
         # Saved URLs
         cover_image_url=cover_image_url,
@@ -160,14 +160,15 @@ async def create_book(
     db.add(new_book)
     db.flush()
 
-    # 7. Create Pending Upload Approval Request
-    pending_request = request_model.UploadRequest(
+    # 7. Create Upload Approval Record
+    upload_request = request_model.UploadRequest(
         book_id=new_book.id,
         submitted_by_id=current_user.id,
-        status='Pending',
-        remarks='Auto-generated approval request for newly uploaded book.'
+        reviewed_by_id=current_user.id,
+        status='Approved',
+        remarks='Auto-approved book uploaded by Admin.'
     )
-    db.add(pending_request)
+    db.add(upload_request)
 
     # 8. Log Actions
     create_log(
