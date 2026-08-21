@@ -234,7 +234,7 @@ const BookDetailsModal = ({
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                   >
-                    {view === "read_text" ? "ðŸ“– Reading Mode" : "âœ¨ Book Details"}
+                    {view === "read_text" ? "📖 Reading Mode" : "✨ Book Details"}
                   </motion.p>
                   <motion.h2 
                     className="text-lg md:text-xl font-black text-slate-900 truncate"
@@ -310,8 +310,8 @@ const BookDetailsModal = ({
                         transition={{ staggerChildren: 0.1 }}
                       >
                         {[
-                          { label: category, icon: "ðŸ·ï¸", color: "emerald" },
-                          { label: language, icon: "ðŸŒ", color: "blue" },
+                          { label: category, icon: "🏷️", color: "emerald" },
+                          { label: language, icon: "🌐", color: "blue" },
                         ].map((badge, idx) => (
                           <motion.span
                             key={idx}

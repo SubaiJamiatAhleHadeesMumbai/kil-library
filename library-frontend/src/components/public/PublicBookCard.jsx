@@ -184,9 +184,9 @@ const PublicBookCard = ({
           title={isFavorite ? "Remove Favorite" : "Add Favorite"}
         >
           {isFavorite ? (
-            <span className="text-lg animate-bounce">â¤ï¸</span>
+            <span className="text-lg animate-bounce">❤️</span>
           ) : (
-            <span className="text-lg hover:text-red-500 transition">ðŸ¤</span>
+            <span className="text-lg hover:text-red-500 transition">🔖</span>
           )}
         </motion.button>
       )}

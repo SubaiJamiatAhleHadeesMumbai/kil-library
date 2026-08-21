@@ -171,14 +171,14 @@ const PublicBookCard = ({
         </div>
       </div>
 
-      {/* â¤ï¸ Favorite */}
+      {/* Favorite Button */}
       {typeof onToggleFavorite === "function" && (
         <button
           onClick={(e) => onToggleFavorite(e, book?.id)}
           className="absolute bottom-2 right-2 z-20 rounded-full border border-gray-200 bg-white px-2.5 py-1 text-[10px] font-bold shadow-md transition hover:bg-gray-50 sm:bottom-3 sm:right-3 sm:px-3 sm:py-1.5 sm:text-[11px]"
           title={isFavorite ? "Remove Favorite" : "Add Favorite"}
         >
-          {isFavorite ? "â¤ï¸ Saved" : "ðŸ¤ Save"}
+          {isFavorite ? "❤️ Saved" : "🔖 Save"}
         </button>
       )}
 
@@ -563,7 +563,7 @@ const UserLibrary = () => {
               value={selectedLanguage}
               onChange={(e) => setSelectedLanguage(e.target.value)}
             >
-              <option value="all">ðŸŒ All Languages</option>
+              <option value="all">🌐 All Languages</option>
               <option value="english">English</option>
               <option value="urdu">Urdu</option>
               <option value="arabic">Arabic</option>

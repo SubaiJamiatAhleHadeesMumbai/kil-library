@@ -103,7 +103,7 @@ const MarkazFeed = () => {
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div>
               <h1 className="page-title text-gray-900 max-w-3xl">
-                ðŸ“¢ Markaz Updates
+                📢 Markaz Updates
               </h1>
               <p className="body-copy mt-1">
                 Official announcements, notices, circulars and important updates.
@@ -114,7 +114,7 @@ const MarkazFeed = () => {
               onClick={fetchPosts}
               className="inline-flex items-center justify-center px-4 py-2 rounded-xl border border-gray-200 bg-white hover:bg-gray-100 text-gray-700 font-semibold transition"
             >
-              ðŸ”„ Refresh
+              🔄 Refresh
             </button>
           </div>
         </div>
@@ -134,7 +134,7 @@ const MarkazFeed = () => {
         {/* Error */}
         {!loading && error && (
           <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-2xl">
-            <p className="font-semibold">âš ï¸ {error}</p>
+            <p className="font-semibold">⚠️ {error}</p>
             <p className="text-sm mt-1">Please check your internet or backend server.</p>
           </div>
         )}
@@ -142,7 +142,7 @@ const MarkazFeed = () => {
         {/* Empty */}
         {emptyState && (
           <div className="bg-white border border-gray-200 rounded-2xl shadow-sm p-10 text-center">
-            <div className="text-4xl mb-3">ðŸ“­</div>
+            <div className="text-4xl mb-3">📭</div>
             <h2 className="section-title text-gray-900">No announcements yet</h2>
             <p className="text-gray-500 mt-1">
               When admin publishes updates, they will appear here.
@@ -221,7 +221,7 @@ const MarkazFeed = () => {
                                 onClick={() => openImagePreview(fullFileUrl, post.title)}
                                 className="text-sm font-semibold px-3 py-1 rounded-xl border border-gray-200 hover:bg-gray-100 transition"
                               >
-                                ðŸ” Preview
+                                🔍 Preview
                               </button>
                             </div>
                           </div>
@@ -236,7 +236,7 @@ const MarkazFeed = () => {
                           >
                             <div className="flex items-center gap-3">
                               <div className="w-10 h-10 rounded-xl bg-red-50 border border-red-100 flex items-center justify-center">
-                                ðŸ“„
+                                📄
                               </div>
                               <div>
                                 <p className="font-bold text-gray-900">View PDF Notice</p>
