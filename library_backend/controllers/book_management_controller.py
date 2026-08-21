@@ -186,6 +186,7 @@ async def create_book(
 
 
 @router.put("/{book_id}", response_model=book_schema.Book)
+@router.put("/{book_id}/", response_model=book_schema.Book, include_in_schema=False)
 async def update_book(
     book_id: int,
     title: Optional[str] = Form(None),
@@ -297,6 +298,7 @@ async def update_book(
 
 
 @router.delete("/{book_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/{book_id}/", status_code=status.HTTP_204_NO_CONTENT, include_in_schema=False)
 def delete_book(
     book_id: int,
     db: Session = Depends(get_db),

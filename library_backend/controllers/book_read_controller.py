@@ -444,6 +444,7 @@ def deep_search_all_books(
 # 📖 READ SINGLE BOOK BY ID
 # ==================================
 @router.get("/{book_id}", response_model=book_schema.Book)
+@router.get("/{book_id}/", response_model=book_schema.Book, include_in_schema=False)
 def read_book(
     book_id: int,
     db: Session = Depends(get_db),

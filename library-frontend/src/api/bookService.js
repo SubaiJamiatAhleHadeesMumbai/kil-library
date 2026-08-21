@@ -41,7 +41,7 @@ export const bookService = {
 
     async getBookById(bookId) {
         try {
-            const response = await apiClient.get(`/api/books/${bookId}/`);
+            const response = await apiClient.get(`/api/books/${bookId}`);
             return response.data;
         } catch (error) {
             console.error(`Error fetching book ${bookId}:`, error);
@@ -70,7 +70,7 @@ export const bookService = {
      */
     async updateBook(bookId, formData) {
         try {
-            const response = await apiClient.put(`/api/books/${bookId}/`, formData, {
+            const response = await apiClient.put(`/api/books/${bookId}`, formData, {
                 headers: { 'Content-Type': 'multipart/form-data' },
             });
             return response.data;
@@ -82,7 +82,7 @@ export const bookService = {
 
     async deleteBook(bookId) {
         try {
-            const response = await apiClient.delete(`/api/books/${bookId}/`);
+            const response = await apiClient.delete(`/api/books/${bookId}`);
             return response.data;
         } catch (error) {
             console.error(`Error deleting book ${bookId}:`, error);
