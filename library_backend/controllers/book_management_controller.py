@@ -108,15 +108,13 @@ async def create_book(
     if cover_image:
         cover_image_url = smart_upload(cover_image, folder="booknest/covers", resource_type="image")
     
-    # B. PDF -> Local Directory ✅
+    # B. PDF -> Smart Upload (R2 / Cloudinary / Local Fallback)
     if pdf_file:
-        pdf_url = save_pdf_locally(pdf_file)
+        pdf_url = smart_upload(pdf_file, folder="booknest/pdfs")
 
-    # C. Text File -> Local Directory ✅
+    # C. Text File -> Smart Upload (R2 / Cloudinary / Local Fallback)
     if txt_file:
-        print(f"🚀 Uploading Text File Locally: {txt_file.filename}")
-        txt_file_url = save_txt_locally(txt_file)
-        print(f"✅ Text File Uploaded: {txt_file_url}")
+        txt_file_url = smart_upload(txt_file, folder="booknest/texts")
 
     # 5. Handle Subcategories
     db_subcategories = []
@@ -258,15 +256,13 @@ async def update_book(
     if cover_image:
         db_book.cover_image_url = smart_upload(cover_image, folder="booknest/covers", resource_type="image")
 
-    # ✅ PDF Update -> Local Directory
+    # ✅ PDF Update -> Smart Upload (R2 / Cloudinary / Local Fallback)
     if pdf_file:
-        db_book.pdf_url = save_pdf_locally(pdf_file)
+        db_book.pdf_url = smart_upload(pdf_file, folder="booknest/pdfs")
 
-    # ✅ Text File Update -> Local Directory
+    # ✅ Text File Update -> Smart Upload (R2 / Cloudinary / Local Fallback)
     if txt_file:
-        print(f"🚀 Updating Text File Locally: {txt_file.filename}")
-        db_book.txt_file_url = save_txt_locally(txt_file)
-        print(f"✅ Text File Updated: {db_book.txt_file_url}")
+        db_book.txt_file_url = smart_upload(txt_file, folder="booknest/texts")
 
     # Approval Reset Logic
     db_book.is_approved = False 
