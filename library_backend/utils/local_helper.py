@@ -8,10 +8,12 @@ from fastapi import UploadFile
 BASE_DIR = Path(__file__).resolve().parent.parent
 PDF_DIR = BASE_DIR / "static" / "uploads" / "pdfs"
 TXT_DIR = BASE_DIR / "static" / "uploads" / "texts"
+IMAGE_DIR = BASE_DIR / "static" / "uploads" / "images"
 
 # Ensure directories exist
 PDF_DIR.mkdir(parents=True, exist_ok=True)
 TXT_DIR.mkdir(parents=True, exist_ok=True)
+IMAGE_DIR.mkdir(parents=True, exist_ok=True)
 
 
 def resolve_upload_path(url_path: str | None):
@@ -112,4 +114,36 @@ def save_txt_locally(file: UploadFile):
 
     except Exception as e:
         print(f"❌ Local TXT Save Error: {e}")
+        return None
+
+def save_image_locally(file: UploadFile):
+    """Saves an image file locally and returns the public URL path."""
+    if not file:
+        return None
+
+    try:
+        print(f"🚀 Saving Image locally: {file.filename}")
+        
+        file_ext = Path(file.filename or "image.jpg").suffix.lower()
+        if not file_ext or file_ext not in {".jpg", ".jpeg", ".png", ".webp", ".gif", ".svg", ".avif"}:
+            file_ext = ".jpg"
+                
+        # Generate unique filename
+        unique_filename = f"{uuid.uuid4()}{file_ext}"
+        upload_dir = _ensure_dir(IMAGE_DIR)
+        file_path = upload_dir / unique_filename
+        
+        # Save file to the local directory
+        if hasattr(file.file, "seek"):
+            file.file.seek(0)
+        with open(file_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+            
+        # Return frontend URL
+        local_url = f"/uploads/images/{unique_filename}"
+        print(f"✅ Local Image Upload Success: {local_url}")
+        return local_url
+
+    except Exception as e:
+        print(f"❌ Local Image Save Error: {e}")
         return None

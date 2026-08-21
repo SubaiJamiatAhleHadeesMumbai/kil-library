@@ -11,8 +11,8 @@ from auth import require_permission, get_current_user_optional
 from database import get_db
 from utils import create_log
 
-# ✅ Changed Imports: Cover image ke liye Cloudinary, PDF aur TXT ke liye Local Helper
-from utils.cloudinary_helper import upload_to_cloudinary
+# ✅ Smart Multi-Storage Upload Helper
+from utils.storage_helper import smart_upload
 from utils.local_helper import save_pdf_locally, save_txt_locally
 
 router = APIRouter()
@@ -104,9 +104,9 @@ async def create_book(
 
     print(f"📥 Received Files -> Cover: {cover_image.filename if cover_image else 'No'}, PDF: {pdf_file.filename if pdf_file else 'No'}, TXT: {txt_file.filename if txt_file else 'No'}")
 
-    # A. Cover Image -> Cloudinary
+    # A. Cover Image -> Smart Upload (R2 / Cloudinary / Local Fallback)
     if cover_image:
-        cover_image_url = upload_to_cloudinary(cover_image, folder="booknest/covers", resource_type="image")
+        cover_image_url = smart_upload(cover_image, folder="booknest/covers", resource_type="image")
     
     # B. PDF -> Local Directory ✅
     if pdf_file:
@@ -255,7 +255,7 @@ async def update_book(
 
     # Update Files
     if cover_image:
-        db_book.cover_image_url = upload_to_cloudinary(cover_image, folder="booknest/covers", resource_type="image")
+        db_book.cover_image_url = smart_upload(cover_image, folder="booknest/covers", resource_type="image")
 
     # ✅ PDF Update -> Local Directory
     if pdf_file:

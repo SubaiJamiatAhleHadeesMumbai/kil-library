@@ -1,8 +1,8 @@
-﻿import os
+import os
 from fastapi import UploadFile
 from utils.r2_helper import is_r2_configured, upload_to_r2
 from utils.cloudinary_helper import upload_to_cloudinary
-from utils.local_helper import save_pdf_locally, save_txt_locally
+from utils.local_helper import save_pdf_locally, save_txt_locally, save_image_locally
 
 def is_cloudinary_configured() -> bool:
     return bool(
@@ -37,5 +37,7 @@ def smart_upload(file: UploadFile, folder: str = "library_uploads", resource_typ
     filename = (file.filename or "").lower()
     if filename.endswith(".pdf"):
         return save_pdf_locally(file)
+    elif any(filename.endswith(ext) for ext in [".jpg", ".jpeg", ".png", ".webp", ".gif", ".svg", ".avif"]):
+        return save_image_locally(file)
     else:
         return save_txt_locally(file)
