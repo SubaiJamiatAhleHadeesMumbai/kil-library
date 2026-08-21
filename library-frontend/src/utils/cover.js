@@ -15,7 +15,7 @@ const buildUrl = (path) => {
   if (!path) return null;
 
   // Agar already full URL hai
-  if (path.startsWith("http")) return path;
+  if (path.startsWith("http://") || path.startsWith("https://")) return path;
 
   // Windows Path Fix (\ -> /)
   let cleanPath = path.replace(/\\/g, "/");
@@ -23,14 +23,13 @@ const buildUrl = (path) => {
   // Leading Slash Fix (/uploads -> uploads)
   if (cleanPath.startsWith("/")) cleanPath = cleanPath.substring(1);
 
-  // Static Prefix Logic
-  // Backend 'uploads/img.png' bhejta hai, hum 'static/uploads/img.png' banayenge
-  if (!cleanPath.startsWith("static/")) {
-    cleanPath = `static/${cleanPath}`;
+  // Remove unnecessary 'static/' prefix if present
+  if (cleanPath.startsWith("static/uploads/")) {
+    cleanPath = cleanPath.substring(7);
   }
 
   // Final URL Construction
-  return `${API_BASE_URL}/${cleanPath}`;
+  return API_BASE_URL ? `${API_BASE_URL}/${cleanPath}` : `/${cleanPath}`;
 };
 
 /**
