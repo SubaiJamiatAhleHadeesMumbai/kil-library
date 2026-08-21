@@ -1,7 +1,9 @@
 import os
 import re
+import httpx
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi.responses import StreamingResponse, FileResponse
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import or_, func # ✅ func add kiya case-insensitive check ke liye
 
@@ -489,3 +491,75 @@ def read_book(
 
     setattr(db_book, "user_has_access", has_access)
     return db_book
+
+
+# ==================================
+# 📥 SAME-ORIGIN PDF STREAM ROUTE (Zero CORS Issue)
+# ==================================
+@router.get("/{book_id}/stream-pdf", tags=["Books (Read)"])
+@router.get("/{book_id}/pdf", tags=["Books (Read)"])
+async def stream_book_pdf(
+    book_id: int,
+    db: Session = Depends(get_db),
+    current_user: Optional[user_model.User] = Depends(get_current_user_optional)
+):
+    db_book = get_book_by_id_internal(db, book_id)
+    if not db_book or not db_book.pdf_url:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="PDF not found for this book")
+
+    # 1. Approval Check
+    if not db_book.is_approved:
+        if not current_user or (current_user.role.name.lower() not in ['admin', 'superadmin']):
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Book not found.")
+
+    # 2. Restricted Access Check
+    if db_book.is_restricted:
+        has_access = False
+        if current_user and hasattr(current_user, 'role') and current_user.role.name.lower() in ['admin', 'superadmin']:
+            has_access = True
+        elif current_user:
+            accessible_ids = _get_accessible_book_ids(db, current_user)
+            if db_book.id in accessible_ids:
+                has_access = True
+        if not has_access:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access to this restricted PDF is not granted.")
+
+    raw_url = str(db_book.pdf_url).strip()
+
+    # Case A: Local File
+    if not raw_url.startswith("http://") and not raw_url.startswith("https://"):
+        local_path = resolve_upload_path(raw_url)
+        if local_path and os.path.exists(local_path):
+            return FileResponse(
+                path=local_path,
+                media_type="application/pdf",
+                headers={
+                    "Access-Control-Allow-Origin": "*",
+                    "Access-Control-Allow-Methods": "GET, HEAD, OPTIONS",
+                    "Access-Control-Allow-Headers": "*",
+                    "Content-Disposition": f'inline; filename="{os.path.basename(local_path)}"',
+                    "Cache-Control": "public, max-age=86400"
+                }
+            )
+
+    # Case B: Cloudflare R2 / Remote CDN URL
+    async def pdf_stream_generator():
+        async with httpx.AsyncClient(follow_redirects=True, timeout=60.0) as client:
+            async with client.stream("GET", raw_url) as resp:
+                if resp.status_code != 200:
+                    return
+                async for chunk in resp.aiter_bytes(chunk_size=65536):
+                    yield chunk
+
+    filename = os.path.basename(raw_url.split("?")[0]) or f"book_{book_id}.pdf"
+    return StreamingResponse(
+        pdf_stream_generator(),
+        media_type="application/pdf",
+        headers={
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "GET, HEAD, OPTIONS",
+            "Access-Control-Allow-Headers": "*",
+            "Content-Disposition": f'inline; filename="{filename}"',
+            "Cache-Control": "public, max-age=86400"
+        }
+    )

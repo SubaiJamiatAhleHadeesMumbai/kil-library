@@ -58,19 +58,14 @@ const PdfLoadingState = () => (
     </div>
 );
 
-// --- PDF failed-to-render fallback ---
+// --- PDF fallback (Native in-browser iframe viewer) ---
 const PdfErrorState = ({ pdfUrl }) => (
-    <div className="flex flex-col items-center justify-center gap-3 h-full text-center px-4">
-        <FileWarning className="w-8 h-8 text-amber-500" />
-        <p className="text-sm text-gray-600">Preview couldn't load in-browser.</p>
-        <a
-            href={pdfUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 text-xs font-semibold text-indigo-600 hover:text-indigo-700"
-        >
-            Open PDF directly <ExternalLink className="w-3 h-3" />
-        </a>
+    <div className="w-full h-full min-h-[550px] flex flex-col bg-slate-100 rounded-lg overflow-hidden">
+        <iframe
+            src={pdfUrl}
+            title="Book PDF Viewer"
+            className="w-full flex-1 min-h-[550px] border-0 bg-white"
+        />
     </div>
 );
 
@@ -291,8 +286,10 @@ const BookDetail = () => {
     }
 
     const coverImageUrl = getBookCover(book);
-    const pdfUrl = getCoverUrl(book.pdf_url || book.pdf_file);
-    const hasValidPdf = pdfUrl && !pdfUrl.includes("No+Cover");
+    const rawPdfUrl = getCoverUrl(book.pdf_url || book.pdf_file);
+    const hasValidPdf = Boolean(rawPdfUrl && !rawPdfUrl.includes("No+Cover"));
+    const pdfStreamUrl = hasValidPdf ? `/api/books/${book.id}/stream-pdf` : null;
+    const pdfUrl = pdfStreamUrl || rawPdfUrl;
     const description = book.description?.trim();
     const isLongDesc = description && description.length > 220;
 
