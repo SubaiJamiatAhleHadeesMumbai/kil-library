@@ -179,7 +179,7 @@ async def create_book(
     create_log(
         db=db, user=current_user, action_type="UPLOAD_REQUEST_CREATED",
         description=f"Upload approval requested for Book ID {new_book.id}.",
-        target_type="UploadRequest", target_id=pending_request.id
+        target_type="UploadRequest", target_id=upload_request.id
     )
 
     db.commit()
