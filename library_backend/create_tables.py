@@ -203,4 +203,45 @@ sync_table_columns(
     }
 )
 
+# 7. Upload Requests
+sync_table_columns(
+    "upload_requests",
+    {
+        "RequestID": "id",
+        "BookID": "book_id",
+        "UserID": "submitted_by_id",
+        "SubmittedByID": "submitted_by_id",
+        "ReviewedByID": "reviewed_by_id",
+        "Status": "status",
+        "SubmittedAt": "submitted_at",
+        "ReviewedAt": "reviewed_at",
+        "Remarks": "remarks"
+    },
+    {
+        "book_id": "INTEGER",
+        "submitted_by_id": "INTEGER",
+        "reviewed_by_id": "INTEGER",
+        "status": "VARCHAR(50) DEFAULT 'Pending'",
+        "submitted_at": "TIMESTAMP DEFAULT CURRENT_TIMESTAMP",
+        "reviewed_at": "TIMESTAMP",
+        "remarks": "VARCHAR(500)"
+    }
+)
+
+# 8. Book Requests
+sync_table_columns(
+    "book_requests",
+    {
+        "RequestID": "id",
+        "BookID": "book_id",
+        "UserID": "user_id",
+        "Status": "status"
+    },
+    {
+        "book_id": "INTEGER",
+        "user_id": "INTEGER",
+        "status": "VARCHAR(50) DEFAULT 'Pending'"
+    }
+)
+
 print("✅ All tables and columns synchronized successfully!")
