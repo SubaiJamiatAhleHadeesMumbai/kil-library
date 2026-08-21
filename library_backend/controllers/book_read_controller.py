@@ -1,6 +1,6 @@
 import os
 import re
-import httpx
+import urllib.request
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from fastapi.responses import StreamingResponse, FileResponse
@@ -543,13 +543,14 @@ async def stream_book_pdf(
             )
 
     # Case B: Cloudflare R2 / Remote CDN URL
-    async def pdf_stream_generator():
-        async with httpx.AsyncClient(follow_redirects=True, timeout=60.0) as client:
-            async with client.stream("GET", raw_url) as resp:
-                if resp.status_code != 200:
-                    return
-                async for chunk in resp.aiter_bytes(chunk_size=65536):
-                    yield chunk
+    def pdf_stream_generator():
+        req = urllib.request.Request(raw_url, headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"})
+        with urllib.request.urlopen(req, timeout=60) as response:
+            while True:
+                chunk = response.read(65536)
+                if not chunk:
+                    break
+                yield chunk
 
     filename = os.path.basename(raw_url.split("?")[0]) or f"book_{book_id}.pdf"
     return StreamingResponse(
