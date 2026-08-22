@@ -27,6 +27,7 @@ import {
     ComputerDesktopIcon,
     ChevronLeftIcon,
     ChevronRightIcon,
+    ChevronDownIcon,
     TableCellsIcon,
     DocumentArrowUpIcon
 } from '@heroicons/react/24/outline';
@@ -549,113 +550,50 @@ const BookManagement = () => {
 
                 {/* --- PAGINATION FOOTER --- */}
                 {filteredBooks.length > 0 && (
-                    <div className="px-6 py-4 border-t border-slate-200/80 flex flex-col sm:flex-row items-center justify-between gap-4 bg-slate-50/50">
-                        {/* Rows Per Page & Info */}
-                        <div className="flex items-center gap-4 flex-wrap justify-center sm:justify-start">
-                            <div className="flex items-center gap-2">
-                                <span className="text-xs font-semibold text-slate-500">Rows per page:</span>
+                    <div className="px-6 py-4 border-t border-slate-200/80 flex flex-col sm:flex-row items-center justify-between gap-4 bg-slate-50/70">
+                        {/* Rows Per Page Dropdown */}
+                        <div className="flex items-center gap-2">
+                            <span className="text-xs font-semibold text-slate-500">Rows per page:</span>
+                            <div className="relative inline-block">
                                 <select
                                     value={itemsPerPage}
                                     onChange={(e) => {
                                         setItemsPerPage(Number(e.target.value));
                                         setCurrentPage(1);
                                     }}
-                                    className="rounded-lg border border-slate-300 bg-white px-2.5 py-1 text-xs font-bold text-slate-700 shadow-2xs outline-none focus:border-emerald-500 cursor-pointer"
+                                    className="bg-white border border-slate-300 hover:border-slate-400 text-slate-800 text-xs font-bold rounded-lg px-3 py-1.5 pr-8 appearance-none cursor-pointer outline-none shadow-2xs focus:ring-2 focus:ring-emerald-500"
                                 >
                                     <option value={10}>10</option>
                                     <option value={25}>25</option>
                                     <option value={50}>50</option>
                                     <option value={100}>100</option>
                                 </select>
+                                <ChevronDownIcon className="w-3.5 h-3.5 text-slate-500 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                             </div>
-
-                            <span className="text-xs text-slate-500 font-medium">
-                                Showing <span className="font-bold text-slate-900">{(currentPage - 1) * itemsPerPage + 1}</span> to <span className="font-bold text-slate-900">{Math.min(currentPage * itemsPerPage, filteredBooks.length)}</span> of <span className="font-bold text-slate-900">{filteredBooks.length}</span> books
+                            <span className="text-xs text-slate-400 ml-2">
+                                Showing {(currentPage - 1) * itemsPerPage + 1} - {Math.min(currentPage * itemsPerPage, filteredBooks.length)} of {filteredBooks.length}
                             </span>
                         </div>
 
-                        {/* Page Buttons */}
+                        {/* Page Navigation */}
                         {totalPages > 1 && (
-                            <div className="flex items-center gap-1.5 flex-wrap justify-center">
+                            <div className="flex items-center gap-1.5">
                                 <button
                                     onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                                     disabled={currentPage === 1}
-                                    className="inline-flex items-center gap-1 px-3 py-1.5 border border-slate-200/80 rounded-xl bg-white text-xs font-bold text-slate-700 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-2xs"
+                                    className="inline-flex items-center gap-1 px-3 py-1.5 border border-slate-200 rounded-xl bg-white text-xs font-bold text-slate-700 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-2xs"
                                 >
                                     <ChevronLeftIcon className="w-4 h-4" /> Previous
                                 </button>
 
-                                {(() => {
-                                    const pages = [];
-                                    const maxVisible = 5;
-                                    let startPage = Math.max(1, currentPage - Math.floor(maxVisible / 2));
-                                    let endPage = Math.min(totalPages, startPage + maxVisible - 1);
-
-                                    if (endPage - startPage + 1 < maxVisible) {
-                                        startPage = Math.max(1, endPage - maxVisible + 1);
-                                    }
-
-                                    if (startPage > 1) {
-                                        pages.push(
-                                            <button
-                                                key={1}
-                                                onClick={() => setCurrentPage(1)}
-                                                className={`w-7 h-7 rounded-lg text-xs font-bold transition-all ${
-                                                    currentPage === 1
-                                                        ? "bg-slate-900 text-white shadow-xs"
-                                                        : "bg-white text-slate-700 border border-slate-200 hover:bg-slate-100"
-                                                }`}
-                                            >
-                                                1
-                                            </button>
-                                        );
-                                        if (startPage > 2) {
-                                            pages.push(<span key="dots-start" className="px-1 text-slate-400 text-xs">...</span>);
-                                        }
-                                    }
-
-                                    for (let p = startPage; p <= endPage; p++) {
-                                        pages.push(
-                                            <button
-                                                key={p}
-                                                onClick={() => setCurrentPage(p)}
-                                                className={`w-7 h-7 rounded-lg text-xs font-bold transition-all ${
-                                                    currentPage === p
-                                                        ? "bg-slate-900 text-white shadow-xs"
-                                                        : "bg-white text-slate-700 border border-slate-200 hover:bg-slate-100"
-                                                }`}
-                                            >
-                                                {p}
-                                            </button>
-                                        );
-                                    }
-
-                                    if (endPage < totalPages) {
-                                        if (endPage < totalPages - 1) {
-                                            pages.push(<span key="dots-end" className="px-1 text-slate-400 text-xs">...</span>);
-                                        }
-                                        pages.push(
-                                            <button
-                                                key={totalPages}
-                                                onClick={() => setCurrentPage(totalPages)}
-                                                className={`w-7 h-7 rounded-lg text-xs font-bold transition-all ${
-                                                    currentPage === totalPages
-                                                        ? "bg-slate-900 text-white shadow-xs"
-                                                        : "bg-white text-slate-700 border border-slate-200 hover:bg-slate-100"
-                                                }`}
-                                            >
-                                                {totalPages}
-                                            </button>
-                                        );
-                                    }
-
-                                    return pages;
-                                })()}
+                                <span className="text-xs text-slate-600 font-bold px-2">
+                                    Page {currentPage} of {totalPages}
+                                </span>
 
                                 <button
                                     onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                                     disabled={currentPage === totalPages}
-                                    className="inline-flex items-center gap-1 px-3 py-1.5 border border-slate-200/80 rounded-xl bg-white text-xs font-bold text-slate-700 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-2xs"
+                                    className="inline-flex items-center gap-1 px-3 py-1.5 border border-slate-200 rounded-xl bg-white text-xs font-bold text-slate-700 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-2xs"
                                 >
                                     Next <ChevronRightIcon className="w-4 h-4" />
                                 </button>

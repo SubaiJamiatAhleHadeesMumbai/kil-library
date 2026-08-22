@@ -23,6 +23,7 @@ import {
   LockClosedIcon as LockOutline,
   ChevronRightIcon,
   ChevronLeftIcon,
+  ChevronDownIcon,
   SparklesIcon,
   Squares2X2Icon,
   ListBulletIcon,
@@ -214,7 +215,7 @@ const UserLibrary = () => {
   const [showScrollTop, setShowScrollTop] = useState(false);
   const activeRequestRef = useRef(0);
 
-  // Pagination State (Rows per page: 10, 25, 50, 100)
+  // Pagination State (Items per page dropdown: 10, 25, 50, 100)
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(25);
 
@@ -710,13 +711,13 @@ const UserLibrary = () => {
               </AnimatePresence>
             </motion.div>
 
-            {/* 📄 CLEAN PAGINATION BAR WITH ROWS PER PAGE */}
+            {/* 📄 CLEAN PAGINATION BAR WITH ROWS PER PAGE DROPDOWN */}
             {finalDisplayBooks.length > 0 && (
-              <div className="mt-12 flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-slate-200 pt-6">
-                {/* Left: Rows Per Page & Count */}
-                <div className="flex items-center gap-4 flex-wrap justify-center sm:justify-start">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-semibold text-slate-500">Books per page:</span>
+              <div className="mt-12 flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-slate-200 pt-6 bg-slate-50/50 p-4 rounded-2xl border border-slate-100">
+                {/* Books Per Page Dropdown */}
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-semibold text-slate-500">Books per page:</span>
+                  <div className="relative inline-block">
                     <select
                       value={itemsPerPage}
                       onChange={(e) => {
@@ -724,36 +725,35 @@ const UserLibrary = () => {
                         setCurrentPage(1);
                         scrollToTop();
                       }}
-                      className="rounded-lg border border-slate-300 bg-white px-2.5 py-1 text-xs font-bold text-slate-700 shadow-2xs outline-none focus:border-emerald-500 cursor-pointer"
+                      className="bg-white border border-slate-300 hover:border-slate-400 text-slate-800 text-xs font-bold rounded-lg px-3 py-1.5 pr-8 appearance-none cursor-pointer outline-none shadow-2xs focus:ring-2 focus:ring-[#002147]"
                     >
                       <option value={10}>10</option>
                       <option value={25}>25</option>
                       <option value={50}>50</option>
                       <option value={100}>100</option>
                     </select>
+                    <ChevronDownIcon className="w-3.5 h-3.5 text-slate-500 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                   </div>
-
-                  <div className="text-xs text-slate-500 font-medium">
-                    Showing <span className="font-bold text-slate-900">{(currentPage - 1) * itemsPerPage + 1}</span> to <span className="font-bold text-slate-900">{Math.min(currentPage * itemsPerPage, finalDisplayBooks.length)}</span> of <span className="font-bold text-slate-900">{finalDisplayBooks.length}</span> books
-                  </div>
+                  <span className="text-xs text-slate-400 ml-2">
+                    Showing {(currentPage - 1) * itemsPerPage + 1} - {Math.min(currentPage * itemsPerPage, finalDisplayBooks.length)} of {finalDisplayBooks.length}
+                  </span>
                 </div>
 
-                {totalPages > 1 && (
-                  <div className="flex items-center gap-1.5 flex-wrap justify-center">
-                    {/* Previous Button */}
-                    <button
-                      onClick={() => {
-                        if (currentPage > 1) {
-                          setCurrentPage(p => p - 1);
-                          scrollToTop();
-                        }
-                      }}
-                      disabled={currentPage === 1}
-                      className="inline-flex items-center gap-1 px-3.5 py-2 rounded-xl text-xs font-bold border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-xs"
-                    >
-                      <ChevronLeftIcon className="w-4 h-4" />
-                      <span>Previous</span>
-                    </button>
+                <div className="flex items-center gap-1.5 flex-wrap justify-center">
+                  {/* Previous Button */}
+                  <button
+                    onClick={() => {
+                      if (currentPage > 1) {
+                        setCurrentPage(p => p - 1);
+                        scrollToTop();
+                      }
+                    }}
+                    disabled={currentPage === 1}
+                    className="inline-flex items-center gap-1 px-3.5 py-2 rounded-xl text-xs font-bold border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-xs"
+                  >
+                    <ChevronLeftIcon className="w-4 h-4" />
+                    <span>Previous</span>
+                  </button>
 
                   {/* Page Numbers */}
                   {(() => {
@@ -838,8 +838,8 @@ const UserLibrary = () => {
                     <ChevronRightIcon className="w-4 h-4" />
                   </button>
                 </div>
-              )}
-            </div>
+              </div>
+            )}
           </div>
         ) : (
           /* Empty State */
