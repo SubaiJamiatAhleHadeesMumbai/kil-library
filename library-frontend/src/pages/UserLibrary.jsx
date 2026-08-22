@@ -214,9 +214,9 @@ const UserLibrary = () => {
   const [showScrollTop, setShowScrollTop] = useState(false);
   const activeRequestRef = useRef(0);
 
-  // Pagination State (10 items per page)
+  // Pagination State (Rows per page: 10, 25, 50, 100)
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10;
+  const [itemsPerPage, setItemsPerPage] = useState(25);
 
   // --- MODAL & FLOW ---
   const [selectedBook, setSelectedBook] = useState(null);
@@ -710,28 +710,50 @@ const UserLibrary = () => {
               </AnimatePresence>
             </motion.div>
 
-            {/* 📄 CLEAN 10-ITEM PAGINATION BAR */}
-            {totalPages > 1 && (
+            {/* 📄 CLEAN PAGINATION BAR WITH ROWS PER PAGE */}
+            {finalDisplayBooks.length > 0 && (
               <div className="mt-12 flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-slate-200 pt-6">
-                <div className="text-xs text-slate-500 font-medium">
-                  Showing page <span className="font-bold text-slate-900">{currentPage}</span> of <span className="font-bold text-slate-900">{totalPages}</span>
+                {/* Left: Rows Per Page & Count */}
+                <div className="flex items-center gap-4 flex-wrap justify-center sm:justify-start">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-semibold text-slate-500">Books per page:</span>
+                    <select
+                      value={itemsPerPage}
+                      onChange={(e) => {
+                        setItemsPerPage(Number(e.target.value));
+                        setCurrentPage(1);
+                        scrollToTop();
+                      }}
+                      className="rounded-lg border border-slate-300 bg-white px-2.5 py-1 text-xs font-bold text-slate-700 shadow-2xs outline-none focus:border-emerald-500 cursor-pointer"
+                    >
+                      <option value={10}>10</option>
+                      <option value={25}>25</option>
+                      <option value={50}>50</option>
+                      <option value={100}>100</option>
+                    </select>
+                  </div>
+
+                  <div className="text-xs text-slate-500 font-medium">
+                    Showing <span className="font-bold text-slate-900">{(currentPage - 1) * itemsPerPage + 1}</span> to <span className="font-bold text-slate-900">{Math.min(currentPage * itemsPerPage, finalDisplayBooks.length)}</span> of <span className="font-bold text-slate-900">{finalDisplayBooks.length}</span> books
+                  </div>
                 </div>
 
-                <div className="flex items-center gap-1.5 flex-wrap justify-center">
-                  {/* Previous Button */}
-                  <button
-                    onClick={() => {
-                      if (currentPage > 1) {
-                        setCurrentPage(p => p - 1);
-                        scrollToTop();
-                      }
-                    }}
-                    disabled={currentPage === 1}
-                    className="inline-flex items-center gap-1 px-3.5 py-2 rounded-xl text-xs font-bold border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-xs"
-                  >
-                    <ChevronLeftIcon className="w-4 h-4" />
-                    <span>Previous</span>
-                  </button>
+                {totalPages > 1 && (
+                  <div className="flex items-center gap-1.5 flex-wrap justify-center">
+                    {/* Previous Button */}
+                    <button
+                      onClick={() => {
+                        if (currentPage > 1) {
+                          setCurrentPage(p => p - 1);
+                          scrollToTop();
+                        }
+                      }}
+                      disabled={currentPage === 1}
+                      className="inline-flex items-center gap-1 px-3.5 py-2 rounded-xl text-xs font-bold border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-xs"
+                    >
+                      <ChevronLeftIcon className="w-4 h-4" />
+                      <span>Previous</span>
+                    </button>
 
                   {/* Page Numbers */}
                   {(() => {
@@ -816,8 +838,8 @@ const UserLibrary = () => {
                     <ChevronRightIcon className="w-4 h-4" />
                   </button>
                 </div>
-              </div>
-            )}
+              )}
+            </div>
           </div>
         ) : (
           /* Empty State */

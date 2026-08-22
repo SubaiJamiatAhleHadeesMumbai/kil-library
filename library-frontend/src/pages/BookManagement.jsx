@@ -73,7 +73,7 @@ const BookManagement = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState('ALL'); // 'ALL' | 'PUBLIC' | 'RESTRICTED' | 'DIGITAL'
     const [currentPage, setCurrentPage] = useState(1);
-    const [itemsPerPage] = useState(10);
+    const [itemsPerPage, setItemsPerPage] = useState(25);
 
     // --- Data Fetching ---
     const fetchData = useCallback(async (silent = false) => {
@@ -548,27 +548,119 @@ const BookManagement = () => {
                 )}
 
                 {/* --- PAGINATION FOOTER --- */}
-                {totalPages > 1 && (
-                    <div className="px-6 py-4 border-t border-slate-200/80 flex items-center justify-between bg-slate-50/50">
-                        <button
-                            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                            disabled={currentPage === 1}
-                            className="inline-flex items-center gap-1 px-4 py-2 border border-slate-200/80 rounded-xl bg-white text-xs font-bold text-slate-700 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-2xs"
-                        >
-                            <ChevronLeftIcon className="w-4 h-4" /> Previous
-                        </button>
+                {filteredBooks.length > 0 && (
+                    <div className="px-6 py-4 border-t border-slate-200/80 flex flex-col sm:flex-row items-center justify-between gap-4 bg-slate-50/50">
+                        {/* Rows Per Page & Info */}
+                        <div className="flex items-center gap-4 flex-wrap justify-center sm:justify-start">
+                            <div className="flex items-center gap-2">
+                                <span className="text-xs font-semibold text-slate-500">Rows per page:</span>
+                                <select
+                                    value={itemsPerPage}
+                                    onChange={(e) => {
+                                        setItemsPerPage(Number(e.target.value));
+                                        setCurrentPage(1);
+                                    }}
+                                    className="rounded-lg border border-slate-300 bg-white px-2.5 py-1 text-xs font-bold text-slate-700 shadow-2xs outline-none focus:border-emerald-500 cursor-pointer"
+                                >
+                                    <option value={10}>10</option>
+                                    <option value={25}>25</option>
+                                    <option value={50}>50</option>
+                                    <option value={100}>100</option>
+                                </select>
+                            </div>
 
-                        <span className="text-xs text-slate-600 font-bold">
-                            Page {currentPage} of {totalPages}
-                        </span>
+                            <span className="text-xs text-slate-500 font-medium">
+                                Showing <span className="font-bold text-slate-900">{(currentPage - 1) * itemsPerPage + 1}</span> to <span className="font-bold text-slate-900">{Math.min(currentPage * itemsPerPage, filteredBooks.length)}</span> of <span className="font-bold text-slate-900">{filteredBooks.length}</span> books
+                            </span>
+                        </div>
 
-                        <button
-                            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                            disabled={currentPage === totalPages}
-                            className="inline-flex items-center gap-1 px-4 py-2 border border-slate-200/80 rounded-xl bg-white text-xs font-bold text-slate-700 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-2xs"
-                        >
-                            Next <ChevronRightIcon className="w-4 h-4" />
-                        </button>
+                        {/* Page Buttons */}
+                        {totalPages > 1 && (
+                            <div className="flex items-center gap-1.5 flex-wrap justify-center">
+                                <button
+                                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                                    disabled={currentPage === 1}
+                                    className="inline-flex items-center gap-1 px-3 py-1.5 border border-slate-200/80 rounded-xl bg-white text-xs font-bold text-slate-700 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-2xs"
+                                >
+                                    <ChevronLeftIcon className="w-4 h-4" /> Previous
+                                </button>
+
+                                {(() => {
+                                    const pages = [];
+                                    const maxVisible = 5;
+                                    let startPage = Math.max(1, currentPage - Math.floor(maxVisible / 2));
+                                    let endPage = Math.min(totalPages, startPage + maxVisible - 1);
+
+                                    if (endPage - startPage + 1 < maxVisible) {
+                                        startPage = Math.max(1, endPage - maxVisible + 1);
+                                    }
+
+                                    if (startPage > 1) {
+                                        pages.push(
+                                            <button
+                                                key={1}
+                                                onClick={() => setCurrentPage(1)}
+                                                className={`w-7 h-7 rounded-lg text-xs font-bold transition-all ${
+                                                    currentPage === 1
+                                                        ? "bg-slate-900 text-white shadow-xs"
+                                                        : "bg-white text-slate-700 border border-slate-200 hover:bg-slate-100"
+                                                }`}
+                                            >
+                                                1
+                                            </button>
+                                        );
+                                        if (startPage > 2) {
+                                            pages.push(<span key="dots-start" className="px-1 text-slate-400 text-xs">...</span>);
+                                        }
+                                    }
+
+                                    for (let p = startPage; p <= endPage; p++) {
+                                        pages.push(
+                                            <button
+                                                key={p}
+                                                onClick={() => setCurrentPage(p)}
+                                                className={`w-7 h-7 rounded-lg text-xs font-bold transition-all ${
+                                                    currentPage === p
+                                                        ? "bg-slate-900 text-white shadow-xs"
+                                                        : "bg-white text-slate-700 border border-slate-200 hover:bg-slate-100"
+                                                }`}
+                                            >
+                                                {p}
+                                            </button>
+                                        );
+                                    }
+
+                                    if (endPage < totalPages) {
+                                        if (endPage < totalPages - 1) {
+                                            pages.push(<span key="dots-end" className="px-1 text-slate-400 text-xs">...</span>);
+                                        }
+                                        pages.push(
+                                            <button
+                                                key={totalPages}
+                                                onClick={() => setCurrentPage(totalPages)}
+                                                className={`w-7 h-7 rounded-lg text-xs font-bold transition-all ${
+                                                    currentPage === totalPages
+                                                        ? "bg-slate-900 text-white shadow-xs"
+                                                        : "bg-white text-slate-700 border border-slate-200 hover:bg-slate-100"
+                                                }`}
+                                            >
+                                                {totalPages}
+                                            </button>
+                                        );
+                                    }
+
+                                    return pages;
+                                })()}
+
+                                <button
+                                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                                    disabled={currentPage === totalPages}
+                                    className="inline-flex items-center gap-1 px-3 py-1.5 border border-slate-200/80 rounded-xl bg-white text-xs font-bold text-slate-700 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-2xs"
+                                >
+                                    Next <ChevronRightIcon className="w-4 h-4" />
+                                </button>
+                            </div>
+                        )}
                     </div>
                 )}
             </div>
