@@ -90,7 +90,14 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         print(f"⚠️ Migrations skipped (app will retry on next startup): {str(e)[:100]}")
 
-    # 3. Initialize Rate Limiter (slowapi - no Redis needed)
+    # 3. Seed initial essential data if catalog is empty
+    try:
+        from scripts.seed_data import seed_everything
+        seed_everything()
+    except Exception as e:
+        print(f"⚠️ Seeding check: {str(e)[:100]}")
+
+    # 4. Initialize Rate Limiter (slowapi - no Redis needed)
     if limiter:
         print("✅ Rate Limiter Initialized")
     else:
