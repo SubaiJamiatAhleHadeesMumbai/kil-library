@@ -6,7 +6,7 @@ from .category_schema import Category
 class SubcategoryBase(BaseModel):
     name: str = Field(..., max_length=100, example="Python Programming")
     description: Optional[str] = Field(None, example="Books related to the Python language.")
-    category_id: int = Field(..., example=1)
+    category_id: Optional[int] = Field(None, example=1)
 
 class SubcategoryCreate(SubcategoryBase):
     pass

@@ -25,37 +25,65 @@ def get_subcategory_with_category(db: Session, subcategory_id: int):
     ).first()
 
 # --- CREATE Subcategory ---
-@router.post("/", response_model=subcategory_schema.SubcategoryWithCategory, status_code=status.HTTP_201_CREATED, dependencies=[Depends(require_permission("CATEGORY_MANAGE"))])
+@router.post("/", response_model=subcategory_schema.SubcategoryWithCategory, status_code=status.HTTP_201_CREATED)
 def create_subcategory(
     subcategory: subcategory_schema.SubcategoryCreate,
     db: Session = Depends(get_db),
-    current_user: user_model.User = Depends(require_permission("CATEGORY_MANAGE"))
+    current_user: user_model.User = Depends(require_permission("BOOK_MANAGE"))
 ):
-    """Creates a new subcategory under a parent category."""
-    # Check if parent category exists and is not deleted
+    """Creates a new subcategory (or restores existing) under a parent category on the fly."""
+    cat_id = subcategory.category_id
+    if not cat_id:
+        # Fallback to "علوم، لغات و متفرقات" or "متفرقات" or first active category
+        default_parent = db.query(book_model.Category).filter(
+            book_model.Category.name.in_(["علوم، لغات و متفرقات", "متفرقات", "General"]),
+            book_model.Category.deleted_at.is_(None)
+        ).first()
+        if not default_parent:
+            default_parent = db.query(book_model.Category).filter(
+                book_model.Category.deleted_at.is_(None)
+            ).order_by(book_model.Category.id).first()
+        if default_parent:
+            cat_id = default_parent.id
+
+    # Check if parent category exists
     parent_category = db.query(book_model.Category).filter(
-        book_model.Category.id == subcategory.category_id,
+        book_model.Category.id == cat_id,
         book_model.Category.deleted_at.is_(None)
-    ).first()
+    ).first() if cat_id else None
+
     if not parent_category:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Parent category with id {subcategory.category_id} not found.")
+        parent_category = db.query(book_model.Category).filter(
+            book_model.Category.deleted_at.is_(None)
+        ).first()
+        cat_id = parent_category.id if parent_category else None
 
-    # Check for duplicate subcategory name within the same parent category
+    if not cat_id:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No active parent category found.")
+
+    # Check for duplicate or soft-deleted subcategory
     existing_sub = db.query(book_model.Subcategory).filter(
-        book_model.Subcategory.name == subcategory.name,
-        book_model.Subcategory.category_id == subcategory.category_id,
-        book_model.Subcategory.deleted_at.is_(None)
+        book_model.Subcategory.name == subcategory.name
     ).first()
+    
     if existing_sub:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=f"Subcategory '{subcategory.name}' already exists under category '{parent_category.name}'.")
+        if existing_sub.deleted_at is not None:
+            existing_sub.deleted_at = None
+            if cat_id:
+                existing_sub.category_id = cat_id
+            db.commit()
+        return get_subcategory_with_category(db, existing_sub.id)
 
-    db_subcategory = book_model.Subcategory(**subcategory.dict())
+    db_subcategory = book_model.Subcategory(
+        name=subcategory.name.strip(),
+        description=subcategory.description or f"Custom category: {subcategory.name.strip()}",
+        category_id=cat_id
+    )
     db.add(db_subcategory)
-    db.flush() # Get the ID for logging
+    db.flush()
     create_log(db, current_user, "SUBCATEGORY_CREATED", f"Subcategory '{subcategory.name}' created under '{parent_category.name}'.", "Subcategory", db_subcategory.id)
     db.commit()
     
-    # Return the subcategory with its parent category details
     return get_subcategory_with_category(db, db_subcategory.id)
 
 # --- READ ALL Subcategories (Public) ---

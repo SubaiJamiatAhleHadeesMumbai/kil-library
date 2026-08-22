@@ -116,6 +116,16 @@ export const bookService = {
         }
     },
 
+    async createSubcategory(data) {
+        try {
+            const response = await apiClient.post('/api/subcategories/', data);
+            return response.data;
+        } catch (error) {
+            console.error("Error creating subcategory:", error);
+            throw error;
+        }
+    },
+
     async getFatawaCategories() {
         try {
             const response = await apiClient.get('/api/fatawa/categories');
