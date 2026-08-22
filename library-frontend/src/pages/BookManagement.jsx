@@ -7,6 +7,7 @@ import { bookService } from '../api/bookService';
 // Components
 import Modal from '../components/common/Modal';
 import BookDetailsModal from '../components/book/BookDetailsModal';
+import ExcelImportModal from '../components/book/ExcelImportModal';
 
 // Icons
 import { 
@@ -25,7 +26,8 @@ import {
     XMarkIcon,
     ComputerDesktopIcon,
     ChevronLeftIcon,
-    ChevronRightIcon
+    ChevronRightIcon,
+    TableCellsIcon
 } from '@heroicons/react/24/outline';
 
 // --- SKELETON LOADER COMPONENT ---
@@ -61,6 +63,8 @@ const BookManagement = () => {
     
     const [isViewModalOpen, setIsViewModalOpen] = useState(false);
     const [selectedBookForView, setSelectedBookForView] = useState(null);
+
+    const [isExcelModalOpen, setIsExcelModalOpen] = useState(false);
 
     // Filter/Search States
     const [searchTerm, setSearchTerm] = useState('');
@@ -188,13 +192,22 @@ const BookManagement = () => {
                     </div>
                 </div>
 
-                <div className="flex items-center gap-3 relative z-10">
+                <div className="flex flex-wrap items-center gap-3 relative z-10">
                     <button
                         onClick={() => fetchData(false)}
                         className="p-3 text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200/70 rounded-2xl transition-all shadow-xs border border-slate-200/60 active:scale-95"
                         title="Refresh Catalog Data"
                     >
                         <ArrowPathIcon className={`w-5 h-5 ${isLoading ? 'animate-spin text-emerald-600' : ''}`} />
+                    </button>
+
+                    <button
+                        onClick={() => setIsExcelModalOpen(true)}
+                        className="inline-flex items-center px-4 py-3 bg-emerald-600 hover:bg-emerald-700 text-white text-xs sm:text-sm font-bold rounded-2xl shadow-md shadow-emerald-600/20 hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200"
+                        title="Upload Excel (.xlsx, .xls) or CSV to auto-extract books"
+                    >
+                        <TableCellsIcon className="w-5 h-5 mr-2" />
+                        Import from Excel
                     </button>
 
                     <button
@@ -505,6 +518,12 @@ const BookManagement = () => {
                     </div>
                 </div>
             </Modal>
+
+            {/* Excel / CSV Import Modal */}
+            <ExcelImportModal 
+                isOpen={isExcelModalOpen} 
+                onClose={() => setIsExcelModalOpen(false)} 
+            />
 
         </div>
     );

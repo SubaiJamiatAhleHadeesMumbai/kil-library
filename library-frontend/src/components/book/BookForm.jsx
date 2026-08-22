@@ -77,42 +77,69 @@ const BookForm = ({ initialData, isEditing, onBookAdded, onBookUpdated, onCancel
         fetchDropdowns();
     }, []);
 
-    // Populate Form if Editing
+    // Populate Form if Editing or Pre-filling from Excel
     useEffect(() => {
-        if (isEditing && initialData) {
-            setFormData({
-                title: initialData.title || "",
-                author: initialData.author || "",
-                publisher: initialData.publisher || "",
-                translator: initialData.translator || "",
-                isbn: initialData.isbn || "",
-                edition: initialData.edition || "",
-                parts_or_volumes: initialData.parts_or_volumes || "",
-                subject_number: initialData.subject_number || "",
-                language_id: initialData.language?.id || "",
-                fatawa_category_id: initialData.fatawa_category_id || "",
-                page_count: initialData.page_count || "",
-                publication_year: initialData.publication_year || "",
-                price: initialData.price || "",
-                date_of_purchase: initialData.date_of_purchase || "",
-                description: initialData.description || "",
-                remarks: initialData.remarks || "",
-                serial_number: initialData.serial_number || "",
-                book_number: initialData.book_number || "",
-                
-                is_restricted: initialData.is_restricted || false,
-                is_digital: initialData.is_digital || false,
-                
-                subcategory_ids: initialData.subcategories ? initialData.subcategories.map(s => s.id) : [],
-                
-                cover_image: null,
-                pdf_file: null,
-                txt_file: null,
-            });
-            // Note: We don't set file names here because we want "No file selected" to show 
-            // unless the user picks a NEW file. The UI handles showing "View Current" link.
+        if (initialData) {
+            // Find language by ID or by Name
+            let matchedLangId = initialData.language_id || initialData.language?.id || "";
+            if (!matchedLangId && initialData.language_name && languages.length > 0) {
+                const normSearch = String(initialData.language_name).toLowerCase().trim();
+                const matched = languages.find(l => {
+                    const lName = String(l.name).toLowerCase().trim();
+                    return lName.includes(normSearch) || normSearch.includes(lName) ||
+                           (normSearch.includes('urdu') && lName.includes('urdu')) ||
+                           (normSearch.includes('اردو') && lName.includes('urdu')) ||
+                           (normSearch.includes('arabic') && lName.includes('arabic')) ||
+                           (normSearch.includes('عربی') && lName.includes('arabic')) ||
+                           (normSearch.includes('english') && lName.includes('english')) ||
+                           (normSearch.includes('hindi') && lName.includes('hindi'));
+                });
+                if (matched) matchedLangId = matched.id;
+            }
+            if (!matchedLangId && languages.length > 0 && !isEditing) {
+                const urdu = languages.find(l => String(l.name).toLowerCase().includes('urdu'));
+                matchedLangId = urdu ? urdu.id : languages[0].id;
+            }
+
+            // Find subcategories by IDs or Name
+            let matchedSubIds = initialData.subcategory_ids || (initialData.subcategories ? initialData.subcategories.map(s => s.id) : []);
+            if (matchedSubIds.length === 0 && (initialData.subcategory_name || initialData.category_name) && subcategories.length > 0) {
+                const searchNames = [initialData.subcategory_name, initialData.category_name].filter(Boolean).map(n => String(n).toLowerCase().trim());
+                const matchedSubs = subcategories.filter(s => {
+                    const sName = String(s.name).toLowerCase().trim();
+                    return searchNames.some(sn => sName.includes(sn) || sn.includes(sName));
+                });
+                if (matchedSubs.length > 0) {
+                    matchedSubIds = matchedSubs.map(s => s.id);
+                }
+            }
+
+            setFormData(prev => ({
+                ...prev,
+                title: initialData.title ?? prev.title,
+                author: initialData.author ?? prev.author,
+                publisher: initialData.publisher ?? prev.publisher,
+                translator: initialData.translator ?? prev.translator,
+                isbn: initialData.isbn ?? prev.isbn,
+                edition: initialData.edition ?? prev.edition,
+                parts_or_volumes: initialData.parts_or_volumes ?? prev.parts_or_volumes,
+                subject_number: initialData.subject_number ?? prev.subject_number,
+                language_id: matchedLangId || prev.language_id,
+                fatawa_category_id: initialData.fatawa_category_id ?? prev.fatawa_category_id,
+                page_count: initialData.page_count ?? prev.page_count,
+                publication_year: initialData.publication_year ?? prev.publication_year,
+                price: initialData.price ?? prev.price,
+                date_of_purchase: initialData.date_of_purchase ?? prev.date_of_purchase,
+                description: initialData.description ?? prev.description,
+                remarks: initialData.remarks ?? prev.remarks,
+                serial_number: initialData.serial_number ?? prev.serial_number,
+                book_number: initialData.book_number ?? prev.book_number,
+                is_restricted: initialData.is_restricted ?? prev.is_restricted,
+                is_digital: initialData.is_digital ?? prev.is_digital,
+                subcategory_ids: matchedSubIds.length > 0 ? matchedSubIds : prev.subcategory_ids,
+            }));
         }
-    }, [isEditing, initialData]);
+    }, [isEditing, initialData, languages, subcategories]);
 
     // --- 3. HANDLERS ---
 
