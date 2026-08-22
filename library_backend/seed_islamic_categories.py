@@ -1,12 +1,12 @@
 import os
 import sys
 
-# Add parent directory to path if run directly
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from sqlalchemy.orm import Session
 from database import SessionLocal, engine
 from models.book_model import Category, Subcategory
+from datetime import datetime
 
 SEED_STRUCTURE = [
     {
@@ -93,23 +93,41 @@ SEED_STRUCTURE = [
     }
 ]
 
-def seed_categories(db: Session = None):
+def clean_and_seed_categories(db: Session = None):
     close_db = False
     if db is None:
         db = SessionLocal()
         close_db = True
 
     try:
+        # Collect allowed names
+        allowed_cat_names = set(g["category"] for g in SEED_STRUCTURE)
+        allowed_sub_names = set()
+        for g in SEED_STRUCTURE:
+            for s in g["subcategories"]:
+                allowed_sub_names.add(s)
+
+        # 1. Soft delete or remove test / legacy subcategories not in our 42 list
+        all_subs = db.query(Subcategory).filter(Subcategory.deleted_at.is_(None)).all()
+        for s in all_subs:
+            if s.name not in allowed_sub_names:
+                s.deleted_at = datetime.utcnow()
+
+        # 2. Soft delete or remove test categories not in our parent categories list
+        all_cats = db.query(Category).filter(Category.deleted_at.is_(None)).all()
+        for c in all_cats:
+            if c.name not in allowed_cat_names:
+                c.deleted_at = datetime.utcnow()
+
+        # 3. Seed / Restore 42 categories
         added_cats = 0
         added_subs = 0
 
         for group in SEED_STRUCTURE:
             cat_name = group["category"]
             
-            # Check or create Category
             category = db.query(Category).filter(
-                Category.name == cat_name,
-                Category.deleted_at.is_(None)
+                Category.name == cat_name
             ).first()
 
             if not category:
@@ -117,11 +135,12 @@ def seed_categories(db: Session = None):
                 db.add(category)
                 db.flush()
                 added_cats += 1
+            else:
+                category.deleted_at = None # Un-delete if previously soft deleted
 
             for sub_name in group["subcategories"]:
                 sub = db.query(Subcategory).filter(
-                    Subcategory.name == sub_name,
-                    Subcategory.deleted_at.is_(None)
+                    Subcategory.name == sub_name
                 ).first()
 
                 if not sub:
@@ -132,12 +151,12 @@ def seed_categories(db: Session = None):
                     )
                     db.add(sub)
                     added_subs += 1
-                elif sub.category_id != category.id:
-                    # Update category link if needed
+                else:
+                    sub.deleted_at = None
                     sub.category_id = category.id
 
         db.commit()
-        print(f"✅ Seeding Complete! Added {added_cats} Categories and {added_subs} Subcategories.")
+        print(f"✅ Cleaned & Seeded Complete! Active Categories: {len(allowed_cat_names)}, Active Subcategories: {len(allowed_sub_names)}.")
     except Exception as e:
         db.rollback()
         print(f"❌ Seeding Error: {e}")
@@ -146,4 +165,4 @@ def seed_categories(db: Session = None):
             db.close()
 
 if __name__ == "__main__":
-    seed_categories()
+    clean_and_seed_categories()

@@ -8,6 +8,7 @@ import {
   CloudArrowUpIcon, ShieldCheckIcon, LockClosedIcon,
   ComputerDesktopIcon, CheckIcon, ChevronDownIcon,
 } from '@heroicons/react/24/outline';
+import SubcategorySelect from './SubcategorySelect';
 
 const API_URL = import.meta.env.VITE_API_BASE_URL || (import.meta.env.PROD ? '' : 'http://127.0.0.1:8000');
 
@@ -86,136 +87,6 @@ const TextAreaField = ({ label, id, rows = 3, colSpan = 2, ...props }) => (
     <textarea id={id} rows={rows} className={`${baseInputStyle} resize-none`} {...props} />
   </div>
 );
-
-// --- Multi-Select Subcategories Component ---
-const SubcategorySelect = ({ subcategories = [], selectedIds = [], onChange, loading }) => {
-  const [open, setOpen] = useState(false);
-  const dropdownRef = useRef(null);
-
-  useEffect(() => {
-    if (!open) return;
-
-    const handleClickOutside = (e) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
-        setOpen(false);
-      }
-    };
-
-    const timer = setTimeout(() => {
-      document.addEventListener('mousedown', handleClickOutside);
-      document.addEventListener('touchend', handleClickOutside);
-    }, 50);
-
-    return () => {
-      clearTimeout(timer);
-      document.removeEventListener('mousedown', handleClickOutside);
-      document.removeEventListener('touchend', handleClickOutside);
-    };
-  }, [open]);
-
-  const handleButtonClick = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setOpen(prev => !prev);
-  };
-
-  const toggleCategory = (id) => {
-    const numId = Number(id);
-    const nextSelected = selectedIds.includes(numId)
-      ? selectedIds.filter(x => x !== numId)
-      : [...selectedIds, numId];
-    
-    onChange({ 
-      target: { 
-        name: 'subcategory_ids', 
-        value: nextSelected 
-      } 
-    });
-  };
-
-  const selectedList = subcategories.filter(s => selectedIds.includes(Number(s.id)));
-
-  return (
-    <div className="col-span-2 relative" ref={dropdownRef}>
-      <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-2">
-        Categories & Genres <span className="text-rose-500">*</span>
-      </label>
-      
-      <button
-        type="button"
-        onClick={handleButtonClick}
-        disabled={loading}
-        className={`${baseInputStyle} flex items-center justify-between gap-2 text-left min-h-[48px] focus:ring-2 focus:ring-[#002147]`}
-        aria-haspopup="listbox"
-        aria-expanded={open}
-      >
-        <span className="flex flex-wrap gap-1.5 flex-1 min-w-0">
-          {selectedList.length === 0 ? (
-            <span className="text-slate-400 font-normal">Select categories...</span>
-          ) : selectedList.map(s => (
-            <span key={s.id} className="inline-flex items-center gap-1 bg-slate-100 text-slate-800 text-[11px] font-bold px-2.5 py-1 rounded-full whitespace-nowrap border border-slate-200/80">
-              {s.name}
-              <button
-                type="button"
-                onClick={(e) => { 
-                  e.preventDefault();
-                  e.stopPropagation(); 
-                  toggleCategory(s.id); 
-                }}
-                className="hover:text-rose-500 transition-colors flex-shrink-0"
-              >
-                <XCircleIcon className="w-3.5 h-3.5" />
-              </button>
-            </span>
-          ))}
-        </span>
-        <ChevronDownIcon className={`w-4 h-4 flex-shrink-0 text-slate-400 transition-transform duration-300 ${open ? 'rotate-180' : ''}`} />
-      </button>
-
-      <AnimatePresence mode="wait">
-        {open && (
-          <motion.div
-            initial={{ opacity: 0, y: -8, scale: 0.96 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -8, scale: 0.96 }}
-            transition={{ duration: 0.12, ease: "easeOut" }}
-            className="absolute z-50 top-full left-0 right-0 mt-1 bg-white border-2 border-slate-200/90 rounded-2xl shadow-2xl overflow-hidden"
-          >
-            <div className="max-h-56 overflow-y-auto p-2 space-y-0.5 custom-scrollbar">
-              {loading && <p className="text-xs text-center text-slate-400 py-4">Loading categories...</p>}
-              {!loading && subcategories.length === 0 && <p className="text-xs text-center text-slate-400 py-4">No categories available</p>}
-              {!loading && subcategories.map(sub => {
-                const checked = selectedIds.includes(Number(sub.id));
-                return (
-                  <button
-                    key={sub.id}
-                    type="button"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      toggleCategory(sub.id);
-                    }}
-                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all text-left ${checked ? 'bg-slate-100 text-slate-900 font-semibold' : 'text-slate-700 hover:bg-slate-50'}`}
-                    role="option"
-                    aria-selected={checked}
-                  >
-                    <span className={`flex-shrink-0 w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all ${checked ? 'bg-[#002147] border-[#002147]' : 'border-slate-300'}`}>
-                      {checked && <CheckIcon className="w-3.5 h-3.5 text-white" />}
-                    </span>
-                    <span className="truncate">
-                      {sub.category?.name && <span className="text-slate-400 text-xs font-normal">{sub.category.name} › </span>}
-                      {sub.name}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
-  );
-};
 
 // --- Toggle Switch Card ---
 const ToggleCard = ({ id, checked, onChange, disabled, icon: Icon, title, desc }) => {
