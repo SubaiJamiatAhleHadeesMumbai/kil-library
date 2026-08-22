@@ -99,7 +99,9 @@ const ExcelImportModal = ({ isOpen, onClose, onStagedUpdated }) => {
       }
     } catch (err) {
       console.error("Auto import error:", err);
-      toast.error(err.response?.data?.detail || err.message || "Failed to save books to database.", { id: toastId });
+      const rawMsg = err.response?.data?.detail || err.message;
+      const errorStr = typeof rawMsg === 'string' ? rawMsg : (Array.isArray(rawMsg) ? rawMsg.map(e => e.msg || JSON.stringify(e)).join(', ') : "Failed to save books to database.");
+      toast.error(errorStr, { id: toastId });
     } finally {
       setIsSaving(false);
     }

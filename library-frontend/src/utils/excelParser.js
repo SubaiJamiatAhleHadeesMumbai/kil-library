@@ -232,9 +232,15 @@ export async function parseExcelFile(fileOrBuffer) {
       if (fieldKey) {
         if (fieldKey === 'publication_year') {
           bookObj[fieldKey] = cleanYear(cellVal);
-        } else if (fieldKey === 'page_count' || fieldKey === 'price' || fieldKey === 'quantity') {
-          const num = parseInt(String(cleanVal).replace(/[^0-9.]/g, ''), 10);
-          bookObj[fieldKey] = isNaN(num) ? cleanVal : num;
+        } else if (fieldKey === 'page_count') {
+          const num = parseInt(String(cleanVal).replace(/[^0-9]/g, ''), 10);
+          bookObj[fieldKey] = isNaN(num) ? null : num;
+        } else if (fieldKey === 'price') {
+          const num = parseFloat(String(cleanVal).replace(/[^0-9.]/g, ''));
+          bookObj[fieldKey] = isNaN(num) ? null : num;
+        } else if (fieldKey === 'quantity') {
+          const num = parseInt(String(cleanVal).replace(/[^0-9]/g, ''), 10);
+          bookObj[fieldKey] = isNaN(num) || num <= 0 ? 1 : num;
         } else if (fieldKey === 'language') {
           bookObj.language_name = cleanVal;
         } else if (fieldKey === 'category') {

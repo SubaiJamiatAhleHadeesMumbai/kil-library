@@ -79,14 +79,15 @@ const BookManagement = () => {
         if (!silent) setIsLoading(true);
         try {
             const [booksData, stagedData] = await Promise.all([
-                bookService.getAllBooks({ approved_only: false }),
+                bookService.getAllBooks({ approved_only: false }).catch(() => []),
                 bookService.getStagedBooks().catch(() => [])
             ]);
-            setAllBooks(booksData || []);
+            setAllBooks(Array.isArray(booksData) ? booksData : []);
             setStagedCount(Array.isArray(stagedData) ? stagedData.length : 0);
         } catch (err) {
-            console.error(err);
+            console.error("fetchData error:", err);
             toast.error("Failed to load library data.");
+            setAllBooks([]);
         } finally {
             setIsLoading(false);
         }
@@ -103,16 +104,20 @@ const BookManagement = () => {
 
     // --- Stats Summary Calculation ---
     const stats = useMemo(() => {
-        const total = allBooks.length;
-        const restricted = allBooks.filter(b => b.is_restricted).length;
+        const books = Array.isArray(allBooks) ? allBooks : [];
+        const total = books.length;
+        const restricted = books.filter(b => b && b.is_restricted).length;
         const publicAccess = total - restricted;
-        const digitalOnly = allBooks.filter(b => b.is_digital).length;
+        const digitalOnly = books.filter(b => b && b.is_digital).length;
         return { total, restricted, publicAccess, digitalOnly };
     }, [allBooks]);
 
     // --- Filtering & Pagination ---
     const filteredBooks = useMemo(() => {
-        return allBooks.filter(book => {
+        const books = Array.isArray(allBooks) ? allBooks : [];
+        return books.filter(book => {
+            if (!book) return false;
+
             // Status Filter Check
             if (statusFilter === 'RESTRICTED' && !book.is_restricted) return false;
             if (statusFilter === 'PUBLIC' && book.is_restricted) return false;
@@ -120,22 +125,31 @@ const BookManagement = () => {
 
             // Search Term Check
             if (!searchTerm.trim()) return true;
-            const lowerCaseSearch = searchTerm.toLowerCase();
+            const term = searchTerm.toLowerCase();
+            const title = String(book.title || '').toLowerCase();
+            const author = String(book.author || '').toLowerCase();
+            const isbn = String(book.isbn || '').toLowerCase();
+            const lang = String(book.language?.name || '').toLowerCase();
+            const bookNo = String(book.book_number || '').toLowerCase();
+            const srNo = String(book.serial_number || '').toLowerCase();
+
             return (
-                book.title?.toLowerCase().includes(lowerCaseSearch) ||
-                book.author?.toLowerCase().includes(lowerCaseSearch) ||
-                book.isbn?.toLowerCase().includes(lowerCaseSearch) ||
-                book.language?.name?.toLowerCase().includes(lowerCaseSearch)
+                title.includes(term) ||
+                author.includes(term) ||
+                isbn.includes(term) ||
+                lang.includes(term) ||
+                bookNo.includes(term) ||
+                srNo.includes(term)
             );
         });
     }, [allBooks, searchTerm, statusFilter]);
 
     const paginatedBooks = useMemo(() => {
         const startIndex = (currentPage - 1) * itemsPerPage;
-        return filteredBooks.slice(startIndex, startIndex + itemsPerPage);
+        return (filteredBooks || []).slice(startIndex, startIndex + itemsPerPage);
     }, [filteredBooks, currentPage, itemsPerPage]);
 
-    const totalPages = Math.ceil(filteredBooks.length / itemsPerPage);
+    const totalPages = Math.ceil((filteredBooks?.length || 0) / itemsPerPage) || 1;
 
     // --- Actions ---
     const handleAddClick = () => {

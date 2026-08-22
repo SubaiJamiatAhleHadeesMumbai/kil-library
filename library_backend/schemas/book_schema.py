@@ -1,6 +1,6 @@
 # file: schemas/book_schema.py
 from pydantic import BaseModel, Field, model_validator
-from typing import Optional, List
+from typing import Optional, List, Union, Any
 from datetime import date, datetime
 
 # --- Import Dependent Schemas ---
@@ -150,13 +150,13 @@ class StagedBookBase(BaseModel):
     serial_number: Optional[str] = None
     book_number: Optional[str] = None
     language_name: Optional[str] = None
-    page_count: Optional[int] = None
-    publication_year: Optional[str] = None
+    page_count: Optional[Union[int, str]] = None
+    publication_year: Optional[Union[int, str]] = None
     edition: Optional[str] = None
     parts_or_volumes: Optional[str] = None
     subject_number: Optional[str] = None
-    quantity: Optional[int] = 1
-    price: Optional[float] = None
+    quantity: Optional[Union[int, str]] = 1
+    price: Optional[Union[float, int, str]] = None
     description: Optional[str] = None
     remarks: Optional[str] = None
     extra_data: Optional[str] = None  # JSON string of unmatched / extra admin metadata

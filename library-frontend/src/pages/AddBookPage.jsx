@@ -72,8 +72,10 @@ const AddBookPage = () => {
         navigate("/admin/books");
       }
     } catch (err) {
-      console.error(err);
-      toast.error(err.response?.data?.detail || err.message || "Failed to parse/save Excel file.");
+      console.error("AddBook error:", err);
+      const rawMsg = err.response?.data?.detail || err.message;
+      const errorStr = typeof rawMsg === 'string' ? rawMsg : (Array.isArray(rawMsg) ? rawMsg.map(e => e.msg || JSON.stringify(e)).join(', ') : "Failed to parse/save Excel file.");
+      toast.error(errorStr);
     } finally {
       setIsParsingDirect(false);
     }

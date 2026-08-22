@@ -218,6 +218,25 @@ def bulk_import_books(
                 return lang.id
         return default_lang.id if default_lang else 1
 
+    import re
+    def safe_int(val, default=None):
+        if val is None or str(val).strip() == '':
+            return default
+        try:
+            clean = re.sub(r'[^\d]', '', str(val))
+            return int(clean) if clean else default
+        except Exception:
+            return default
+
+    def safe_float(val, default=None):
+        if val is None or str(val).strip() == '':
+            return default
+        try:
+            clean = re.sub(r'[^\d.]', '', str(val))
+            return float(clean) if clean else default
+        except Exception:
+            return default
+
     created_books = []
     for item in payload:
         if not item.title and not item.author and not item.book_number:
@@ -228,29 +247,33 @@ def bulk_import_books(
         parsed_pub_date = None
         if item.publication_year:
             try:
-                clean_y = int(str(item.publication_year).strip()[:4])
-                if 1000 <= clean_y <= 2100:
+                clean_y = safe_int(str(item.publication_year)[:4])
+                if clean_y and 1000 <= clean_y <= 2100:
                     parsed_pub_date = date(clean_y, 1, 1)
             except Exception:
                 pass
                 
+        qty = safe_int(item.quantity, default=1)
+        pages = safe_int(item.page_count, default=None)
+        price_val = safe_float(item.price, default=None)
+
         new_book = book_model.Book(
-            title=item.title or "Untitled Book",
-            author=item.author,
-            publisher=item.publisher,
-            translator=item.translator,
-            serial_number=item.serial_number,
-            book_number=item.book_number,
+            title=str(item.title).strip() if item.title else "Untitled Book",
+            author=str(item.author).strip() if item.author else None,
+            publisher=str(item.publisher).strip() if item.publisher else None,
+            translator=str(item.translator).strip() if item.translator else None,
+            serial_number=str(item.serial_number).strip() if item.serial_number else None,
+            book_number=str(item.book_number).strip() if item.book_number else None,
             language_id=lang_id,
-            page_count=item.page_count,
-            parts_or_volumes=item.parts_or_volumes,
-            subject_number=item.subject_number,
-            edition=item.edition,
-            total_copies=item.quantity or 1,
-            available_copies=item.quantity or 1,
-            price=item.price,
-            remarks=item.remarks,
-            description=item.description,
+            page_count=pages,
+            parts_or_volumes=str(item.parts_or_volumes).strip() if item.parts_or_volumes else None,
+            subject_number=str(item.subject_number).strip() if item.subject_number else None,
+            edition=str(item.edition).strip() if item.edition else None,
+            total_copies=qty if qty and qty > 0 else 1,
+            available_copies=qty if qty and qty > 0 else 1,
+            price=price_val,
+            remarks=str(item.remarks).strip() if item.remarks else None,
+            description=str(item.description).strip() if item.description else None,
             extra_data=item.extra_data or item.raw_data,
             published_date=parsed_pub_date,
             is_digital=True,
