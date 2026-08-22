@@ -6,7 +6,9 @@ import {
   LockOpenIcon,
   EyeIcon,
   BookOpenIcon,
+  BookmarkIcon as BookmarkSolid,
 } from "@heroicons/react/24/solid";
+import { BookmarkIcon as BookmarkOutline } from "@heroicons/react/24/outline";
 import { motion } from "framer-motion";
 import { toast } from "react-hot-toast";
 
@@ -161,10 +163,18 @@ const PublicBookCard = ({
           onClick={(e) => onToggleFavorite(e, book?.id)}
           whileHover={{ scale: 1.15 }}
           whileTap={{ scale: 0.95 }}
-          className="absolute bottom-2 right-2 z-20 rounded-full border border-gray-200 bg-white/95 px-2.5 py-1 text-[10px] font-bold shadow-md backdrop-blur-md transition-all duration-200 hover:bg-white sm:bottom-3 sm:right-3 sm:px-3 sm:py-1.5 sm:text-xs"
-          title={isFavorite ? "Remove Favorite" : "Add Favorite"}
+          className={`absolute bottom-2 right-2 z-20 rounded-full p-2 shadow-md transition-all duration-200 sm:bottom-3 sm:right-3 ${
+            isFavorite
+              ? "bg-emerald-50 text-emerald-600 border border-emerald-300 ring-2 ring-emerald-500/20"
+              : "bg-white/95 text-slate-500 hover:text-emerald-600 border border-slate-200 hover:bg-white hover:shadow-lg"
+          }`}
+          title={isFavorite ? "Saved in Favorites" : "Save to Favorites"}
         >
-          {isFavorite ? "❤️ Saved" : "🔖 Save"}
+          {isFavorite ? (
+            <BookmarkSolid className="h-4 w-4 text-emerald-600" />
+          ) : (
+            <BookmarkOutline className="h-4 w-4 text-slate-600 hover:text-emerald-600" />
+          )}
         </motion.button>
       )}
 
