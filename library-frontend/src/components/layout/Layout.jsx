@@ -41,7 +41,7 @@ const Layout = () => {
         : (user?.role || 'Administrator');
 
     return (
-        <div className="flex h-dvh min-h-screen bg-[#0F172A]/5 text-slate-800 overflow-hidden font-sans antialiased">
+        <div className="flex h-dvh min-h-screen bg-[#0F172A]/5 text-slate-800 overflow-hidden font-sans antialiased notranslate" translate="no">
             
             {/* ==========================================
                 1. SIDEBAR SECTION

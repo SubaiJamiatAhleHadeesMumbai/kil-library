@@ -25,6 +25,7 @@ import {
 // --- COMPONENTS & HOOKS ---
 import useAuth from "../../hooks/useAuth";
 import NotificationBell from "../common/NotificationBell";
+import LanguageSwitcher from "../common/LanguageSwitcher";
 import DonationModal from "../donation/DonationModal";
 import settingsService from "../../api/settingsService";
 
@@ -199,6 +200,9 @@ const UserNavbar = () => {
             {/* RIGHT ACTIONS */}
             <div className="hidden md:flex items-center justify-end gap-3 lg:gap-4 min-w-0 md:flex-1 lg:flex-none">
               
+              {/* Language Switcher (Urdu, Arabic, English) */}
+              <LanguageSwitcher />
+
               {/* Donate */}
               <button
                 onClick={() => setIsDonationOpen(true)}
@@ -355,6 +359,9 @@ const UserNavbar = () => {
 
                 {/* Mobile Actions */}
                 <div className="mt-6 pt-6 border-t border-slate-100 space-y-3">
+                    <div className="flex justify-center pb-2">
+                      <LanguageSwitcher />
+                    </div>
                     <button
                         onClick={() => {
                             setIsDonationOpen(true);

@@ -5,30 +5,77 @@
     <link rel="icon" type="image/png" href="/logo.png" />
     <link rel="apple-touch-icon" href="/logo.png" />
     <link href="https://fonts.googleapis.com/css2?family=Almarai:wght@300;400;700&family=Amiri:ital,wght@0,400;0,700;1,400&family=Noto+Nastaliq+Urdu:wght@400;700&display=swap" rel="stylesheet"/>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>
-<link href="https://fonts.googleapis.com/css2?family=Noto+Nastaliq+Urdu:wght@400;700&family=Noto+Sans+Arabic:wght@400;700&display=swap" rel="stylesheet">
-<link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
-     <style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Nastaliq+Urdu:wght@400;700&family=Noto+Sans+Arabic:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
+    
+    <style>
       @import url('https://fonts.googleapis.com/css2?family=Almarai:wght@300;400;700&family=Amiri:ital,wght@0,400;0,700;1,400&family=Noto+Nastaliq+Urdu:wght@400;700&display=swap');
       @import url('https://fonts.googleapis.com/css2?family=Noto+Nastaliq+Urdu:wght@400;700&family=Noto+Sans+Arabic:wght@400;700&display=swap');
+      
       @font-face {
-    font-family: 'JameelNoori';
-    src: url('https://cdn.jsdelivr.net/gh/googlei18n/noto-fonts/unhinted/NotoNastaliqUrdu/NotoNastaliqUrdu-Regular.ttf');
-  }
+        font-family: 'JameelNoori';
+        src: url('https://cdn.jsdelivr.net/gh/googlei18n/noto-fonts/unhinted/NotoNastaliqUrdu/NotoNastaliqUrdu-Regular.ttf');
+      }
 
+      .urdu-font {
+        font-family: 'Noto Nastaliq Urdu', 'JameelNoori', serif;
+        line-height: 2.2;
+        direction: rtl;
+      }
 
+      /* Language specific styling */
+      body.lang-ur {
+        font-family: 'Noto Nastaliq Urdu', 'JameelNoori', 'Noto Sans Arabic', serif;
+      }
+      body.lang-ar {
+        font-family: 'Amiri', 'Noto Sans Arabic', 'Almarai', serif;
+      }
 
-  .urdu-font {
-    font-family: 'Noto Nastaliq Urdu', serif;
-    line-height: 2.5; /* Nastaliq ke liye zyada gap zaroori hai */
-    direction: rtl;
-  }
+      /* Hide Google Translate top toolbar banner & popup */
+      .goog-te-banner-frame.skiptranslate,
+      .goog-te-banner-frame,
+      #goog-gt-tt,
+      .goog-te-balloon-frame,
+      .goog-tooltip,
+      .goog-tooltip:hover {
+        display: none !important;
+        visibility: hidden !important;
+      }
+      body {
+        top: 0px !important;
+        position: static !important;
+      }
+      .skiptranslate > iframe {
+        display: none !important;
+      }
+      #google_translate_element {
+        display: none !important;
+      }
+      .goog-text-highlight {
+        background-color: transparent !important;
+        box-shadow: none !important;
+      }
     </style>
+    
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Kokan Islamic Library | مرکز الدعوة الإسلامية والخيرية</title>
+
+    <!-- Google Translate Element for strictly 3 languages: Urdu, Arabic, English -->
+    <script type="text/javascript">
+      function googleTranslateElementInit() {
+        new google.translate.TranslateElement({
+          pageLanguage: 'en',
+          includedLanguages: 'ar,en,ur',
+          layout: google.translate.TranslateElement.InlineLayout.SIMPLE,
+          autoDisplay: false
+        }, 'google_translate_element');
+      }
+    </script>
+    <script type="text/javascript" src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
   </head>
   <body>
+    <div id="google_translate_element"></div>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>

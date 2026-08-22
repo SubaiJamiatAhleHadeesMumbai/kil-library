@@ -13,6 +13,7 @@ import AccessDenied from "./pages/AccessDenied";
 import ProtectedRoute from "./components/common/ProtectedRoute";
 import { ADMIN_ALLOWED_ROLES } from "./config/accessControl";
 import AnalyticsTracker from "./components/common/AnalyticsTracker";
+import { LanguageProvider } from "./context/LanguageContext";
 
 // ================= LAYOUTS =================
 import Layout from "./components/layout/Layout";
@@ -97,6 +98,7 @@ function App() {
       <AnalyticsTracker />
       <Toaster position="top-center" />
 
+      <LanguageProvider>
       <Suspense fallback={<PageLoader />}>
         <Routes>
 
@@ -181,6 +183,7 @@ function App() {
 
         </Routes>
       </Suspense>
+    </LanguageProvider>
     </>
   );
 }
