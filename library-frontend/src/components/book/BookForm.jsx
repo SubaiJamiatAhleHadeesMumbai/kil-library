@@ -94,7 +94,11 @@ const BookForm = ({ initialData, isEditing, onBookAdded, onBookUpdated, onCancel
                            (normSearch.includes('arabic') && lName.includes('arabic')) ||
                            (normSearch.includes('عربی') && lName.includes('arabic')) ||
                            (normSearch.includes('english') && lName.includes('english')) ||
-                           (normSearch.includes('hindi') && lName.includes('hindi'));
+                           (normSearch.includes('انگریزی') && lName.includes('english')) ||
+                           (normSearch.includes('انگريزي') && lName.includes('english')) ||
+                           (normSearch.includes('انگلش') && lName.includes('english')) ||
+                           (normSearch.includes('hindi') && lName.includes('hindi')) ||
+                           (normSearch.includes('ہندی') && lName.includes('hindi'));
                 });
                 if (matched) matchedLangId = matched.id;
             }

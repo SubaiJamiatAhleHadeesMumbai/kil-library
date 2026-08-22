@@ -80,7 +80,7 @@ const BookManagement = () => {
         if (!silent) setIsLoading(true);
         try {
             const [booksData, stagedData] = await Promise.all([
-                bookService.getAllBooks({ approved_only: false }).catch(() => []),
+                bookService.getAllBooks({ approved_only: false, sort_order: 'asc' }).catch(() => []),
                 bookService.getStagedBooks().catch(() => [])
             ]);
             setAllBooks(Array.isArray(booksData) ? booksData : []);
@@ -391,20 +391,39 @@ const BookManagement = () => {
                                 {paginatedBooks.map((book) => (
                                     <tr key={book.id} className="hover:bg-slate-50/80 transition-colors group">
                                         
-                                        {/* Book Title & Author */}
+                                        {/* Book Title, Author & Metadata */}
                                         <td className="px-6 py-4">
                                             <div className="flex items-center gap-4">
-                                                {/* Cover Avatar Fallback */}
+                                                {/* Serial / ID Fallback */}
                                                 <div className="h-12 w-12 flex-shrink-0 bg-gradient-to-tr from-slate-900 to-slate-800 text-emerald-400 rounded-xl flex flex-col items-center justify-center font-bold text-xs shadow-md border border-slate-700">
-                                                    <span>#{book.id}</span>
+                                                    <span>{book.serial_number ? `#${book.serial_number}` : `#${book.id}`}</span>
                                                 </div>
                                                 <div className="min-w-0">
                                                     <h3 className="font-bold text-slate-900 text-sm truncate group-hover:text-emerald-700 transition-colors">
-                                                        {book.title}
+                                                        {book.title || 'Untitled Book'}
                                                     </h3>
-                                                    <p className="text-slate-400 text-xs truncate">
+                                                    <p className="text-slate-500 text-xs truncate mt-0.5">
                                                         {book.author || 'Unknown Author'}
+                                                        {book.translator && <span className="text-slate-400 font-medium"> (ترجمہ: {book.translator})</span>}
+                                                        {book.publisher && <span className="text-slate-400 font-medium"> — {book.publisher}</span>}
                                                     </p>
+                                                    <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                                                        {book.book_number && (
+                                                            <span className="text-[10px] bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded font-mono font-bold">
+                                                                BK: {book.book_number}
+                                                            </span>
+                                                        )}
+                                                        {book.parts_or_volumes && (
+                                                            <span className="text-[10px] bg-emerald-50 text-emerald-700 px-1.5 py-0.5 rounded font-medium">
+                                                                جلد: {book.parts_or_volumes}
+                                                            </span>
+                                                        )}
+                                                        {book.page_count && (
+                                                            <span className="text-[10px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded">
+                                                                {book.page_count} صفحات
+                                                            </span>
+                                                        )}
+                                                    </div>
                                                 </div>
                                             </div>
                                         </td>
@@ -412,8 +431,8 @@ const BookManagement = () => {
                                         {/* ISBN & Language */}
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <div className="text-slate-900 font-semibold">{book.isbn || 'N/A'}</div>
-                                            <span className="inline-block mt-0.5 px-2 py-0.5 text-[10px] font-bold bg-slate-100 text-slate-600 rounded-md">
-                                                {book.language?.name || 'Unknown'}
+                                            <span className="inline-block mt-0.5 px-2 py-0.5 text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-100 rounded-md">
+                                                {book.language?.name || 'Urdu'}
                                             </span>
                                         </td>
 

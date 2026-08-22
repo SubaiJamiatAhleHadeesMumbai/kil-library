@@ -212,14 +212,24 @@ def bulk_import_books(
     languages = db.query(language_model.Language).filter(language_model.Language.deleted_at.is_(None)).all()
     default_lang = languages[0] if languages else None
     
+    LANGUAGE_MAP = {
+        'urdu': 'Urdu', 'اردو': 'Urdu',
+        'english': 'English', 'eng': 'English', 'انگریزی': 'English', 'انگريزي': 'English', 'انگلش': 'English',
+        'arabic': 'Arabic', 'عربی': 'Arabic', 'عربي': 'Arabic',
+        'hindi': 'Hindi', 'ہندی': 'Hindi', 'हिन्दी': 'Hindi',
+        'marathi': 'Marathi', 'مراٹھی': 'Marathi', 'मराठी': 'Marathi',
+        'persian': 'Persian', 'فارسی': 'Persian'
+    }
+
     def resolve_language_id(name_str):
         if not name_str or not languages:
             return default_lang.id if default_lang else 1
         name_clean = name_str.strip().lower()
+        mapped_name = LANGUAGE_MAP.get(name_clean, name_clean).lower()
         for lang in languages:
-            if lang.name.lower() in name_clean or name_clean in lang.name.lower():
+            if lang.name.lower() in mapped_name or mapped_name in lang.name.lower():
                 return lang.id
-            if hasattr(lang, 'code') and lang.code and lang.code.lower() == name_clean:
+            if hasattr(lang, 'code') and lang.code and lang.code.lower() == mapped_name:
                 return lang.id
         return default_lang.id if default_lang else 1
 
