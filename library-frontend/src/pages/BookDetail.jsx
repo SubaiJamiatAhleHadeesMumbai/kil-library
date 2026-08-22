@@ -200,7 +200,7 @@ const BookDetail = () => {
                         </div>
 
                         {/* 🅰️ PDF / DOCUMENT VIEWER MODE */}
-                        {viewMode === "pdf" && book.pdf_url && (
+                        {viewMode === "pdf" && book.pdf_url ? (
                             book.pdf_url.toLowerCase().includes('.doc') ? (
                                 <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-12 text-center flex flex-col items-center justify-center min-h-[400px]">
                                     <DocumentIcon className="w-16 h-16 text-indigo-500 mb-4" />
@@ -225,7 +225,19 @@ const BookDetail = () => {
                                     </Worker>
                                 </div>
                             )
-                        )}
+                        ) : viewMode === "pdf" ? (
+                            <div className="bg-white rounded-3xl shadow-sm border border-slate-200 p-12 text-center flex flex-col items-center justify-center min-h-[360px]">
+                                <div className="w-16 h-16 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center text-3xl mb-4 shadow-sm border border-amber-100">
+                                    ⏳
+                                </div>
+                                <h3 className="text-3xl font-black text-slate-900 mb-2 font-serif" style={{ fontFamily: '"Jameel Noori Nastaleeq", "Noto Naskh Arabic", serif' }}>
+                                    عنقریب...
+                                </h3>
+                                <p className="text-lg text-slate-600 max-w-md leading-relaxed font-serif" style={{ fontFamily: '"Jameel Noori Nastaleeq", "Noto Naskh Arabic", serif' }}>
+                                    اس کتاب کی پی ڈی ایف جلد ہی دستیاب ہوگی ان شاء اللہ
+                                </p>
+                            </div>
+                        ) : null}
 
                         {/* Additional Metadata (visible to admin for full control) */}
                         <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-4">

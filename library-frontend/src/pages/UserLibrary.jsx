@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "react-hot-toast";
-import { useNavigate, Link, useLocation, useSearchParams } from "react-router-dom";
+import { useNavigate, useLocation, useSearchParams } from "react-router-dom";
 
 // --- Services + Hooks ---
 import { bookService } from "../api/bookService";
@@ -15,28 +15,23 @@ import SuccessScreen from "../components/RestrictedAccess/SuccessScreen";
 import LibrarySearchStrip from "../components/public/LibrarySearchStrip";
 import { getBookCover } from "../utils/cover";
 
-// --- Icons (Outline - for UI) ---
+// --- Icons ---
 import {
-  MagnifyingGlassIcon,
-  FunnelIcon,
-  ArrowsUpDownIcon,
   FaceFrownIcon,
   XMarkIcon,
   BookOpenIcon,
   LockClosedIcon as LockOutline,
   ChevronRightIcon,
+  ChevronLeftIcon,
   SparklesIcon,
   Squares2X2Icon,
   ListBulletIcon,
   ArrowUpIcon,
-  DocumentTextIcon, // âœ… Added for Text Mode
+  ArrowsUpDownIcon,
 } from "@heroicons/react/24/outline";
 
-// --- Icons (Solid - for PublicBookCard) ---
 import {
   LockClosedIcon as LockSolid,
-  EyeIcon as EyeSolid,
-  CalendarIcon as CalendarSolid,
 } from "@heroicons/react/24/solid";
 
 // --- Constants ---
@@ -44,8 +39,25 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || (import.meta.env.PROD 
 const FALLBACK_NO_COVER = "https://via.placeholder.com/400x600?text=No+Cover";
 const FALLBACK_BROKEN = "https://via.placeholder.com/400x600?text=Image+Not+Found";
 
+const showUpcomingToast = () => {
+  toast("عنقریب...", {
+    icon: "⏳",
+    duration: 3500,
+    style: {
+      borderRadius: "16px",
+      background: "#0F172A",
+      color: "#38BDF8",
+      fontSize: "20px",
+      fontWeight: "bold",
+      fontFamily: '"Jameel Noori Nastaleeq", "Noto Naskh Arabic", serif',
+      padding: "12px 24px",
+      boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.3)"
+    }
+  });
+};
+
 // ==========================================
-// 1. PUBLIC BOOK CARD COMPONENT (Internal)
+// 1. PUBLIC BOOK CARD COMPONENT (Clean UI)
 // ==========================================
 const PublicBookCard = ({
   book,
@@ -57,7 +69,6 @@ const PublicBookCard = ({
   const [imgSrc, setImgSrc] = useState(null);
   const [imgLoaded, setImgLoaded] = useState(false);
 
-  // --- Helpers ---
   const safeText = (value, fallback = "Unknown") => {
     if (value === null || value === undefined) return fallback;
     if (typeof value === "object") return value?.name || value?.title || fallback;
@@ -65,53 +76,11 @@ const PublicBookCard = ({
     return str.length ? str : fallback;
   };
 
-  const safeNumber = (value, fallback = 0) => {
-    const n = Number(value);
-    return Number.isFinite(n) ? n : fallback;
-  };
-
-  const formatDate = (dateString) => {
-    if (!dateString) return "N/A";
-    try {
-      const d = new Date(dateString);
-      if (Number.isNaN(d.getTime())) return "N/A";
-      return d.toLocaleDateString("en-IN", {
-        year: "numeric",
-        month: "short",
-        day: "numeric",
-      });
-    } catch {
-      return "N/A";
-    }
-  };
-
   const title = useMemo(() => safeText(book?.title, "Untitled Book"), [book]);
   const author = useMemo(() => safeText(book?.author, "Unknown Author"), [book]);
-  const bookId = useMemo(
-    () => safeText(book?.id || book?.book_number, "000"),
-    [book]
-  );
-
   const isRestricted = !!book?.is_restricted;
+  const hasDigitalPdf = Boolean(book?.pdf_url || book?.pdf_file || book?.txt_file_url || book?.txt_file);
 
-  const views = useMemo(() => {
-    return safeNumber(
-      book?.views ??
-        book?.view_count ??
-        book?.total_views ??
-        book?.total_view ??
-        book?.hits ??
-        0,
-      0
-    );
-  }, [book]);
-
-  const metaDate = useMemo(
-    () => formatDate(book?.created_at || book?.published_date),
-    [book]
-  );
-
-  // --- Image Resolver ---
   useEffect(() => {
     setImgLoaded(false);
 
@@ -121,7 +90,6 @@ const PublicBookCard = ({
     }
 
     const rawUrl = book.cover_image_url || book.cover_image;
-
     if (!rawUrl) {
       setImgSrc(FALLBACK_NO_COVER);
       return;
@@ -143,32 +111,31 @@ const PublicBookCard = ({
   };
 
   const handleCardClick = () => {
+    if (!hasDigitalPdf) {
+      showUpcomingToast();
+    }
     if (typeof onClick === "function") onClick();
   };
 
   return (
     <div
       onClick={handleCardClick}
-      className={`group relative mx-auto w-full max-w-[340px] overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm transition-all duration-300 cursor-pointer hover:shadow-2xl sm:max-w-none ${className}`}
+      className={`group relative mx-auto w-full max-w-[340px] overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-xs transition-all duration-300 cursor-pointer hover:shadow-xl hover:border-slate-300 sm:max-w-none ${className}`}
     >
-      {/* Badges */}
-      <div className="absolute top-2 left-2 z-20 sm:top-3 sm:left-3">
-        {isRestricted ? (
+      {/* Badges - Only Restricted or Upcoming */}
+      <div className="absolute top-2 left-2 z-20 flex flex-col gap-1 sm:top-3 sm:left-3">
+        {isRestricted && (
           <div className="flex items-center gap-1 rounded-full bg-red-600 px-2.5 py-1 text-[10px] font-extrabold text-white shadow-md sm:px-3 sm:py-1.5 sm:text-[11px]">
             <LockSolid className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
             Restricted
           </div>
-        ) : (
-          <div className="rounded-full bg-emerald-600 px-2.5 py-1 text-[10px] font-extrabold text-white shadow-md sm:px-3 sm:py-1.5 sm:text-[11px]">
-            Open Access
+        )}
+
+        {!hasDigitalPdf && (
+          <div className="rounded-full bg-slate-900/90 text-amber-300 px-2.5 py-0.5 text-[10px] font-bold shadow-sm backdrop-blur-xs flex items-center gap-1 border border-slate-700">
+            <span>⏳</span> <span>عنقریب...</span>
           </div>
         )}
-      </div>
-
-      <div className="absolute top-2 right-2 z-20 sm:top-3 sm:right-3">
-        <div className="rounded-full bg-[#2D89C8] px-2.5 py-1 text-[10px] font-extrabold text-white shadow-md sm:px-3 sm:py-1.5 sm:text-[11px]">
-          #{bookId}
-        </div>
       </div>
 
       {/* Favorite Button */}
@@ -184,7 +151,7 @@ const PublicBookCard = ({
 
       {/* COVER AREA */}
       <div className="relative flex justify-center bg-gradient-to-b from-[#F8F9FA] to-white px-3 pb-2 pt-4 transition-colors group-hover:from-[#F1F3F5] sm:px-4 sm:pb-3 sm:pt-5">
-        <div className="relative aspect-[2/3] w-[118px] overflow-hidden rounded-2xl bg-gray-200 shadow-md transition-all duration-300 group-hover:-translate-y-1 group-hover:shadow-xl sm:w-[150px] md:w-[175px] lg:w-[185px]">
+        <div className="relative aspect-[2/3] w-[118px] overflow-hidden rounded-2xl bg-gray-100 shadow-md transition-all duration-300 group-hover:-translate-y-1 group-hover:shadow-xl sm:w-[150px] md:w-[175px] lg:w-[185px]">
           {!imgLoaded && (
             <div className="absolute inset-0 bg-slate-200 animate-pulse" />
           )}
@@ -204,18 +171,18 @@ const PublicBookCard = ({
           )}
 
           {/* Hover overlay */}
-          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition flex items-center justify-center">
-            <span className="rounded-full bg-black/40 px-3 py-1.5 text-[10px] font-bold text-white opacity-0 transition group-hover:opacity-100 sm:px-4 sm:py-2 sm:text-xs">
-              Click to View
+          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/25 transition flex items-center justify-center">
+            <span className="rounded-full bg-black/60 px-3 py-1.5 text-[11px] font-bold text-white opacity-0 transition group-hover:opacity-100 sm:px-4 sm:py-2">
+              {hasDigitalPdf ? "Click to View" : "عنقریب..."}
             </span>
           </div>
         </div>
       </div>
 
       {/* Details */}
-      <div className="flex flex-grow flex-col px-3 pb-3 text-center sm:px-4 sm:pb-4">
+      <div className="flex flex-grow flex-col px-3 pb-4 text-center sm:px-4 sm:pb-5">
         <h3
-          className="mb-1 line-clamp-2 font-serif text-[0.95rem] font-extrabold leading-snug text-[#002147] transition-colors group-hover:text-[#2D89C8] sm:text-sm md:text-base"
+          className="mb-1.5 line-clamp-2 font-serif text-[0.95rem] font-extrabold leading-snug text-[#002147] transition-colors group-hover:text-emerald-700 sm:text-sm md:text-base"
           style={{
             fontFamily: '"Jameel Noori Nastaleeq", "Noto Naskh Arabic", serif',
           }}
@@ -223,22 +190,7 @@ const PublicBookCard = ({
           {title}
         </h3>
 
-        <p className="mb-2 line-clamp-1 text-[11px] text-gray-500 sm:mb-3 sm:text-xs">{author}</p>
-
-        <div className="mt-auto mb-2 h-px w-full bg-gray-100 sm:mb-3" />
-
-        {/* Meta */}
-        <div className="flex items-center justify-between text-[10px] font-semibold text-gray-500 sm:text-[11px]">
-          <div className="flex items-center gap-1">
-            <CalendarSolid className="h-3.5 w-3.5 text-gray-300 sm:h-4 sm:w-4" />
-            <span>{metaDate}</span>
-          </div>
-
-          <div className="flex items-center gap-1">
-            <EyeSolid className="h-3.5 w-3.5 text-gray-300 sm:h-4 sm:w-4" />
-            <span>{views}</span>
-          </div>
-        </div>
+        <p className="line-clamp-1 text-[11px] text-gray-500 sm:text-xs">{author}</p>
       </div>
     </div>
   );
@@ -249,23 +201,22 @@ const PublicBookCard = ({
 // ==========================================
 const UserLibrary = () => {
   const navigate = useNavigate();
-  const { user, isAuth } = useAuth();
   const location = useLocation();
   const [searchParams] = useSearchParams();
+  const { isAuth } = useAuth();
 
   // --- STATE ---
   const [books, setBooks] = useState([]);
   const [loading, setLoading] = useState(true);
-  const activeRequestRef = useRef(0);
-  const [dynamicCategories, setDynamicCategories] = useState([]);  // âœ… Dynamic Categories from DB
-
-  const [sortBy, setSortBy] = useState("newest");
-
-  const [showSuccess, setShowSuccess] = useState(false);
-
-  // View Mode
-  const [viewMode, setViewMode] = useState("grid");
+  const [dynamicCategories, setDynamicCategories] = useState([]);
+  const [viewMode, setViewMode] = useState("grid"); // 'grid' | 'list'
+  const [sortBy, setSortBy] = useState("oldest"); // Natural Excel order
   const [showScrollTop, setShowScrollTop] = useState(false);
+  const activeRequestRef = useRef(0);
+
+  // Pagination State (10 items per page)
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   // --- MODAL & FLOW ---
   const [selectedBook, setSelectedBook] = useState(null);
@@ -273,6 +224,7 @@ const UserLibrary = () => {
   // Restricted flow
   const [restrictedBook, setRestrictedBook] = useState(null);
   const [isAccessFlowOpen, setIsAccessFlowOpen] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
 
   // --- FAVORITES ---
   const [favorites, setFavorites] = useState(() => {
@@ -285,33 +237,29 @@ const UserLibrary = () => {
   });
 
   // --- CATEGORIES ---
-  const categories = useMemo(
-    () => {
-      // âœ… If dynamic categories loaded from DB, use them
-      if (dynamicCategories.length > 0) {
-        return [
-          { value: "all", label: "All Categories" },
-          ...dynamicCategories.map(cat => ({
-            value: cat.slug || cat.name?.toLowerCase().replace(/\s+/g, '_'),
-            label: cat.name || cat.category_name,
-            id: cat.id
-          }))
-        ];
-      }
-      
-      // âœ… Fallback to hardcoded if DB load fails
+  const categories = useMemo(() => {
+    if (dynamicCategories.length > 0) {
       return [
         { value: "all", label: "All Categories" },
-        { value: "aqeedah_fiqh", label: "Aqeedah & Fiqh" },
-        { value: "quran_sciences", label: "Quran & Sciences" },
-        { value: "history_seerah", label: "History & Seerah" },
-        { value: "literature", label: "Literature & Adab" },
-        { value: "science_tech", label: "Science & Tech" },
-        { value: "islamic_studies", label: "General Islamic Studies" },
+        { value: "general", label: "General" },
+        ...dynamicCategories.map(cat => ({
+          value: cat.slug || cat.name?.toLowerCase().replace(/\s+/g, '_'),
+          label: cat.name || cat.category_name,
+          id: cat.id
+        }))
       ];
-    },
-    [dynamicCategories]
-  );
+    }
+    return [
+      { value: "all", label: "All Categories" },
+      { value: "general", label: "General" },
+      { value: "aqeedah_fiqh", label: "Aqeedah & Fiqh" },
+      { value: "quran_sciences", label: "Quran & Sciences" },
+      { value: "history_seerah", label: "History & Seerah" },
+      { value: "literature", label: "Literature & Adab" },
+      { value: "science_tech", label: "Science & Tech" },
+      { value: "islamic_studies", label: "General Islamic Studies" },
+    ];
+  }, [dynamicCategories]);
 
   // --- SEARCH HOOK ---
   const {
@@ -332,8 +280,9 @@ const UserLibrary = () => {
       const trimmed = searchText?.trim() || "";
       const data = await bookService.getAllBooks({
         approved_only: true,
+        sort_order: 'asc',
         search: trimmed,
-        limit: 300,
+        limit: 5000,
       });
 
       if (requestId === activeRequestRef.current) {
@@ -352,26 +301,20 @@ const UserLibrary = () => {
   };
 
   // --- EFFECTS ---
-  // âœ… NEW: Fetch categories from database (admin-added)
   useEffect(() => {
     const loadCategories = async () => {
       try {
         const data = await categoryService.getAllCategories();
         const categoryList = Array.isArray(data) ? data : data?.categories || [];
         setDynamicCategories(categoryList);
-        console.log("âœ… Dynamic categories loaded:", categoryList);
       } catch (error) {
-        console.warn("âš ï¸ Could not load categories from DB, using fallback:", error);
         setDynamicCategories([]);
       }
     };
-
     loadCategories();
   }, []);
 
-  // âœ… NEW: Apply search from URL params or navigation state
   useEffect(() => {
-    // Only run once books have loaded and we have books to search through
     if (loading || !Array.isArray(books) || books.length === 0) return;
 
     const urlSearch = searchParams.get('search');
@@ -379,12 +322,9 @@ const UserLibrary = () => {
     const searchValue = urlSearch || stateSearch;
 
     if (searchValue && searchValue.trim()) {
-      console.log("âœ… Setting search term from URL/state:", searchValue);
       setSearchTerm(searchValue);
-
-      // Smooth scroll to grid
       setTimeout(() => {
-        const el = document.getElementById("book-grid");
+        const el = document.getElementById("book-grid-container");
         if (el) el.scrollIntoView({ behavior: "smooth" });
       }, 200);
     }
@@ -404,6 +344,11 @@ const UserLibrary = () => {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
+  // Reset pagination on filter changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, selectedLanguage, selectedCategory, sortBy]);
+
   // --- HELPERS ---
   const safeText = (v, f = "") => {
     if (!v) return f;
@@ -411,30 +356,19 @@ const UserLibrary = () => {
     return String(v);
   };
 
-  // âœ… IMPROVED CATEGORY HELPER
   const safeCategory = (book) => {
-      // 1. Try nested category object
-      if (book.category && typeof book.category === 'object') {
-          return book.category.name || book.category.title || "General";
+    if (book.category && typeof book.category === 'object') {
+      return book.category.name || book.category.title || "General";
+    }
+    if (book.subcategories && Array.isArray(book.subcategories) && book.subcategories.length > 0) {
+      const sub = book.subcategories[0];
+      if (sub.category && typeof sub.category === 'object') {
+        return sub.category.name;
       }
-      // 2. Try subcategories array (take first one)
-      if (book.subcategories && Array.isArray(book.subcategories) && book.subcategories.length > 0) {
-          const sub = book.subcategories[0];
-          // If subcategory has a parent category
-          if (sub.category && typeof sub.category === 'object') {
-              return sub.category.name;
-          }
-          return sub.name || "General";
-      }
-      // 3. Try simple string
-      if (typeof book.category === 'string') return book.category;
-      
-      return "General";
-  };
-
-  const getCategoryKey = (book) => {
-    const catName = safeCategory(book);
-    return catName.trim().toLowerCase().replace(/\s+/g, '_');
+      return sub.name || "General";
+    }
+    if (typeof book.category === 'string') return book.category;
+    return "General";
   };
 
   const toggleFavorite = (e, bookId) => {
@@ -452,29 +386,31 @@ const UserLibrary = () => {
     });
   };
 
-  // Request Access handler
   const handleRequestAccess = (book) => {
-    setSelectedBook(null); // close quick view
-
+    setSelectedBook(null);
     if (!isAuth) {
       toast.error("Please login to request access.");
       navigate("/login");
       return;
     }
-
     setRestrictedBook(book);
     setIsAccessFlowOpen(true);
   };
 
-  const scrollToTop = () => window.scrollTo({ top: 0, behavior: "smooth" });
+  const scrollToTop = () => {
+    const el = document.getElementById("book-grid-container");
+    if (el) el.scrollIntoView({ behavior: "smooth" });
+    else window.scrollTo({ top: 0, behavior: "smooth" });
+  };
 
   // --- SORTING ---
   const finalDisplayBooks = useMemo(() => {
     const sorted = [...(Array.isArray(filteredBooks) ? filteredBooks : [])];
     const safeDate = (b) => new Date(b?.created_at || 0).getTime();
+    const safeSerial = (b) => Number(b?.serial_number) || Number(b?.id) || 0;
 
     if (sortBy === "newest") sorted.sort((a, b) => safeDate(b) - safeDate(a));
-    if (sortBy === "oldest") sorted.sort((a, b) => safeDate(a) - safeDate(b));
+    if (sortBy === "oldest") sorted.sort((a, b) => safeSerial(a) - safeSerial(b));
     if (sortBy === "az")
       sorted.sort((a, b) => (a?.title || "").localeCompare(b?.title || ""));
     if (sortBy === "favorites")
@@ -483,27 +419,18 @@ const UserLibrary = () => {
     return sorted;
   }, [filteredBooks, sortBy, favorites]);
 
-  // --- GROUPING ---
-  const groupedByCategory = useMemo(() => {
-    const groups = {};
-    finalDisplayBooks.forEach((b) => {
-      const key = getCategoryKey(b);
-      if (!groups[key]) groups[key] = [];
-      groups[key].push(b);
-    });
-    return groups;
-  }, [finalDisplayBooks]);
+  // --- PAGINATION (10 per page) ---
+  const totalPages = Math.ceil(finalDisplayBooks.length / itemsPerPage) || 1;
+  const paginatedBooks = useMemo(() => {
+    const start = (currentPage - 1) * itemsPerPage;
+    return finalDisplayBooks.slice(start, start + itemsPerPage);
+  }, [finalDisplayBooks, currentPage, itemsPerPage]);
 
-  const orderedCategoryKeys = useMemo(() => {
-    const keys = categories
-      .filter((c) => c.value !== "all")
-      .map((c) => c.value.toLowerCase());
-
-    const extra = Object.keys(groupedByCategory).filter(
-      (k) => !keys.includes(k)
-    );
-    return [...keys, ...extra];
-  }, [categories, groupedByCategory]);
+  const activeCategoryLabel = useMemo(() => {
+    if (selectedCategory === "all") return "All Books";
+    const found = categories.find(c => c.value === selectedCategory);
+    return found ? found.label : selectedCategory.replace(/_/g, " ");
+  }, [selectedCategory, categories]);
 
   return (
     <div className="min-h-screen bg-[#F8F9FC] font-sans text-slate-800 pb-24 relative">
@@ -564,9 +491,10 @@ const UserLibrary = () => {
               onChange={(e) => setSelectedLanguage(e.target.value)}
             >
               <option value="all">🌐 All Languages</option>
-              <option value="english">English</option>
-              <option value="urdu">Urdu</option>
-              <option value="arabic">Arabic</option>
+              <option value="urdu">Urdu (اردو)</option>
+              <option value="arabic">Arabic (عربی)</option>
+              <option value="english">English (انگریزی)</option>
+              <option value="hindi">Hindi (ہندی)</option>
             </select>
 
             <select
@@ -619,8 +547,8 @@ const UserLibrary = () => {
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
               >
+                <option value="oldest">Serial # (1, 2, 3...)</option>
                 <option value="newest">Newest First</option>
-                <option value="oldest">Oldest First</option>
                 <option value="az">Title (A-Z)</option>
                 <option value="favorites">My Favorites</option>
               </select>
@@ -629,8 +557,38 @@ const UserLibrary = () => {
         </motion.div>
       </div>
 
-      {/* MAIN CONTENT */}
-      <div className="max-w-7xl mx-auto px-4 mt-6 space-y-12 md:mt-12">
+      {/* MAIN CONTENT CONTAINER */}
+      <div id="book-grid-container" className="max-w-7xl mx-auto px-4 mt-6 md:mt-12 space-y-8">
+        
+        {/* Active Catalog Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-4">
+          <div>
+            <div className="flex items-center gap-2.5">
+              <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+                {activeCategoryLabel}
+              </h2>
+              {selectedCategory !== "all" && (
+                <button
+                  onClick={() => setSelectedCategory("all")}
+                  className="text-xs bg-slate-100 hover:bg-slate-200 text-slate-600 px-2.5 py-1 rounded-full font-bold transition-colors"
+                >
+                  Show All
+                </button>
+              )}
+            </div>
+            <p className="text-xs sm:text-sm text-slate-500 mt-1">
+              Showing <span className="font-bold text-slate-900">{finalDisplayBooks.length > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0}</span> to <span className="font-bold text-slate-900">{Math.min(currentPage * itemsPerPage, finalDisplayBooks.length)}</span> of <span className="font-bold text-slate-900">{finalDisplayBooks.length}</span> total books
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+              Page {currentPage} of {totalPages}
+            </span>
+          </div>
+        </div>
+
+        {/* LOADING STATE */}
         {loading ? (
           <div className="grid grid-cols-2 md:grid-cols-5 gap-6">
             {[...Array(10)].map((_, i) => (
@@ -640,148 +598,242 @@ const UserLibrary = () => {
               />
             ))}
           </div>
-        ) : finalDisplayBooks.length > 0 ? (
-          orderedCategoryKeys.map((catKey) => {
-            const list = groupedByCategory[catKey] || [];
-            if (!list.length) return null;
-
-            const preview = list.slice(0, 12);
-            // Improve label formatting
-            const catLabel =
-              categories.find((c) => c.value.toLowerCase() === catKey)?.label ||
-              catKey.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase()); // Capitalize words
-
-            return (
-              <section key={catKey} className="relative">
-                <div className="flex items-end justify-between mb-6 px-1">
-                  <div>
-                    <h2 className="text-2xl font-bold text-slate-800 tracking-tight">
-                      {catLabel}
-                    </h2>
-                    <div className="h-1 w-12 bg-emerald-500 rounded-full mt-2" />
-                  </div>
-
-                  <button
-                    onClick={() => {
-                      setSelectedCategory(catKey);
-                      scrollToTop();
-                    }}
-                    className="text-sm font-bold text-emerald-600 hover:text-emerald-700 inline-flex items-center gap-1"
+        ) : paginatedBooks.length > 0 ? (
+          <div>
+            {/* BOOK GRID / LIST (10 items per page) */}
+            <motion.div
+              id="book-grid"
+              initial="hidden"
+              whileInView="show"
+              viewport={{ once: true }}
+              className={
+                viewMode === "grid"
+                  ? "grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 sm:gap-6"
+                  : "grid grid-cols-1 md:grid-cols-2 gap-4"
+              }
+            >
+              <AnimatePresence>
+                {paginatedBooks.map((book) => (
+                  <motion.div
+                    key={book.id}
+                    layout
+                    initial={{ opacity: 0, y: 18 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0 }}
+                    className={`group relative ${
+                      viewMode === "list"
+                        ? "flex bg-white p-3 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-all"
+                        : ""
+                    }`}
                   >
-                    View All <ChevronRightIcon className="w-4 h-4" />
-                  </button>
-                </div>
-
-                {/* GRID / LIST */}
-                <motion.div
-                  id="book-grid"
-                  initial="hidden"
-                  whileInView="show"
-                  viewport={{ once: true }}
-                  className={
-                    viewMode === "grid"
-                      ? "grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 sm:gap-6"
-                      : "grid grid-cols-1 md:grid-cols-2 gap-4"
-                  }
-                >
-                  <AnimatePresence>
-                    {preview.map((book) => (
-                      <motion.div
-                        key={book.id}
-                        layout
-                        initial={{ opacity: 0, y: 18 }}
-                        whileInView={{ opacity: 1, y: 0 }}
-                        className={`group relative ${
-                          viewMode === "list"
-                            ? "flex bg-white p-3 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-all"
-                            : ""
-                        }`}
-                      >
-                        <div
-                          className={`relative cursor-pointer w-full ${
-                            viewMode === "list"
-                              ? "flex gap-4"
-                              : "transition-transform duration-300 group-hover:-translate-y-2"
-                          }`}
+                    <div
+                      className={`relative cursor-pointer w-full ${
+                        viewMode === "list"
+                          ? "flex gap-4"
+                          : "transition-transform duration-300 group-hover:-translate-y-2"
+                      }`}
+                      onClick={() => setSelectedBook(book)}
+                    >
+                      {/* Image / Card Area */}
+                      <div className={viewMode === "list" ? "w-24 shrink-0" : ""}>
+                        <PublicBookCard
+                          book={book}
                           onClick={() => setSelectedBook(book)}
-                        >
-                          {/* Image / Card Area */}
-                          <div
-                            className={viewMode === "list" ? "w-24 shrink-0" : ""}
-                          >
-                            <PublicBookCard
-                              book={book}
-                              onClick={() => setSelectedBook(book)}
-                              isFavorite={favorites.includes(book.id)}
-                              onToggleFavorite={toggleFavorite}
-                              className={viewMode === "list" ? "h-36" : ""} // Adjust height if list view
-                            />
+                          isFavorite={favorites.includes(book.id)}
+                          onToggleFavorite={toggleFavorite}
+                          className={viewMode === "list" ? "h-36" : ""}
+                        />
+                      </div>
+
+                      {/* List View Details */}
+                      {viewMode === "list" && (
+                        <div className="flex-1 flex flex-col justify-center py-1">
+                          <div className="flex justify-between items-start">
+                            <span className="text-[10px] font-bold text-emerald-600 uppercase bg-emerald-50 px-2 py-0.5 rounded-full mb-1">
+                              {safeCategory(book)}
+                            </span>
+                            {book.is_restricted && (
+                              <LockOutline className="w-4 h-4 text-red-500" />
+                            )}
                           </div>
 
-                          {/* List View Details */}
-                          {viewMode === "list" && (
-                            <div className="flex-1 flex flex-col justify-center py-1">
-                              <div className="flex justify-between items-start">
-                                <span className="text-[10px] font-bold text-emerald-600 uppercase bg-emerald-50 px-2 py-0.5 rounded-full mb-1">
-                                  {safeCategory(book)}
-                                </span>
-                                {book.is_restricted && (
-                                  <LockOutline className="w-4 h-4 text-red-500" />
-                                )}
-                              </div>
+                          <h3 className="font-bold text-slate-800 leading-tight mb-1 line-clamp-2">
+                            {book.title}
+                          </h3>
 
-                              <h3 className="font-bold text-slate-800 leading-tight mb-1 line-clamp-2">
-                                {book.title}
-                              </h3>
+                          <p className="text-xs text-slate-500 mb-2">
+                            By {safeText(book.author, "Unknown")}
+                            {book.translator && ` (ترجمہ: ${book.translator})`}
+                          </p>
 
-                              <p className="text-xs text-slate-500 mb-2">
-                                By {safeText(book.author, "Unknown")}
-                              </p>
+                          <p className="text-xs text-slate-400 line-clamp-2 mb-2">
+                            {book.description || `Publisher: ${book.publisher || 'N/A'}`}
+                          </p>
 
-                              <p className="text-xs text-slate-400 line-clamp-2 mb-2">
-                                {book.description || "No description provided."}
-                              </p>
+                          <div className="mt-auto flex items-center gap-2">
+                            {book.pdf_url || book.txt_file_url ? (
+                              <button
+                                className="text-xs font-bold text-emerald-600 hover:underline"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  navigate(`/books/${book.id}`);
+                                }}
+                              >
+                                Read Now
+                              </button>
+                            ) : (
+                              <button
+                                className="text-xs font-bold text-amber-600 inline-flex items-center gap-1"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  showUpcomingToast();
+                                }}
+                              >
+                                <span>⏳</span> <span>عنقریب...</span>
+                              </button>
+                            )}
 
-                              <div className="mt-auto flex gap-2">
-                                <button
-                                  className="text-xs font-bold text-blue-600 hover:underline"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    navigate(`/books/${book.id}`); // Correct navigation
-                                  }}
-                                >
-                                  {book.is_restricted ? "Request Access" : "Read Now"}
-                                </button>
+                            <span className="text-slate-300">•</span>
 
-                                <span className="text-slate-300">â€¢</span>
-
-                                <button
-                                  className="text-xs font-bold text-slate-500 hover:text-red-500"
-                                  onClick={(e) => toggleFavorite(e, book.id)}
-                                >
-                                  {favorites.includes(book.id) ? "Saved" : "Save"}
-                                </button>
-                              </div>
-                            </div>
-                          )}
+                            <button
+                              className="text-xs font-bold text-slate-500 hover:text-red-500"
+                              onClick={(e) => toggleFavorite(e, book.id)}
+                            >
+                              {favorites.includes(book.id) ? "Saved" : "Save"}
+                            </button>
+                          </div>
                         </div>
-                      </motion.div>
-                    ))}
-                  </AnimatePresence>
-                </motion.div>
-              </section>
-            );
-          })
+                      )}
+                    </div>
+                  </motion.div>
+                ))}
+              </AnimatePresence>
+            </motion.div>
+
+            {/* 📄 CLEAN 10-ITEM PAGINATION BAR */}
+            {totalPages > 1 && (
+              <div className="mt-12 flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-slate-200 pt-6">
+                <div className="text-xs text-slate-500 font-medium">
+                  Showing page <span className="font-bold text-slate-900">{currentPage}</span> of <span className="font-bold text-slate-900">{totalPages}</span>
+                </div>
+
+                <div className="flex items-center gap-1.5 flex-wrap justify-center">
+                  {/* Previous Button */}
+                  <button
+                    onClick={() => {
+                      if (currentPage > 1) {
+                        setCurrentPage(p => p - 1);
+                        scrollToTop();
+                      }
+                    }}
+                    disabled={currentPage === 1}
+                    className="inline-flex items-center gap-1 px-3.5 py-2 rounded-xl text-xs font-bold border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-xs"
+                  >
+                    <ChevronLeftIcon className="w-4 h-4" />
+                    <span>Previous</span>
+                  </button>
+
+                  {/* Page Numbers */}
+                  {(() => {
+                    const pages = [];
+                    const maxVisible = 5;
+                    let startPage = Math.max(1, currentPage - Math.floor(maxVisible / 2));
+                    let endPage = Math.min(totalPages, startPage + maxVisible - 1);
+
+                    if (endPage - startPage + 1 < maxVisible) {
+                      startPage = Math.max(1, endPage - maxVisible + 1);
+                    }
+
+                    if (startPage > 1) {
+                      pages.push(
+                        <button
+                          key={1}
+                          onClick={() => { setCurrentPage(1); scrollToTop(); }}
+                          className={`w-8 h-8 rounded-lg text-xs font-bold transition-all ${
+                            currentPage === 1
+                              ? "bg-[#002147] text-white shadow-sm"
+                              : "bg-white text-slate-700 border border-slate-200 hover:bg-slate-50"
+                          }`}
+                        >
+                          1
+                        </button>
+                      );
+                      if (startPage > 2) {
+                        pages.push(<span key="dots-start" className="px-1 text-slate-400 text-xs">...</span>);
+                      }
+                    }
+
+                    for (let p = startPage; p <= endPage; p++) {
+                      pages.push(
+                        <button
+                          key={p}
+                          onClick={() => { setCurrentPage(p); scrollToTop(); }}
+                          className={`w-8 h-8 rounded-lg text-xs font-bold transition-all ${
+                            currentPage === p
+                              ? "bg-[#002147] text-white shadow-sm"
+                              : "bg-white text-slate-700 border border-slate-200 hover:bg-slate-50"
+                          }`}
+                        >
+                          {p}
+                        </button>
+                      );
+                    }
+
+                    if (endPage < totalPages) {
+                      if (endPage < totalPages - 1) {
+                        pages.push(<span key="dots-end" className="px-1 text-slate-400 text-xs">...</span>);
+                      }
+                      pages.push(
+                        <button
+                          key={totalPages}
+                          onClick={() => { setCurrentPage(totalPages); scrollToTop(); }}
+                          className={`w-8 h-8 rounded-lg text-xs font-bold transition-all ${
+                            currentPage === totalPages
+                              ? "bg-[#002147] text-white shadow-sm"
+                              : "bg-white text-slate-700 border border-slate-200 hover:bg-slate-50"
+                          }`}
+                        >
+                          {totalPages}
+                        </button>
+                      );
+                    }
+
+                    return pages;
+                  })()}
+
+                  {/* Next Button */}
+                  <button
+                    onClick={() => {
+                      if (currentPage < totalPages) {
+                        setCurrentPage(p => p + 1);
+                        scrollToTop();
+                      }
+                    }}
+                    disabled={currentPage === totalPages}
+                    className="inline-flex items-center gap-1 px-3.5 py-2 rounded-xl text-xs font-bold border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-xs"
+                  >
+                    <span>Next</span>
+                    <ChevronRightIcon className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
         ) : (
+          /* Empty State */
           <div className="text-center py-24 bg-white rounded-3xl shadow-sm border border-slate-100">
             <FaceFrownIcon className="h-16 w-16 text-slate-300 mx-auto mb-4" />
-            <h3 className="text-3xl font-bold text-slate-800">No books found</h3>
+            <h3 className="text-2xl font-bold text-slate-800">No books found</h3>
+            <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
+              No books matched the selected filters.
+            </p>
             <button
               onClick={() => {
                 setSearchTerm("");
                 setSelectedCategory("all");
+                setSelectedLanguage("all");
               }}
-              className="mt-6 px-8 py-3 bg-emerald-600 text-white rounded-xl font-bold shadow-lg hover:bg-emerald-700"
+              className="mt-6 px-8 py-3 bg-emerald-600 text-white rounded-xl font-bold shadow-lg hover:bg-emerald-700 text-sm"
             >
               Clear Filters
             </button>
@@ -830,51 +882,59 @@ const UserLibrary = () => {
               </div>
 
               <div className="w-full md:w-7/12 p-8 flex flex-col overflow-y-auto">
-                <div className="flex justify-between">
-                  <span className="text-xs font-bold text-emerald-600 uppercase bg-emerald-50 px-2 py-1 rounded">
+                <div className="flex justify-between items-center">
+                  <span className="text-xs font-bold text-emerald-600 uppercase bg-emerald-50 px-2.5 py-1 rounded-full">
                     {safeCategory(selectedBook)}
                   </span>
-                  <button onClick={() => setSelectedBook(null)}>
+                  <button onClick={() => setSelectedBook(null)} className="p-1 hover:bg-slate-100 rounded-lg">
                     <XMarkIcon className="w-6 h-6 text-slate-400" />
                   </button>
                 </div>
 
-                <h2 className="text-3xl font-serif font-bold mt-4 mb-2 text-slate-900 leading-tight">
+                <h2 className="text-2xl md:text-3xl font-serif font-bold mt-4 mb-2 text-slate-900 leading-tight">
                   {selectedBook.title}
                 </h2>
 
-                <p className="text-slate-500 text-sm mb-6">
+                <p className="text-slate-500 text-sm mb-4">
                   By {safeText(selectedBook.author, "Unknown")}
+                  {selectedBook.translator && ` (ترجمہ: ${selectedBook.translator})`}
+                  {selectedBook.publisher && ` — ${selectedBook.publisher}`}
                 </p>
 
-                <p className="text-slate-600 text-sm mb-8 flex-grow">
+                <p className="text-slate-600 text-sm mb-6 flex-grow">
                   {selectedBook.description || "No description provided."}
                 </p>
 
-                {/* âœ… UPDATED ACTION BUTTONS */}
-                <div className="flex flex-col gap-3 pt-6 border-t border-slate-100 mt-auto">
+                {/* ACTION BUTTONS */}
+                <div className="flex flex-col gap-3 pt-4 border-t border-slate-100 mt-auto">
                   {selectedBook.is_restricted ? (
                     <button
                       onClick={() => handleRequestAccess(selectedBook)}
                       className="w-full bg-slate-800 text-white py-3 rounded-xl font-bold flex justify-center gap-2 hover:bg-slate-900 transition-colors"
                     >
-                      <LockOutline className="w-5" /> Request Access
+                      <LockOutline className="w-5 h-5" /> Request Access
                     </button>
                   ) : (
                     <div className="flex gap-2">
-                        {/* READ (PDF) BUTTON */}
+                      {selectedBook.pdf_url || selectedBook.txt_file_url ? (
                         <button
                           onClick={() => {
-                            if (selectedBook.pdf_url || selectedBook.txt_file_url) {
-                                navigate(`/books/${selectedBook.id}`); // Navigate to Reader page
-                            } else {
-                                toast.error("No content available");
-                            }
+                            navigate(`/books/${selectedBook.id}`);
                           }}
-                          className="flex-1 bg-emerald-600 text-white py-3 rounded-xl font-bold flex justify-center gap-2 hover:bg-emerald-700 transition-colors"
+                          className="flex-1 bg-emerald-600 text-white py-3 rounded-xl font-bold flex justify-center items-center gap-2 hover:bg-emerald-700 transition-colors shadow-sm"
                         >
                           <BookOpenIcon className="w-5 h-5" /> Read Now
                         </button>
+                      ) : (
+                        <button
+                          onClick={() => {
+                            showUpcomingToast();
+                          }}
+                          className="flex-1 bg-slate-900 text-amber-300 py-3 rounded-xl font-bold flex justify-center items-center gap-2 hover:bg-slate-800 transition-colors shadow-sm text-base"
+                        >
+                          <span>⏳</span> <span>عنقریب...</span>
+                        </button>
+                      )}
                     </div>
                   )}
                 </div>
@@ -884,14 +944,14 @@ const UserLibrary = () => {
         )}
       </AnimatePresence>
 
-     {isAccessFlowOpen && (
-       <RestrictedAccessFlow
-         isOpen={isAccessFlowOpen}
-         book={restrictedBook}
-         onClose={() => setIsAccessFlowOpen(false)}
-         onSuccess={() => setShowSuccess(true)}
-       />
-     )}
+      {isAccessFlowOpen && (
+        <RestrictedAccessFlow
+          isOpen={isAccessFlowOpen}
+          book={restrictedBook}
+          onClose={() => setIsAccessFlowOpen(false)}
+          onSuccess={() => setShowSuccess(true)}
+        />
+      )}
 
       {showSuccess && (
         <SuccessScreen

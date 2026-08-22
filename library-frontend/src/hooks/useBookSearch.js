@@ -39,10 +39,14 @@ const getCategoryNames = (book) => {
   const list = [];
 
   // 1) subcategories array
-  if (Array.isArray(book?.subcategories)) {
+  if (Array.isArray(book?.subcategories) && book.subcategories.length > 0) {
     book.subcategories.forEach((sub) => {
       const n = normalize(getText(sub));
       if (n) list.push(n);
+      if (sub.category) {
+        const cn = normalize(getText(sub.category));
+        if (cn) list.push(cn);
+      }
     });
   }
 
@@ -53,6 +57,11 @@ const getCategoryNames = (book) => {
   // 3) common alternate property names
   const altCat = normalize(getText(book?.category_name || book?.categoryTitle || book?.category_title));
   if (altCat) list.push(altCat);
+
+  // If no category found, mark as "general"
+  if (list.length === 0) {
+    list.push("general");
+  }
 
   return list;
 };
@@ -83,7 +92,7 @@ export const useBookSearch = (initialBooks = []) => {
       /** ✅ 1) Language filter */
       const bookLang = getLanguageName(book);
       const matchesLanguage =
-        langFilter === "all" || bookLang === langFilter;
+        langFilter === "all" || bookLang === langFilter || (langFilter === "urdu" && (!bookLang || bookLang === "urdu"));
 
       /** ✅ 2) Category filter */
       const bookCats = getCategoryNames(book);
@@ -91,6 +100,8 @@ export const useBookSearch = (initialBooks = []) => {
       const normalizedCatFilter = slugify(catFilter);
       const matchesCategory =
         catFilter === "all" ||
+        normalizedCatFilter === "all" ||
+        (normalizedCatFilter === "general" && (normalizedBookCats.length === 0 || normalizedBookCats.includes("general"))) ||
         normalizedBookCats.some(
           (cat) => cat === normalizedCatFilter || cat.includes(normalizedCatFilter) || normalizedCatFilter.includes(cat)
         );
