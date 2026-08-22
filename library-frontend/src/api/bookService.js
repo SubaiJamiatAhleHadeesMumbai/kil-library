@@ -11,7 +11,7 @@ export const bookService = {
      * Fetches all books.
      * Supports both Public (isApproved=true) and Admin (queryParams object).
      */
-    async getAllBooks(queryParams = {}, limit = 100, extraParams = {}) {
+    async getAllBooks(queryParams = {}, limit = 2000, extraParams = {}) {
         try {
             let params = {};
 

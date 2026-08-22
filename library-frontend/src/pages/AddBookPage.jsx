@@ -57,22 +57,23 @@ const AddBookPage = () => {
 
     try {
       const result = await parseExcelFile(file);
-      if (result.books.length === 0) {
+      if (!result.books || result.books.length === 0) {
         toast.error("No valid book rows found in file.");
+      } else if (result.books.length === 1) {
+        // If 1 book, pre-fill form
+        setPrefillData(result.books[0]);
+        setSourceFileName(file.name);
+        toast.success(`Loaded book details from ${file.name}!`);
       } else {
-        // If 1 book, pre-fill immediately. If multiple, open modal so user can pick!
-        if (result.books.length === 1) {
-          setPrefillData(result.books[0]);
-          setSourceFileName(file.name);
-          toast.success(`Loaded book details from ${file.name}!`);
-        } else {
-          setIsExcelModalOpen(true);
-          toast.success(`Found ${result.books.length} books in Excel! Pick one to fill.`);
-        }
+        // If multiple books, automatically insert all to MySQL Database & redirect to catalog!
+        const toastId = toast.loading(`Saving ${result.books.length} books to database catalog...`);
+        const saved = await bookService.bulkImportBooks(result.books);
+        toast.success(`🎉 Successfully saved ${saved.length} books to Database Catalog!`, { id: toastId, duration: 5000 });
+        navigate("/admin/books");
       }
     } catch (err) {
       console.error(err);
-      toast.error(err.message || "Failed to parse Excel file.");
+      toast.error(err.response?.data?.detail || err.message || "Failed to parse/save Excel file.");
     } finally {
       setIsParsingDirect(false);
     }

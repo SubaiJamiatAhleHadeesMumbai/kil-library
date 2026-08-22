@@ -253,7 +253,7 @@ def get_smart_recommendations(
 @router.get("/", response_model=List[book_schema.Book])
 def read_books(
     skip: int = 0, 
-    limit: int = 100,
+    limit: int = 2000,
     search: Optional[str] = None,
     category_id: Optional[int] = None,
     language_id: Optional[int] = None,

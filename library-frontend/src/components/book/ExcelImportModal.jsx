@@ -30,8 +30,8 @@ const ExcelImportModal = ({ isOpen, onClose, onStagedUpdated }) => {
   const fileInputRef = useRef(null);
 
   const [isDragging, setIsDragging] = useState(false);
-  const [isParsing, setIsParsing] = useState(false);
-  const [isImportingAll, setIsImportingAll] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
   const [booksList, setBooksList] = useState([]);
   const [searchFilter, setSearchFilter] = useState('');
   const [selectedFileName, setSelectedFileName] = useState('');
@@ -41,22 +41,11 @@ const ExcelImportModal = ({ isOpen, onClose, onStagedUpdated }) => {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
-  // Load staged books from Database on open
-  const loadStagedFromDB = async () => {
-    try {
-      const dbStaged = await bookService.getStagedBooks();
-      if (dbStaged && dbStaged.length > 0) {
-        setBooksList(dbStaged);
-        setSelectedFileName(dbStaged[0]?.file_name || 'Cloud Staged Spreadsheet');
-      }
-    } catch (err) {
-      console.warn("Staged books check:", err);
-    }
-  };
-
   useEffect(() => {
-    if (isOpen) {
-      loadStagedFromDB();
+    if (!isOpen) {
+      setSaveSuccess(false);
+      setBooksList([]);
+      setSelectedFileName('');
     }
   }, [isOpen]);
 
@@ -79,32 +68,40 @@ const ExcelImportModal = ({ isOpen, onClose, onStagedUpdated }) => {
       return;
     }
 
-    setIsParsing(true);
+    setIsSaving(true);
+    setSaveSuccess(false);
     setSelectedFileName(file.name);
 
+    const toastId = toast.loading(`Parsing and saving ${file.name} to database...`);
+
     try {
+      // 1. Parse Excel / CSV file
       const result = await parseExcelFile(file);
-      if (result.books.length === 0) {
-        toast.error("No book records found in this file.");
+      if (!result.books || result.books.length === 0) {
+        toast.error("No valid book records found in this file.", { id: toastId });
+        setIsSaving(false);
         return;
       }
 
       setUnmatchedHeaders(result.unmatchedHeaders || []);
-      setBooksList(result.books);
+
+      // 2. 🚀 AUTOMATIC DIRECT INSERTION TO MYSQL DATABASE
+      const savedBooks = await bookService.bulkImportBooks(result.books);
+      setBooksList(savedBooks && savedBooks.length > 0 ? savedBooks : result.books);
+      setSaveSuccess(true);
       setCurrentPage(1);
 
-      // Save to Staged Cloud DB in background
-      bookService.saveBulkStagedBooks({
-        file_name: file.name,
-        books: result.books
-      }).catch(e => console.warn("Background staged save:", e));
+      toast.success(`🎉 Successfully saved ${savedBooks.length} books to MySQL Database! Permanent across all devices.`, { id: toastId, duration: 6000 });
 
-      toast.success(`Extracted ${result.books.length} books from ${file.name}!`);
+      // 3. Immediately refresh main catalog
+      if (onStagedUpdated) {
+        await onStagedUpdated();
+      }
     } catch (err) {
-      console.error(err);
-      toast.error(err.message || "Failed to parse Excel file. Please check format.");
+      console.error("Auto import error:", err);
+      toast.error(err.response?.data?.detail || err.message || "Failed to save books to database.", { id: toastId });
     } finally {
-      setIsParsing(false);
+      setIsSaving(false);
     }
   };
 
@@ -122,51 +119,19 @@ const ExcelImportModal = ({ isOpen, onClose, onStagedUpdated }) => {
     }
   };
 
-  // 🚀 DIRECT DATABASE IMPORT: Inserts all books into MySQL `books` table
-  const handleImportAllToDatabase = async () => {
-    if (booksList.length === 0) return;
-
-    setIsImportingAll(true);
-    const toastId = toast.loading(`Saving ${booksList.length} books directly to database catalog...`);
-
-    try {
-      const savedBooks = await bookService.bulkImportBooks(booksList);
-      toast.success(`🎉 Successfully saved ${savedBooks.length} books to the database! Visible across all computers & phones.`, { id: toastId, duration: 5000 });
-      
-      // Cleanup staged books
-      bookService.clearAllStagedBooks().catch(() => {});
-
-      if (onStagedUpdated) {
-        await onStagedUpdated();
-      }
-      onClose();
-    } catch (err) {
-      console.error("Bulk import failed:", err);
-      toast.error("Failed to save books to database. Please check connection.", { id: toastId });
-    } finally {
-      setIsImportingAll(false);
-    }
-  };
-
   const handleSelectBook = (book) => {
-    navigate('/admin/books/add', {
-      state: {
-        prefillData: book,
-        stagedId: book.id || null,
-        source: 'excel_import',
-        fileName: selectedFileName
-      }
-    });
-    onClose();
-  };
-
-  const handleDeleteStaged = async (bookId, index, e) => {
-    e.stopPropagation();
-    if (bookId) {
-      await bookService.deleteStagedBook(bookId);
+    if (book.id) {
+      navigate(`/admin/books/${book.id}/edit`);
+    } else {
+      navigate('/admin/books/add', {
+        state: {
+          prefillData: book,
+          source: 'excel_import',
+          fileName: selectedFileName
+        }
+      });
     }
-    setBooksList(prev => prev.filter((b, i) => (b.id ? b.id !== bookId : i !== index)));
-    toast.success("Removed book from preview.");
+    onClose();
   };
 
   const filteredBooks = booksList.filter(b => {
@@ -199,9 +164,9 @@ const ExcelImportModal = ({ isOpen, onClose, onStagedUpdated }) => {
               <TableCellsIcon className="w-6 h-6" />
             </div>
             <div>
-              <h2 className="text-xl font-bold text-slate-900">Import Books from Excel / CSV</h2>
+              <h2 className="text-xl font-bold text-slate-900">Direct Excel / CSV Catalog Import</h2>
               <p className="text-xs text-slate-500 font-medium">
-                Saves directly to Database — permanently accessible across all laptops & mobile devices.
+                Automatic MySQL Database saving — persistent across all laptops & mobile devices.
               </p>
             </div>
           </div>
@@ -239,6 +204,8 @@ const ExcelImportModal = ({ isOpen, onClose, onStagedUpdated }) => {
             className={`cursor-pointer rounded-2xl border-2 border-dashed p-6 text-center transition-all ${
               isDragging
                 ? 'border-emerald-500 bg-emerald-50/50 scale-[0.99]'
+                : saveSuccess
+                ? 'border-emerald-400 bg-emerald-50/30'
                 : 'border-slate-300 bg-slate-50/60 hover:bg-slate-50 hover:border-emerald-400'
             }`}
           >
@@ -251,8 +218,8 @@ const ExcelImportModal = ({ isOpen, onClose, onStagedUpdated }) => {
             />
 
             <div className="flex flex-col items-center justify-center space-y-3">
-              <div className="w-14 h-14 rounded-2xl bg-white text-emerald-600 shadow-sm border border-slate-200 flex items-center justify-center">
-                <DocumentArrowUpIcon className="w-7 h-7" />
+              <div className={`w-14 h-14 rounded-2xl ${saveSuccess ? 'bg-emerald-600 text-white' : 'bg-white text-emerald-600'} shadow-sm border border-slate-200 flex items-center justify-center transition-all`}>
+                {saveSuccess ? <CheckIcon className="w-8 h-8 font-black stroke-[2.5]" /> : <DocumentArrowUpIcon className="w-7 h-7" />}
               </div>
               <div className="space-y-1">
                 <p className="text-sm font-bold text-slate-800">
@@ -267,20 +234,46 @@ const ExcelImportModal = ({ isOpen, onClose, onStagedUpdated }) => {
                 </p>
               </div>
 
-              {isParsing && (
+              {isSaving && (
                 <div className="flex items-center gap-2 text-xs font-bold text-emerald-600 pt-2 animate-pulse">
-                  <SparklesIcon className="w-4 h-4" />
-                  Extracting book metadata from spreadsheet...
+                  <SparklesIcon className="w-5 h-5 animate-spin" />
+                  Saving books directly into MySQL database...
                 </div>
               )}
             </div>
           </div>
 
+          {/* PERMANENT SUCCESS BANNER */}
+          {saveSuccess && (
+            <div className="bg-emerald-600 text-white p-4 sm:p-5 rounded-2xl shadow-md flex flex-col sm:flex-row items-center justify-between gap-4 animate-in fade-in duration-300">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center font-bold flex-shrink-0">
+                  <CheckCircleIcon className="w-7 h-7" />
+                </div>
+                <div>
+                  <h4 className="text-sm sm:text-base font-black">
+                    🎉 {booksList.length} Books Successfully Saved in MySQL Database!
+                  </h4>
+                  <p className="text-xs text-emerald-100 mt-0.5">
+                    Data is now 100% permanent. Refresh karein ya kisi bhi mobile/laptop se login karein, sabhi books hamesha visible rahengi.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-5 py-2.5 bg-white text-emerald-800 hover:bg-emerald-50 text-xs sm:text-sm font-extrabold rounded-xl shadow-xs transition-all active:scale-95 whitespace-nowrap self-stretch sm:self-auto text-center"
+              >
+                Go to Catalog & Attach PDFs
+              </button>
+            </div>
+          )}
+
           {/* UNMATCHED HEADERS NOTICE IF PRESENT */}
           {unmatchedHeaders.length > 0 && (
             <div className="bg-amber-50 border border-amber-200 rounded-2xl p-3 text-xs text-amber-800 flex items-center justify-between">
               <div>
-                <strong>Admin Record (Extra Columns):</strong> {unmatchedHeaders.join(', ')} will be saved in the admin-only metadata record.
+                <strong>Admin Record (Extra Columns Saved):</strong> {unmatchedHeaders.join(', ')} were preserved in the internal admin record.
               </div>
             </div>
           )}
@@ -289,39 +282,24 @@ const ExcelImportModal = ({ isOpen, onClose, onStagedUpdated }) => {
           {booksList.length > 0 && (
             <div className="space-y-4 animate-in fade-in duration-300">
               
-              {/* Meta & Actions Bar */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-emerald-50/80 p-4 rounded-2xl border border-emerald-200/80">
-                <div className="flex items-center gap-2 text-emerald-900 flex-wrap">
+              {/* Meta Bar */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-100/80 p-3.5 rounded-2xl border border-slate-200">
+                <div className="flex items-center gap-2 text-slate-800 flex-wrap">
                   <CloudArrowUpIcon className="w-5 h-5 text-emerald-600 flex-shrink-0" />
                   <span className="text-xs sm:text-sm font-bold">
-                    <span className="font-black text-emerald-950">{booksList.length}</span> Books Extracted.
-                  </span>
-                  <span className="text-[11px] bg-emerald-200/80 text-emerald-900 px-2 py-0.5 rounded-md font-semibold">
-                    Ready to Save in DB
+                    Database Catalog: <span className="font-black text-slate-900">{booksList.length}</span> Books Active.
                   </span>
                 </div>
 
-                <div className="flex items-center gap-2">
-                  <div className="relative w-full sm:w-48">
-                    <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                    <input
-                      type="text"
-                      value={searchFilter}
-                      onChange={(e) => setSearchFilter(e.target.value)}
-                      placeholder="Filter preview..."
-                      className="w-full pl-9 pr-3 py-1.5 text-xs bg-white rounded-xl border border-slate-200 font-medium outline-none focus:border-emerald-500"
-                    />
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={handleImportAllToDatabase}
-                    disabled={isImportingAll}
-                    className="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-extrabold rounded-xl shadow-md transition-all active:scale-95 disabled:opacity-50 whitespace-nowrap"
-                  >
-                    <CheckIcon className="w-4 h-4" />
-                    <span>{isImportingAll ? "Saving..." : `Save All (${booksList.length}) to DB`}</span>
-                  </button>
+                <div className="relative w-full sm:w-56">
+                  <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                  <input
+                    type="text"
+                    value={searchFilter}
+                    onChange={(e) => setSearchFilter(e.target.value)}
+                    placeholder="Search imported books..."
+                    className="w-full pl-9 pr-3 py-1.5 text-xs bg-white rounded-xl border border-slate-200 font-medium outline-none focus:border-emerald-500"
+                  />
                 </div>
               </div>
 
@@ -351,7 +329,7 @@ const ExcelImportModal = ({ isOpen, onClose, onStagedUpdated }) => {
                         paginatedBooks.map((b, idx) => (
                           <tr key={idx} className="hover:bg-slate-50/80 transition-colors">
                             <td className="py-3 px-3 text-center font-bold text-slate-400">
-                              {b.serial_number || b.book_number || startIndex + idx + 1}
+                              {b.id ? `#${b.id}` : b.serial_number || b.book_number || startIndex + idx + 1}
                             </td>
                             <td className="py-3 px-3 font-bold text-slate-900 max-w-xs">
                               <div className="flex items-center gap-1.5">
@@ -364,9 +342,9 @@ const ExcelImportModal = ({ isOpen, onClose, onStagedUpdated }) => {
                                     BK: {b.book_number}
                                   </span>
                                 )}
-                                {b.language_name && (
+                                {(b.language?.name || b.language_name) && (
                                   <span className="text-[10px] bg-blue-50 text-blue-700 px-1.5 py-0.2 rounded font-medium">
-                                    {b.language_name}
+                                    {b.language?.name || b.language_name}
                                   </span>
                                 )}
                               </div>
@@ -382,8 +360,8 @@ const ExcelImportModal = ({ isOpen, onClose, onStagedUpdated }) => {
                             </td>
                             <td className="py-3 px-3 text-center text-slate-600">
                               <div>{b.parts_or_volumes ? `Vol ${b.parts_or_volumes}` : '-'}</div>
-                              {b.quantity > 1 && (
-                                <div className="text-[10px] text-emerald-600 font-bold">Qty: {b.quantity}</div>
+                              {(b.quantity > 1 || b.total_copies > 1) && (
+                                <div className="text-[10px] text-emerald-600 font-bold">Qty: {b.quantity || b.total_copies}</div>
                               )}
                             </td>
                             <td className="py-3 px-3 text-center text-slate-600">
@@ -393,24 +371,14 @@ const ExcelImportModal = ({ isOpen, onClose, onStagedUpdated }) => {
                               )}
                             </td>
                             <td className="py-3 px-3 text-center">
-                              <div className="flex items-center justify-center gap-1.5">
-                                <button
-                                  type="button"
-                                  onClick={() => handleSelectBook(b)}
-                                  className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-[#002147] hover:bg-[#003166] text-white text-xs font-bold rounded-xl shadow-xs transition-all hover:shadow-md hover:scale-[1.02] active:scale-95"
-                                >
-                                  <span>Fill Form</span>
-                                  <ArrowRightIcon className="w-3 h-3" />
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={(e) => handleDeleteStaged(b.id, idx, e)}
-                                  className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all"
-                                  title="Dismiss Row"
-                                >
-                                  <TrashIcon className="w-3.5 h-3.5" />
-                                </button>
-                              </div>
+                              <button
+                                type="button"
+                                onClick={() => handleSelectBook(b)}
+                                className="inline-flex items-center gap-1 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-xs transition-all hover:shadow-md hover:scale-[1.02] active:scale-95"
+                              >
+                                <DocumentArrowUpIcon className="w-3.5 h-3.5" />
+                                <span>Attach PDF</span>
+                              </button>
                             </td>
                           </tr>
                         ))
@@ -486,7 +454,7 @@ const ExcelImportModal = ({ isOpen, onClose, onStagedUpdated }) => {
               </div>
 
               <div className="text-xs text-slate-400 flex items-center justify-between px-1">
-                <span>Tip: Click <strong>"Save All to DB"</strong> to insert all records immediately into the Database.</span>
+                <span>All books saved permanently to MySQL database. Click <strong>"Attach PDF"</strong> on any book to upload files.</span>
                 <span>Page {currentPage} of {totalPages}</span>
               </div>
             </div>
@@ -504,18 +472,15 @@ const ExcelImportModal = ({ isOpen, onClose, onStagedUpdated }) => {
             Close
           </button>
 
-          {booksList.length > 0 && (
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={handleImportAllToDatabase}
-                disabled={isImportingAll}
-                className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-emerald-700 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white text-xs sm:text-sm font-bold rounded-xl shadow-md transition-all active:scale-95 disabled:opacity-50"
-              >
-                <CloudArrowUpIcon className="w-4 h-4" />
-                <span>{isImportingAll ? "Saving..." : `Save All (${booksList.length}) Books to DB Catalog`}</span>
-              </button>
-            </div>
+          {saveSuccess && (
+            <button
+              type="button"
+              onClick={onClose}
+              className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-emerald-700 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white text-xs sm:text-sm font-bold rounded-xl shadow-md transition-all active:scale-95"
+            >
+              <span>Go to Books List & Attach PDFs</span>
+              <ArrowRightIcon className="w-4 h-4" />
+            </button>
           )}
         </div>
 
