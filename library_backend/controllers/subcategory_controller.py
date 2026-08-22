@@ -60,7 +60,7 @@ def create_subcategory(
 
 # --- READ ALL Subcategories (Public) ---
 @router.get("/", response_model=List[subcategory_schema.SubcategoryWithCategory])
-def read_subcategories(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+def read_subcategories(skip: int = 0, limit: int = 1000, db: Session = Depends(get_db)):
     """Fetches a list of all non-deleted subcategories, including their parent category."""
     return db.query(book_model.Subcategory).options(
         joinedload(book_model.Subcategory.category)

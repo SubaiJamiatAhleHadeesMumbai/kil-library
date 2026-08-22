@@ -246,3 +246,10 @@ sync_table_columns(
 )
 
 print("✅ All tables and columns synchronized successfully!")
+
+try:
+    from seed_islamic_categories import seed_categories
+    print("🌱 Seeding Islamic Categories & Subcategories...")
+    seed_categories()
+except Exception as e:
+    print("⚠️ Seeding failed:", e)
