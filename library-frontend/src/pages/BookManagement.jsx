@@ -372,6 +372,58 @@ const BookManagement = () => {
 
             {/* --- CATALOG TABLE SECTION --- */}
             <div className="bg-white rounded-3xl shadow-sm border border-slate-200/80 overflow-hidden">
+                {/* Top Control Bar with Book Information + Rows per page */}
+                <div className="px-6 py-3.5 bg-slate-50/90 border-b border-slate-200/80 flex flex-wrap items-center justify-between gap-3">
+                    <div className="flex flex-wrap items-center gap-3">
+                        <span className="text-xs font-black text-slate-700 uppercase tracking-wider">Book Information</span>
+                        <span className="text-slate-300 hidden sm:inline">•</span>
+                        <div className="flex items-center gap-2">
+                            <span className="text-xs font-semibold text-slate-500">Rows per page:</span>
+                            <div className="relative inline-block">
+                                <select
+                                    value={itemsPerPage}
+                                    onChange={(e) => {
+                                        setItemsPerPage(Number(e.target.value));
+                                        setCurrentPage(1);
+                                    }}
+                                    className="bg-white border border-slate-300 hover:border-slate-400 text-slate-800 text-xs font-bold rounded-lg px-2.5 py-1 pr-7 appearance-none cursor-pointer outline-none shadow-2xs focus:ring-2 focus:ring-emerald-500"
+                                >
+                                    <option value={10}>10</option>
+                                    <option value={25}>25</option>
+                                    <option value={50}>50</option>
+                                    <option value={100}>100</option>
+                                </select>
+                                <ChevronDownIcon className="w-3.5 h-3.5 text-slate-500 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
+                            </div>
+                            <span className="text-xs text-slate-400">
+                                Showing {(currentPage - 1) * itemsPerPage + 1} - {Math.min(currentPage * itemsPerPage, filteredBooks.length)} of {filteredBooks.length}
+                            </span>
+                        </div>
+                    </div>
+
+                    {totalPages > 1 && (
+                        <div className="flex items-center gap-1.5">
+                            <button
+                                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                                disabled={currentPage === 1}
+                                className="inline-flex items-center gap-1 px-2.5 py-1 border border-slate-200 rounded-lg bg-white text-xs font-bold text-slate-700 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-2xs"
+                            >
+                                <ChevronLeftIcon className="w-3.5 h-3.5" /> Prev
+                            </button>
+                            <span className="text-xs text-slate-600 font-bold px-1.5">
+                                {currentPage} / {totalPages}
+                            </span>
+                            <button
+                                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                                disabled={currentPage === totalPages}
+                                className="inline-flex items-center gap-1 px-2.5 py-1 border border-slate-200 rounded-lg bg-white text-xs font-bold text-slate-700 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-2xs"
+                            >
+                                Next <ChevronRightIcon className="w-3.5 h-3.5" />
+                            </button>
+                        </div>
+                    )}
+                </div>
+
                 {isLoading ? (
                     <div className="p-6">
                         <TableSkeleton />
@@ -380,8 +432,8 @@ const BookManagement = () => {
                     <div className="overflow-x-auto">
                         <table className="w-full text-left border-collapse">
                             <thead>
-                                <tr className="bg-slate-50/80 border-b border-slate-200/80 text-[11px] font-black text-slate-500 uppercase tracking-widest">
-                                    <th className="px-6 py-4">Book Information</th>
+                                <tr className="bg-slate-50/50 border-b border-slate-200/80 text-[11px] font-black text-slate-500 uppercase tracking-widest">
+                                    <th className="px-6 py-4">Book Details</th>
                                     <th className="px-6 py-4">ISBN & Language</th>
                                     <th className="px-6 py-4 text-center">Files & Media</th>
                                     <th className="px-6 py-4 text-center">Access Level</th>
