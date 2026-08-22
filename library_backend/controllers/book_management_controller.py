@@ -232,21 +232,31 @@ def bulk_import_books(
             return None
         return s[:max_len] if max_len else s
 
-    def safe_int(val, default=None):
+    def safe_int(val, min_val=0, max_val=2147483647, default=None):
         if val is None or str(val).strip() == '':
             return default
         try:
-            clean = re.sub(r'[^\d]', '', str(val))
-            return int(clean) if clean else default
+            clean = re.sub(r'[^\d-]', '', str(val))
+            if not clean or clean == '-':
+                return default
+            num = int(clean)
+            if num < min_val or num > max_val:
+                return default
+            return num
         except Exception:
             return default
 
-    def safe_float(val, default=None):
+    def safe_float(val, min_val=0.0, max_val=999999999.0, default=None):
         if val is None or str(val).strip() == '':
             return default
         try:
-            clean = re.sub(r'[^\d.]', '', str(val))
-            return float(clean) if clean else default
+            clean = re.sub(r'[^\d.-]', '', str(val))
+            if not clean or clean == '-' or clean == '.':
+                return default
+            num = float(clean)
+            if num < min_val or num > max_val:
+                return default
+            return num
         except Exception:
             return default
 
@@ -260,15 +270,15 @@ def bulk_import_books(
         parsed_pub_date = None
         if item.publication_year:
             try:
-                clean_y = safe_int(str(item.publication_year)[:4])
-                if clean_y and 1000 <= clean_y <= 2100:
+                clean_y = safe_int(str(item.publication_year)[:4], min_val=1000, max_val=2100)
+                if clean_y:
                     parsed_pub_date = date(clean_y, 1, 1)
             except Exception:
                 pass
                 
-        qty = safe_int(item.quantity, default=1)
-        pages = safe_int(item.page_count, default=None)
-        price_val = safe_float(item.price, default=None)
+        qty = safe_int(item.quantity, min_val=1, max_val=10000, default=1)
+        pages = safe_int(item.page_count, min_val=1, max_val=50000, default=None)
+        price_val = safe_float(item.price, min_val=0.0, max_val=10000000.0, default=None)
 
         new_book = book_model.Book(
             title=safe_str(item.title, 250) or "Untitled Book",
