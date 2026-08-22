@@ -1,5 +1,5 @@
 // src/components/book/ExcelImportModal.jsx
-import React, { useState, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
 import { parseExcelFile, generateSampleExcel } from '../../utils/excelParser';
@@ -15,7 +15,9 @@ import {
   MagnifyingGlassIcon,
   ArrowRightIcon,
   SparklesIcon,
-  BookOpenIcon
+  BookOpenIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon
 } from '@heroicons/react/24/outline';
 
 const ExcelImportModal = ({ isOpen, onClose }) => {
@@ -27,6 +29,15 @@ const ExcelImportModal = ({ isOpen, onClose }) => {
   const [parsedData, setParsedData] = useState(null);
   const [searchFilter, setSearchFilter] = useState('');
   const [selectedFileName, setSelectedFileName] = useState('');
+
+  // --- Pagination State (10 items per page) ---
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
+
+  // Reset page when search or data changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchFilter, parsedData]);
 
   if (!isOpen) return null;
 
@@ -52,6 +63,7 @@ const ExcelImportModal = ({ isOpen, onClose }) => {
         setParsedData(null);
       } else {
         setParsedData(result);
+        setCurrentPage(1);
         toast.success(`Successfully parsed ${result.books.length} books from Excel!`);
       }
     } catch (err) {
@@ -100,6 +112,12 @@ const ExcelImportModal = ({ isOpen, onClose }) => {
       (b.serial_number && String(b.serial_number).includes(term))
     );
   });
+
+  // --- Pagination Calculations ---
+  const totalPages = Math.ceil(filteredBooks.length / itemsPerPage) || 1;
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = Math.min(startIndex + itemsPerPage, filteredBooks.length);
+  const paginatedBooks = filteredBooks.slice(startIndex, endIndex);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
@@ -219,9 +237,9 @@ const ExcelImportModal = ({ isOpen, onClose }) => {
 
               {/* TABLE */}
               <div className="border border-slate-200 rounded-2xl overflow-hidden shadow-xs">
-                <div className="max-h-80 overflow-y-auto custom-scrollbar">
+                <div className="overflow-x-auto">
                   <table className="w-full text-left text-xs border-collapse">
-                    <thead className="bg-slate-100/90 text-slate-600 font-bold uppercase tracking-wider sticky top-0 z-10 border-b border-slate-200">
+                    <thead className="bg-slate-100/90 text-slate-600 font-bold uppercase tracking-wider border-b border-slate-200">
                       <tr>
                         <th className="py-3 px-4 w-12 text-center">#</th>
                         <th className="py-3 px-4">Title (عنوان)</th>
@@ -232,17 +250,17 @@ const ExcelImportModal = ({ isOpen, onClose }) => {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 bg-white">
-                      {filteredBooks.length === 0 ? (
+                      {paginatedBooks.length === 0 ? (
                         <tr>
                           <td colSpan={6} className="py-8 text-center text-slate-400">
                             No books match the search filter.
                           </td>
                         </tr>
                       ) : (
-                        filteredBooks.map((b, idx) => (
+                        paginatedBooks.map((b, idx) => (
                           <tr key={idx} className="hover:bg-slate-50/80 transition-colors">
                             <td className="py-3 px-4 text-center font-bold text-slate-400">
-                              {b._rowIndex || idx + 1}
+                              {b._rowIndex || startIndex + idx + 1}
                             </td>
                             <td className="py-3 px-4 font-bold text-slate-900">
                               <div className="flex items-center gap-2">
@@ -284,11 +302,76 @@ const ExcelImportModal = ({ isOpen, onClose }) => {
                     </tbody>
                   </table>
                 </div>
+
+                {/* --- 10-ITEM PAGINATION CONTROLS --- */}
+                {filteredBooks.length > 0 && (
+                  <div className="px-4 py-3 bg-slate-50 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+                    <div className="text-slate-500 font-medium">
+                      Showing <span className="font-bold text-slate-800">{startIndex + 1}</span> to <span className="font-bold text-slate-800">{endIndex}</span> of <span className="font-bold text-slate-800">{filteredBooks.length}</span> books
+                    </div>
+
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => setCurrentPage(p => Math.max(p - 1, 1))}
+                        disabled={currentPage === 1}
+                        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-slate-200 bg-white font-medium text-slate-700 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-2xs"
+                      >
+                        <ChevronLeftIcon className="w-3.5 h-3.5" />
+                        <span>Prev</span>
+                      </button>
+
+                      {/* Page indicator pills */}
+                      <div className="flex items-center gap-1 px-2">
+                        {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
+                          let pageNum;
+                          if (totalPages <= 5) {
+                            pageNum = i + 1;
+                          } else if (currentPage <= 3) {
+                            pageNum = i + 1;
+                          } else if (currentPage >= totalPages - 2) {
+                            pageNum = totalPages - 4 + i;
+                          } else {
+                            pageNum = currentPage - 2 + i;
+                          }
+
+                          return (
+                            <button
+                              key={pageNum}
+                              type="button"
+                              onClick={() => setCurrentPage(pageNum)}
+                              className={`w-7 h-7 rounded-lg text-xs font-bold transition-all ${
+                                currentPage === pageNum
+                                  ? 'bg-[#002147] text-white shadow-xs'
+                                  : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-100'
+                              }`}
+                            >
+                              {pageNum}
+                            </button>
+                          );
+                        })}
+                        {totalPages > 5 && currentPage < totalPages - 2 && (
+                          <span className="text-slate-400 text-xs px-1">...</span>
+                        )}
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => setCurrentPage(p => Math.min(p + 1, totalPages))}
+                        disabled={currentPage === totalPages}
+                        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-slate-200 bg-white font-medium text-slate-700 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-2xs"
+                      >
+                        <span>Next</span>
+                        <ChevronRightIcon className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="text-xs text-slate-400 flex items-center justify-between px-1">
                 <span>Tip: Click <strong>"Fill & Upload PDF"</strong> on any row to open the Add Book form with all details auto-filled.</span>
-                <span>{filteredBooks.length} of {parsedData.totalRows} visible</span>
+                <span>Page {currentPage} of {totalPages}</span>
               </div>
             </div>
           )}
