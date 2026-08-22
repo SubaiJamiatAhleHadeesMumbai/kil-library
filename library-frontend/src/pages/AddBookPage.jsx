@@ -6,6 +6,8 @@ import ExcelImportModal from "../components/book/ExcelImportModal";
 import { parseExcelFile, generateSampleExcel } from "../utils/excelParser";
 import { toast } from "react-hot-toast";
 
+import { bookService } from "../api/bookService";
+
 // Icons
 import {
   ArrowLeftIcon,
@@ -33,7 +35,11 @@ const AddBookPage = () => {
     }
   }, [location.state]);
 
-  const handleSuccess = () => {
+  const handleSuccess = async () => {
+    const sId = location.state?.stagedId || prefillData?.id;
+    if (sId) {
+      await bookService.deleteStagedBook(sId).catch(() => {});
+    }
     navigate("/admin/books");
   };
 

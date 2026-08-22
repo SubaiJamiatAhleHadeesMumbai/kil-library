@@ -96,6 +96,7 @@ class Book(Base):
     price = Column(Float, nullable=True)
     date_of_purchase = Column(Date, nullable=True)
     remarks = Column(Text, nullable=True)
+    extra_data = Column(Text, nullable=True)  # Admin-only extra metadata / unmatched columns from Excel
 
     # 8. Timestamps
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
@@ -145,3 +146,35 @@ class Book(Base):
     def publication_year(self):
         return self.published_date.year if self.published_date else None
     # 🔥🔥🔥 MAGIC FIX ENDS HERE 🔥🔥🔥
+
+
+# --- Staged Book Model (For Excel / Bulk Uploads Persistent Cloud Storage) ---
+class StagedBook(Base):
+    __tablename__ = "staged_books"
+
+    id = Column(Integer, primary_key=True, index=True)
+    title = Column(String(255), nullable=True, index=True)
+    author = Column(String(255), nullable=True)
+    publisher = Column(String(255), nullable=True)
+    translator = Column(String(255), nullable=True)
+    serial_number = Column(String(100), nullable=True)
+    book_number = Column(String(100), nullable=True)
+    language_name = Column(String(100), nullable=True)
+    page_count = Column(Integer, nullable=True)
+    publication_year = Column(String(50), nullable=True)
+    edition = Column(String(100), nullable=True)
+    parts_or_volumes = Column(String(100), nullable=True)
+    subject_number = Column(String(100), nullable=True)
+    quantity = Column(Integer, nullable=True, default=1)
+    price = Column(Float, nullable=True)
+    description = Column(Text, nullable=True)
+    remarks = Column(Text, nullable=True)
+    raw_data = Column(Text, nullable=True)  # JSON string of all original columns from Excel
+    status = Column(String(50), default="PENDING")  # PENDING | COMPLETED | DISMISSED
+    file_name = Column(String(255), nullable=True)
+    uploaded_by_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now(), nullable=False)
+
+    __table_args__ = {'mysql_engine': 'InnoDB'}

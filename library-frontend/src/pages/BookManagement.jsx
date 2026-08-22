@@ -65,6 +65,7 @@ const BookManagement = () => {
     const [selectedBookForView, setSelectedBookForView] = useState(null);
 
     const [isExcelModalOpen, setIsExcelModalOpen] = useState(false);
+    const [stagedCount, setStagedCount] = useState(0);
 
     // Filter/Search States
     const [searchTerm, setSearchTerm] = useState('');
@@ -76,8 +77,12 @@ const BookManagement = () => {
     const fetchData = useCallback(async (silent = false) => {
         if (!silent) setIsLoading(true);
         try {
-            const data = await bookService.getAllBooks({ approved_only: false });
-            setAllBooks(data || []);
+            const [booksData, stagedData] = await Promise.all([
+                bookService.getAllBooks({ approved_only: false }),
+                bookService.getStagedBooks().catch(() => [])
+            ]);
+            setAllBooks(booksData || []);
+            setStagedCount(Array.isArray(stagedData) ? stagedData.length : 0);
         } catch (err) {
             console.error(err);
             toast.error("Failed to load library data.");
@@ -207,7 +212,12 @@ const BookManagement = () => {
                         title="Upload Excel (.xlsx, .xls) or CSV to auto-extract books"
                     >
                         <TableCellsIcon className="w-5 h-5 mr-2" />
-                        Import from Excel
+                        <span>Import from Excel</span>
+                        {stagedCount > 0 && (
+                            <span className="ml-2 bg-emerald-900 text-white text-[11px] px-2 py-0.5 rounded-full font-extrabold animate-pulse">
+                                {stagedCount}
+                            </span>
+                        )}
                     </button>
 
                     <button
@@ -219,6 +229,34 @@ const BookManagement = () => {
                     </button>
                 </div>
             </div>
+
+            {/* --- PERSISTENT CLOUD STAGED BOOKS BANNER --- */}
+            {stagedCount > 0 && (
+                <div className="bg-gradient-to-r from-emerald-500/10 via-teal-500/10 to-emerald-500/10 border-2 border-emerald-500/30 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-xs animate-in fade-in duration-300">
+                    <div className="flex items-center gap-3.5">
+                        <div className="w-11 h-11 rounded-2xl bg-emerald-600 text-white flex items-center justify-center font-bold shadow-xs flex-shrink-0">
+                            <TableCellsIcon className="w-6 h-6" />
+                        </div>
+                        <div>
+                            <h4 className="text-sm sm:text-base font-bold text-slate-900 flex items-center gap-2">
+                                <span>{stagedCount} Excel Book{stagedCount > 1 ? 's' : ''} Staged in Cloud Database</span>
+                                <span className="text-[10px] bg-emerald-200/70 text-emerald-900 px-2 py-0.5 rounded-md font-semibold">
+                                    Ready for PDF Attach
+                                </span>
+                            </h4>
+                            <p className="text-xs text-slate-600 mt-0.5">
+                                Your uploaded spreadsheets are saved to the cloud so you can open the form and attach PDFs from any mobile or laptop.
+                            </p>
+                        </div>
+                    </div>
+                    <button
+                        onClick={() => setIsExcelModalOpen(true)}
+                        className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs sm:text-sm font-bold rounded-xl shadow-md transition-all active:scale-95 whitespace-nowrap self-stretch sm:self-auto text-center"
+                    >
+                        Open Staged Books ({stagedCount})
+                    </button>
+                </div>
+            )}
 
             {/* --- STATS SUMMARY CARDS --- */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -522,7 +560,8 @@ const BookManagement = () => {
             {/* Excel / CSV Import Modal */}
             <ExcelImportModal 
                 isOpen={isExcelModalOpen} 
-                onClose={() => setIsExcelModalOpen(false)} 
+                onClose={() => setIsExcelModalOpen(false)}
+                onStagedUpdated={fetchData}
             />
 
         </div>

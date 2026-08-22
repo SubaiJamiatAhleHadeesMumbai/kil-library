@@ -488,6 +488,10 @@ const BookDetail = () => {
 
                             {/* Compact Details Grid */}
                             <div className="grid grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-0">
+                                <InfoItem label="Serial No." value={book.serial_number} />
+                                <InfoItem label="Book No." value={book.book_number} />
+                                <InfoItem label="Category No." value={book.subject_number} />
+                                <InfoItem label="Quantity" value={book.total_copies} />
                                 <InfoItem label="Publisher" value={book.publisher} />
                                 <InfoItem label="Year" value={book.publication_year} />
                                 <InfoItem label="Edition" value={book.edition} />
@@ -550,9 +554,34 @@ const BookDetail = () => {
                             {/* Remarks */}
                             {book.remarks && (
                                 <div className="mt-2 text-xs text-gray-500 bg-gray-50 p-2 rounded-lg">
-                                    <span className="font-semibold">📌 Remarks:</span> {book.remarks}
+                                    <span className="font-semibold">📌 Remarks (کیفیات):</span> {book.remarks}
                                 </div>
                             )}
+
+                            {/* Admin-Only Extra Metadata / Unmatched Columns from Excel */}
+                            {book.extra_data && (() => {
+                                try {
+                                    const extra = typeof book.extra_data === 'string' ? JSON.parse(book.extra_data) : book.extra_data;
+                                    if (!extra || Object.keys(extra).length === 0) return null;
+                                    return (
+                                        <div className="mt-3 p-3 bg-amber-50/80 border border-amber-200 rounded-xl text-xs space-y-1.5">
+                                            <div className="font-bold text-amber-900 flex items-center gap-1.5">
+                                                <span>🛡️ Admin Record (Extra Spreadsheet Details)</span>
+                                            </div>
+                                            <div className="grid grid-cols-2 md:grid-cols-3 gap-2 pt-1 text-slate-700">
+                                                {Object.entries(extra).map(([k, v]) => (
+                                                    <div key={k} className="bg-white/90 p-2 rounded-lg border border-amber-100 shadow-2xs">
+                                                        <div className="text-[10px] font-bold text-slate-500">{k}</div>
+                                                        <div className="font-semibold text-slate-900 mt-0.5">{String(v)}</div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    );
+                                } catch (e) {
+                                    return null;
+                                }
+                            })()}
                         </div>
                     </div>
 

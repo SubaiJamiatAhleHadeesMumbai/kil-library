@@ -158,7 +158,8 @@ sync_table_columns(
         "total_copies": "INTEGER DEFAULT 1",
         "available_copies": "INTEGER DEFAULT 1",
         "published_date": "DATE",
-        "edition": "VARCHAR(100)"
+        "edition": "VARCHAR(100)",
+        "extra_data": "TEXT"
     }
 )
 

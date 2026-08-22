@@ -41,6 +41,8 @@ const BookForm = ({ initialData, isEditing, onBookAdded, onBookUpdated, onCancel
         remarks: "",
         serial_number: "",
         book_number: "",
+        total_copies: 1,
+        extra_data: "",
         
         is_restricted: false,
         is_digital: false,
@@ -134,6 +136,8 @@ const BookForm = ({ initialData, isEditing, onBookAdded, onBookUpdated, onCancel
                 remarks: initialData.remarks ?? prev.remarks,
                 serial_number: initialData.serial_number ?? prev.serial_number,
                 book_number: initialData.book_number ?? prev.book_number,
+                total_copies: initialData.quantity ?? initialData.total_copies ?? prev.total_copies ?? 1,
+                extra_data: initialData.extra_data ?? prev.extra_data ?? "",
                 is_restricted: initialData.is_restricted ?? prev.is_restricted,
                 is_digital: initialData.is_digital ?? prev.is_digital,
                 subcategory_ids: matchedSubIds.length > 0 ? matchedSubIds : prev.subcategory_ids,

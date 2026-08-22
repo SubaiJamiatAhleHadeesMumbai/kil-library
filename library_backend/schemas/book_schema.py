@@ -34,7 +34,9 @@ class BookBase(BaseModel):
     date_of_purchase: Optional[date] = None
     edition: Optional[str] = Field(None, max_length=100)
     remarks: Optional[str] = None
-    
+    total_copies: Optional[int] = Field(1, ge=0)
+    extra_data: Optional[str] = None  # Admin-only extra metadata / unmatched columns JSON
+
     # Images
     cover_image: Optional[str] = None 
     cover_image_url: Optional[str] = None
@@ -79,6 +81,8 @@ class BookUpdate(BaseModel):
     date_of_purchase: Optional[date] = None
     edition: Optional[str] = Field(None, max_length=100)
     remarks: Optional[str] = None
+    total_copies: Optional[int] = Field(None, ge=0)
+    extra_data: Optional[str] = None  # Admin-only extra metadata JSON
     
     subcategory_ids: Optional[List[int]] = None
     
@@ -133,3 +137,44 @@ class Book(BookBase):
 
     class Config:
         from_attributes = True
+
+
+# ==============================================================================
+# 🟣 5. STAGED / IMPORTED BOOKS SCHEMAS (Persistent Storage)
+# ==============================================================================
+class StagedBookBase(BaseModel):
+    title: Optional[str] = None
+    author: Optional[str] = None
+    publisher: Optional[str] = None
+    translator: Optional[str] = None
+    serial_number: Optional[str] = None
+    book_number: Optional[str] = None
+    language_name: Optional[str] = None
+    page_count: Optional[int] = None
+    publication_year: Optional[str] = None
+    edition: Optional[str] = None
+    parts_or_volumes: Optional[str] = None
+    subject_number: Optional[str] = None
+    quantity: Optional[int] = 1
+    price: Optional[float] = None
+    description: Optional[str] = None
+    remarks: Optional[str] = None
+    raw_data: Optional[str] = None  # JSON string containing all original columns
+    status: Optional[str] = "PENDING"
+    file_name: Optional[str] = None
+
+class StagedBookCreate(StagedBookBase):
+    pass
+
+class StagedBook(StagedBookBase):
+    id: int
+    uploaded_by_id: Optional[int] = None
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+class StagedBookBulkCreate(BaseModel):
+    file_name: Optional[str] = "Imported Spreadsheet"
+    books: List[StagedBookBase]

@@ -168,5 +168,49 @@ export const bookService = {
             console.error("Error fetching my requests:", error);
             return [];
         }
+    },
+
+    // ============================================================
+    // 4. STAGED / EXCEL IMPORTED BOOKS (Persistent Multi-Device Storage)
+    // ============================================================
+
+    async saveBulkStagedBooks(payload) {
+        try {
+            const response = await apiClient.post('/api/books/staged/bulk', payload);
+            return response.data;
+        } catch (error) {
+            console.error("Error saving staged books to database:", error);
+            throw error;
+        }
+    },
+
+    async getStagedBooks() {
+        try {
+            const response = await apiClient.get('/api/books/staged');
+            return response.data || [];
+        } catch (error) {
+            console.error("Error fetching staged books from database:", error);
+            return [];
+        }
+    },
+
+    async deleteStagedBook(stagedId) {
+        try {
+            await apiClient.delete(`/api/books/staged/${stagedId}`);
+            return true;
+        } catch (error) {
+            console.error(`Error deleting staged book ${stagedId}:`, error);
+            return false;
+        }
+    },
+
+    async clearAllStagedBooks() {
+        try {
+            await apiClient.delete('/api/books/staged');
+            return true;
+        } catch (error) {
+            console.error("Error clearing staged books:", error);
+            return false;
+        }
     }
 };

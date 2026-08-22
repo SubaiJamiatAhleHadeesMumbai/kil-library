@@ -57,6 +57,8 @@ async def create_book(
     date_of_purchase: Optional[str] = Form(None),
     description: Optional[str] = Form(None),
     remarks: Optional[str] = Form(None),
+    total_copies: Optional[int] = Form(1),
+    extra_data: Optional[str] = Form(None),
     subcategory_ids: List[int] = Form([]),
     
     # 📂 FILES
@@ -143,6 +145,9 @@ async def create_book(
         published_date=date(publication_year, 1, 1) if publication_year else None,
         description=description,
         remarks=remarks,
+        total_copies=total_copies or 1,
+        available_copies=total_copies or 1,
+        extra_data=extra_data,
         is_restricted=is_restricted,
         is_digital=is_digital,
         is_approved=True, 
@@ -199,7 +204,15 @@ async def update_book(
     publication_year: Optional[int] = Form(None),
     serial_number: Optional[str] = Form(None),
     book_number: Optional[str] = Form(None),
+    translator: Optional[str] = Form(None),
+    edition: Optional[str] = Form(None),
+    parts_or_volumes: Optional[str] = Form(None),
+    subject_number: Optional[str] = Form(None),
+    price: Optional[float] = Form(None),
     description: Optional[str] = Form(None),
+    remarks: Optional[str] = Form(None),
+    total_copies: Optional[int] = Form(None),
+    extra_data: Optional[str] = Form(None),
     is_restricted: Optional[bool] = Form(None),
     subcategory_ids: List[int] = Form(None),
     
@@ -226,7 +239,17 @@ async def update_book(
     if title is not None: db_book.title = title
     if author is not None: db_book.author = author
     if publisher is not None: db_book.publisher = publisher
+    if translator is not None: db_book.translator = translator
+    if edition is not None: db_book.edition = edition
+    if parts_or_volumes is not None: db_book.parts_or_volumes = parts_or_volumes
+    if subject_number is not None: db_book.subject_number = subject_number
     if page_count is not None: db_book.page_count = page_count
+    if price is not None: db_book.price = price
+    if remarks is not None: db_book.remarks = remarks
+    if total_copies is not None:
+        db_book.total_copies = total_copies
+        db_book.available_copies = total_copies
+    if extra_data is not None: db_book.extra_data = extra_data
     if serial_number is not None: db_book.serial_number = serial_number
     if book_number is not None: db_book.book_number = book_number
     if description is not None: db_book.description = description
@@ -319,5 +342,85 @@ def delete_book(
         description=f"Book '{db_book.title}' soft-deleted.",
         target_type="Book", target_id=book_id
     )
+    db.commit()
+    return None
+
+
+# ==============================================================================
+# 🟣 STAGED / IMPORTED BOOKS (Persistent Multi-Device Storage)
+# ==============================================================================
+
+@router.post("/staged/bulk", response_model=List[book_schema.StagedBook], status_code=status.HTTP_201_CREATED)
+def save_bulk_staged_books(
+    payload: book_schema.StagedBookBulkCreate,
+    db: Session = Depends(get_db),
+    current_user: user_model.User = Depends(require_permission("BOOK_MANAGE"))
+):
+    """Save bulk parsed books from Excel into persistent database for access across any device."""
+    saved_items = []
+    for b in payload.books:
+        staged = book_model.StagedBook(
+            title=b.title,
+            author=b.author,
+            publisher=b.publisher,
+            translator=b.translator,
+            serial_number=b.serial_number,
+            book_number=b.book_number,
+            language_name=b.language_name,
+            page_count=b.page_count,
+            publication_year=b.publication_year,
+            edition=b.edition,
+            parts_or_volumes=b.parts_or_volumes,
+            subject_number=b.subject_number,
+            quantity=b.quantity or 1,
+            price=b.price,
+            description=b.description,
+            remarks=b.remarks,
+            raw_data=b.raw_data,
+            file_name=payload.file_name,
+            uploaded_by_id=current_user.id,
+            status="PENDING"
+        )
+        db.add(staged)
+        saved_items.append(staged)
+
+    db.commit()
+    for item in saved_items:
+        db.refresh(item)
+    return saved_items
+
+
+@router.get("/staged", response_model=List[book_schema.StagedBook])
+def get_staged_books(
+    db: Session = Depends(get_db),
+    current_user: user_model.User = Depends(require_permission("BOOK_MANAGE"))
+):
+    """Retrieve all pending staged books uploaded from Excel across all devices."""
+    return db.query(book_model.StagedBook).filter(
+        book_model.StagedBook.status == "PENDING"
+    ).order_by(book_model.StagedBook.id.asc()).all()
+
+
+@router.delete("/staged/{staged_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_staged_book(
+    staged_id: int,
+    db: Session = Depends(get_db),
+    current_user: user_model.User = Depends(require_permission("BOOK_MANAGE"))
+):
+    """Remove a single staged book item."""
+    staged = db.query(book_model.StagedBook).filter(book_model.StagedBook.id == staged_id).first()
+    if staged:
+        db.delete(staged)
+        db.commit()
+    return None
+
+
+@router.delete("/staged", status_code=status.HTTP_204_NO_CONTENT)
+def clear_all_staged_books(
+    db: Session = Depends(get_db),
+    current_user: user_model.User = Depends(require_permission("BOOK_MANAGE"))
+):
+    """Clear all pending staged books."""
+    db.query(book_model.StagedBook).delete()
     db.commit()
     return None
