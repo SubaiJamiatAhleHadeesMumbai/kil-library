@@ -526,41 +526,79 @@ async def stream_book_pdf(
 
     raw_url = str(db_book.pdf_url).strip()
 
+    # Determine safe filename and media_type
+    import urllib.parse
+    import mimetypes
+
+    url_path_clean = raw_url.split("?")[0]
+    file_ext = os.path.splitext(url_path_clean)[1].lower()
+    media_type, _ = mimetypes.guess_type(url_path_clean)
+    if not media_type:
+        if file_ext == ".pdf":
+            media_type = "application/pdf"
+        elif file_ext in [".docx", ".doc"]:
+            media_type = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        elif file_ext in [".txt", ".text"]:
+            media_type = "text/plain; charset=utf-8"
+        else:
+            media_type = "application/octet-stream"
+
+    # Always use safe ASCII filename in HTTP header to avoid Latin-1 header encoding crashes
+    safe_filename = f"book_{book_id}{file_ext if file_ext else '.pdf'}"
+
     # Case A: Local File
     if not raw_url.startswith("http://") and not raw_url.startswith("https://"):
         local_path = resolve_upload_path(raw_url)
         if local_path and os.path.exists(local_path):
             return FileResponse(
                 path=local_path,
-                media_type="application/pdf",
+                media_type=media_type,
                 headers={
                     "Access-Control-Allow-Origin": "*",
                     "Access-Control-Allow-Methods": "GET, HEAD, OPTIONS",
                     "Access-Control-Allow-Headers": "*",
-                    "Content-Disposition": f'inline; filename="{os.path.basename(local_path)}"',
+                    "Content-Disposition": f'inline; filename="{safe_filename}"',
                     "Cache-Control": "public, max-age=86400"
                 }
             )
+        else:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Local document file not found")
 
-    # Case B: Cloudflare R2 / Remote CDN URL
-    def pdf_stream_generator():
-        req = urllib.request.Request(raw_url, headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"})
-        with urllib.request.urlopen(req, timeout=60) as response:
-            while True:
-                chunk = response.read(65536)
-                if not chunk:
-                    break
-                yield chunk
+    # Case B: Cloudflare R2 / Remote CDN URL (Handles Unicode / Urdu / Spaces gracefully)
+    try:
+        parsed = urllib.parse.urlsplit(raw_url)
+        quoted_path = urllib.parse.quote(parsed.path)
+        encoded_url = urllib.parse.urlunsplit((parsed.scheme, parsed.netloc, quoted_path, parsed.query, parsed.fragment))
 
-    filename = os.path.basename(raw_url.split("?")[0]) or f"book_{book_id}.pdf"
-    return StreamingResponse(
-        pdf_stream_generator(),
-        media_type="application/pdf",
-        headers={
-            "Access-Control-Allow-Origin": "*",
-            "Access-Control-Allow-Methods": "GET, HEAD, OPTIONS",
-            "Access-Control-Allow-Headers": "*",
-            "Content-Disposition": f'inline; filename="{filename}"',
-            "Cache-Control": "public, max-age=86400"
-        }
-    )
+        req = urllib.request.Request(encoded_url, headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"})
+        remote_resp = urllib.request.urlopen(req, timeout=30)
+
+        remote_content_type = remote_resp.headers.get("Content-Type")
+        if remote_content_type and "text/html" not in remote_content_type:
+            media_type = remote_content_type
+
+        def file_stream_generator(resp):
+            try:
+                while True:
+                    chunk = resp.read(65536)
+                    if not chunk:
+                        break
+                    yield chunk
+            finally:
+                resp.close()
+
+        return StreamingResponse(
+            file_stream_generator(remote_resp),
+            media_type=media_type,
+            headers={
+                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Methods": "GET, HEAD, OPTIONS",
+                "Access-Control-Allow-Headers": "*",
+                "Content-Disposition": f'inline; filename="{safe_filename}"',
+                "Cache-Control": "public, max-age=86400"
+            }
+        )
+    except urllib.error.HTTPError as he:
+        raise HTTPException(status_code=he.code, detail=f"Remote document error: {he.reason}")
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Unable to load document: {str(e)}")

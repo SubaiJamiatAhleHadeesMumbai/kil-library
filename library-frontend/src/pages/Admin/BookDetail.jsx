@@ -58,14 +58,47 @@ const PdfLoadingState = () => (
     </div>
 );
 
-// --- PDF fallback (Native in-browser iframe viewer) ---
-const PdfErrorState = ({ pdfUrl }) => (
-    <div className="w-full h-full min-h-[550px] flex flex-col bg-slate-100 rounded-lg overflow-hidden">
-        <iframe
-            src={pdfUrl}
-            title="Book PDF Viewer"
-            className="w-full flex-1 min-h-[550px] border-0 bg-white"
-        />
+// --- PDF / Document fallback state ---
+const PdfErrorState = ({ pdfUrl, isWordDoc, onRetry }) => (
+    <div className="w-full h-full min-h-[450px] flex flex-col items-center justify-center bg-slate-50 rounded-xl p-8 text-center border border-slate-200">
+        <div className="w-14 h-14 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center mb-4 text-indigo-600 shadow-sm">
+            <BookOpen className="w-7 h-7" />
+        </div>
+        <h3 className="text-base font-bold text-slate-800 mb-1">
+            {isWordDoc ? "Document Ready for Download" : "Document Preview"}
+        </h3>
+        <p className="text-xs text-slate-500 max-w-sm mb-6 leading-relaxed">
+            {isWordDoc 
+                ? "This file is in Microsoft Word (.docx) format. Click below to download and read." 
+                : "You can download the book file or open it directly in a new tab."}
+        </p>
+        <div className="flex flex-wrap items-center justify-center gap-3">
+            <a
+                href={pdfUrl}
+                download
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#002147] hover:bg-[#003166] text-white text-xs font-bold rounded-xl shadow-md transition-all"
+            >
+                <Download className="w-4 h-4" /> Download File
+            </a>
+            <a
+                href={pdfUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-semibold rounded-xl transition-all"
+            >
+                <ExternalLink className="w-4 h-4" /> Open in New Tab
+            </a>
+            {onRetry && (
+                <button
+                    onClick={onRetry}
+                    className="inline-flex items-center gap-1.5 px-3 py-2.5 text-xs text-indigo-600 hover:text-indigo-800 font-medium"
+                >
+                    Retry Preview
+                </button>
+            )}
+        </div>
     </div>
 );
 
@@ -288,6 +321,7 @@ const BookDetail = () => {
     const coverImageUrl = getBookCover(book);
     const rawPdfUrl = getCoverUrl(book.pdf_url || book.pdf_file);
     const hasValidPdf = Boolean(rawPdfUrl && !rawPdfUrl.includes("No+Cover"));
+    const isWordDoc = Boolean(rawPdfUrl && (rawPdfUrl.toLowerCase().includes('.docx') || rawPdfUrl.toLowerCase().includes('.doc')));
     const pdfStreamUrl = hasValidPdf ? `/api/books/${book.id}/stream-pdf` : null;
     const pdfUrl = pdfStreamUrl || rawPdfUrl;
     const description = book.description?.trim();
@@ -622,12 +656,19 @@ const BookDetail = () => {
                                 >
                                     <PdfLoadingState />
                                 </div>
+                            ) : isWordDoc ? (
+                                <div
+                                    className="w-full flex items-center justify-center"
+                                    style={{ height: focusMode ? undefined : '80vh', minHeight: focusMode ? undefined : '500px', maxHeight: focusMode ? undefined : '850px', flex: focusMode ? 1 : undefined }}
+                                >
+                                    <PdfErrorState pdfUrl={pdfUrl} isWordDoc={true} />
+                                </div>
                             ) : pdfFailed ? (
                                 <div
                                     className="w-full flex items-center justify-center"
                                     style={{ height: focusMode ? undefined : '80vh', minHeight: focusMode ? undefined : '500px', maxHeight: focusMode ? undefined : '850px', flex: focusMode ? 1 : undefined }}
                                 >
-                                    <PdfErrorState pdfUrl={pdfUrl} />
+                                    <PdfErrorState pdfUrl={pdfUrl} isWordDoc={false} onRetry={() => setPdfFailed(false)} />
                                 </div>
                             ) : (
                                 <Worker workerUrl="https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.worker.min.js">
@@ -660,7 +701,7 @@ const BookDetail = () => {
                                             onPageChange={handlePageChange}
                                             renderError={() => {
                                                 setPdfFailed(true);
-                                                return <PdfErrorState pdfUrl={pdfUrl} />;
+                                                return <PdfErrorState pdfUrl={pdfUrl} isWordDoc={false} onRetry={() => setPdfFailed(false)} />;
                                             }}
                                         />
                                     </div>

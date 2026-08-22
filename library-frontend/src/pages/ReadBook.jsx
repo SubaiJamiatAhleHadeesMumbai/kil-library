@@ -221,16 +221,35 @@ const ReadBook = () => {
                 {viewMode === 'pdf' && (
                     <div className="w-full h-full flex flex-col">
                         {(book?.pdf_url || book?.pdf_file) ? (
-                            <PdfViewer 
-                                pdfUrl={getPdfUrl(book.pdf_url || book.pdf_file)}
-                                viewMode={'scroll'}
-                                scale={scale}
-                                setScale={setScale}
-                                setTotalPages={setTotalPages}
-                                setCurrentPage={setCurrentPage}
-                                totalPages={totalPages}
-                                currentPage={currentPage}
-                            />
+                            (String(book?.pdf_url || book?.pdf_file).toLowerCase().includes('.doc')) ? (
+                                <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-white m-4 rounded-2xl shadow-sm">
+                                    <DocumentTextIcon className="w-16 h-16 text-indigo-500 mb-4" />
+                                    <h3 className="text-lg font-bold text-slate-800 mb-2">Word Document (.docx)</h3>
+                                    <p className="text-sm text-slate-500 max-w-md mb-6">
+                                        This book is available in Word document format. Please download to read.
+                                    </p>
+                                    <a
+                                        href={getPdfUrl(book.pdf_url || book.pdf_file)}
+                                        download
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="px-6 py-3 bg-[#002147] hover:bg-[#003166] text-white font-bold text-sm rounded-xl shadow-md transition-all inline-flex items-center gap-2"
+                                    >
+                                        Download Document (.docx)
+                                    </a>
+                                </div>
+                            ) : (
+                                <PdfViewer 
+                                    pdfUrl={getPdfUrl(book.pdf_url || book.pdf_file)}
+                                    viewMode={'scroll'}
+                                    scale={scale}
+                                    setScale={setScale}
+                                    setTotalPages={setTotalPages}
+                                    setCurrentPage={setCurrentPage}
+                                    totalPages={totalPages}
+                                    currentPage={currentPage}
+                                />
+                            )
                         ) : (
                             <div className="text-center p-8 text-slate-400">
                                 <DocumentTextIcon className="w-16 h-16 mx-auto mb-4 opacity-50" />

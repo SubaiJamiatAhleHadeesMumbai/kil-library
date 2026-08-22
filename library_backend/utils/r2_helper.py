@@ -62,9 +62,14 @@ def upload_to_r2(file: UploadFile, folder: str = "uploads") -> str | None:
         if not content_type:
             content_type = "application/octet-stream"
 
-        # Unique key name to prevent collisions
-        file_ext = os.path.splitext(file.filename or "")[1]
-        unique_name = f"{uuid.uuid4().hex[:12]}_{file.filename}"
+        # Unique key name to prevent collisions with safe ASCII characters
+        file_ext = os.path.splitext(file.filename or "")[1].lower()
+        raw_name = os.path.splitext(file.filename or "file")[0]
+        # Keep only alphanumeric and hyphen/underscore
+        safe_name = "".join(c if c.isalnum() or c in "-_" else "_" for c in raw_name).strip("_")
+        if not safe_name:
+            safe_name = "doc"
+        unique_name = f"{uuid.uuid4().hex[:12]}_{safe_name[:40]}{file_ext}"
         clean_folder = folder.strip("/")
         object_key = f"{clean_folder}/{unique_name}" if clean_folder else unique_name
 

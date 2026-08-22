@@ -157,7 +157,7 @@ const BookDetail = () => {
                                         rel="noopener noreferrer"
                                         className="w-full bg-slate-900 text-white py-3.5 rounded-xl font-bold hover:bg-slate-800 transition-all flex items-center justify-center gap-2 shadow-lg shadow-slate-900/20"
                                     >
-                                        <ArrowDownTrayIcon className="w-5 h-5" /> Download PDF
+                                        <ArrowDownTrayIcon className="w-5 h-5" /> {book.pdf_url?.toLowerCase().includes('.doc') ? 'Download Document' : 'Download PDF'}
                                     </a>
                                 )}
                                 
@@ -199,13 +199,32 @@ const BookDetail = () => {
                             </p>
                         </div>
 
-                        {/* 🅰️ PDF VIEWER MODE */}
+                        {/* 🅰️ PDF / DOCUMENT VIEWER MODE */}
                         {viewMode === "pdf" && book.pdf_url && (
-                            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden" style={{height: 'calc(100vh - 240px)'}}>
-                                <Worker workerUrl="/pdf.worker.min.mjs">
-                                    <Viewer fileUrl={book.pdf_url} plugins={[defaultLayoutPluginInstance]} />
-                                </Worker>
-                            </div>
+                            book.pdf_url.toLowerCase().includes('.doc') ? (
+                                <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-12 text-center flex flex-col items-center justify-center min-h-[400px]">
+                                    <DocumentIcon className="w-16 h-16 text-indigo-500 mb-4" />
+                                    <h3 className="text-lg font-bold text-slate-800 mb-1">Microsoft Word Document</h3>
+                                    <p className="text-sm text-slate-500 max-w-md mb-6 leading-relaxed">
+                                        This book is available in Word (.docx) format. Click below to download and read.
+                                    </p>
+                                    <a
+                                        href={book.pdf_url}
+                                        download
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="inline-flex items-center gap-2 px-6 py-3 bg-[#002147] text-white rounded-xl font-bold text-sm shadow-md hover:bg-[#003166] transition-all"
+                                    >
+                                        <ArrowDownTrayIcon className="w-5 h-5" /> Download Document (.docx)
+                                    </a>
+                                </div>
+                            ) : (
+                                <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden" style={{height: 'calc(100vh - 240px)'}}>
+                                    <Worker workerUrl="/pdf.worker.min.mjs">
+                                        <Viewer fileUrl={book.pdf_url} plugins={[defaultLayoutPluginInstance]} />
+                                    </Worker>
+                                </div>
+                            )
                         )}
 
                         {/* Additional Metadata (visible to admin for full control) */}
