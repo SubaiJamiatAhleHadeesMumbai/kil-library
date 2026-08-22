@@ -324,9 +324,13 @@ const FileDropZone = ({ label, id, accept, onChange, currentUrl, newFileName, ic
         )}
 
         {currentUrl && !localName && (
-          <a href={`${API_URL}${currentUrl}`} target="_blank" rel="noopener noreferrer"
+          <a
+            href={currentUrl.startsWith("http") ? currentUrl : `${API_URL}${currentUrl.startsWith('/') ? currentUrl : `/${currentUrl}`}`}
+            target="_blank"
+            rel="noopener noreferrer"
             onClick={(e) => e.stopPropagation()}
-            className={`text-[10px] font-bold uppercase tracking-wide px-3 py-1.5 rounded-full ${a.badge} hover:opacity-80 transition-opacity`}>
+            className={`text-[10px] font-bold uppercase tracking-wide px-3 py-1.5 rounded-full ${a.badge} hover:opacity-80 transition-opacity`}
+          >
             View Existing File
           </a>
         )}

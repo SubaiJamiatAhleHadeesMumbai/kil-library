@@ -520,18 +520,18 @@ async def update_book(
     if txt_file:
         db_book.txt_file_url = smart_upload(txt_file, folder="booknest/texts")
 
-    # Approval Reset Logic
-    db_book.is_approved = False 
+    # Approval Logic - Admin updates remain approved
+    db_book.is_approved = True 
     
     existing_req = db.query(request_model.UploadRequest).filter(
         request_model.UploadRequest.book_id == book_id
     ).first()
 
     if existing_req:
-        existing_req.status = 'Pending'
-        existing_req.remarks = f"Auto: Book updated by {current_user.username}. Re-verify."
-        existing_req.reviewed_by_id = None
-        existing_req.reviewed_at = None
+        existing_req.status = 'Approved'
+        existing_req.remarks = f"Auto: Book updated by {current_user.username}."
+        existing_req.reviewed_by_id = current_user.id
+        existing_req.reviewed_at = datetime.utcnow()
     else:
         new_req = request_model.UploadRequest(
             book_id=book_id,
