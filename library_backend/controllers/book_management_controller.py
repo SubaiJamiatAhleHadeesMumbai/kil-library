@@ -197,13 +197,18 @@ async def create_book(
 @router.post("/bulk-import", response_model=List[book_schema.Book], status_code=status.HTTP_201_CREATED)
 def bulk_import_books(
     payload: List[book_schema.StagedBookBase],
+    replace_existing: bool = False,
     db: Session = Depends(get_db),
     current_user: user_model.User = Depends(require_permission("BOOK_MANAGE"))
 ):
     """
     Directly insert bulk books parsed from Excel spreadsheet into MySQL database (books table).
-    Ensures books are permanently saved and visible across all laptops, mobiles, and devices!
+    If replace_existing is True, previous books are cleared so only the new file's data is active.
     """
+    if replace_existing:
+        db.query(book_model.Book).filter(book_model.Book.deleted_at.is_(None)).update({"deleted_at": datetime.utcnow()})
+        db.commit()
+
     languages = db.query(language_model.Language).filter(language_model.Language.deleted_at.is_(None)).all()
     default_lang = languages[0] if languages else None
     
@@ -219,6 +224,14 @@ def bulk_import_books(
         return default_lang.id if default_lang else 1
 
     import re
+    def safe_str(val, max_len=None):
+        if val is None:
+            return None
+        s = str(val).strip()
+        if not s:
+            return None
+        return s[:max_len] if max_len else s
+
     def safe_int(val, default=None):
         if val is None or str(val).strip() == '':
             return default
@@ -258,22 +271,22 @@ def bulk_import_books(
         price_val = safe_float(item.price, default=None)
 
         new_book = book_model.Book(
-            title=str(item.title).strip() if item.title else "Untitled Book",
-            author=str(item.author).strip() if item.author else None,
-            publisher=str(item.publisher).strip() if item.publisher else None,
-            translator=str(item.translator).strip() if item.translator else None,
-            serial_number=str(item.serial_number).strip() if item.serial_number else None,
-            book_number=str(item.book_number).strip() if item.book_number else None,
+            title=safe_str(item.title, 250) or "Untitled Book",
+            author=safe_str(item.author, 250),
+            publisher=safe_str(item.publisher, 250),
+            translator=safe_str(item.translator, 250),
+            serial_number=safe_str(item.serial_number, 90),
+            book_number=safe_str(item.book_number, 90),
             language_id=lang_id,
             page_count=pages,
-            parts_or_volumes=str(item.parts_or_volumes).strip() if item.parts_or_volumes else None,
-            subject_number=str(item.subject_number).strip() if item.subject_number else None,
-            edition=str(item.edition).strip() if item.edition else None,
+            parts_or_volumes=safe_str(item.parts_or_volumes, 90),
+            subject_number=safe_str(item.subject_number, 90),
+            edition=safe_str(item.edition, 90),
             total_copies=qty if qty and qty > 0 else 1,
             available_copies=qty if qty and qty > 0 else 1,
             price=price_val,
-            remarks=str(item.remarks).strip() if item.remarks else None,
-            description=str(item.description).strip() if item.description else None,
+            remarks=safe_str(item.remarks),
+            description=safe_str(item.description),
             extra_data=item.extra_data or item.raw_data,
             published_date=parsed_pub_date,
             is_digital=True,
@@ -294,6 +307,22 @@ def bulk_import_books(
     )
 
     return created_books
+
+
+@router.delete("/bulk-clear", status_code=status.HTTP_204_NO_CONTENT)
+def clear_all_books(
+    db: Session = Depends(get_db),
+    current_user: user_model.User = Depends(require_permission("BOOK_MANAGE"))
+):
+    """Soft delete all active books in the library catalog."""
+    db.query(book_model.Book).filter(book_model.Book.deleted_at.is_(None)).update({"deleted_at": datetime.utcnow()})
+    create_log(
+        db=db, user=current_user, action_type="BULK_BOOKS_CLEARED",
+        description=f"Admin {current_user.username} cleared all books from library catalog.",
+        target_type="Book", target_id=0
+    )
+    db.commit()
+    return None
 
 
 @router.post("/staged/bulk", response_model=List[book_schema.StagedBook], status_code=status.HTTP_201_CREATED)

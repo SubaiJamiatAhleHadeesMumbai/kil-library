@@ -174,12 +174,22 @@ export const bookService = {
     // 4. STAGED & BULK EXCEL IMPORTED BOOKS (Persistent Database Storage)
     // ============================================================
 
-    async bulkImportBooks(booksArray) {
+    async bulkImportBooks(booksArray, replaceExisting = false) {
         try {
-            const response = await apiClient.post('/api/books/bulk-import', booksArray);
+            const response = await apiClient.post(`/api/books/bulk-import?replace_existing=${replaceExisting}`, booksArray);
             return response.data;
         } catch (error) {
             console.error("Error bulk importing books into database:", error);
+            throw error;
+        }
+    },
+
+    async clearAllBooks() {
+        try {
+            await apiClient.delete('/api/books/bulk-clear');
+            return true;
+        } catch (error) {
+            console.error("Error clearing all books from database:", error);
             throw error;
         }
     },

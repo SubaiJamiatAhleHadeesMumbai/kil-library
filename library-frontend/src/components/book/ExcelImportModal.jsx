@@ -22,7 +22,8 @@ import {
   TrashIcon,
   CloudArrowUpIcon,
   ArrowPathIcon,
-  CheckIcon
+  CheckIcon,
+  ArrowPathRoundedSquareIcon
 } from '@heroicons/react/24/outline';
 
 const ExcelImportModal = ({ isOpen, onClose, onStagedUpdated }) => {
@@ -36,6 +37,7 @@ const ExcelImportModal = ({ isOpen, onClose, onStagedUpdated }) => {
   const [searchFilter, setSearchFilter] = useState('');
   const [selectedFileName, setSelectedFileName] = useState('');
   const [unmatchedHeaders, setUnmatchedHeaders] = useState([]);
+  const [importMode, setImportMode] = useState('replace'); // 'replace' | 'append'
 
   // --- Pagination State (10 items per page) ---
   const [currentPage, setCurrentPage] = useState(1);
@@ -72,7 +74,12 @@ const ExcelImportModal = ({ isOpen, onClose, onStagedUpdated }) => {
     setSaveSuccess(false);
     setSelectedFileName(file.name);
 
-    const toastId = toast.loading(`Parsing and saving ${file.name} to database...`);
+    const isReplace = importMode === 'replace';
+    const toastId = toast.loading(
+      isReplace 
+        ? `Clearing previous catalog & saving new books from ${file.name}...` 
+        : `Adding books from ${file.name} to database...`
+    );
 
     try {
       // 1. Parse Excel / CSV file
@@ -86,12 +93,17 @@ const ExcelImportModal = ({ isOpen, onClose, onStagedUpdated }) => {
       setUnmatchedHeaders(result.unmatchedHeaders || []);
 
       // 2. 🚀 AUTOMATIC DIRECT INSERTION TO MYSQL DATABASE
-      const savedBooks = await bookService.bulkImportBooks(result.books);
-      setBooksList(savedBooks && savedBooks.length > 0 ? savedBooks : result.books);
+      const savedBooks = await bookService.bulkImportBooks(result.books, isReplace);
+      setBooksList(Array.isArray(savedBooks) && savedBooks.length > 0 ? savedBooks : result.books);
       setSaveSuccess(true);
       setCurrentPage(1);
 
-      toast.success(`🎉 Successfully saved ${savedBooks.length} books to MySQL Database! Permanent across all devices.`, { id: toastId, duration: 6000 });
+      toast.success(
+        isReplace
+          ? `🎉 Successfully replaced catalog with ${savedBooks.length} new books from ${file.name}!`
+          : `🎉 Successfully added ${savedBooks.length} books to MySQL Database!`,
+        { id: toastId, duration: 6000 }
+      );
 
       // 3. Immediately refresh main catalog
       if (onStagedUpdated) {
@@ -136,14 +148,15 @@ const ExcelImportModal = ({ isOpen, onClose, onStagedUpdated }) => {
     onClose();
   };
 
-  const filteredBooks = booksList.filter(b => {
+  const filteredBooks = (Array.isArray(booksList) ? booksList : []).filter(b => {
+    if (!b) return false;
     if (!searchFilter.trim()) return true;
     const term = searchFilter.toLowerCase();
     return (
-      (b.title && b.title.toLowerCase().includes(term)) ||
-      (b.author && b.author.toLowerCase().includes(term)) ||
-      (b.publisher && b.publisher.toLowerCase().includes(term)) ||
-      (b.translator && b.translator.toLowerCase().includes(term)) ||
+      (b.title && String(b.title).toLowerCase().includes(term)) ||
+      (b.author && String(b.author).toLowerCase().includes(term)) ||
+      (b.publisher && String(b.publisher).toLowerCase().includes(term)) ||
+      (b.translator && String(b.translator).toLowerCase().includes(term)) ||
       (b.book_number && String(b.book_number).toLowerCase().includes(term)) ||
       (b.serial_number && String(b.serial_number).includes(term))
     );
@@ -195,7 +208,65 @@ const ExcelImportModal = ({ isOpen, onClose, onStagedUpdated }) => {
         </div>
 
         {/* --- CONTENT BODY --- */}
-        <div className="p-6 overflow-y-auto space-y-6 flex-1 custom-scrollbar">
+        <div className="p-6 overflow-y-auto space-y-5 flex-1 custom-scrollbar">
+
+          {/* IMPORT MODE TOGGLE (Replace vs Append) */}
+          <div className="bg-slate-100/90 p-4 rounded-2xl border border-slate-200/80">
+            <label className="text-xs font-bold text-slate-700 uppercase tracking-wider block mb-2">
+              Import Option (New File Action):
+            </label>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <label 
+                className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-all ${
+                  importMode === 'replace' 
+                    ? 'bg-white border-emerald-500 shadow-xs ring-1 ring-emerald-500/20' 
+                    : 'bg-white/60 border-slate-200 hover:bg-white'
+                }`}
+              >
+                <input 
+                  type="radio" 
+                  name="importMode" 
+                  value="replace" 
+                  checked={importMode === 'replace'} 
+                  onChange={() => setImportMode('replace')}
+                  className="mt-0.5 text-emerald-600 focus:ring-emerald-500"
+                />
+                <div>
+                  <div className="text-xs font-black text-slate-900 flex items-center gap-1.5">
+                    <span>✨ Replace Catalog (Recommended)</span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 mt-0.5 leading-snug">
+                    Purane books delete karke sirf is nayi Excel file ka data database mein save karega.
+                  </p>
+                </div>
+              </label>
+
+              <label 
+                className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-all ${
+                  importMode === 'append' 
+                    ? 'bg-white border-emerald-500 shadow-xs ring-1 ring-emerald-500/20' 
+                    : 'bg-white/60 border-slate-200 hover:bg-white'
+                }`}
+              >
+                <input 
+                  type="radio" 
+                  name="importMode" 
+                  value="append" 
+                  checked={importMode === 'append'} 
+                  onChange={() => setImportMode('append')}
+                  className="mt-0.5 text-emerald-600 focus:ring-emerald-500"
+                />
+                <div>
+                  <div className="text-xs font-black text-slate-900 flex items-center gap-1.5">
+                    <span>➕ Append / Merge Books</span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 mt-0.5 leading-snug">
+                    Pehle se maujood books ko preserve karega aur is Excel file ke books ko add kar dega.
+                  </p>
+                </div>
+              </label>
+            </div>
+          </div>
 
           {/* DROPZONE / FILE UPLOAD */}
           <div

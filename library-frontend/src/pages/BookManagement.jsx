@@ -66,6 +66,7 @@ const BookManagement = () => {
     const [selectedBookForView, setSelectedBookForView] = useState(null);
 
     const [isExcelModalOpen, setIsExcelModalOpen] = useState(false);
+    const [isClearAllModalOpen, setIsClearAllModalOpen] = useState(false);
     const [stagedCount, setStagedCount] = useState(0);
 
     // Filter/Search States
@@ -183,6 +184,18 @@ const BookManagement = () => {
         }
     };
 
+    const confirmClearAll = async () => {
+        const toastId = toast.loading("Clearing entire library catalog...");
+        try {
+            await bookService.clearAllBooks();
+            toast.success("Library catalog cleared successfully! Ready for fresh Excel import.", { id: toastId, duration: 5000 });
+            setAllBooks([]);
+            setIsClearAllModalOpen(false);
+        } catch (err) {
+            toast.error(err.response?.data?.detail || err.message || "Could not clear catalog", { id: toastId });
+        }
+    };
+
     const closeDeleteModal = () => { 
         setIsDeleteModalOpen(false); 
         setDeletingBook(null); 
@@ -233,6 +246,15 @@ const BookManagement = () => {
                                 {stagedCount}
                             </span>
                         )}
+                    </button>
+
+                    <button
+                        onClick={() => setIsClearAllModalOpen(true)}
+                        className="inline-flex items-center px-3.5 py-3 text-rose-700 hover:text-white bg-rose-50 hover:bg-rose-600 border border-rose-200 hover:border-rose-600 text-xs sm:text-sm font-bold rounded-2xl shadow-xs transition-all duration-200 active:scale-95"
+                        title="Delete / Clear existing catalog before uploading new file"
+                    >
+                        <TrashIcon className="w-5 h-5 mr-1.5" />
+                        <span>Clear All Books</span>
                     </button>
 
                     <button
@@ -579,6 +601,36 @@ const BookManagement = () => {
                             className="px-4 py-2.5 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 rounded-xl shadow-md transition-all"
                         >
                             Delete Book
+                        </button>
+                    </div>
+                </div>
+            </Modal>
+
+            {/* Clear Entire Catalog Modal */}
+            <Modal isOpen={isClearAllModalOpen} onClose={() => setIsClearAllModalOpen(false)} title="Clear Entire Catalog" size="max-w-md">
+                <div className="space-y-5">
+                    <div className="bg-rose-50 border border-rose-100 p-4 rounded-2xl flex items-start gap-3">
+                        <TrashIcon className="w-6 h-6 text-rose-600 flex-shrink-0 mt-0.5" />
+                        <div className="space-y-1">
+                            <h4 className="text-xs font-bold text-rose-900 uppercase tracking-wider">Delete All Library Books</h4>
+                            <p className="text-xs text-rose-700 leading-relaxed">
+                                Are you sure you want to clear <strong>all {allBooks.length} books</strong> from the library catalog? This will remove the current catalog so you can upload a fresh Excel file.
+                            </p>
+                        </div>
+                    </div>
+                    
+                    <div className="flex justify-end gap-3 pt-2">
+                        <button 
+                            onClick={() => setIsClearAllModalOpen(false)}
+                            className="px-4 py-2.5 text-xs font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition-all"
+                        >
+                            Cancel
+                        </button>
+                        <button 
+                            onClick={confirmClearAll}
+                            className="px-4 py-2.5 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 rounded-xl shadow-md transition-all active:scale-95"
+                        >
+                            Yes, Clear All Books
                         </button>
                     </div>
                 </div>
