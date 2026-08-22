@@ -21,7 +21,8 @@ import {
   ChevronRightIcon,
   TrashIcon,
   CloudArrowUpIcon,
-  ArrowPathIcon
+  ArrowPathIcon,
+  CheckIcon
 } from '@heroicons/react/24/outline';
 
 const ExcelImportModal = ({ isOpen, onClose, onStagedUpdated }) => {
@@ -30,7 +31,7 @@ const ExcelImportModal = ({ isOpen, onClose, onStagedUpdated }) => {
 
   const [isDragging, setIsDragging] = useState(false);
   const [isParsing, setIsParsing] = useState(false);
-  const [isLoadingDB, setIsLoadingDB] = useState(false);
+  const [isImportingAll, setIsImportingAll] = useState(false);
   const [booksList, setBooksList] = useState([]);
   const [searchFilter, setSearchFilter] = useState('');
   const [selectedFileName, setSelectedFileName] = useState('');
@@ -42,7 +43,6 @@ const ExcelImportModal = ({ isOpen, onClose, onStagedUpdated }) => {
 
   // Load staged books from Database on open
   const loadStagedFromDB = async () => {
-    setIsLoadingDB(true);
     try {
       const dbStaged = await bookService.getStagedBooks();
       if (dbStaged && dbStaged.length > 0) {
@@ -50,9 +50,7 @@ const ExcelImportModal = ({ isOpen, onClose, onStagedUpdated }) => {
         setSelectedFileName(dbStaged[0]?.file_name || 'Cloud Staged Spreadsheet');
       }
     } catch (err) {
-      console.error("Failed to load staged books from DB:", err);
-    } finally {
-      setIsLoadingDB(false);
+      console.warn("Staged books check:", err);
     }
   };
 
@@ -92,24 +90,16 @@ const ExcelImportModal = ({ isOpen, onClose, onStagedUpdated }) => {
       }
 
       setUnmatchedHeaders(result.unmatchedHeaders || []);
-
-      // 💾 Save directly to Database so it's accessible across ANY mobile/laptop
-      toast.loading("Saving books to cloud database...", { id: "excel-save" });
-      try {
-        const savedToDB = await bookService.saveBulkStagedBooks({
-          file_name: file.name,
-          books: result.books
-        });
-        setBooksList(savedToDB && savedToDB.length > 0 ? savedToDB : result.books);
-        toast.success(`Saved ${result.books.length} books to Cloud Database! Accessible from any device.`, { id: "excel-save" });
-        if (onStagedUpdated) onStagedUpdated();
-      } catch (dbErr) {
-        console.warn("Could not save to DB, using local state:", dbErr);
-        setBooksList(result.books);
-        toast.success(`Parsed ${result.books.length} books locally!`, { id: "excel-save" });
-      }
-
+      setBooksList(result.books);
       setCurrentPage(1);
+
+      // Save to Staged Cloud DB in background
+      bookService.saveBulkStagedBooks({
+        file_name: file.name,
+        books: result.books
+      }).catch(e => console.warn("Background staged save:", e));
+
+      toast.success(`Extracted ${result.books.length} books from ${file.name}!`);
     } catch (err) {
       console.error(err);
       toast.error(err.message || "Failed to parse Excel file. Please check format.");
@@ -132,8 +122,33 @@ const ExcelImportModal = ({ isOpen, onClose, onStagedUpdated }) => {
     }
   };
 
+  // 🚀 DIRECT DATABASE IMPORT: Inserts all books into MySQL `books` table
+  const handleImportAllToDatabase = async () => {
+    if (booksList.length === 0) return;
+
+    setIsImportingAll(true);
+    const toastId = toast.loading(`Saving ${booksList.length} books directly to database catalog...`);
+
+    try {
+      const savedBooks = await bookService.bulkImportBooks(booksList);
+      toast.success(`🎉 Successfully saved ${savedBooks.length} books to the database! Visible across all computers & phones.`, { id: toastId, duration: 5000 });
+      
+      // Cleanup staged books
+      bookService.clearAllStagedBooks().catch(() => {});
+
+      if (onStagedUpdated) {
+        await onStagedUpdated();
+      }
+      onClose();
+    } catch (err) {
+      console.error("Bulk import failed:", err);
+      toast.error("Failed to save books to database. Please check connection.", { id: toastId });
+    } finally {
+      setIsImportingAll(false);
+    }
+  };
+
   const handleSelectBook = (book) => {
-    // Navigate to Add Book page with pre-filled state
     navigate('/admin/books/add', {
       state: {
         prefillData: book,
@@ -151,16 +166,7 @@ const ExcelImportModal = ({ isOpen, onClose, onStagedUpdated }) => {
       await bookService.deleteStagedBook(bookId);
     }
     setBooksList(prev => prev.filter((b, i) => (b.id ? b.id !== bookId : i !== index)));
-    toast.success("Removed book from staged list.");
-    if (onStagedUpdated) onStagedUpdated();
-  };
-
-  const handleClearAllStaged = async () => {
-    if (!window.confirm("Are you sure you want to clear all imported books from the database?")) return;
-    await bookService.clearAllStagedBooks();
-    setBooksList([]);
-    toast.success("Cleared all staged books.");
-    if (onStagedUpdated) onStagedUpdated();
+    toast.success("Removed book from preview.");
   };
 
   const filteredBooks = booksList.filter(b => {
@@ -195,7 +201,7 @@ const ExcelImportModal = ({ isOpen, onClose, onStagedUpdated }) => {
             <div>
               <h2 className="text-xl font-bold text-slate-900">Import Books from Excel / CSV</h2>
               <p className="text-xs text-slate-500 font-medium">
-                Saved to cloud database — accessible across any mobile or computer.
+                Saves directly to Database — permanently accessible across all laptops & mobile devices.
               </p>
             </div>
           </div>
@@ -264,7 +270,7 @@ const ExcelImportModal = ({ isOpen, onClose, onStagedUpdated }) => {
               {isParsing && (
                 <div className="flex items-center gap-2 text-xs font-bold text-emerald-600 pt-2 animate-pulse">
                   <SparklesIcon className="w-4 h-4" />
-                  Analyzing and saving books to database...
+                  Extracting book metadata from spreadsheet...
                 </div>
               )}
             </div>
@@ -274,46 +280,47 @@ const ExcelImportModal = ({ isOpen, onClose, onStagedUpdated }) => {
           {unmatchedHeaders.length > 0 && (
             <div className="bg-amber-50 border border-amber-200 rounded-2xl p-3 text-xs text-amber-800 flex items-center justify-between">
               <div>
-                <strong>Note (Admin Extra Columns):</strong> The following extra columns ({unmatchedHeaders.join(', ')}) will be preserved in the internal admin record and will not be shown to public users.
+                <strong>Admin Record (Extra Columns):</strong> {unmatchedHeaders.join(', ')} will be saved in the admin-only metadata record.
               </div>
             </div>
           )}
 
-          {/* PARSED / CLOUD STAGED BOOKS SECTION */}
+          {/* PARSED BOOKS LIST */}
           {booksList.length > 0 && (
             <div className="space-y-4 animate-in fade-in duration-300">
               
-              {/* Meta & Stats bar */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-emerald-50/70 p-4 rounded-2xl border border-emerald-200/70">
-                <div className="flex items-center gap-2 text-emerald-800 flex-wrap">
+              {/* Meta & Actions Bar */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-emerald-50/80 p-4 rounded-2xl border border-emerald-200/80">
+                <div className="flex items-center gap-2 text-emerald-900 flex-wrap">
                   <CloudArrowUpIcon className="w-5 h-5 text-emerald-600 flex-shrink-0" />
                   <span className="text-xs sm:text-sm font-bold">
-                    Database Staged: <span className="font-black text-emerald-900">{booksList.length}</span> books ready.
+                    <span className="font-black text-emerald-950">{booksList.length}</span> Books Extracted.
                   </span>
-                  <span className="text-[11px] bg-emerald-200/70 text-emerald-900 px-2 py-0.5 rounded-md font-semibold">
-                    Synced across all devices
+                  <span className="text-[11px] bg-emerald-200/80 text-emerald-900 px-2 py-0.5 rounded-md font-semibold">
+                    Ready to Save in DB
                   </span>
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <div className="relative w-full sm:w-56">
+                  <div className="relative w-full sm:w-48">
                     <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                     <input
                       type="text"
                       value={searchFilter}
                       onChange={(e) => setSearchFilter(e.target.value)}
-                      placeholder="Search books..."
-                      className="w-full pl-9 pr-3 py-1.5 text-xs bg-white rounded-xl border border-slate-200 font-medium outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
+                      placeholder="Filter preview..."
+                      className="w-full pl-9 pr-3 py-1.5 text-xs bg-white rounded-xl border border-slate-200 font-medium outline-none focus:border-emerald-500"
                     />
                   </div>
 
                   <button
                     type="button"
-                    onClick={handleClearAllStaged}
-                    className="p-1.5 text-rose-600 hover:text-rose-700 hover:bg-rose-50 rounded-xl transition-all border border-rose-200"
-                    title="Clear All Staged Books from DB"
+                    onClick={handleImportAllToDatabase}
+                    disabled={isImportingAll}
+                    className="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-extrabold rounded-xl shadow-md transition-all active:scale-95 disabled:opacity-50 whitespace-nowrap"
                   >
-                    <TrashIcon className="w-4 h-4" />
+                    <CheckIcon className="w-4 h-4" />
+                    <span>{isImportingAll ? "Saving..." : `Save All (${booksList.length}) to DB`}</span>
                   </button>
                 </div>
               </div>
@@ -392,7 +399,7 @@ const ExcelImportModal = ({ isOpen, onClose, onStagedUpdated }) => {
                                   onClick={() => handleSelectBook(b)}
                                   className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-[#002147] hover:bg-[#003166] text-white text-xs font-bold rounded-xl shadow-xs transition-all hover:shadow-md hover:scale-[1.02] active:scale-95"
                                 >
-                                  <span>Fill & Upload</span>
+                                  <span>Fill Form</span>
                                   <ArrowRightIcon className="w-3 h-3" />
                                 </button>
                                 <button
@@ -479,7 +486,7 @@ const ExcelImportModal = ({ isOpen, onClose, onStagedUpdated }) => {
               </div>
 
               <div className="text-xs text-slate-400 flex items-center justify-between px-1">
-                <span>Tip: Click <strong>"Fill & Upload"</strong> on any row to open the Add Book form with all details auto-filled.</span>
+                <span>Tip: Click <strong>"Save All to DB"</strong> to insert all records immediately into the Database.</span>
                 <span>Page {currentPage} of {totalPages}</span>
               </div>
             </div>
@@ -498,16 +505,17 @@ const ExcelImportModal = ({ isOpen, onClose, onStagedUpdated }) => {
           </button>
 
           {booksList.length > 0 && (
-            <button
-              type="button"
-              onClick={() => {
-                if (booksList[0]) handleSelectBook(booksList[0]);
-              }}
-              className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-emerald-700 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white text-xs sm:text-sm font-bold rounded-xl shadow-md transition-all active:scale-95"
-            >
-              <span>Fill First Book ({booksList[0]?.title || 'Row 1'})</span>
-              <ArrowRightIcon className="w-4 h-4" />
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handleImportAllToDatabase}
+                disabled={isImportingAll}
+                className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-emerald-700 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white text-xs sm:text-sm font-bold rounded-xl shadow-md transition-all active:scale-95 disabled:opacity-50"
+              >
+                <CloudArrowUpIcon className="w-4 h-4" />
+                <span>{isImportingAll ? "Saving..." : `Save All (${booksList.length}) Books to DB Catalog`}</span>
+              </button>
+            </div>
           )}
         </div>
 

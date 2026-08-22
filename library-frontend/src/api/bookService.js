@@ -171,8 +171,18 @@ export const bookService = {
     },
 
     // ============================================================
-    // 4. STAGED / EXCEL IMPORTED BOOKS (Persistent Multi-Device Storage)
+    // 4. STAGED & BULK EXCEL IMPORTED BOOKS (Persistent Database Storage)
     // ============================================================
+
+    async bulkImportBooks(booksArray) {
+        try {
+            const response = await apiClient.post('/api/books/bulk-import', booksArray);
+            return response.data;
+        } catch (error) {
+            console.error("Error bulk importing books into database:", error);
+            throw error;
+        }
+    },
 
     async saveBulkStagedBooks(payload) {
         try {

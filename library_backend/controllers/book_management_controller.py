@@ -190,6 +190,166 @@ async def create_book(
     return get_book_by_id_internal(db, new_book.id)
 
 
+# ==============================================================================
+# 🟣 BULK EXCEL IMPORT & STAGED BOOKS (Persistent Database Storage)
+# ==============================================================================
+
+@router.post("/bulk-import", response_model=List[book_schema.Book], status_code=status.HTTP_201_CREATED)
+def bulk_import_books(
+    payload: List[book_schema.StagedBookBase],
+    db: Session = Depends(get_db),
+    current_user: user_model.User = Depends(require_permission("BOOK_MANAGE"))
+):
+    """
+    Directly insert bulk books parsed from Excel spreadsheet into MySQL database (books table).
+    Ensures books are permanently saved and visible across all laptops, mobiles, and devices!
+    """
+    languages = db.query(language_model.Language).filter(language_model.Language.deleted_at.is_(None)).all()
+    default_lang = languages[0] if languages else None
+    
+    def resolve_language_id(name_str):
+        if not name_str or not languages:
+            return default_lang.id if default_lang else 1
+        name_clean = name_str.strip().lower()
+        for lang in languages:
+            if lang.name.lower() in name_clean or name_clean in lang.name.lower():
+                return lang.id
+            if hasattr(lang, 'code') and lang.code and lang.code.lower() == name_clean:
+                return lang.id
+        return default_lang.id if default_lang else 1
+
+    created_books = []
+    for item in payload:
+        if not item.title and not item.author and not item.book_number:
+            continue
+            
+        lang_id = resolve_language_id(item.language_name)
+        
+        parsed_pub_date = None
+        if item.publication_year:
+            try:
+                clean_y = int(str(item.publication_year).strip()[:4])
+                if 1000 <= clean_y <= 2100:
+                    parsed_pub_date = date(clean_y, 1, 1)
+            except Exception:
+                pass
+                
+        new_book = book_model.Book(
+            title=item.title or "Untitled Book",
+            author=item.author,
+            publisher=item.publisher,
+            translator=item.translator,
+            serial_number=item.serial_number,
+            book_number=item.book_number,
+            language_id=lang_id,
+            page_count=item.page_count,
+            parts_or_volumes=item.parts_or_volumes,
+            subject_number=item.subject_number,
+            edition=item.edition,
+            total_copies=item.quantity or 1,
+            available_copies=item.quantity or 1,
+            price=item.price,
+            remarks=item.remarks,
+            description=item.description,
+            extra_data=item.extra_data or item.raw_data,
+            published_date=parsed_pub_date,
+            is_digital=True,
+            is_approved=True,  # Approved by default when admin imports via Excel so it appears in the catalog!
+            is_restricted=False
+        )
+        db.add(new_book)
+        created_books.append(new_book)
+
+    db.commit()
+    for b in created_books:
+        db.refresh(b)
+
+    create_log(
+        db=db, user=current_user, action_type="BULK_EXCEL_IMPORT",
+        description=f"Admin {current_user.username} imported {len(created_books)} books via Excel spreadsheet.",
+        target_type="Book", target_id=created_books[0].id if created_books else 0
+    )
+
+    return created_books
+
+
+@router.post("/staged/bulk", response_model=List[book_schema.StagedBook], status_code=status.HTTP_201_CREATED)
+def save_bulk_staged_books(
+    payload: book_schema.StagedBookBulkCreate,
+    db: Session = Depends(get_db),
+    current_user: user_model.User = Depends(require_permission("BOOK_MANAGE"))
+):
+    """Save bulk parsed books from Excel into persistent staged_books table."""
+    saved_items = []
+    for b in payload.books:
+        staged = book_model.StagedBook(
+            title=b.title,
+            author=b.author,
+            publisher=b.publisher,
+            translator=b.translator,
+            serial_number=b.serial_number,
+            book_number=b.book_number,
+            language_name=b.language_name,
+            page_count=b.page_count,
+            publication_year=b.publication_year,
+            edition=b.edition,
+            parts_or_volumes=b.parts_or_volumes,
+            subject_number=b.subject_number,
+            quantity=b.quantity or 1,
+            price=b.price,
+            description=b.description,
+            remarks=b.remarks,
+            extra_data=b.extra_data,
+            raw_data=b.raw_data,
+            file_name=payload.file_name,
+            uploaded_by_id=current_user.id,
+            status="PENDING"
+        )
+        db.add(staged)
+        saved_items.append(staged)
+
+    db.commit()
+    for item in saved_items:
+        db.refresh(item)
+    return saved_items
+
+
+@router.get("/staged", response_model=List[book_schema.StagedBook])
+def get_staged_books(
+    db: Session = Depends(get_db),
+    current_user: user_model.User = Depends(require_permission("BOOK_MANAGE"))
+):
+    """Retrieve all pending staged books uploaded from Excel across all devices."""
+    return db.query(book_model.StagedBook).filter(
+        book_model.StagedBook.status == "PENDING"
+    ).order_by(book_model.StagedBook.id.asc()).all()
+
+
+@router.delete("/staged/{staged_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_staged_book(
+    staged_id: int,
+    db: Session = Depends(get_db),
+    current_user: user_model.User = Depends(require_permission("BOOK_MANAGE"))
+):
+    """Remove a single staged book item."""
+    staged = db.query(book_model.StagedBook).filter(book_model.StagedBook.id == staged_id).first()
+    if staged:
+        db.delete(staged)
+        db.commit()
+    return None
+
+
+@router.delete("/staged", status_code=status.HTTP_204_NO_CONTENT)
+def clear_all_staged_books(
+    db: Session = Depends(get_db),
+    current_user: user_model.User = Depends(require_permission("BOOK_MANAGE"))
+):
+    """Clear all pending staged books."""
+    db.query(book_model.StagedBook).delete()
+    db.commit()
+    return None
+
+
 @router.put("/{book_id}", response_model=book_schema.Book)
 @router.put("/{book_id}/", response_model=book_schema.Book, include_in_schema=False)
 async def update_book(
@@ -342,85 +502,5 @@ def delete_book(
         description=f"Book '{db_book.title}' soft-deleted.",
         target_type="Book", target_id=book_id
     )
-    db.commit()
-    return None
-
-
-# ==============================================================================
-# 🟣 STAGED / IMPORTED BOOKS (Persistent Multi-Device Storage)
-# ==============================================================================
-
-@router.post("/staged/bulk", response_model=List[book_schema.StagedBook], status_code=status.HTTP_201_CREATED)
-def save_bulk_staged_books(
-    payload: book_schema.StagedBookBulkCreate,
-    db: Session = Depends(get_db),
-    current_user: user_model.User = Depends(require_permission("BOOK_MANAGE"))
-):
-    """Save bulk parsed books from Excel into persistent database for access across any device."""
-    saved_items = []
-    for b in payload.books:
-        staged = book_model.StagedBook(
-            title=b.title,
-            author=b.author,
-            publisher=b.publisher,
-            translator=b.translator,
-            serial_number=b.serial_number,
-            book_number=b.book_number,
-            language_name=b.language_name,
-            page_count=b.page_count,
-            publication_year=b.publication_year,
-            edition=b.edition,
-            parts_or_volumes=b.parts_or_volumes,
-            subject_number=b.subject_number,
-            quantity=b.quantity or 1,
-            price=b.price,
-            description=b.description,
-            remarks=b.remarks,
-            raw_data=b.raw_data,
-            file_name=payload.file_name,
-            uploaded_by_id=current_user.id,
-            status="PENDING"
-        )
-        db.add(staged)
-        saved_items.append(staged)
-
-    db.commit()
-    for item in saved_items:
-        db.refresh(item)
-    return saved_items
-
-
-@router.get("/staged", response_model=List[book_schema.StagedBook])
-def get_staged_books(
-    db: Session = Depends(get_db),
-    current_user: user_model.User = Depends(require_permission("BOOK_MANAGE"))
-):
-    """Retrieve all pending staged books uploaded from Excel across all devices."""
-    return db.query(book_model.StagedBook).filter(
-        book_model.StagedBook.status == "PENDING"
-    ).order_by(book_model.StagedBook.id.asc()).all()
-
-
-@router.delete("/staged/{staged_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_staged_book(
-    staged_id: int,
-    db: Session = Depends(get_db),
-    current_user: user_model.User = Depends(require_permission("BOOK_MANAGE"))
-):
-    """Remove a single staged book item."""
-    staged = db.query(book_model.StagedBook).filter(book_model.StagedBook.id == staged_id).first()
-    if staged:
-        db.delete(staged)
-        db.commit()
-    return None
-
-
-@router.delete("/staged", status_code=status.HTTP_204_NO_CONTENT)
-def clear_all_staged_books(
-    db: Session = Depends(get_db),
-    current_user: user_model.User = Depends(require_permission("BOOK_MANAGE"))
-):
-    """Clear all pending staged books."""
-    db.query(book_model.StagedBook).delete()
     db.commit()
     return None

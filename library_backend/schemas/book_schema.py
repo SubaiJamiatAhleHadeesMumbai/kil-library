@@ -159,6 +159,7 @@ class StagedBookBase(BaseModel):
     price: Optional[float] = None
     description: Optional[str] = None
     remarks: Optional[str] = None
+    extra_data: Optional[str] = None  # JSON string of unmatched / extra admin metadata
     raw_data: Optional[str] = None  # JSON string containing all original columns
     status: Optional[str] = "PENDING"
     file_name: Optional[str] = None

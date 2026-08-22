@@ -315,8 +315,8 @@ api_router.include_router(interaction_controller.router, prefix="/interaction", 
 
 # 6. Public Actions & Utils
 api_router.include_router(public_user_controller.router, prefix="/public", tags=["Public Actions"])
-api_router.include_router(book_read_controller.router, prefix="/books", tags=["Books (Read)"])
 api_router.include_router(book_management_controller.router, prefix="/books", tags=["Books (Manage)"])
+api_router.include_router(book_read_controller.router, prefix="/books", tags=["Books (Read)"])
 api_router.include_router(post_controller.router, prefix="/posts", tags=["Markaz News"])
 api_router.include_router(poster_controller.router, prefix="/posters", tags=["Homepage Posters"])
 api_router.include_router(donation_controller.router, tags=["Donation"]) # ✅ Moved INSIDE /api to fix 404

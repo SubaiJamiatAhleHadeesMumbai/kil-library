@@ -27,7 +27,8 @@ import {
     ComputerDesktopIcon,
     ChevronLeftIcon,
     ChevronRightIcon,
-    TableCellsIcon
+    TableCellsIcon,
+    DocumentArrowUpIcon
 } from '@heroicons/react/24/outline';
 
 // --- SKELETON LOADER COMPONENT ---
@@ -393,20 +394,21 @@ const BookManagement = () => {
                                         <td className="px-6 py-4 whitespace-nowrap text-center">
                                             <div className="flex items-center justify-center gap-2">
                                                 {book.pdf_url ? (
-                                                    <span title="PDF File Attached" className="p-1.5 bg-rose-50 text-rose-600 rounded-lg border border-rose-100 shadow-2xs">
+                                                    <span title="PDF File Attached" className="p-1.5 bg-rose-50 text-rose-600 rounded-lg border border-rose-100 shadow-2xs inline-flex items-center gap-1 font-bold text-[10px]">
                                                         <DocumentIcon className="w-4 h-4" />
+                                                        <span>PDF</span>
                                                     </span>
-                                                ) : null}
+                                                ) : (
+                                                    <span className="px-2 py-0.5 text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200 rounded-md">
+                                                        Pending PDF
+                                                    </span>
+                                                )}
                                                 
                                                 {book.txt_file_url ? (
                                                     <span title="Text/Research File Attached" className="p-1.5 bg-indigo-50 text-indigo-600 rounded-lg border border-indigo-100 shadow-2xs">
                                                         <DocumentTextIcon className="w-4 h-4" />
                                                     </span>
                                                 ) : null}
-
-                                                {!book.pdf_url && !book.txt_file_url && (
-                                                    <span className="text-[10px] text-slate-400 italic">No files</span>
-                                                )}
                                             </div>
                                         </td>
 
@@ -434,6 +436,17 @@ const BookManagement = () => {
                                         {/* Actions */}
                                         <td className="px-6 py-4 whitespace-nowrap text-right">
                                             <div className="flex items-center justify-end gap-1.5 opacity-90 group-hover:opacity-100 transition-opacity">
+                                                {!book.pdf_url && (
+                                                    <button
+                                                        onClick={() => handleEditClick(book)}
+                                                        className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-xs transition-all active:scale-95 whitespace-nowrap mr-1"
+                                                        title="Attach PDF file to this book"
+                                                    >
+                                                        <DocumentArrowUpIcon className="w-3.5 h-3.5" />
+                                                        <span>Attach PDF</span>
+                                                    </button>
+                                                )}
+
                                                 <button 
                                                     onClick={() => handleViewClick(book)} 
                                                     className="p-2 text-slate-500 hover:text-emerald-700 hover:bg-emerald-50 rounded-xl transition-colors" 
