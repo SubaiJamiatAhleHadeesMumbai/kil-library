@@ -343,7 +343,7 @@ const BookFormUI = ({
               <FileDropZone id="pdfFile" label="PDF Document" accept="application/pdf"
                 onChange={onFileChange} currentUrl={initialData?.pdf_url}
                 newFileName={pdfFileName} icon={DocumentIcon} accent="blue" />
-              <FileDropZone id="txtFile" label="Research Text" accept=".txt,.md,.docx"
+              <FileDropZone id="txtFile" label="Research Text" accept=".txt,.text,.md,.docx,.doc,.rtf,text/plain,text/*"
                 onChange={onFileChange} currentUrl={initialData?.txt_file_url}
                 newFileName={txtFileName} icon={DocumentTextIcon} accent="teal" />
             </div>

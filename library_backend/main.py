@@ -69,6 +69,57 @@ from controllers import (
     fatawa_controller
 )
 
+def sync_database_schema():
+    """Ensure all required columns (like txt_file_url) exist in PostgreSQL tables on startup."""
+    from sqlalchemy import text
+    
+    statements = [
+        # books columns
+        "ALTER TABLE books ADD COLUMN IF NOT EXISTS txt_file_url VARCHAR;",
+        "ALTER TABLE books ADD COLUMN IF NOT EXISTS fatawa_category_id INTEGER;",
+        "ALTER TABLE books ADD COLUMN IF NOT EXISTS extra_data TEXT;",
+        "ALTER TABLE books ADD COLUMN IF NOT EXISTS is_digital BOOLEAN DEFAULT FALSE;",
+        "ALTER TABLE books ADD COLUMN IF NOT EXISTS is_approved BOOLEAN DEFAULT FALSE;",
+        "ALTER TABLE books ADD COLUMN IF NOT EXISTS is_restricted BOOLEAN DEFAULT FALSE;",
+        "ALTER TABLE books ADD COLUMN IF NOT EXISTS total_copies INTEGER DEFAULT 1;",
+        "ALTER TABLE books ADD COLUMN IF NOT EXISTS available_copies INTEGER DEFAULT 1;",
+        "ALTER TABLE books ADD COLUMN IF NOT EXISTS published_date DATE;",
+        "ALTER TABLE books ADD COLUMN IF NOT EXISTS edition VARCHAR(100);",
+        "ALTER TABLE books ADD COLUMN IF NOT EXISTS parts_or_volumes VARCHAR(100);",
+        "ALTER TABLE books ADD COLUMN IF NOT EXISTS page_count INTEGER;",
+        "ALTER TABLE books ADD COLUMN IF NOT EXISTS subject_number VARCHAR(100);",
+        "ALTER TABLE books ADD COLUMN IF NOT EXISTS translator VARCHAR(255);",
+        "ALTER TABLE books ADD COLUMN IF NOT EXISTS price DOUBLE PRECISION;",
+        "ALTER TABLE books ADD COLUMN IF NOT EXISTS date_of_purchase DATE;",
+        "ALTER TABLE books ADD COLUMN IF NOT EXISTS serial_number VARCHAR(100);",
+        "ALTER TABLE books ADD COLUMN IF NOT EXISTS book_number VARCHAR(100);",
+        # upload_requests
+        "ALTER TABLE upload_requests ADD COLUMN IF NOT EXISTS submitted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;",
+        "ALTER TABLE upload_requests ADD COLUMN IF NOT EXISTS reviewed_at TIMESTAMP;",
+        "ALTER TABLE upload_requests ADD COLUMN IF NOT EXISTS remarks VARCHAR(500);",
+        # logs
+        "ALTER TABLE logs ADD COLUMN IF NOT EXISTS action_by_id INTEGER;",
+        "ALTER TABLE logs ADD COLUMN IF NOT EXISTS target_type VARCHAR(50);",
+        "ALTER TABLE logs ADD COLUMN IF NOT EXISTS target_id INTEGER;",
+        "ALTER TABLE logs ADD COLUMN IF NOT EXISTS details TEXT;",
+        # users
+        "ALTER TABLE users ADD COLUMN IF NOT EXISTS education VARCHAR(500);",
+        "ALTER TABLE users ADD COLUMN IF NOT EXISTS social_activities VARCHAR(1000);",
+        "ALTER TABLE users ADD COLUMN IF NOT EXISTS otp_code VARCHAR(6);",
+        "ALTER TABLE users ADD COLUMN IF NOT EXISTS otp_expires_at TIMESTAMP;",
+    ]
+    
+    try:
+        with engine.begin() as conn:
+            for stmt in statements:
+                try:
+                    conn.execute(text(stmt))
+                except Exception:
+                    pass
+        print("✅ Database schema synchronized successfully.")
+    except Exception as e:
+        print(f"⚠️ Schema sync notice: {e}")
+
 # --- Lifespan Manager (Startup/Shutdown Logic) ---
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -77,6 +128,10 @@ async def lifespan(app: FastAPI):
     
     # 1. Database Tables Check (Non-blocking - doesn't crash if DB is down)
     print("Checking database tables...")
+    try:
+        sync_database_schema()
+    except Exception as e:
+        print(f"⚠️ Schema sync call: {e}")
     try:
         Base.metadata.create_all(bind=engine)
         print("✅ Database tables verified.")
