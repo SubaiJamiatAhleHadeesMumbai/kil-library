@@ -251,6 +251,16 @@ const UserNavbar = () => {
                              <p className="text-sm font-bold text-[#002147] truncate">{user?.username}</p>
                           </div>
                           <div className="p-1.5 space-y-1">
+                            {user && (user.role === 'Admin' || user.role === 'admin' || user.role === 'superadmin') && (
+                              <Link
+                                to="/admin/dashboard"
+                                onClick={() => setIsProfileOpen(false)}
+                                className="flex items-center gap-3 px-3 py-2.5 text-sm font-bold text-indigo-700 bg-indigo-50/70 rounded-xl hover:bg-indigo-100 transition-colors"
+                              >
+                                <ShieldCheckIcon className="w-5 h-5 text-indigo-600" />
+                                Admin Dashboard
+                              </Link>
+                            )}
                             <Link
                               to="/profile"
                               onClick={() => setIsProfileOpen(false)}

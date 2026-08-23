@@ -176,13 +176,6 @@ const PublicHome = () => {
   const location = useLocation();
   const { isAdmin, user, loading: authLoading } = useAuth();
 
-  // Smart Admin Redirect
-  useEffect(() => {
-    if (!authLoading && user && isAdmin) {
-      console.log("ðŸ‘®â€â™‚ï¸ Admin Detected on Public Home -> Redirecting to Dashboard");
-      navigate('/admin/dashboard', { replace: true });
-    }
-  }, [user, isAdmin, authLoading, navigate]);
 
   // Data States
   const [books, setBooks] = useState([]);
