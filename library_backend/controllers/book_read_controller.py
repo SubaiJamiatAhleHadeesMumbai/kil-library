@@ -606,3 +606,87 @@ async def stream_book_pdf(
         raise HTTPException(status_code=he.code, detail=f"Remote document error: {he.reason}")
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Unable to load document: {str(e)}")
+
+# ==================================
+# 📥 SAME-ORIGIN TEXT STREAM ROUTE (Zero CORS Issue)
+# ==================================
+@router.get("/{book_id}/stream-text", tags=["Books (Read)"])
+@router.get("/{book_id}/text", tags=["Books (Read)"])
+async def stream_book_text(
+    book_id: int,
+    db: Session = Depends(get_db),
+    current_user: Optional[user_model.User] = Depends(get_current_user_optional)
+):
+    db_book = get_book_by_id_internal(db, book_id)
+    if not db_book or not (db_book.txt_file_url or db_book.txt_file):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Text content not found for this book")
+
+    # 1. Approval Check
+    if not db_book.is_approved:
+        if not current_user or (current_user.role.name.lower() not in ['admin', 'superadmin']):
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Book not found.")
+
+    # 2. Restricted Access Check
+    if db_book.is_restricted:
+        has_access = False
+        if current_user and hasattr(current_user, 'role') and current_user.role.name.lower() in ['admin', 'superadmin']:
+            has_access = True
+        elif current_user:
+            accessible_ids = _get_accessible_book_ids(db, current_user)
+            if db_book.id in accessible_ids:
+                has_access = True
+        if not has_access:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access to this restricted text is not granted.")
+
+    raw_url = str(db_book.txt_file_url or db_book.txt_file).strip()
+    safe_filename = f"book_{book_id}.txt"
+
+    # Case A: Local File
+    if not raw_url.startswith("http://") and not raw_url.startswith("https://"):
+        local_path = resolve_upload_path(raw_url)
+        if local_path and os.path.exists(local_path):
+            return FileResponse(
+                path=local_path,
+                media_type="text/plain; charset=utf-8",
+                headers={
+                    "Access-Control-Allow-Origin": "*",
+                    "Access-Control-Allow-Methods": "GET, HEAD, OPTIONS",
+                    "Access-Control-Allow-Headers": "*",
+                    "Content-Disposition": f'inline; filename="{safe_filename}"',
+                    "Cache-Control": "public, max-age=86400"
+                }
+            )
+
+    # Case B: Remote R2 / Cloudinary / CDN
+    try:
+        import urllib.parse
+        parsed = urllib.parse.urlsplit(raw_url)
+        quoted_path = urllib.parse.quote(parsed.path)
+        encoded_url = urllib.parse.urlunsplit((parsed.scheme, parsed.netloc, quoted_path, parsed.query, parsed.fragment))
+
+        req = urllib.request.Request(encoded_url, headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"})
+        remote_resp = urllib.request.urlopen(req, timeout=30)
+
+        def text_stream_generator(resp):
+            try:
+                while True:
+                    chunk = resp.read(65536)
+                    if not chunk:
+                        break
+                    yield chunk
+            finally:
+                resp.close()
+
+        return StreamingResponse(
+            text_stream_generator(remote_resp),
+            media_type="text/plain; charset=utf-8",
+            headers={
+                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Methods": "GET, HEAD, OPTIONS",
+                "Access-Control-Allow-Headers": "*",
+                "Content-Disposition": f'inline; filename="{safe_filename}"',
+                "Cache-Control": "public, max-age=86400"
+            }
+        )
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Unable to load text: {str(e)}")

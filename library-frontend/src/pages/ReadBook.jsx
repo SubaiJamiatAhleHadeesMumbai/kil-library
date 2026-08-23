@@ -1,21 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import apiClient from '../api/apiClient';
-import { getPdfUrl } from '../utils/cover';
 import SmartReader from '../components/book/SmartReader';
 import { interactionService } from '../api/interactionService';
 import analyticsService from '../api/analyticsService';
 import toast from 'react-hot-toast';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || (import.meta.env.PROD ? "" : "http://127.0.0.1:8000");
-
-const toAbsoluteMediaUrl = (path) => {
-  if (!path) return null;
-  let clean = String(path).replace(/\\/g, "/");
-  if (clean.startsWith("http://") || clean.startsWith("https://")) return clean;
-  if (!clean.startsWith("/")) clean = "/" + clean;
-  return `${API_BASE_URL}${clean}`;
-};
 
 const ReadBook = () => {
   const { id } = useParams();
@@ -98,17 +89,23 @@ const ReadBook = () => {
     );
   }
 
-  const pdfUrl = toAbsoluteMediaUrl(book?.pdf_url || book?.pdf_file);
-  const txtUrl = toAbsoluteMediaUrl(book?.txt_file_url || book?.txt_file);
+  const hasPdf = Boolean(book?.pdf_url || book?.pdf_file);
+  const hasTxt = Boolean(book?.txt_file_url || book?.txt_file);
+
+  // Use Same-Origin Proxy Stream endpoints for Zero CORS issues + fallback to direct URLs
+  const pdfUrl = hasPdf ? `${API_BASE_URL}/api/books/${book.id}/stream-pdf` : null;
+  const txtUrl = hasTxt ? `${API_BASE_URL}/api/books/${book.id}/stream-text` : null;
 
   return (
     <SmartReader
       pdfUrl={pdfUrl}
       txtUrl={txtUrl}
+      directTxtUrl={book?.txt_file_url || book?.txt_file}
       onClose={() => navigate(-1)}
       onBackToSearch={() => navigate('/books')}
       initialPage={1}
       initialSearchText=""
+      bookTitle={book?.title}
     />
   );
 };
