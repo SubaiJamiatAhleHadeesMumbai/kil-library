@@ -1,3 +1,4 @@
+import StandardFormattedText from "../components/common/StandardFormattedText";
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import {
@@ -166,7 +167,7 @@ const IntroSection = ({ settings, heroImage }) => (
             key={index}
             className="group rounded-2xl border border-slate-200/90 bg-gradient-to-br from-slate-50/80 to-white p-5 text-sm leading-7 text-slate-600 transition-all hover:border-[#002147]/30 hover:shadow-sm"
           >
-            <p>{paragraph}</p>
+            <StandardFormattedText text={paragraph} />
           </div>
         ))}
       </div>

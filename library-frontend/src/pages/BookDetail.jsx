@@ -1,3 +1,4 @@
+import StandardFormattedText from "../components/common/StandardFormattedText";
 import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { bookService } from '../api/bookService';
@@ -365,11 +366,8 @@ const BookDetail = () => {
                                                     <div className="absolute top-4 left-4 bg-emerald-100 text-emerald-800 text-[11px] font-black px-2.5 py-0.5 rounded-full border border-emerald-200">
                                                         Page {idx + 1}
                                                     </div>
-                                                    <div 
-                                                        className={`prose prose-slate max-w-none text-slate-800 whitespace-pre-wrap ${langClass} ${fontSizeClass} pt-6`}
-                                                        style={{ fontFamily: isRTL ? '"Jameel Noori Nastaleeq", "Noto Naskh Arabic", serif' : 'inherit' }}
-                                                    >
-                                                        {pageText}
+                                                    <div className="pt-6">
+                                                        <StandardFormattedText text={pageText} />
                                                     </div>
                                                 </div>
                                             ))}

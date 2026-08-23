@@ -1,3 +1,4 @@
+import StandardFormattedText from "../common/StandardFormattedText";
 import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import {
   ChevronDown,
@@ -446,16 +447,12 @@ const SplitViewer = ({
                             </div>
 
                             {/* Paragraph Content */}
-                            <div className="space-y-4 text-justify leading-relaxed">
+                            <div className="text-justify leading-relaxed">
                               {pageText ? (
-                                pageText.split('\n').map((para, i) => (
-                                  <p
-                                    key={`${pageNum}-${i}`}
-                                    className="rounded-lg px-2.5 py-1.5 transition-colors hover:bg-emerald-50/60"
-                                  >
-                                    {highlightText(para)}
-                                  </p>
-                                ))
+                                <StandardFormattedText
+                                  text={pageText}
+                                  highlightQuery={searchText}
+                                />
                               ) : (
                                 <div className="flex h-20 items-center justify-center text-xs font-semibold text-slate-400 animate-pulse">
                                   Loading page {pageNum}...
@@ -468,12 +465,11 @@ const SplitViewer = ({
                     })}
                   </div>
                 ) : textContent ? (
-                  <div className="space-y-4 text-justify leading-relaxed">
-                    {textContent.split('\n').map((para, i) => (
-                      <p key={i} className="rounded-lg px-2.5 py-1.5 transition-colors hover:bg-emerald-50/60">
-                        {highlightText(para)}
-                      </p>
-                    ))}
+                  <div className="text-justify leading-relaxed">
+                    <StandardFormattedText
+                      text={textContent}
+                      highlightQuery={searchText}
+                    />
                   </div>
                 ) : (
                   <div className="flex h-44 items-center justify-center text-xs font-bold text-slate-400">
