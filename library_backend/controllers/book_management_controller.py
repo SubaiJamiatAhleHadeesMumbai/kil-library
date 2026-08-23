@@ -12,7 +12,7 @@ from database import get_db
 from utils import create_log
 
 # ✅ Smart Multi-Storage Upload Helper
-from utils.storage_helper import smart_upload
+from utils.storage_helper import smart_upload, smart_delete
 from utils.local_helper import save_pdf_locally, save_txt_locally
 
 router = APIRouter()
@@ -508,17 +508,32 @@ async def update_book(
              raise HTTPException(status_code=409, detail="ISBN already exists.")
          db_book.isbn = isbn
 
-    # Update Files
+    # Update Files (Auto-Delete Old Files to Save Cloud Storage Memory)
     if cover_image:
-        db_book.cover_image_url = smart_upload(cover_image, folder="booknest/covers", resource_type="image")
+        old_cover = db_book.cover_image_url
+        new_cover = smart_upload(cover_image, folder="booknest/covers", resource_type="image")
+        if new_cover:
+            db_book.cover_image_url = new_cover
+            if old_cover and old_cover != new_cover:
+                smart_delete(old_cover)
 
-    # ✅ PDF Update -> Smart Upload (R2 / Cloudinary / Local Fallback)
+    # ✅ PDF Update -> Smart Upload + Auto-Delete Old PDF
     if pdf_file:
-        db_book.pdf_url = smart_upload(pdf_file, folder="booknest/pdfs")
+        old_pdf = db_book.pdf_url
+        new_pdf = smart_upload(pdf_file, folder="booknest/pdfs")
+        if new_pdf:
+            db_book.pdf_url = new_pdf
+            if old_pdf and old_pdf != new_pdf:
+                smart_delete(old_pdf)
 
-    # ✅ Text File Update -> Smart Upload (R2 / Cloudinary / Local Fallback)
+    # ✅ Text File Update -> Smart Upload + Auto-Delete Old Research Text
     if txt_file:
-        db_book.txt_file_url = smart_upload(txt_file, folder="booknest/texts")
+        old_txt = db_book.txt_file_url or db_book.txt_file
+        new_txt = smart_upload(txt_file, folder="booknest/texts")
+        if new_txt:
+            db_book.txt_file_url = new_txt
+            if old_txt and old_txt != new_txt:
+                smart_delete(old_txt)
 
     # Approval Logic - Admin updates remain approved
     db_book.is_approved = True 

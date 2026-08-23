@@ -99,3 +99,37 @@ def upload_to_r2(file: UploadFile, folder: str = "uploads") -> str | None:
     except Exception as e:
         print(f"❌ Cloudflare R2 Upload Error: {e}")
         return None
+
+
+def delete_from_r2(url_or_key: str) -> bool:
+    """
+    Deletes an object from Cloudflare R2 bucket.
+    Accepts full public URL or object key.
+    """
+    if not url_or_key or not is_r2_configured():
+        return False
+
+    client = get_r2_client()
+    if not client:
+        return False
+
+    try:
+        cfg = get_r2_config()
+        # Extract object key from URL if full URL is passed
+        if "://" in url_or_key:
+            import urllib.parse
+            parsed = urllib.parse.urlparse(url_or_key)
+            object_key = parsed.path.lstrip("/")
+        else:
+            object_key = url_or_key.lstrip("/")
+
+        if not object_key:
+            return False
+
+        print(f"🗑️ Deleting from Cloudflare R2: {object_key}")
+        client.delete_object(Bucket=cfg["bucket_name"], Key=object_key)
+        print(f"✅ R2 Delete Success: {object_key}")
+        return True
+    except Exception as e:
+        print(f"⚠️ Cloudflare R2 Delete Error ({url_or_key}): {e}")
+        return False

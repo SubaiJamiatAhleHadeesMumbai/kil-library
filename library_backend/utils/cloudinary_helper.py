@@ -93,3 +93,19 @@ def upload_to_cloudinary(file: UploadFile, folder: str = "library_uploads", reso
                 print("🧹 Temp file cleaned")
             except Exception as cleanup_err:
                 print(f"⚠️ Warning: Could not delete temp file: {cleanup_err}")
+
+def delete_from_cloudinary(url: str) -> bool:
+    """Deletes an asset from Cloudinary given its URL."""
+    if not url:
+        return False
+    try:
+        parts = url.split("/upload/")
+        if len(parts) > 1:
+            public_id_with_ext = parts[1].split("/", 1)[-1]
+            public_id = os.path.splitext(public_id_with_ext)[0]
+            print(f"🗑️ Deleting from Cloudinary: {public_id}")
+            cloudinary.uploader.destroy(public_id)
+            return True
+    except Exception as e:
+        print(f"⚠️ Cloudinary delete error: {e}")
+    return False
