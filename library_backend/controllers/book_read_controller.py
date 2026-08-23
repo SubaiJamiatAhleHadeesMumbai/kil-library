@@ -637,7 +637,11 @@ async def stream_book_text(
     current_user: Optional[user_model.User] = Depends(get_current_user_optional)
 ):
     db_book = get_book_by_id_internal(db, book_id)
-    if not db_book or not (db_book.txt_file_url or db_book.txt_file):
+    if not db_book:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Book not found")
+        
+    txt_url = getattr(db_book, 'txt_file_url', None) or getattr(db_book, 'txt_file', None)
+    if not txt_url:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Text content not found for this book")
 
     # 1. Approval Check
@@ -657,7 +661,7 @@ async def stream_book_text(
         if not has_access:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access to this restricted text is not granted.")
 
-    raw_url = str(db_book.txt_file_url or db_book.txt_file).strip()
+    raw_url = str(getattr(db_book, 'txt_file_url', None) or getattr(db_book, 'txt_file', None) or '').strip()
     safe_filename = f"book_{book_id}.txt"
 
     # Case A: Local File

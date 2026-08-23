@@ -73,6 +73,10 @@ class Book(Base):
     pdf_url = Column(Text, nullable=True)      
     # txt_file_url = Column(Text, nullable=True) 
     txt_file_url = Column(String, nullable=True)
+    
+    @property
+    def txt_file(self):
+        return self.txt_file_url
     description = Column(Text, nullable=True)
 
     # 4. Access Control
