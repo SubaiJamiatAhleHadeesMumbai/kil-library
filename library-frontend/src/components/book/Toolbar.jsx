@@ -394,15 +394,15 @@ const SplitViewer = ({
             <div
               ref={textScrollRef}
               onScroll={handleTextScroll}
-              className="flex-1 min-h-0 overflow-y-auto px-4 py-6 sm:px-8 sm:py-8 leading-[2.5] text-right md:px-12 custom-scrollbar"
+              className="flex-1 min-h-0 overflow-y-auto px-3 py-4 sm:px-8 sm:py-8 leading-[2.2] sm:leading-[2.5] text-right md:px-12 custom-scrollbar"
               dir="rtl"
               style={{
                 fontFamily: "'Amiri', 'Noto Nastaliq Urdu', serif",
-                fontSize: '1.25rem',
+                fontSize: '1.15rem',
               }}
             >
               <div
-                className={`mx-auto space-y-6 rounded-2xl border border-[#E0D1B8] bg-[#FAF6EE] p-4 sm:p-8 text-[#2C2416] shadow-[inset_0_0_40px_rgba(180,140,75,0.04),0_10px_30px_rgba(0,0,0,0.04)] transition-all ${
+                className={`mx-auto space-y-4 sm:space-y-6 rounded-2xl border border-[#E0D1B8] bg-[#FAF6EE] p-3 sm:p-8 text-[#2C2416] shadow-[inset_0_0_40px_rgba(180,140,75,0.04),0_10px_30px_rgba(0,0,0,0.04)] transition-all ${
                   layoutMode === 'text' ? 'max-w-4xl shadow-md' : 'max-w-3xl'
                 }`}
               >

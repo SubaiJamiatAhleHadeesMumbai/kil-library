@@ -126,7 +126,7 @@ const PublicBookList = () => {
             </div>
 
             {/* Book Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-6">
                 {isLoading ? (
                     // Show skeleton loaders
                     [...Array(itemsPerPage)].map((_, i) => <BookCardSkeleton key={i} />)
@@ -136,9 +136,9 @@ const PublicBookList = () => {
                         <Link 
                             to={`/books/${book.id}`} // Link to the detail page
                             key={book.id} 
-                            className="bg-white rounded-lg shadow-md overflow-hidden border border-gray-200 hover:shadow-xl transition-shadow duration-300 group"
+                            className="bg-white rounded-2xl shadow-sm overflow-hidden border border-gray-200 hover:shadow-xl transition-all duration-300 group flex flex-col justify-between"
                         >
-                            <div className="aspect-w-2 aspect-h-3 h-72"> {/* Fixed height container */}
+                            <div className="aspect-[2/3] w-full overflow-hidden bg-gray-100 relative">
                                 {book.cover_image_url ? (
                                     <img 
                                         src={getStaticUrl(book.cover_image_url)} 
@@ -149,11 +149,11 @@ const PublicBookList = () => {
                                     <PlaceholderBookIcon />
                                 )}
                             </div>
-                            <div className="p-4">
-                                <h3 className="text-base font-semibold text-gray-800 truncate" title={book.title}>
+                            <div className="p-2.5 sm:p-4 text-center">
+                                <h3 className="text-xs sm:text-sm md:text-base font-bold text-gray-900 truncate" title={book.title}>
                                     {book.title}
                                 </h3>
-                                <p className="text-sm text-gray-500 mt-1 truncate" title={book.author}>
+                                <p className="text-[10px] sm:text-xs text-gray-500 mt-0.5 truncate" title={book.author}>
                                     {book.author || 'Unknown Author'}
                                 </p>
                             </div>

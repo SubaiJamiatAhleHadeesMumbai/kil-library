@@ -161,21 +161,21 @@ const UserNavbar = () => {
             
             {/* LOGO */}
             <div className="flex items-center min-w-0 flex-1 md:flex-none">
-              <Link to="/" className="flex items-center gap-3 group" onClick={() => setIsMobileMenuOpen(false)}>
-                <div className="relative">
+              <Link to="/" className="flex items-center gap-2 sm:gap-3 group min-w-0" onClick={() => setIsMobileMenuOpen(false)}>
+                <div className="relative shrink-0">
                   <div className="absolute inset-0 rounded-full bg-blue-400/20 blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                   <img
                     src={MARKAZ_LOGO_URL}
                     alt="Logo"
-                    className="relative z-10 w-11 h-11 object-contain bg-white rounded-full border border-slate-100 shadow-sm group-hover:scale-105 transition-transform duration-300"
+                    className="relative z-10 w-9 h-9 sm:w-11 sm:h-11 object-contain bg-white rounded-full border border-slate-100 shadow-sm group-hover:scale-105 transition-transform duration-300"
                     onError={(e) => (e.currentTarget.style.display = "none")}
                   />
                 </div>
-                <div className="flex flex-col leading-none">
-                  <span className="font-extrabold text-lg text-[#002147] tracking-tight">
+                <div className="flex flex-col leading-tight min-w-0">
+                  <span className="font-extrabold text-sm sm:text-lg text-[#002147] tracking-tight truncate">
                     {t("markaz_title")}
                   </span>
-                  <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mt-0.5">
+                  <span className="text-[9px] sm:text-[10px] text-slate-500 font-bold uppercase tracking-wider truncate">
                     {t("markaz_sub")}
                   </span>
                 </div>
@@ -296,13 +296,15 @@ const UserNavbar = () => {
               )}
             </div>
 
-            {/* MOBILE TOGGLE */}
-            <div className="flex items-center gap-3 md:hidden">
+            {/* MOBILE TOGGLE & LANGUAGE */}
+            <div className="flex items-center gap-1.5 sm:gap-2 md:hidden">
+              <LanguageSwitcher />
               {isAuth && <NotificationBell />}
               
               <button
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                className="p-2.5 rounded-xl text-slate-600 hover:bg-slate-100 active:bg-slate-200 transition-colors"
+                className="p-2 rounded-xl text-slate-600 hover:bg-slate-100 active:bg-slate-200 transition-colors"
+                aria-label="Toggle navigation menu"
               >
                 {isMobileMenuOpen ? (
                   <XMarkIcon className="h-6 w-6" />
