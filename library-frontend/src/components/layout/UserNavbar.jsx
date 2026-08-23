@@ -26,6 +26,7 @@ import {
 import useAuth from "../../hooks/useAuth";
 import NotificationBell from "../common/NotificationBell";
 import LanguageSwitcher from "../common/LanguageSwitcher";
+import { useLanguage } from "../../context/LanguageContext";
 import DonationModal from "../donation/DonationModal";
 import settingsService from "../../api/settingsService";
 
@@ -88,6 +89,7 @@ const NavItem = ({ to, label, icon: Icon, onClick }) => (
 
 const UserNavbar = () => {
   const { user, isAuth, logout } = useAuth();
+  const { t } = useLanguage();
   const navigate = useNavigate();
 
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -139,10 +141,10 @@ const UserNavbar = () => {
       <div className="bg-[#001D3D] border-b border-white/5 hidden md:block">
         <div className="app-shell-container h-9 flex items-center justify-between">
           <div className="flex items-center gap-6">
-            <TopLink label="Our Projects" icon={GlobeAltIcon} />
-            {showAboutLink ? <TopLink label="About Us" icon={InformationCircleIcon} to="/about" /> : null}
-            {showFatawaLink ? <TopLink label="Fatawa" icon={BookOpenIcon} to="/fatawa" /> : null}
-            <TopLink label="Database" icon={TableCellsIcon} />
+            <TopLink label={t("our_projects")} icon={GlobeAltIcon} />
+            {showAboutLink ? <TopLink label={t("about")} icon={InformationCircleIcon} to="/about" /> : null}
+            {showFatawaLink ? <TopLink label={t("fatawa")} icon={BookOpenIcon} to="/fatawa" /> : null}
+            <TopLink label={t("database")} icon={TableCellsIcon} />
           </div>
           <div className="text-white/20 text-[10px] font-bold tracking-[0.2em] uppercase">
             Markaz Ahle Hadees Kokan
@@ -171,10 +173,10 @@ const UserNavbar = () => {
                 </div>
                 <div className="flex flex-col leading-none">
                   <span className="font-extrabold text-lg text-[#002147] tracking-tight">
-                    Markaz Library
+                    {t("markaz_title")}
                   </span>
                   <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mt-0.5">
-                    Ahle Hadees Kokan
+                    {t("markaz_sub")}
                   </span>
                 </div>
               </Link>
@@ -182,17 +184,17 @@ const UserNavbar = () => {
 
             {/* DESKTOP NAV */}
             <div className="hidden md:flex items-center space-x-1">
-              <NavItem to="/" label="Home" icon={HomeIcon} />
-              <NavItem to="/books" label="Library" icon={BookOpenIcon} />
-              {showAboutLink ? <NavItem to="/about" label="About" icon={InformationCircleIcon} /> : null}
-              {showFatawaLink ? <NavItem to="/fatawa" label="Fatawa" icon={BookOpenIcon} /> : null}
-              <NavItem to="/authors" label="Authors" icon={UsersIcon} />
-              <NavItem to="/publishers" label="Publishers" icon={BuildingOfficeIcon} />
-              <NavItem to="/posts" label="Updates" icon={MegaphoneIcon} />
+              <NavItem to="/" label={t("home")} icon={HomeIcon} />
+              <NavItem to="/books" label={t("library")} icon={BookOpenIcon} />
+              {showAboutLink ? <NavItem to="/about" label={t("about")} icon={InformationCircleIcon} /> : null}
+              {showFatawaLink ? <NavItem to="/fatawa" label={t("fatawa")} icon={BookOpenIcon} /> : null}
+              <NavItem to="/authors" label={t("authors")} icon={UsersIcon} />
+              <NavItem to="/publishers" label={t("publishers")} icon={BuildingOfficeIcon} />
+              <NavItem to="/posts" label={t("updates")} icon={MegaphoneIcon} />
               {isAuth && (
                 <>
                   <div className="h-4 w-px bg-slate-300 mx-2" />
-                  <NavItem to="/history" label="History" icon={ClockIcon} />
+                  <NavItem to="/history" label={t("history")} icon={ClockIcon} />
                 </>
               )}
             </div>
@@ -209,7 +211,7 @@ const UserNavbar = () => {
                 className="group flex items-center gap-2 px-4 py-2 bg-rose-50 text-rose-600 rounded-full hover:bg-rose-600 hover:text-white transition-all duration-300 border border-rose-100 hover:border-rose-600 shadow-sm"
               >
                 <HeartIcon className="w-4 h-4 group-hover:scale-110 transition-transform" />
-                <span className="text-xs font-bold">Donate</span>
+                <span className="text-xs font-bold">{t("donate")}</span>
               </button>
 
               {/* Auth Logic */}
@@ -278,7 +280,7 @@ const UserNavbar = () => {
                     className="flex items-center gap-2 bg-[#002147] text-white px-6 py-2.5 rounded-full text-sm font-bold shadow-md hover:bg-[#003366] hover:shadow-lg hover:-translate-y-0.5 transition-all"
                   >
                     <ArrowLeftOnRectangleIcon className="w-4 h-4" />
-                    Log in
+                    {t("login")}
                   </Link>
                 </div>
               )}
@@ -345,15 +347,15 @@ const UserNavbar = () => {
 
                 {/* Mobile Links */}
                 <div className="space-y-1">
-                  <NavItem to="/" label="Home" icon={HomeIcon} onClick={() => setIsMobileMenuOpen(false)} />
-                  <NavItem to="/books" label="Library" icon={BookOpenIcon} onClick={() => setIsMobileMenuOpen(false)} />
-                  {showAboutLink ? <NavItem to="/about" label="About" icon={InformationCircleIcon} onClick={() => setIsMobileMenuOpen(false)} /> : null}
-                  {showFatawaLink ? <NavItem to="/fatawa" label="Fatawa" icon={BookOpenIcon} onClick={() => setIsMobileMenuOpen(false)} /> : null}
-                  <NavItem to="/authors" label="Authors" icon={UsersIcon} onClick={() => setIsMobileMenuOpen(false)} />
-                  <NavItem to="/publishers" label="Publishers" icon={BuildingOfficeIcon} onClick={() => setIsMobileMenuOpen(false)} />
-                  <NavItem to="/posts" label="Updates" icon={MegaphoneIcon} onClick={() => setIsMobileMenuOpen(false)} />
+                  <NavItem to="/" label={t("home")} icon={HomeIcon} onClick={() => setIsMobileMenuOpen(false)} />
+                  <NavItem to="/books" label={t("library")} icon={BookOpenIcon} onClick={() => setIsMobileMenuOpen(false)} />
+                  {showAboutLink ? <NavItem to="/about" label={t("about")} icon={InformationCircleIcon} onClick={() => setIsMobileMenuOpen(false)} /> : null}
+                  {showFatawaLink ? <NavItem to="/fatawa" label={t("fatawa")} icon={BookOpenIcon} onClick={() => setIsMobileMenuOpen(false)} /> : null}
+                  <NavItem to="/authors" label={t("authors")} icon={UsersIcon} onClick={() => setIsMobileMenuOpen(false)} />
+                  <NavItem to="/publishers" label={t("publishers")} icon={BuildingOfficeIcon} onClick={() => setIsMobileMenuOpen(false)} />
+                  <NavItem to="/posts" label={t("updates")} icon={MegaphoneIcon} onClick={() => setIsMobileMenuOpen(false)} />
                   {isAuth && (
-                      <NavItem to="/history" label="History" icon={ClockIcon} onClick={() => setIsMobileMenuOpen(false)} />
+                      <NavItem to="/history" label={t("history")} icon={ClockIcon} onClick={() => setIsMobileMenuOpen(false)} />
                   )}
                 </div>
 

@@ -8,7 +8,7 @@ const LanguageSwitcher = ({ className = '' }) => {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
 
-  // If in admin panel, don't show user language switcher
+  // Exclude switcher in admin panel
   if (isAdmin) return null;
 
   useEffect(() => {
@@ -24,8 +24,10 @@ const LanguageSwitcher = ({ className = '' }) => {
   }, [isOpen]);
 
   const handleSelect = (langCode) => {
-    changeLanguage(langCode);
     setIsOpen(false);
+    if (langCode !== currentLang) {
+      changeLanguage(langCode);
+    }
   };
 
   return (
