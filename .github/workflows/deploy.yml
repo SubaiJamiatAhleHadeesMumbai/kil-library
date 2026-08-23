@@ -54,15 +54,7 @@ jobs:
             docker compose exec -T backend python create_tables.py || true
             docker compose exec -T backend python setup_admin.py || true
             
-            # 5. Ensure Host Nginx allows up to 500MB file uploads
-            echo "🔧 Configuring Nginx upload limit to 500M..."
-            if [ -f /etc/nginx/nginx.conf ]; then
-              sed -i '/client_max_body_size/d' /etc/nginx/nginx.conf || true
-              sed -i '/http {/a \    client_max_body_size 500M;' /etc/nginx/nginx.conf || true
-              nginx -t && nginx -s reload || true
-            fi
-
-            # 6. Clean up old unused Docker images
+            # 5. Clean up old unused Docker images
             echo "🧹 Cleaning unused docker images..."
             docker image prune -f
             
