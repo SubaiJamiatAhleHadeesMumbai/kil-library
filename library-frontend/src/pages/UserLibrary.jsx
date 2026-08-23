@@ -709,7 +709,7 @@ const UserLibrary = () => {
                                 className="text-xs font-bold text-emerald-600 hover:underline"
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  navigate(`/books/${book.id}`);
+                                  navigate(`/read/${book.id}`);
                                 }}
                               >
                                 Read Now
@@ -985,7 +985,7 @@ const UserLibrary = () => {
                       {selectedBook.pdf_url || selectedBook.txt_file_url ? (
                         <button
                           onClick={() => {
-                            navigate(`/books/${selectedBook.id}`);
+                            navigate(`/read/${selectedBook.id}`);
                           }}
                           className="flex-1 bg-emerald-600 text-white py-3 rounded-xl font-bold flex justify-center items-center gap-2 hover:bg-emerald-700 transition-colors shadow-sm"
                         >

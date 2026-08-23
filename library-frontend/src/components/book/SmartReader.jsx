@@ -112,8 +112,25 @@ const SmartReader = ({
 
         if (cancelled) return;
 
-        // Split by Underscores, ===PAGE===, or PAGE_SEPARATOR
-        const rawPages = text.split(/_{5,}|===PAGE===|PAGE_SEPARATOR/gi);
+        // Split by Underscores, ===PAGE===, PAGE_SEPARATOR, or [PAGE X]
+        let rawPages = text.split(/_{5,}|===PAGE===|PAGE_SEPARATOR|\[PAGE\s*\d+\]/gi);
+
+        // Smart paragraph chunking if text file has no explicit delimiters
+        if (rawPages.length === 1 && text.length > 1500) {
+          const paragraphs = text.split(/\n\s*\n/);
+          const chunks = [];
+          let currentChunk = "";
+          for (const para of paragraphs) {
+            if ((currentChunk + "\n\n" + para).length > 1400 && currentChunk.length > 0) {
+              chunks.push(currentChunk.trim());
+              currentChunk = para;
+            } else {
+              currentChunk = currentChunk ? currentChunk + "\n\n" + para : para;
+            }
+          }
+          if (currentChunk.trim()) chunks.push(currentChunk.trim());
+          if (chunks.length > 1) rawPages = chunks;
+        }
 
         let pages = {};
         rawPages.forEach((content, index) => {

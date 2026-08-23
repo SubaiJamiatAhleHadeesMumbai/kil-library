@@ -1,307 +1,116 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import axios from 'axios';
-import { 
-  ArrowLeftIcon, 
-  DocumentTextIcon, 
-  BookOpenIcon, 
-  BookmarkIcon, 
-  ShareIcon 
-} from '@heroicons/react/24/outline';
-import { BookmarkIcon as BookmarkSolid } from '@heroicons/react/24/solid';
 import apiClient from '../api/apiClient';
-import { getCoverUrl, getPdfUrl } from '../utils/cover';
-import PdfViewer from '../components/book/PdfViewer';
-import { interactionService } from '../api/interactionService'; // Ensure correct import
+import { getPdfUrl } from '../utils/cover';
+import SmartReader from '../components/book/SmartReader';
+import { interactionService } from '../api/interactionService';
 import analyticsService from '../api/analyticsService';
 import toast from 'react-hot-toast';
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || (import.meta.env.PROD ? "" : "http://127.0.0.1:8000");
+
+const toAbsoluteMediaUrl = (path) => {
+  if (!path) return null;
+  let clean = String(path).replace(/\\/g, "/");
+  if (clean.startsWith("http://") || clean.startsWith("https://")) return clean;
+  if (!clean.startsWith("/")) clean = "/" + clean;
+  return `${API_BASE_URL}${clean}`;
+};
+
 const ReadBook = () => {
-    const { id } = useParams();
-    const navigate = useNavigate();
-    
-    // --- State Management ---
-    const [book, setBook] = useState(null);
-    const [loading, setLoading] = useState(true);
-    const [viewMode, setViewMode] = useState('text'); // 'pdf' | 'text'
-    
-    // Research Toolkit States
-    const [isBookmarked, setIsBookmarked] = useState(false);
-    const [textContent, setTextContent] = useState('');
-    const [textLoading, setTextLoading] = useState(false);
+  const { id } = useParams();
+  const navigate = useNavigate();
 
-    // Refs for scroll tracking
-    const textContainerRef = useRef(null);
+  const [book, setBook] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-    // --- 1. Initial Load (Book + User Status) ---
-    useEffect(() => {
-        const initReader = async () => {
-            try {
-                setLoading(true);
-                
-                // A. Fetch Book Details
-                const bookRes = await apiClient.get(`/api/books/${id}`);
-                const bookData = bookRes.data;
-                setBook(bookData);
+  useEffect(() => {
+    const initReader = async () => {
+      try {
+        setLoading(true);
+        const bookRes = await apiClient.get(`/api/books/${id}`);
+        const bookData = bookRes.data;
+        setBook(bookData);
 
-                // B. Fetch User Interaction (Last Read, Bookmark)
-                // Note: Only if user is logged in (Error handle inside service)
-                const status = await interactionService.getBookStatus(id);
-                if (status) {
-                    setIsBookmarked(status.is_bookmarked);
-                    // Future: We can scroll to status.last_page_read here
-                }
-
-                try {
-                    const recentReadsRaw = localStorage.getItem("bookNest_recent_reads");
-                    const recentReads = recentReadsRaw ? JSON.parse(recentReadsRaw) : [];
-                    const nextEntry = {
-                        book_id: Number(id),
-                        title: bookData?.title,
-                        cover_image_url: bookData?.cover_image_url || bookData?.cover_image,
-                        last_page_read: status?.last_page_read || 1,
-                        total_pages: status?.total_pages || 0,
-                        updated_at: new Date().toISOString(),
-                    };
-
-                    const filtered = Array.isArray(recentReads)
-                      ? recentReads.filter((entry) => String(entry.book_id) !== String(id))
-                      : [];
-
-                    filtered.unshift(nextEntry);
-                    localStorage.setItem("bookNest_recent_reads", JSON.stringify(filtered.slice(0, 8)));
-
-                    await analyticsService.trackVisit({
-                        visitor_id: analyticsService.getVisitorId(),
-                        path: `/read/${id}`,
-                        event_type: 'book_read',
-                        book_id: Number(id),
-                        referrer: document.referrer || null,
-                        user_agent: navigator.userAgent,
-                    });
-                } catch (storageError) {
-                    console.warn("Could not store recent read:", storageError);
-                }
-
-                // C. Prefer text mode when TXT exists so mobile users can read smoothly without PDF scrolling issues
-                if (!bookData.pdf_url && !bookData.pdf_file) {
-                    toast.error("No reading material available.");
-                }
-
-                if (bookData?.txt_file_url || bookData?.txt_file) {
-                    setViewMode('text');
-                } else {
-                    setViewMode('pdf');
-                }
-
-            } catch (err) {
-                console.error("Error initializing reader:", err);
-                toast.error("Failed to load book.");
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        if (id) initReader();
-    }, [id]);
-
-    // --- 2. Text Mode Logic (Lazy Fetch) ---
-    useEffect(() => {
-        if (viewMode === 'text' && !textContent && book?.txt_file_url) {
-            const fetchText = async () => {
-                try {
-                    setTextLoading(true);
-                    // Cloudinary URL se text fetch karein
-                    const response = await axios.get(book.txt_file_url); 
-                    setTextContent(response.data);
-                } catch (err) {
-                    console.error("Failed to load text content:", err);
-                    toast.error("Could not load text mode.");
-                } finally {
-                    setTextLoading(false);
-                }
-            };
-            fetchText();
-        }
-    }, [viewMode, book]);
-
-    // --- PDF viewer states ---
-    const [scale, setScale] = useState(1.0);
-    const [totalPages, setTotalPages] = useState(0);
-    const [currentPage, setCurrentPage] = useState(1);
-
-    // --- 3. Actions ---
-    const toggleBookmark = async () => {
-        const newState = !isBookmarked;
-        setIsBookmarked(newState);
+        // Interaction / History Tracking
         try {
-            await interactionService.toggleBookmark(id, newState);
-            toast.success(newState ? "Bookmarked!" : "Bookmark removed");
-        } catch (err) {
-            setIsBookmarked(!newState); // Revert on error
-            toast.error("Failed to save bookmark");
+          const status = await interactionService.getBookStatus(id);
+          const recentReadsRaw = localStorage.getItem("bookNest_recent_reads");
+          const recentReads = recentReadsRaw ? JSON.parse(recentReadsRaw) : [];
+          const nextEntry = {
+            book_id: Number(id),
+            title: bookData?.title,
+            cover_image_url: bookData?.cover_image_url || bookData?.cover_image,
+            last_page_read: status?.last_page_read || 1,
+            total_pages: status?.total_pages || 0,
+            updated_at: new Date().toISOString(),
+          };
+
+          const filtered = Array.isArray(recentReads)
+            ? recentReads.filter((entry) => String(entry.book_id) !== String(id))
+            : [];
+          filtered.unshift(nextEntry);
+          localStorage.setItem("bookNest_recent_reads", JSON.stringify(filtered.slice(0, 8)));
+
+          await analyticsService.trackVisit({
+            visitor_id: analyticsService.getVisitorId(),
+            path: `/read/${id}`,
+            event_type: 'book_read',
+            book_id: Number(id),
+            referrer: document.referrer || null,
+            user_agent: navigator.userAgent,
+          });
+        } catch (storageError) {
+          console.warn("Could not store recent read:", storageError);
         }
+      } catch (err) {
+        console.error("Error initializing reader:", err);
+        toast.error("Failed to load book.");
+      } finally {
+        setLoading(false);
+      }
     };
 
-    const handleCopyText = () => {
-        navigator.clipboard.writeText(textContent);
-        toast.success("Full text copied to clipboard!");
-    };
+    if (id) initReader();
+  }, [id]);
 
-    if (loading) return <div className="h-screen flex items-center justify-center text-slate-500 animate-pulse">Loading Library...</div>;
-
+  if (loading) {
     return (
-        <div className="flex flex-col h-screen bg-slate-100 overflow-hidden">
-            
-            {/* ================= HEADER TOOLBAR ================= */}
-            <header className="bg-white border-b border-slate-200 h-16 flex items-center justify-between px-4 shadow-sm z-20 shrink-0">
-                
-                {/* Left: Back & Title */}
-                <div className="flex items-center gap-4 overflow-hidden">
-                    <button onClick={() => navigate(-1)} className="p-2 hover:bg-slate-100 rounded-full text-slate-600 transition">
-                        <ArrowLeftIcon className="w-5 h-5" />
-                    </button>
-                    <div>
-                        <h1 className="font-bold text-slate-800 text-sm md:text-base truncate max-w-[200px] md:max-w-md">
-                            {book?.title}
-                        </h1>
-                        <p className="text-xs text-slate-500 hidden md:block">
-                            {viewMode === 'pdf' ? 'Original PDF View' : 'Research / Text View'}
-                        </p>
-                    </div>
-                </div>
-
-                {/* Center: Mode Toggle (Pill) */}
-                {book?.txt_file_url && (
-                    <div className="bg-slate-100 p-1 rounded-lg flex items-center">
-                        <button
-                            onClick={() => setViewMode('pdf')}
-                            className={`flex items-center gap-2 px-4 py-1.5 rounded-md text-xs font-bold transition-all ${
-                                viewMode === 'pdf' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'
-                            }`}
-                        >
-                            <BookOpenIcon className="w-4 h-4" />
-                            <span className="hidden sm:inline">PDF View</span>
-                        </button>
-                        <button
-                            onClick={() => setViewMode('text')}
-                            className={`flex items-center gap-2 px-4 py-1.5 rounded-md text-xs font-bold transition-all ${
-                                viewMode === 'text' ? 'bg-white text-emerald-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'
-                            }`}
-                        >
-                            <DocumentTextIcon className="w-4 h-4" />
-                            <span className="hidden sm:inline">Text View</span>
-                        </button>
-                    </div>
-                )}
-
-                {/* Right: Actions */}
-                <div className="flex items-center gap-2">
-                    <button 
-                        onClick={toggleBookmark}
-                        className="p-2 rounded-full hover:bg-slate-100 transition text-slate-600"
-                        title="Bookmark"
-                    >
-                        {isBookmarked ? (
-                            <BookmarkSolid className="w-6 h-6 text-amber-500" />
-                        ) : (
-                            <BookmarkIcon className="w-6 h-6" />
-                        )}
-                    </button>
-                    <button className="p-2 rounded-full hover:bg-slate-100 transition text-slate-600 md:block hidden">
-                        <ShareIcon className="w-6 h-6" />
-                    </button>
-                </div>
-            </header>
-
-            {/* ================= MAIN CONTENT AREA ================= */}
-            <div className="flex-1 relative bg-slate-100 overflow-hidden">
-                
-                {/* --- MODE A: PDF VIEWER --- */}
-                {viewMode === 'pdf' && (
-                    <div className="w-full h-full flex flex-col">
-                        {(book?.pdf_url || book?.pdf_file) ? (
-                            (String(book?.pdf_url || book?.pdf_file).toLowerCase().includes('.doc')) ? (
-                                <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-white m-4 rounded-2xl shadow-sm">
-                                    <DocumentTextIcon className="w-16 h-16 text-indigo-500 mb-4" />
-                                    <h3 className="text-lg font-bold text-slate-800 mb-2">Word Document (.docx)</h3>
-                                    <p className="text-sm text-slate-500 max-w-md mb-6">
-                                        This book is available in Word document format. Please download to read.
-                                    </p>
-                                    <a
-                                        href={getPdfUrl(book.pdf_url || book.pdf_file)}
-                                        download
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="px-6 py-3 bg-[#002147] hover:bg-[#003166] text-white font-bold text-sm rounded-xl shadow-md transition-all inline-flex items-center gap-2"
-                                    >
-                                        Download Document (.docx)
-                                    </a>
-                                </div>
-                            ) : (
-                                <PdfViewer 
-                                    pdfUrl={getPdfUrl(book.pdf_url || book.pdf_file)}
-                                    viewMode={'scroll'}
-                                    scale={scale}
-                                    setScale={setScale}
-                                    setTotalPages={setTotalPages}
-                                    setCurrentPage={setCurrentPage}
-                                    totalPages={totalPages}
-                                    currentPage={currentPage}
-                                />
-                            )
-                        ) : (
-                            <div className="text-center p-8 text-slate-400">
-                                <DocumentTextIcon className="w-16 h-16 mx-auto mb-4 opacity-50" />
-                                <p>PDF not available for this book.</p>
-                            </div>
-                        )}
-                    </div>
-                )}
-
-                {/* --- MODE B: TEXT RESEARCHER --- */}
-                {viewMode === 'text' && (
-                    <div className="w-full h-full overflow-y-auto custom-scrollbar p-0 md:p-0 flex">
-                        <div className="w-full min-h-full bg-white p-6 md:p-10 border-0 rounded-none shadow-none">
-                            
-                            {/* Text Header */}
-                            <div className="flex justify-between items-end mb-8 border-b pb-4">
-                                <div>
-                                    <h2 className="text-2xl font-bold text-slate-900 mb-1">Extracted Text</h2>
-                                    <p className="text-xs text-slate-500">
-                                        Best for copying citations and research notes.
-                                    </p>
-                                </div>
-                                <button 
-                                    onClick={handleCopyText}
-                                    className="text-xs bg-slate-900 text-white px-4 py-2 rounded-lg hover:bg-slate-700 transition"
-                                >
-                                    Copy All Text
-                                </button>
-                            </div>
-
-                            {/* Content Body */}
-                            {textLoading ? (
-                                <div className="space-y-4 animate-pulse">
-                                    <div className="h-4 bg-slate-200 rounded w-3/4"></div>
-                                    <div className="h-4 bg-slate-200 rounded w-full"></div>
-                                    <div className="h-4 bg-slate-200 rounded w-5/6"></div>
-                                </div>
-                            ) : (
-                                <div 
-                                    ref={textContainerRef}
-                                    className="prose prose-slate max-w-none font-serif leading-relaxed whitespace-pre-wrap text-slate-800"
-                                >
-                                    {textContent || "No text content found for this file."}
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                )}
-
-            </div>
-        </div>
+      <div className="h-screen flex flex-col items-center justify-center bg-slate-900 text-white">
+        <div className="w-12 h-12 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin mb-4" />
+        <p className="text-sm font-semibold tracking-wider text-slate-300">Loading Smart Reader...</p>
+      </div>
     );
+  }
+
+  if (!book) {
+    return (
+      <div className="h-screen flex flex-col items-center justify-center bg-slate-100 p-4 text-center">
+        <h2 className="text-xl font-bold text-slate-800 mb-2">Book Not Found</h2>
+        <p className="text-sm text-slate-500 mb-4">The requested book could not be loaded.</p>
+        <button
+          onClick={() => navigate('/books')}
+          className="px-6 py-2.5 bg-[#002147] text-white font-bold text-sm rounded-xl shadow-md hover:bg-[#003366] transition"
+        >
+          Back to Library
+        </button>
+      </div>
+    );
+  }
+
+  const pdfUrl = toAbsoluteMediaUrl(book?.pdf_url || book?.pdf_file);
+  const txtUrl = toAbsoluteMediaUrl(book?.txt_file_url || book?.txt_file);
+
+  return (
+    <SmartReader
+      pdfUrl={pdfUrl}
+      txtUrl={txtUrl}
+      onClose={() => navigate(-1)}
+      onBackToSearch={() => navigate('/books')}
+      initialPage={1}
+      initialSearchText=""
+    />
+  );
 };
 
 export default ReadBook;
