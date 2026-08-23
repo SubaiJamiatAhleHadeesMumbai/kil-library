@@ -86,7 +86,7 @@ const LanguageContext = createContext();
 
 export const LanguageProvider = ({ children }) => {
   const [currentLang, setCurrentLang] = useState(() => {
-    return localStorage.getItem('kil_language') || 'en';
+    return localStorage.getItem('kil_language') || 'ur';
   });
 
   const location = useLocation();
@@ -127,7 +127,7 @@ export const LanguageProvider = ({ children }) => {
       return;
     }
 
-    const langObj = LANGUAGES.find(l => l.code === langCode) || LANGUAGES[1];
+    const langObj = LANGUAGES.find(l => l.code === langCode) || LANGUAGES[0];
     
     document.documentElement.dir = langObj.dir;
     document.documentElement.lang = langObj.code;
@@ -141,7 +141,7 @@ export const LanguageProvider = ({ children }) => {
   };
 
   const changeLanguage = (langCode) => {
-    const target = ['ur', 'ar', 'en'].includes(langCode) ? langCode : 'en';
+    const target = ['ur', 'ar', 'en'].includes(langCode) ? langCode : 'ur';
     setCurrentLang(target);
     localStorage.setItem('kil_language', target);
     setGoogleCookies(target);
@@ -163,7 +163,7 @@ export const LanguageProvider = ({ children }) => {
   }, [currentLang, location.pathname]);
 
   const activeLangObj = useMemo(() => {
-    return LANGUAGES.find(l => l.code === currentLang) || LANGUAGES[1];
+    return LANGUAGES.find(l => l.code === currentLang) || LANGUAGES[0];
   }, [currentLang]);
 
   // Translation helper function

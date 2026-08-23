@@ -70,7 +70,7 @@
             document.documentElement.lang = 'en';
             return;
           }
-          var saved = localStorage.getItem('kil_language') || 'en';
+          var saved = localStorage.getItem('kil_language') || 'ur';
           if (saved === 'ur' || saved === 'ar') {
             document.documentElement.dir = 'rtl';
             document.documentElement.lang = saved;
@@ -100,7 +100,7 @@
 
         // Auto-select language if saved
         setTimeout(function() {
-          var saved = localStorage.getItem('kil_language') || 'en';
+          var saved = localStorage.getItem('kil_language') || 'ur';
           if (saved && saved !== 'en') {
             var select = document.querySelector('.goog-te-combo');
             if (select && select.value !== saved) {
