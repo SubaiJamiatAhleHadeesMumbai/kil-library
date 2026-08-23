@@ -242,6 +242,21 @@ const BookForm = ({ initialData, isEditing, onBookAdded, onBookUpdated, onCancel
         };
 
         try {
+            let uploadedPdfUrl = null;
+
+            // 1. If PDF file is selected and > 20 MB (up to 1 GB+), use 15MB Chunked Upload to guarantee ZERO 413 errors
+            if (formData.pdf_file && formData.pdf_file.size > 20 * 1024 * 1024) {
+                setUploadProgress(1);
+                setUploadStatusText(`Preparing chunked streaming upload for ${formData.pdf_file.name}...`);
+                const chunkRes = await bookService.uploadLargePdfChunks(formData.pdf_file, (p) => {
+                    setUploadProgress(p.percent);
+                    setUploadStatusText(p.statusText);
+                });
+                if (chunkRes && chunkRes.url) {
+                    uploadedPdfUrl = chunkRes.url;
+                }
+            }
+
             const data = new FormData();
 
             // Append all simple fields
@@ -257,11 +272,16 @@ const BookForm = ({ initialData, isEditing, onBookAdded, onBookUpdated, onCancel
             // Append Arrays
             formData.subcategory_ids.forEach(id => data.append("subcategory_ids", id));
 
-            // Append Files (Only if new file selected)
+            // Append Files & Pre-uploaded URLs
             if (formData.cover_image) data.append("cover_image", formData.cover_image);
-            if (formData.pdf_file) data.append("pdf_file", formData.pdf_file);
+
+            if (uploadedPdfUrl) {
+                data.append("pdf_url", uploadedPdfUrl);
+            } else if (formData.pdf_file) {
+                data.append("pdf_file", formData.pdf_file);
+            }
             
-            // ✅ Append Text File
+            // Append Text File
             if (formData.txt_file) {
                 console.log("📤 Uploading TXT:", formData.txt_file.name);
                 data.append("txt_file", formData.txt_file);
@@ -270,11 +290,11 @@ const BookForm = ({ initialData, isEditing, onBookAdded, onBookUpdated, onCancel
             // API Call with progress callback
             let result;
             if (isEditing) {
-                result = await bookService.updateBook(initialData.id, data, onUploadProgress);
+                result = await bookService.updateBook(initialData.id, data, uploadedPdfUrl ? null : onUploadProgress);
                 toast.success("Book updated successfully!", { id: toastId });
                 if (onBookUpdated) onBookUpdated(result);
             } else {
-                result = await bookService.createBook(data, onUploadProgress);
+                result = await bookService.createBook(data, uploadedPdfUrl ? null : onUploadProgress);
                 toast.success("Book created successfully!", { id: toastId });
                 if (onBookAdded) onBookAdded(result);
             }

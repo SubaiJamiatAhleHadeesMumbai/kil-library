@@ -61,10 +61,13 @@ async def create_book(
     extra_data: Optional[str] = Form(None),
     subcategory_ids: List[int] = Form([]),
     
-    # 📂 FILES
+    # 📂 FILES & PRE-UPLOADED CHUNK URLS
     cover_image: Optional[UploadFile] = File(None),
     pdf_file: Optional[UploadFile] = File(None),
-    txt_file: Optional[UploadFile] = File(None), 
+    txt_file: Optional[UploadFile] = File(None),
+    cover_image_url: Optional[str] = Form(None),
+    pdf_url: Optional[str] = Form(None),
+    txt_file_url: Optional[str] = Form(None), 
       
     db: Session = Depends(get_db),
     current_user: user_model.User = Depends(require_permission("BOOK_MANAGE"))
@@ -489,10 +492,13 @@ async def update_book(
     is_restricted: Optional[bool] = Form(None),
     subcategory_ids: List[int] = Form(None),
     
-    # 📂 FILES UPDATE
+    # 📂 FILES UPDATE & PRE-UPLOADED CHUNK URLS
     cover_image: Optional[UploadFile] = File(None),
     pdf_file: Optional[UploadFile] = File(None),
-    txt_file: Optional[UploadFile] = File(None), 
+    txt_file: Optional[UploadFile] = File(None),
+    cover_image_url: Optional[str] = Form(None),
+    pdf_url: Optional[str] = Form(None),
+    txt_file_url: Optional[str] = Form(None), 
     
     db: Session = Depends(get_db),
     current_user: user_model.User = Depends(require_permission("BOOK_MANAGE"))
