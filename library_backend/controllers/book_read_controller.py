@@ -250,6 +250,20 @@ def get_smart_recommendations(
         ]
     }
 
+@router.get("/stats", tags=["Books (Read)"])
+def get_book_stats(db: Session = Depends(get_db)):
+    base_query = db.query(book_model.Book).filter(book_model.Book.deleted_at.is_(None))
+    total = base_query.count()
+    restricted = base_query.filter(book_model.Book.is_restricted == True).count()
+    public_access = total - restricted
+    digital_only = base_query.filter(book_model.Book.is_digital == True).count()
+    return {
+        "total": total,
+        "restricted": restricted,
+        "publicAccess": public_access,
+        "digitalOnly": digital_only
+    }
+
 @router.get("/", response_model=List[book_schema.Book])
 def read_books(
     skip: int = 0, 
@@ -283,13 +297,18 @@ def read_books(
         query = query.filter(book_model.Book.is_approved == True)
     
     # Filters
-    if search:
-        search_term = f"%{search}%"
+    if search and search.strip():
+        search_term = f"%{search.strip()}%"
         query = query.filter(
             or_(
                 book_model.Book.title.ilike(search_term),
                 book_model.Book.author.ilike(search_term),
-                book_model.Book.isbn.ilike(search_term)
+                book_model.Book.isbn.ilike(search_term),
+                book_model.Book.book_number.ilike(search_term),
+                book_model.Book.serial_number.ilike(search_term),
+                book_model.Book.publisher.ilike(search_term),
+                book_model.Book.translator.ilike(search_term),
+                book_model.Book.description.ilike(search_term)
             )
         )
 

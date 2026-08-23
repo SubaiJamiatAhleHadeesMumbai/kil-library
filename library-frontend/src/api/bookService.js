@@ -11,6 +11,16 @@ export const bookService = {
      * Fetches all books.
      * Supports both Public (isApproved=true) and Admin (queryParams object).
      */
+        async getBookStats() {
+        try {
+            const response = await apiClient.get('/api/books/stats');
+            return response.data;
+        } catch (error) {
+            console.error("Error fetching book stats:", error);
+            return null;
+        }
+    },
+
     async getAllBooks(queryParams = {}, limit = 2000, extraParams = {}) {
         try {
             let params = {};

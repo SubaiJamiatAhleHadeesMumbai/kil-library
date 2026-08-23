@@ -72,20 +72,44 @@ const BookManagement = () => {
 
     // Filter/Search States
     const [searchTerm, setSearchTerm] = useState('');
+    const [debouncedSearch, setDebouncedSearch] = useState('');
     const [statusFilter, setStatusFilter] = useState('ALL'); // 'ALL' | 'PUBLIC' | 'RESTRICTED' | 'DIGITAL'
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage, setItemsPerPage] = useState(25);
+    const [serverStats, setServerStats] = useState(null);
 
-    // --- Data Fetching ---
-    const fetchData = useCallback(async (silent = false) => {
+    // ── Search Debounce (300ms) ──
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setDebouncedSearch(searchTerm.trim());
+        }, 300);
+        return () => clearTimeout(timer);
+    }, [searchTerm]);
+
+    // --- Data Fetching (Server-Side Search & Stats) ---
+    const fetchData = useCallback(async (searchQuery = debouncedSearch, silent = false) => {
         if (!silent) setIsLoading(true);
         try {
-            const [booksData, stagedData] = await Promise.all([
-                bookService.getAllBooks({ approved_only: false, sort_order: 'asc' }).catch(() => []),
-                bookService.getStagedBooks().catch(() => [])
+            const params = {
+                approved_only: false,
+                sort_order: 'desc',
+                limit: searchQuery ? 500 : 2000,
+            };
+            if (searchQuery) {
+                params.search = searchQuery;
+            }
+
+            const [booksData, stagedData, statsData] = await Promise.all([
+                bookService.getAllBooks(params).catch(() => []),
+                bookService.getStagedBooks().catch(() => []),
+                bookService.getBookStats().catch(() => null)
             ]);
+
             setAllBooks(Array.isArray(booksData) ? booksData : []);
             setStagedCount(Array.isArray(stagedData) ? stagedData.length : 0);
+            if (statsData) {
+                setServerStats(statsData);
+            }
         } catch (err) {
             console.error("fetchData error:", err);
             toast.error("Failed to load library data.");
@@ -93,26 +117,27 @@ const BookManagement = () => {
         } finally {
             setIsLoading(false);
         }
-    }, []);
+    }, [debouncedSearch]);
 
     useEffect(() => {
-        fetchData();
-    }, [fetchData]);
+        fetchData(debouncedSearch);
+    }, [debouncedSearch, fetchData]);
 
     // Reset page to 1 when search or filter changes
     useEffect(() => {
         setCurrentPage(1);
-    }, [searchTerm, statusFilter]);
+    }, [debouncedSearch, statusFilter]);
 
     // --- Stats Summary Calculation ---
     const stats = useMemo(() => {
+        if (serverStats) return serverStats;
         const books = Array.isArray(allBooks) ? allBooks : [];
         const total = books.length;
         const restricted = books.filter(b => b && b.is_restricted).length;
         const publicAccess = total - restricted;
         const digitalOnly = books.filter(b => b && b.is_digital).length;
         return { total, restricted, publicAccess, digitalOnly };
-    }, [allBooks]);
+    }, [allBooks, serverStats]);
 
     // --- Filtering & Pagination ---
     const filteredBooks = useMemo(() => {
