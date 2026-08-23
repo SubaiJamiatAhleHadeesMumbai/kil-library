@@ -151,12 +151,18 @@ const SmartReader = ({
         return;
       }
 
-      // Split by Underscores, ===PAGE===, PAGE_SEPARATOR, or [PAGE X]
-      let rawPages = text.split(/_{5,}|===PAGE===|PAGE_SEPARATOR|\[PAGE\s*\d+\]/gi)
+      // Split by Comprehensive Delimiters:
+      // 1. --- or ——— (3 or more dashes / horizontal rule)
+      // 2. ... or . . . or … (3 or more dots / horizontal ellipsis)
+      // 3. *** or ___ (3 or more asterisks or underscores)
+      // 4. ===PAGE===, PAGE_SEPARATOR, [PAGE X]
+      const delimiterPattern = /(?:\r?\n|^)\s*(?:[-—_]{3,}|\*{3,}|(?:\.\s*){3,}|…+|===PAGE===|PAGE_SEPARATOR|\[PAGE\s*\d+\])\s*(?:\r?\n|$)/gi;
+
+      let rawPages = text.split(delimiterPattern)
         .map(p => p.trim())
         .filter(p => p.length > 0);
 
-      // Smart paragraph chunking if text file has no explicit delimiters
+      // Fallback: Smart paragraph chunking ONLY if text file has no explicit delimiters and is 1 continuous block
       if (rawPages.length === 1 && text.length > 1500) {
         const paragraphs = text.split(/\n\s*\n/);
         const chunks = [];
