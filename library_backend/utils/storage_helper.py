@@ -23,24 +23,40 @@ def smart_upload(file: UploadFile, folder: str = "library_uploads", resource_typ
 
     # 1. Try Cloudflare R2 first if credentials are set
     if is_r2_configured():
-        url = upload_to_r2(file, folder=folder)
-        if url:
-            return url
+        try:
+            if hasattr(file.file, "seek"):
+                file.file.seek(0)
+            url = upload_to_r2(file, folder=folder)
+            if url:
+                return url
+        except Exception as r2_err:
+            print(f"⚠️ R2 Upload attempt failed: {r2_err}")
 
     # 2. Try Cloudinary if configured
     if is_cloudinary_configured():
-        url = upload_to_cloudinary(file, folder=folder, resource_type=resource_type)
-        if url:
-            return url
+        try:
+            if hasattr(file.file, "seek"):
+                file.file.seek(0)
+            url = upload_to_cloudinary(file, folder=folder, resource_type=resource_type)
+            if url:
+                return url
+        except Exception as c_err:
+            print(f"⚠️ Cloudinary Upload attempt failed: {c_err}")
 
     # 3. Fallback to Local Storage
-    filename = (file.filename or "").lower()
-    if filename.endswith(".pdf"):
-        return save_pdf_locally(file)
-    elif any(filename.endswith(ext) for ext in [".jpg", ".jpeg", ".png", ".webp", ".gif", ".svg", ".avif"]):
-        return save_image_locally(file)
-    else:
-        return save_txt_locally(file)
+    try:
+        if hasattr(file.file, "seek"):
+            file.file.seek(0)
+        filename = (file.filename or "").lower()
+        if filename.endswith(".pdf"):
+            return save_pdf_locally(file)
+        elif any(filename.endswith(ext) for ext in [".jpg", ".jpeg", ".png", ".webp", ".gif", ".svg", ".avif"]):
+            return save_image_locally(file)
+        else:
+            return save_txt_locally(file)
+    except Exception as loc_err:
+        print(f"⚠️ Local Storage fallback failed: {loc_err}")
+        return None
 
 def smart_delete(file_url: str | None) -> bool:
     """

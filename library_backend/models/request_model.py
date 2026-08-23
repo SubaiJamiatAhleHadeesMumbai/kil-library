@@ -19,7 +19,7 @@ class UploadRequest(Base):
     book_id = Column(Integer, ForeignKey("books.id", ondelete="CASCADE"), nullable=False, unique=True)
 
     status = Column(
-        SQLAlchemyEnum("Pending", "Approved", "Rejected", name="upload_status_enum"),
+        SQLAlchemyEnum("Pending", "Approved", "Rejected", name="request_status_enum", create_type=False),
         default="Pending",
         nullable=False
     )

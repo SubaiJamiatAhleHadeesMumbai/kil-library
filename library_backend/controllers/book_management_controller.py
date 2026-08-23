@@ -69,126 +69,167 @@ async def create_book(
     db: Session = Depends(get_db),
     current_user: user_model.User = Depends(require_permission("BOOK_MANAGE"))
 ):
-    # 1. Validation: Language
-    if not db.query(language_model.Language).filter(language_model.Language.id == language_id).first():
-        raise HTTPException(status_code=400, detail=f"Language ID {language_id} not found.")
+    try:
+        # 1. Validation & Fallback: Language
+        lang = db.query(language_model.Language).filter(language_model.Language.id == language_id).first()
+        if not lang:
+            first_lang = db.query(language_model.Language).filter(language_model.Language.deleted_at.is_(None)).first()
+            if first_lang:
+                language_id = first_lang.id
+            else:
+                raise HTTPException(status_code=400, detail=f"Language ID {language_id} not found.")
 
-    if fatawa_category_id is not None:
-        if not db.query(fatawa_model.FatawaCategory).filter(
-            fatawa_model.FatawaCategory.id == fatawa_category_id,
-            fatawa_model.FatawaCategory.deleted_at.is_(None),
-        ).first():
-            raise HTTPException(status_code=400, detail=f"Fatawa category ID {fatawa_category_id} not found.")
+        # 1b. Clean & Validate Fatawa Category
+        valid_fatawa_id = None
+        if fatawa_category_id is not None and fatawa_category_id > 0:
+            if db.query(fatawa_model.FatawaCategory).filter(
+                fatawa_model.FatawaCategory.id == fatawa_category_id,
+                fatawa_model.FatawaCategory.deleted_at.is_(None),
+            ).first():
+                valid_fatawa_id = fatawa_category_id
 
-    # 2. Validation: ISBN
-    if isbn:
-        existing = db.query(book_model.Book).filter(
-            book_model.Book.isbn == isbn, 
-            book_model.Book.deleted_at.is_(None)
-        ).first()
-        if existing:
-            raise HTTPException(status_code=409, detail=f"ISBN {isbn} already exists.")
+        # 2. Validation: Clean ISBN
+        clean_isbn = isbn.strip() if isbn and str(isbn).strip() else None
+        if clean_isbn:
+            existing = db.query(book_model.Book).filter(
+                book_model.Book.isbn == clean_isbn, 
+                book_model.Book.deleted_at.is_(None)
+            ).first()
+            if existing:
+                raise HTTPException(status_code=409, detail=f"ISBN {clean_isbn} already exists.")
 
-    # 3. Parse Date
-    parsed_purchase_date = None
-    if date_of_purchase:
-        for fmt in ("%Y-%m-%d", "%m/%d/%Y", "%d-%m-%Y"):
+        # 3. Parse Date
+        parsed_purchase_date = None
+        if date_of_purchase and str(date_of_purchase).strip():
+            for fmt in ("%Y-%m-%d", "%m/%d/%Y", "%d-%m-%Y", "%d/%m/%Y"):
+                try:
+                    parsed_purchase_date = datetime.strptime(str(date_of_purchase).strip(), fmt).date()
+                    break
+                except ValueError:
+                    continue
+
+        parsed_pub_date = None
+        if publication_year:
             try:
-                parsed_purchase_date = datetime.strptime(date_of_purchase, fmt).date()
-                break
-            except ValueError:
-                continue
+                py = int(str(publication_year)[:4])
+                if 1000 <= py <= 2100:
+                    parsed_pub_date = date(py, 1, 1)
+            except Exception:
+                pass
 
-    # 4. Handle Files (Hybrid Upload)
-    cover_image_url = None
-    pdf_url = None
-    txt_file_url = None 
+        # 4. Handle Files (Smart Multi-Storage Upload)
+        cover_image_url = None
+        pdf_url = None
+        txt_file_url = None 
 
-    print(f"📥 Received Files -> Cover: {cover_image.filename if cover_image else 'No'}, PDF: {pdf_file.filename if pdf_file else 'No'}, TXT: {txt_file.filename if txt_file else 'No'}")
-
-    # A. Cover Image -> Smart Upload (R2 / Cloudinary / Local Fallback)
-    if cover_image:
-        cover_image_url = smart_upload(cover_image, folder="booknest/covers", resource_type="image")
-    
-    # B. PDF -> Smart Upload (R2 / Cloudinary / Local Fallback)
-    if pdf_file:
-        pdf_url = smart_upload(pdf_file, folder="booknest/pdfs")
-
-    # C. Text File -> Smart Upload (R2 / Cloudinary / Local Fallback)
-    if txt_file:
-        txt_file_url = smart_upload(txt_file, folder="booknest/texts")
-
-    # 5. Handle Subcategories
-    db_subcategories = []
-    if subcategory_ids:
-        db_subcategories = db.query(book_model.Subcategory).filter(
-            book_model.Subcategory.id.in_(subcategory_ids)
-        ).all()
-
-    # 6. Create Object
-    new_book = book_model.Book(
-        title=title,
-        author=author,
-        publisher=publisher,
-        translator=translator,
-        isbn=isbn,
-        edition=edition,
-        parts_or_volumes=parts_or_volumes,
-        subject_number=subject_number,
-        language_id=language_id,
-        fatawa_category_id=fatawa_category_id,
-        page_count=page_count,
-        serial_number=serial_number,
-        book_number=book_number,
-        price=price,
-        date_of_purchase=parsed_purchase_date,
-        published_date=date(publication_year, 1, 1) if publication_year else None,
-        description=description,
-        remarks=remarks,
-        total_copies=total_copies or 1,
-        available_copies=total_copies or 1,
-        extra_data=extra_data,
-        is_restricted=is_restricted,
-        is_digital=is_digital,
-        is_approved=True, 
+        if cover_image and hasattr(cover_image, 'filename') and cover_image.filename:
+            try:
+                cover_image_url = smart_upload(cover_image, folder="booknest/covers", resource_type="image")
+            except Exception as e:
+                print(f"Cover upload error (non-fatal): {e}")
         
-        # Saved URLs
-        cover_image_url=cover_image_url,
-        pdf_url=pdf_url,
-        txt_file_url=txt_file_url 
-    )
-    
-    new_book.subcategories = db_subcategories
+        if pdf_file and hasattr(pdf_file, 'filename') and pdf_file.filename:
+            try:
+                pdf_url = smart_upload(pdf_file, folder="booknest/pdfs")
+            except Exception as e:
+                print(f"PDF upload error (non-fatal): {e}")
 
-    db.add(new_book)
-    db.flush()
+        if txt_file and hasattr(txt_file, 'filename') and txt_file.filename:
+            try:
+                txt_file_url = smart_upload(txt_file, folder="booknest/texts")
+            except Exception as e:
+                print(f"TXT upload error (non-fatal): {e}")
 
-    # 7. Create Upload Approval Record
-    upload_request = request_model.UploadRequest(
-        book_id=new_book.id,
-        submitted_by_id=current_user.id,
-        reviewed_by_id=current_user.id,
-        status='Approved',
-        remarks='Auto-approved book uploaded by Admin.'
-    )
-    db.add(upload_request)
+        # 5. Handle Subcategories
+        db_subcategories = []
+        if subcategory_ids:
+            try:
+                valid_ids = [int(sid) for sid in subcategory_ids if str(sid).isdigit()]
+                if valid_ids:
+                    db_subcategories = db.query(book_model.Subcategory).filter(
+                        book_model.Subcategory.id.in_(valid_ids)
+                    ).all()
+            except Exception:
+                pass
 
-    # 8. Log Actions
-    create_log(
-        db=db, user=current_user, action_type="BOOK_CREATED",
-        description=f"Book '{new_book.title}' created (ID: {new_book.id}).",
-        target_type="Book", target_id=new_book.id
-    )
-    create_log(
-        db=db, user=current_user, action_type="UPLOAD_REQUEST_CREATED",
-        description=f"Upload approval requested for Book ID {new_book.id}.",
-        target_type="UploadRequest", target_id=upload_request.id
-    )
+        # 6. Create Book Record
+        clean_copies = max(1, total_copies) if total_copies else 1
+        new_book = book_model.Book(
+            title=title.strip() if title else "Untitled Book",
+            author=author.strip() if author else None,
+            publisher=publisher.strip() if publisher else None,
+            translator=translator.strip() if translator else None,
+            isbn=clean_isbn,
+            edition=edition.strip() if edition else None,
+            parts_or_volumes=parts_or_volumes.strip() if parts_or_volumes else None,
+            subject_number=subject_number.strip() if subject_number else None,
+            language_id=language_id,
+            fatawa_category_id=valid_fatawa_id,
+            page_count=page_count if page_count and page_count > 0 else None,
+            serial_number=serial_number.strip() if serial_number else None,
+            book_number=book_number.strip() if book_number else None,
+            price=price if price and price >= 0 else None,
+            date_of_purchase=parsed_purchase_date,
+            published_date=parsed_pub_date,
+            description=description,
+            remarks=remarks,
+            total_copies=clean_copies,
+            available_copies=clean_copies,
+            extra_data=extra_data,
+            is_restricted=bool(is_restricted),
+            is_digital=bool(is_digital) or bool(pdf_url or txt_file_url),
+            is_approved=True, 
+            
+            # Saved URLs
+            cover_image_url=cover_image_url,
+            pdf_url=pdf_url,
+            txt_file_url=txt_file_url 
+        )
+        
+        new_book.subcategories = db_subcategories
 
-    db.commit()
-    db.refresh(new_book)
-    return get_book_by_id_internal(db, new_book.id)
+        db.add(new_book)
+        db.flush()
 
+        # 7. Create Upload Approval Record safely
+        try:
+            upload_request = request_model.UploadRequest(
+                book_id=new_book.id,
+                submitted_by_id=current_user.id,
+                reviewed_by_id=current_user.id,
+                status='Approved',
+                remarks='Auto-approved book uploaded by Admin.'
+            )
+            db.add(upload_request)
+            db.flush()
+        except Exception as ur_err:
+            print(f"Warning: UploadRequest record creation skipped: {ur_err}")
+
+        # 8. Log Actions safely
+        try:
+            create_log(
+                db=db, user=current_user, action_type="BOOK_CREATED",
+                description=f"Book '{new_book.title}' created (ID: {new_book.id}).",
+                target_type="Book", target_id=new_book.id
+            )
+        except Exception as log_err:
+            print(f"Warning: Log creation skipped: {log_err}")
+
+        db.commit()
+        db.refresh(new_book)
+        return get_book_by_id_internal(db, new_book.id)
+
+    except HTTPException:
+        db.rollback()
+        raise
+    except Exception as e:
+        db.rollback()
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Failed to create book: {str(e)}"
+        )
 
 # ==============================================================================
 # 🟣 BULK EXCEL IMPORT & STAGED BOOKS (Persistent Database Storage)

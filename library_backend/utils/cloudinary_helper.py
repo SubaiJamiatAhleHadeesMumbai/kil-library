@@ -1,3 +1,4 @@
+import uuid
 import cloudinary
 import cloudinary.uploader
 import os
@@ -27,15 +28,16 @@ def upload_to_cloudinary(file: UploadFile, folder: str = "library_uploads", reso
     if not file:
         return None
     
-    # 2. Temporary Filename
-    temp_filename = f"temp_{file.filename}"
+    # 2. Temporary Filename (Safe ASCII name to prevent errors with Urdu/Arabic filenames)
+    file_ext = os.path.splitext(file.filename or "doc.bin")[1].lower()
+    temp_filename = f"temp_{uuid.uuid4().hex[:12]}{file_ext}"
     
     try:
         print(f"🚀 PROCESSING: {file.filename}")
 
         # 3. Save to Disk (Buffer Safety)
-        # Reset cursor to beginning just in case
-        file.file.seek(0)
+        if hasattr(file.file, "seek"):
+            file.file.seek(0)
         
         with open(temp_filename, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
