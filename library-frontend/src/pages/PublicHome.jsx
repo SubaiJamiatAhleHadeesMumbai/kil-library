@@ -858,24 +858,11 @@ const PublicHome = () => {
           );
         }
 
-        // ABOUT SECTION PREVIEW
+                // ABOUT SECTION PREVIEW (Full-Width Makhtota Manuscript without Image)
         if (key === 'about' && getSectionConfig('about', { enabled: false }).enabled !== false) {
           const aboutConfig = getSectionConfig('about', {});
-          const aboutHeroImage = resolveImageUrl(aboutContent?.hero?.image_url);
           const fullDesc = (aboutContent?.hero?.description || aboutContent?.intro?.description || "").trim();
           
-          const defaultInitialIntro = "ہندوستان کے صوبہ مہاراشٹر کے جنوب مغرب میں ساحل سمندر پر آباد پہاڑیوں کے دامن میں پھیلی ہوئی آبادی خطۂ کوکن کے نام سے مشہور ہے۔ کوکن وہ تاریخی اور سعادت مند جگہ ہے جہاں سب سے پہلے سرکاری طور سے عہدِ فاروقی میں مسلمانوں کا پہلا لشکر آیا تھا، یعنی ۱۵ ہجری ہی میں اسلام کی خالص تعلیمات سے یہ خطہ بہرہ ور ہو چکا تھا اور آغوشِ نبوت کے پروردہ اصحاب نے قال اللہ اور قال الرسول کے روح پرور کلمات سے اسے گرمایا تھا...";
-          
-          let previewText = defaultInitialIntro;
-          if (fullDesc) {
-            const paragraphs = fullDesc.split(/\n\s*\n/).map(p => p.trim()).filter(p => p && !p.startsWith('•') && !p.startsWith('✺') && p.length > 40);
-            if (paragraphs.length > 0) {
-              previewText = paragraphs[0];
-            } else {
-              previewText = fullDesc.slice(0, 350) + "...";
-            }
-          }
-
           return (
             <div key="about" className="app-shell-container pb-4 sm:pb-8">
               <div className={sectionFrameClass}>
@@ -884,7 +871,10 @@ const PublicHome = () => {
                     <p className="eyebrow text-xs font-extrabold uppercase tracking-widest" style={{ color: accentColor }}>
                       {aboutConfig.title || 'مرکز کا تعارف'}
                     </p>
-                    <h3 className="section-title text-xl sm:text-2xl font-extrabold text-slate-900 mt-1" style={{ fontFamily: "'Amiri', 'Noto Nastaliq Urdu', serif" }}>
+                    <h3
+                      className="section-title text-xl sm:text-2xl font-extrabold text-slate-900 mt-1"
+                      style={{ fontFamily: "'Noto Nastaliq Urdu', 'JameelNoori', serif" }}
+                    >
                       {aboutContent?.hero?.title || 'مرکز الدعوۃ الاسلامیۃ والخیریہ (سونس، کھیڈ - رتناگری)'}
                     </h3>
                   </div>
@@ -896,50 +886,44 @@ const PublicHome = () => {
                     مزید پڑھیں <ArrowRightIcon className="h-4 w-4" />
                   </button>
                 </div>
-                <div className="grid gap-4 overflow-hidden rounded-3xl border border-[#E0D1B8] bg-[#FAF6EE] shadow-sm lg:grid-cols-[1.1fr_0.9fr]">
-                  <div className="p-6 sm:p-8 flex flex-col justify-between" dir="rtl">
-                    <div className="space-y-3">
-                      <div className="inline-flex items-center gap-2 rounded-full bg-[#8B6E32]/10 px-3.5 py-1 text-xs font-bold text-[#8B6E32] w-fit">
-                        📜 ابتدائی تعارف
+
+                {/* Full-Width Makhtota Manuscript Card without image */}
+                <div className="w-full overflow-hidden rounded-[2.5rem] border-2 border-[#E2D4BE] bg-[#FAF6EE] p-6 sm:p-10 shadow-[inset_0_0_40px_rgba(180,140,75,0.04),0_8px_24px_rgba(0,0,0,0.03)] ring-1 ring-[#D8C6A5]">
+                  <div className="flex flex-col justify-between" dir="rtl">
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between border-b border-[#E2D4BE] pb-3 mb-4">
+                        <div className="inline-flex items-center gap-2 rounded-full bg-[#8B6E32]/10 px-4 py-1 text-xs font-bold text-[#8B6E32] w-fit">
+                          📜 تعارف و پس منظر
+                        </div>
+                        <span className="text-xs font-serif text-[#8B6E32] tracking-widest">
+                          ✦ ✦ ✦
+                        </span>
                       </div>
-                      <h4 className="text-lg sm:text-xl font-bold text-[#002147]" style={{ fontFamily: "'Amiri', 'Noto Nastaliq Urdu', serif" }}>
-                        {aboutContent?.hero?.title || 'مرکز الدعوۃ الاسلامیۃ والخیریہ (سونس، کھیڈ)'}
-                      </h4>
-                      <p
-                        className="text-base sm:text-lg leading-[2.4] text-[#2C2416] font-normal"
-                        style={{
-                          fontFamily: "'Amiri', 'Noto Nastaliq Urdu', 'Scheherazade New', serif",
-                          textAlign: 'justify',
-                          textJustify: 'inter-word'
-                        }}
-                      >
-                        {previewText}
-                      </p>
+
+                      {fullDesc ? (
+                        <StandardFormattedText
+                          text={fullDesc}
+                          makhtotaPaper={false}
+                          showZoomControls={false}
+                        />
+                      ) : null}
                     </div>
-                    <div className="mt-6 pt-4 border-t border-[#E8DEC9] flex items-center justify-between">
+
+                    <div className="mt-8 pt-4 border-t border-[#E8DEC9] flex flex-wrap items-center justify-between gap-4">
                       <button
                         onClick={() => navigateToTop('/about')}
-                        className="inline-flex items-center gap-2 rounded-full px-6 py-2.5 text-xs sm:text-sm font-bold text-white transition-all shadow-sm hover:opacity-95 focus:outline-none focus:ring-2 focus:ring-[#002147]"
+                        className="inline-flex items-center gap-2 rounded-full px-7 py-3 text-sm font-bold text-white transition-all shadow-sm hover:opacity-95 focus:outline-none focus:ring-2 focus:ring-[#002147]"
                         style={{ backgroundColor: accentColor }}
                       >
-                        مزید جانیں <ArrowRightIcon className="h-4 w-4" />
+                        مکمل تعارف و سرگرمیاں پڑھیں <ArrowRightIcon className="h-4 w-4" />
                       </button>
-                      <span className="text-xs font-semibold text-[#8B6E32]">
-                        مکمل تاریخ و اغراض و مقاصد پڑھیں ←
+                      <span
+                        className="text-xs sm:text-sm font-semibold text-[#8B6E32]"
+                        style={{ fontFamily: "'Noto Nastaliq Urdu', serif" }}
+                      >
+                        مرکز کے اغراض و مقاصد اور شاخیں ←
                       </span>
                     </div>
-                  </div>
-                  <div className="min-h-[220px] max-h-[350px] bg-slate-100 overflow-hidden relative">
-                    {aboutHeroImage ? (
-                      <img src={aboutHeroImage} alt={aboutContent?.hero?.title || 'About the library'} className="h-full w-full object-cover" loading="lazy" />
-                    ) : (
-                      <div className="flex h-full min-h-[220px] items-center justify-center bg-gradient-to-br from-[#002147] via-[#0f4c81] to-cyan-700 p-6 text-center text-white">
-                        <div>
-                          <p className="text-xs font-bold uppercase tracking-widest text-cyan-200/80">Markaz Library</p>
-                          <h4 className="mt-2 text-xl font-extrabold">Library, learning, and community</h4>
-                        </div>
-                      </div>
-                    )}
                   </div>
                 </div>
               </div>
