@@ -167,6 +167,7 @@ def clean_and_seed_categories(db: Session = None):
 if __name__ == "__main__":
     clean_and_seed_categories()
     seed_announcement_post()
+    seed_donation_info()
 
 def seed_announcement_post(db: Session = None):
     close_db = False
@@ -216,6 +217,37 @@ def seed_announcement_post(db: Session = None):
     except Exception as e:
         db.rollback()
         print(f"❌ Announcement post error: {e}")
+    finally:
+        if close_db:
+            db.close()
+
+def seed_donation_info(db: Session = None):
+    close_db = False
+    if db is None:
+        db = SessionLocal()
+        close_db = True
+
+    try:
+        from models.donation_models import DonationInfo
+        
+        info = db.query(DonationInfo).first()
+        if not info:
+            info = DonationInfo()
+            db.add(info)
+
+        img_url = "https://www.ahlehadeeskokan.com/uploads/donation/donation_poster.jpg"
+        info.qr_code_desktop = img_url
+        info.qr_code_mobile = img_url
+        info.bank_desktop = img_url
+        info.bank_mobile = img_url
+        info.appeal_desktop = img_url
+        info.appeal_mobile = img_url
+
+        db.commit()
+        print("✅ Seeded DonationInfo with Central Bank of India & QR Poster!")
+    except Exception as e:
+        db.rollback()
+        print(f"❌ Donation info seed error: {e}")
     finally:
         if close_db:
             db.close()

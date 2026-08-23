@@ -3,16 +3,20 @@ import {
   QrCodeIcon,
   BuildingLibraryIcon,
   HeartIcon,
-  DevicePhoneMobileIcon,
-  ComputerDesktopIcon,
+  DocumentDuplicateIcon,
+  CheckIcon,
 } from "@heroicons/react/24/outline";
 import { donationService } from "../../api/donationService";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || (import.meta.env.PROD ? "" : "http://127.0.0.1:8000");
+
+const DEFAULT_POSTER = "/uploads/donation/donation_poster.jpg";
+
 const DonationPanel = () => {
   const [activeTab, setActiveTab] = useState("qr");
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [copiedField, setCopiedField] = useState(null);
 
   useEffect(() => {
     (async () => {
@@ -27,8 +31,16 @@ const DonationPanel = () => {
     })();
   }, []);
 
-  const getImageUrl = (p) =>
-    !p ? null : p.startsWith("http") ? p : `${API_BASE_URL}${p}`;
+  const getImageUrl = (p) => {
+    if (!p) return DEFAULT_POSTER;
+    return p.startsWith("http") ? p : `${API_BASE_URL}${p}`;
+  };
+
+  const copyToClipboard = (text, field) => {
+    navigator.clipboard.writeText(text);
+    setCopiedField(field);
+    setTimeout(() => setCopiedField(null), 2000);
+  };
 
   return (
     <div className="overflow-hidden rounded-[2rem] border border-slate-200 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 text-white shadow-[0_20px_70px_-35px_rgba(15,23,42,0.6)]">
@@ -67,38 +79,92 @@ const DonationPanel = () => {
         <div className="rounded-[1.25rem] border border-white/10 bg-white/10 p-3 shadow-inner backdrop-blur sm:p-4">
           {loading ? (
             <div className="flex min-h-[220px] items-center justify-center text-sm text-slate-300">
-              Loadingâ€¦
+              Loading...
             </div>
           ) : (
-            <>
+            <div className="flex flex-col gap-4">
               {activeTab === "qr" && (
                 <PanelImage
-                  desktop={data?.qr_code_desktop}
-                  mobile={data?.qr_code_mobile}
+                  desktop={data?.qr_code_desktop || DEFAULT_POSTER}
+                  mobile={data?.qr_code_mobile || DEFAULT_POSTER}
                   getImageUrl={getImageUrl}
                 />
               )}
+
               {activeTab === "bank" && (
-                <PanelImage
-                  desktop={data?.bank_desktop}
-                  mobile={data?.bank_mobile}
-                  getImageUrl={getImageUrl}
-                />
+                <div className="flex flex-col gap-4">
+                  {/* Copyable Bank Card */}
+                  <div className="rounded-xl border border-amber-400/30 bg-amber-500/10 p-4 text-left">
+                    <p className="text-xs font-bold uppercase tracking-wider text-amber-300">
+                      Central Bank of India (Khed Branch)
+                    </p>
+                    <p className="mt-1 text-sm font-semibold text-white">
+                      MARKAZ-UD-DAAWATUL ISLAMIYAH WAL KHAYRIYAH
+                    </p>
+
+                    <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                      <div className="flex items-center justify-between rounded-lg bg-black/40 px-3 py-2 border border-white/10">
+                        <div>
+                          <p className="text-[10px] text-slate-400 font-bold uppercase">Account No</p>
+                          <p className="text-sm font-mono font-bold text-amber-200">3785326835</p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => copyToClipboard("3785326835", "acc")}
+                          className="p-1.5 rounded-md hover:bg-white/10 text-slate-300 transition"
+                          title="Copy Account Number"
+                        >
+                          {copiedField === "acc" ? (
+                            <CheckIcon className="w-4 h-4 text-emerald-400" />
+                          ) : (
+                            <DocumentDuplicateIcon className="w-4 h-4" />
+                          )}
+                        </button>
+                      </div>
+
+                      <div className="flex items-center justify-between rounded-lg bg-black/40 px-3 py-2 border border-white/10">
+                        <div>
+                          <p className="text-[10px] text-slate-400 font-bold uppercase">IFSC Code</p>
+                          <p className="text-sm font-mono font-bold text-amber-200">CBIN0283345</p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => copyToClipboard("CBIN0283345", "ifsc")}
+                          className="p-1.5 rounded-md hover:bg-white/10 text-slate-300 transition"
+                          title="Copy IFSC Code"
+                        >
+                          {copiedField === "ifsc" ? (
+                            <CheckIcon className="w-4 h-4 text-emerald-400" />
+                          ) : (
+                            <DocumentDuplicateIcon className="w-4 h-4" />
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <PanelImage
+                    desktop={data?.bank_desktop || DEFAULT_POSTER}
+                    mobile={data?.bank_mobile || DEFAULT_POSTER}
+                    getImageUrl={getImageUrl}
+                  />
+                </div>
               )}
+
               {activeTab === "appeal" && (
                 <PanelImage
-                  desktop={data?.appeal_desktop}
-                  mobile={data?.appeal_mobile}
+                  desktop={data?.appeal_desktop || DEFAULT_POSTER}
+                  mobile={data?.appeal_mobile || DEFAULT_POSTER}
                   getImageUrl={getImageUrl}
                 />
               )}
-            </>
+            </div>
           )}
         </div>
       </div>
 
       <div className="border-t border-white/10 p-3 text-center text-xs text-slate-400">
-        JazakAllah Khair for your support
+        مرکز کی مسجد، مدرسہ اور لائبریری کی تعمیر میں تعاون کر کے عند اللہ ماجور ہوں۔
       </div>
     </div>
   );
@@ -120,34 +186,20 @@ const TabButton = ({ active, onClick, label }) => (
 const PanelImage = ({ desktop, mobile, getImageUrl }) => (
   <div className="flex flex-col gap-3">
     <div className="hidden md:block text-center">
-      {desktop ? (
-        <img
-          src={getImageUrl(desktop)}
-          className="mx-auto max-h-[50vh] max-w-full rounded-[1rem] border border-white/10 object-contain shadow-sm"
-          alt="Support image"
-        />
-      ) : (
-        <NoImage />
-      )}
+      <img
+        src={getImageUrl(desktop)}
+        className="mx-auto max-h-[50vh] max-w-full rounded-[1rem] border border-white/10 object-contain shadow-sm"
+        alt="Support image"
+      />
     </div>
 
     <div className="md:hidden">
-      {mobile ? (
-        <img
-          src={getImageUrl(mobile)}
-          className="w-full rounded-[1rem] border border-white/10 object-contain shadow-sm"
-          alt="Support image"
-        />
-      ) : (
-        <NoImage />
-      )}
+      <img
+        src={getImageUrl(mobile)}
+        className="w-full rounded-[1rem] border border-white/10 object-contain shadow-sm"
+        alt="Support image"
+      />
     </div>
-  </div>
-);
-
-const NoImage = () => (
-  <div className="flex min-h-[220px] items-center justify-center rounded-[1rem] border border-dashed border-white/15 bg-slate-900/40 text-center text-sm text-slate-400">
-    No image available yet.
   </div>
 );
 
