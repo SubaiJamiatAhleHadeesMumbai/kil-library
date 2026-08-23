@@ -60,14 +60,18 @@ export const bookService = {
     },
 
     /**
-     * ✅ UPDATED: Supports Text File Upload
+     * ✅ UPDATED: Supports Text File Upload & Live Upload Progress
      * formData must contain 'txt_file' if uploaded
      */
-    async createBook(formData) {
+    async createBook(formData, onUploadProgress = null) {
         try {
-            const response = await apiClient.post('/api/books/', formData, {
+            const config = {
                 headers: { 'Content-Type': 'multipart/form-data' },
-            });
+            };
+            if (onUploadProgress) {
+                config.onUploadProgress = onUploadProgress;
+            }
+            const response = await apiClient.post('/api/books/', formData, config);
             return response.data;
         } catch (error) {
             console.error("Error creating book:", error.response?.data);
@@ -76,13 +80,17 @@ export const bookService = {
     },
 
     /**
-     * ✅ UPDATED: Supports Text File Update
+     * ✅ UPDATED: Supports Text File Update & Live Upload Progress
      */
-    async updateBook(bookId, formData) {
+    async updateBook(bookId, formData, onUploadProgress = null) {
         try {
-            const response = await apiClient.put(`/api/books/${bookId}`, formData, {
+            const config = {
                 headers: { 'Content-Type': 'multipart/form-data' },
-            });
+            };
+            if (onUploadProgress) {
+                config.onUploadProgress = onUploadProgress;
+            }
+            const response = await apiClient.put(`/api/books/${bookId}`, formData, config);
             return response.data;
         } catch (error) {
             console.error(`Error updating book ${bookId}:`, error.response?.data);

@@ -3,6 +3,7 @@ from fastapi import UploadFile
 from utils.r2_helper import is_r2_configured, upload_to_r2, delete_from_r2
 from utils.cloudinary_helper import upload_to_cloudinary, delete_from_cloudinary
 from utils.local_helper import save_pdf_locally, save_txt_locally, save_image_locally, resolve_upload_path
+from utils.pdf_optimizer import optimize_pdf_file
 
 def is_cloudinary_configured() -> bool:
     return bool(
@@ -13,13 +14,18 @@ def is_cloudinary_configured() -> bool:
 
 def smart_upload(file: UploadFile, folder: str = "library_uploads", resource_type: str = "auto") -> str | None:
     """
-    Intelligent uploader with multi-storage hierarchy:
-    1. Cloudflare R2 (Primary for production / 10k+ books - Zero Egress Fees)
-    2. Cloudinary (Secondary/Fallback)
-    3. Local disk (Local development fallback)
+    Intelligent uploader with multi-storage hierarchy & conditional PDF optimizer:
+    1. For PDFs: If <= 100MB, keeps untouched original. If > 100MB, performs smart HD compression.
+    2. Cloudflare R2 (Primary for production / 10k+ books - Zero Egress Fees)
+    3. Cloudinary (Secondary/Fallback)
+    4. Local disk (Local development fallback)
     """
     if not file:
         return None
+
+    # Apply smart conditional PDF optimization (Only compresses if > 100MB)
+    if file.filename and file.filename.lower().endswith(".pdf"):
+        file, was_compressed, orig_sz, final_sz = optimize_pdf_file(file)
 
     # 1. Try Cloudflare R2 first if credentials are set
     if is_r2_configured():
