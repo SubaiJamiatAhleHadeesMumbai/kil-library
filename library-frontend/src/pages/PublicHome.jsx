@@ -1,3 +1,4 @@
+import StandardFormattedText from "../components/common/StandardFormattedText";
 import React, { useEffect, useMemo, useState, useCallback } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from '../context/AuthProvider';
@@ -885,14 +886,15 @@ const PublicHome = () => {
                   </button>
                 </div>
                 <div className="grid gap-4 overflow-hidden rounded-3xl border border-slate-200/80 bg-white shadow-2xs lg:grid-cols-[1.1fr_0.9fr]">
-                  <div className="p-5 sm:p-6 flex flex-col justify-between">
-                    <div className="space-y-2">
-                      <p className="text-sm sm:text-base leading-relaxed text-slate-700 font-medium">{introDescription}</p>
-                      {introParagraphs.slice(0, 1).map((paragraph, index) => (
-                        <p key={`${paragraph}-${index}`} className="text-xs sm:text-sm leading-relaxed text-slate-500 line-clamp-2">
-                          {paragraph}
-                        </p>
-                      ))}
+                  <div className="p-5 sm:p-6 flex flex-col justify-between bg-[#FAF6EE] border-r border-[#E8DEC9]">
+                    <div className="space-y-2 max-h-[300px] overflow-hidden relative">
+                      <StandardFormattedText
+                        text={introDescription || aboutContent?.hero?.description || 'Learn more about our library and mission.'}
+                        dense={true}
+                        makhtotaPaper={false}
+                        textSize="text-sm sm:text-base"
+                      />
+                      <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-[#FAF6EE] to-transparent pointer-events-none" />
                     </div>
                     <div className="mt-5">
                       <button

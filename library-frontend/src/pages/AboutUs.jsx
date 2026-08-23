@@ -608,7 +608,29 @@ const AboutUs = () => {
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         <IntroSection settings={settings} heroImage={heroImage} />
 
-        <GalleryPreviewSection
+        
+    {/* Full Makhtota History & Objectives Section */}
+    {settings.hero?.description && (
+      <section className="mt-10 rounded-[2.5rem] border border-[#E0D1B8] bg-[#FAF6EE] p-6 sm:p-12 shadow-[inset_0_0_50px_rgba(180,140,75,0.04),0_10px_30px_rgba(0,0,0,0.05)]">
+        <div className="mb-8 text-center border-b border-[#E2D4BE] pb-6">
+          <div className="inline-flex items-center gap-2 rounded-full bg-[#8B6E32]/10 px-4 py-1 text-xs font-bold uppercase tracking-[0.25em] text-[#8B6E32] mb-3">
+            📜 تعارف و اغراض و مقاصد
+          </div>
+          <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-[#002147]" style={{ fontFamily: "'Amiri', 'Noto Nastaliq Urdu', serif" }}>
+            {settings.hero?.title || 'مرکز الدعوۃ والخیریہ کھیڈ کا تعارف'}
+          </h2>
+        </div>
+
+        <StandardFormattedText
+          text={settings.hero.description}
+          makhtotaPaper={false}
+          className="text-base sm:text-lg lg:text-[1.2rem]"
+        />
+      </section>
+    )}
+
+
+    <GalleryPreviewSection
           galleryVisible={galleryVisible}
           gallery={gallery}
           galleryPreview={galleryPreview}

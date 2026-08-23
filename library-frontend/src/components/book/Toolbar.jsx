@@ -387,7 +387,7 @@ const SplitViewer = ({
         {/* --- TEXT READER PANE (FULL HEIGHT SCROLL) --- */}
         {(layoutMode === 'text' || layoutMode === 'split') && (
           <div
-            className={`relative flex min-h-0 flex-col bg-[#FAF8F5] transition-all duration-300 ${
+            className={`relative flex min-h-0 flex-col bg-[#F3ECE0] transition-all duration-300 ${
               layoutMode === 'split' ? 'h-1/2 md:h-full md:w-1/2' : 'h-full w-full'
             }`}
           >
@@ -402,7 +402,7 @@ const SplitViewer = ({
               }}
             >
               <div
-                className={`mx-auto space-y-6 rounded-2xl border border-amber-900/10 bg-white/95 p-4 sm:p-8 text-slate-900 shadow-sm backdrop-blur-sm transition-all ${
+                className={`mx-auto space-y-6 rounded-2xl border border-[#E0D1B8] bg-[#FAF6EE] p-4 sm:p-8 text-[#2C2416] shadow-[inset_0_0_40px_rgba(180,140,75,0.04),0_10px_30px_rgba(0,0,0,0.04)] transition-all ${
                   layoutMode === 'text' ? 'max-w-4xl shadow-md' : 'max-w-3xl'
                 }`}
               >

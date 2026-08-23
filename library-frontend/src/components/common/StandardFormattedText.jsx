@@ -1,7 +1,16 @@
 import React from 'react';
 
 /**
- * StandardFormattedText — Universal Urdu/Arabic Standard Text Formatter
+ * 📜 StandardFormattedText — Universal Islamic Makhtota (Manuscript) Formatter
+ *
+ * Implements Turath.io standard:
+ * - Makhtota parchment paper background (#FAF6EE / #FCF9F2) with subtle antique border (#E8DEC9)
+ * - Perfect justified lining (daayen-baayen barabar) with text-justify: inter-word
+ * - Deep antique ink typography (#2C2416) using 'Amiri', 'Noto Nastaliq Urdu', serif
+ * - Centered Islamic section headings (✺ Unwaan, •══════•) with gold/navy accents
+ * - Styled Makhtota numbered cards (❶ ❷ ❸ or 1. 2. 3.) with circular badges
+ * - Soft callout quote boxes for Quran/Hadith/Quotes
+ * - Clean subtle dividers (❖ ❖ ❖)
  */
 
 const CIRCLE_NUM_MAP = {
@@ -26,25 +35,25 @@ export const formatRawTextToBlocks = (rawText) => {
     const trimmed = rawLines[i].trim();
     if (!trimmed) continue;
 
-    // 1. Decorative Header or Divider
-    if (/^[•═\-_=—*]{3,}/.test(trimmed) || /•[═=—\-]+•/.test(trimmed)) {
-      const cleanTitle = trimmed.replace(/^[•═\-_=—*\s]+|[•═\-_=—*\s]+$/g, '').trim();
+    // 1. Decorative Header or Divider (e.g. •══════• or •─════﷽════─• or ---)
+    if (/^[•═\-_=—*─]{3,}/.test(trimmed) || /•[═=—\-─]+.*[═=—\-─]+•/.test(trimmed)) {
+      const cleanTitle = trimmed.replace(/^[•═\-_=—*─\s]+|[•═\-_=—*─\s]+$/g, '').trim();
       if (cleanTitle) {
-        blocks.push({ type: 'header', content: cleanTitle });
+        blocks.push({ type: 'centered_header', content: cleanTitle });
       } else {
         blocks.push({ type: 'divider' });
       }
       continue;
     }
 
-    // 2. Markdown / Symbol Heading
-    if (/^#{1,4}\s+/.test(trimmed) || /^[✺✦❖۞■◆★]\s+/.test(trimmed)) {
-      const cleanTitle = trimmed.replace(/^#{1,4}\s+|^[✺✦❖۞■◆★]\s+/, '').trim();
-      blocks.push({ type: 'header', content: cleanTitle });
+    // 2. Markdown / Symbol Heading (# Heading or ✺ Heading or ✦ Heading)
+    if (/^#{1,4}\s+/.test(trimmed) || /^[✺✦❖۞■◆★]s*/.test(trimmed)) {
+      const cleanTitle = trimmed.replace(/^#{1,4}\s+|^[✺✦❖۞■◆★]\s*/, '').trim();
+      blocks.push({ type: 'centered_header', content: cleanTitle });
       continue;
     }
 
-    // 3. Circled Number Point
+    // 3. Circled Number Point (❶ ❷ ❸...)
     const circleMatch = trimmed.match(/^([❶-❿➊-➓])\s*(.*)/);
     if (circleMatch) {
       const symbol = circleMatch[1];
@@ -53,7 +62,7 @@ export const formatRawTextToBlocks = (rawText) => {
       continue;
     }
 
-    // 4. Standard Numbered Point
+    // 4. Standard Numbered Point (1. or 1) or (1))
     const stdNumMatch = trimmed.match(/^([(]?\d{1,3}[.)\-–]\s*)(.*)/);
     if (stdNumMatch && stdNumMatch[2]) {
       const rawNum = stdNumMatch[1].replace(/\D/g, '');
@@ -61,14 +70,14 @@ export const formatRawTextToBlocks = (rawText) => {
       continue;
     }
 
-    // 5. Bullet Point
-    if (/^[•\-*✓✔›»]\s+/.test(trimmed)) {
-      const cleanBullet = trimmed.replace(/^[•\-*✓✔›»]\s+/, '').trim();
+    // 5. Bullet Point (•, -, *, ✓, ✔, ◈, >)
+    if (/^[•\-*✓✔◈›»]s*/.test(trimmed)) {
+      const cleanBullet = trimmed.replace(/^[•\-*✓✔◈›»]s*/, '').trim();
       blocks.push({ type: 'bullet', content: cleanBullet });
       continue;
     }
 
-    // 6. Quotation
+    // 6. Quotation (Starts and ends with quotes or Hadith header)
     if (/^[”"«]/.test(trimmed) && /[”"»]$/.test(trimmed)) {
       blocks.push({ type: 'quote', content: trimmed.replace(/^[”"«]\s*|\s*[”"»]$/g, '') });
       continue;
@@ -84,9 +93,10 @@ export const formatRawTextToBlocks = (rawText) => {
 const StandardFormattedText = ({
   text,
   className = '',
-  textSize = 'text-base sm:text-[1.125rem]',
+  textSize = 'text-[1.125rem] sm:text-[1.25rem]',
   highlightQuery = '',
-  dense = false
+  dense = false,
+  makhtotaPaper = true // Default to true for authentic light yellow manuscript look
 }) => {
   if (!text) return null;
 
@@ -100,7 +110,7 @@ const StandardFormattedText = ({
 
     return parts.map((part, i) =>
       part.toLowerCase() === query.toLowerCase() ? (
-        <mark key={i} className="bg-emerald-200 text-emerald-950 font-bold px-1 rounded-sm">
+        <mark key={i} className="bg-amber-300 text-amber-950 font-bold px-1.5 py-0.5 rounded-sm shadow-xs">
           {part}
         </mark>
       ) : (
@@ -109,21 +119,30 @@ const StandardFormattedText = ({
     );
   };
 
+  const paperStyles = makhtotaPaper
+    ? 'bg-[#FAF6EE] border border-[#E8DEC9] rounded-2xl p-6 sm:p-10 shadow-[inset_0_0_30px_rgba(180,140,75,0.03)]'
+    : '';
+
   return (
     <div
       dir="rtl"
-      className={'space-y-4 text-right text-slate-800 ' + className}
+      className={'space-y-4 text-right ' + paperStyles + ' ' + className}
       style={{
         fontFamily: "'Amiri', 'Noto Nastaliq Urdu', 'Scheherazade New', serif",
+        color: '#2C2416',
+        textAlign: 'justify',
+        textJustify: 'inter-word'
       }}
     >
       {blocks.map((block, index) => {
         switch (block.type) {
-          case 'header':
+          case 'centered_header':
             return (
-              <div key={index} className="my-5 pt-3 pb-2 border-b border-emerald-100 flex items-center gap-3">
-                <div className="w-2 h-6 rounded-full bg-[#002147]" />
-                <h3 className="text-lg sm:text-xl font-bold text-[#002147] tracking-normal leading-relaxed">
+              <div key={index} className="my-6 pt-3 pb-3 border-y border-[#E2D4BE] text-center bg-[#F4EEDB]/60 rounded-xl px-4">
+                <div className="text-xs text-[#8B6E32] font-sans font-bold uppercase tracking-widest mb-1">
+                  ✦ فصل / عنوان ✦
+                </div>
+                <h3 className="text-xl sm:text-2xl font-black text-[#002147] tracking-normal leading-relaxed">
                   {highlightContent(block.content)}
                 </h3>
               </div>
@@ -132,9 +151,9 @@ const StandardFormattedText = ({
           case 'divider':
             return (
               <div key={index} className="my-6 flex items-center justify-center gap-3">
-                <div className="h-px bg-slate-200 flex-1" />
-                <span className="text-slate-400 text-xs tracking-widest">❖ ❖ ❖</span>
-                <div className="h-px bg-slate-200 flex-1" />
+                <div className="h-px bg-[#E2D4BE] flex-1" />
+                <span className="text-[#8B6E32] text-sm tracking-widest">❖ ❖ ❖</span>
+                <div className="h-px bg-[#E2D4BE] flex-1" />
               </div>
             );
 
@@ -142,12 +161,15 @@ const StandardFormattedText = ({
             return (
               <div
                 key={index}
-                className="flex items-start gap-3.5 p-3.5 sm:p-4 my-2.5 rounded-2xl bg-slate-50/90 border border-slate-200/80 shadow-2xs hover:bg-emerald-50/40 hover:border-emerald-200 transition-all duration-200"
+                className="flex items-start gap-4 p-4 sm:p-5 my-3 rounded-2xl bg-[#F4EEDB]/80 border border-[#E0D1B8] shadow-2xs hover:bg-[#EFE7D4] transition-all duration-200"
               >
-                <div className="flex-shrink-0 w-8 h-8 rounded-xl bg-[#002147] text-white flex items-center justify-center font-bold text-sm shadow-xs mt-0.5">
+                <div className="flex-shrink-0 w-9 h-9 rounded-xl bg-[#002147] text-white flex items-center justify-center font-bold text-sm shadow-xs mt-0.5 ring-2 ring-[#C9A96E]/40">
                   {block.number}
                 </div>
-                <div className={'flex-1 ' + textSize + ' leading-[2.4] text-slate-800 text-justify font-medium'}>
+                <div
+                  className={'flex-1 ' + textSize + ' leading-[2.5] text-[#2C2416] font-medium'}
+                  style={{ textAlign: 'justify', textJustify: 'inter-word' }}
+                >
                   {highlightContent(block.content)}
                 </div>
               </div>
@@ -155,9 +177,12 @@ const StandardFormattedText = ({
 
           case 'bullet':
             return (
-              <div key={index} className="flex items-start gap-3 my-1.5 pr-2">
-                <span className="flex-shrink-0 w-2 h-2 rounded-full bg-emerald-600 mt-3" />
-                <div className={'flex-1 ' + textSize + ' leading-[2.4] text-slate-800 text-justify'}>
+              <div key={index} className="flex items-start gap-3.5 my-2 pr-2">
+                <span className="flex-shrink-0 w-2.5 h-2.5 rounded-full bg-[#8B6E32] mt-3.5 ring-2 ring-[#FAF6EE]" />
+                <div
+                  className={'flex-1 ' + textSize + ' leading-[2.5] text-[#2C2416]'}
+                  style={{ textAlign: 'justify', textJustify: 'inter-word' }}
+                >
                   {highlightContent(block.content)}
                 </div>
               </div>
@@ -167,9 +192,12 @@ const StandardFormattedText = ({
             return (
               <div
                 key={index}
-                className="my-4 p-4 sm:p-5 rounded-2xl bg-amber-50/70 border-r-4 border-amber-500 text-amber-950 shadow-2xs"
+                className="my-5 p-5 sm:p-6 rounded-2xl bg-[#F3ECE0] border-r-4 border-[#C9A96E] text-[#2C2416] shadow-2xs"
               >
-                <p className={textSize + ' leading-[2.4] text-justify font-medium italic'}>
+                <p
+                  className={textSize + ' leading-[2.5] font-semibold italic text-[#1C160C]'}
+                  style={{ textAlign: 'justify', textJustify: 'inter-word' }}
+                >
                   ”{highlightContent(block.content)}“
                 </p>
               </div>
@@ -180,7 +208,8 @@ const StandardFormattedText = ({
             return (
               <p
                 key={index}
-                className={textSize + ' leading-[2.4] text-justify text-slate-800 font-normal ' + (dense ? 'mb-2' : 'mb-4')}
+                className={textSize + ' leading-[2.5] text-[#2C2416] font-normal ' + (dense ? 'mb-2' : 'mb-4')}
+                style={{ textAlign: 'justify', textJustify: 'inter-word' }}
               >
                 {highlightContent(block.content)}
               </p>
