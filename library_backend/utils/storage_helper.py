@@ -23,46 +23,58 @@ def smart_upload(file: UploadFile, folder: str = "library_uploads", resource_typ
     if not file:
         return None
 
-    # Apply smart conditional PDF optimization (Only compresses if > 100MB)
-    if file.filename and file.filename.lower().endswith(".pdf"):
-        file, was_compressed, orig_sz, final_sz = optimize_pdf_file(file)
-
-    # 1. Try Cloudflare R2 first if credentials are set
-    if is_r2_configured():
-        try:
-            if hasattr(file.file, "seek"):
-                file.file.seek(0)
-            url = upload_to_r2(file, folder=folder)
-            if url:
-                return url
-        except Exception as r2_err:
-            print(f"⚠️ R2 Upload attempt failed: {r2_err}")
-
-    # 2. Try Cloudinary if configured
-    if is_cloudinary_configured():
-        try:
-            if hasattr(file.file, "seek"):
-                file.file.seek(0)
-            url = upload_to_cloudinary(file, folder=folder, resource_type=resource_type)
-            if url:
-                return url
-        except Exception as c_err:
-            print(f"⚠️ Cloudinary Upload attempt failed: {c_err}")
-
-    # 3. Fallback to Local Storage
+    cleanup_path = None
     try:
-        if hasattr(file.file, "seek"):
-            file.file.seek(0)
-        filename = (file.filename or "").lower()
-        if filename.endswith(".pdf"):
-            return save_pdf_locally(file)
-        elif any(filename.endswith(ext) for ext in [".jpg", ".jpeg", ".png", ".webp", ".gif", ".svg", ".avif"]):
-            return save_image_locally(file)
-        else:
-            return save_txt_locally(file)
-    except Exception as loc_err:
-        print(f"⚠️ Local Storage fallback failed: {loc_err}")
-        return None
+        # Apply smart conditional PDF optimization (Only compresses if > 100MB)
+        if file.filename and file.filename.lower().endswith(".pdf"):
+            file, was_compressed, orig_sz, final_sz, cleanup_path = optimize_pdf_file(file)
+
+        # 1. Try Cloudflare R2 first if credentials are set
+        if is_r2_configured():
+            try:
+                if hasattr(file.file, "seek"):
+                    file.file.seek(0)
+                url = upload_to_r2(file, folder=folder)
+                if url:
+                    return url
+            except Exception as r2_err:
+                print(f"⚠️ R2 Upload attempt failed: {r2_err}")
+
+        # 2. Try Cloudinary if configured
+        if is_cloudinary_configured():
+            try:
+                if hasattr(file.file, "seek"):
+                    file.file.seek(0)
+                url = upload_to_cloudinary(file, folder=folder, resource_type=resource_type)
+                if url:
+                    return url
+            except Exception as c_err:
+                print(f"⚠️ Cloudinary Upload attempt failed: {c_err}")
+
+        # 3. Fallback to Local Storage
+        try:
+            if hasattr(file.file, "seek"):
+                file.file.seek(0)
+            filename = (file.filename or "").lower()
+            if filename.endswith(".pdf"):
+                return save_pdf_locally(file)
+            elif any(filename.endswith(ext) for ext in [".jpg", ".jpeg", ".png", ".webp", ".gif", ".svg", ".avif"]):
+                return save_image_locally(file)
+            else:
+                return save_txt_locally(file)
+        except Exception as loc_err:
+            print(f"⚠️ Local Storage fallback failed: {loc_err}")
+            return None
+    finally:
+        # Auto-Purge any temporary compressed file
+        if cleanup_path and os.path.exists(cleanup_path):
+            try:
+                if hasattr(file, "file") and hasattr(file.file, "close"):
+                    file.file.close()
+                os.remove(cleanup_path)
+                print(f"🗑️ [CLEANUP] Temporary compressed file purged: {cleanup_path}")
+            except Exception as cl_err:
+                print(f"⚠️ Could not delete temp compressed file: {cl_err}")
 
 def smart_delete(file_url: str | None) -> bool:
     """
