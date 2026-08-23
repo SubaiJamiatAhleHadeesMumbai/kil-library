@@ -88,6 +88,52 @@ def _book_to_recommendation_payload(book: book_model.Book, score: int, reasons: 
         }
     }
 
+
+def normalize_book_title(title: Optional[str]) -> str:
+    """Normalizes Urdu, Arabic and English book titles for accurate deduplication."""
+    if not title:
+        return ""
+    t = str(title).strip().lower()
+    # Normalize Arabic / Urdu characters
+    t = t.replace('ي', 'ی').replace('ى', 'ی').replace('ك', 'ک').replace('ه', 'ہ').replace('ة', 'ہ')
+    t = t.replace('أ', 'ا').replace('إ', 'ا').replace('آ', 'ا')
+    # Remove punctuation & symbols
+    punctuations = ["؟", "?", "،", ",", "۔", ".", "-", "_", ":", "؛", ";", "!", "/", "\\", "|", "(", ")", "[", "]", "{", "}", '"', "'", "`", "~", "*", "^"]
+    for p in punctuations:
+        t = t.replace(p, ' ')
+    # Normalize whitespace
+    t = re.sub(r'\s+', ' ', t).strip()
+    return t
+
+def deduplicate_public_books(books_list: list) -> list:
+    """
+    For public users, groups duplicate entries by normalized title + author
+    and returns the richest/best single version (with cover image / digital assets / PDF).
+    """
+    seen = {}
+    for book in books_list:
+        norm_title = normalize_book_title(getattr(book, 'title', ''))
+        if not norm_title:
+            norm_title = f"book_{getattr(book, 'id', 0)}"
+        norm_author = normalize_book_title(getattr(book, 'author', ''))
+        key = f"{norm_title}___{norm_author}" if norm_author else norm_title
+        
+        score = 0
+        if getattr(book, 'pdf_url', None) or getattr(book, 'txt_file_url', None) or getattr(book, 'is_digital', False):
+            score += 100
+        if getattr(book, 'cover_image_url', None) or getattr(book, 'cover_image', None):
+            score += 50
+        if getattr(book, 'description', None):
+            score += 10
+        if getattr(book, 'page_count', None):
+            score += 5
+        score += (getattr(book, 'id', 0) or 0) * 0.0001
+        
+        if key not in seen or score > seen[key][0]:
+            seen[key] = (score, book)
+            
+    return [item[1] for item in seen.values()]
+
 # ==================================
 # READ OPERATIONS (Public & Admin)
 # ==================================
@@ -273,6 +319,7 @@ def read_books(
     language_id: Optional[int] = None,
     approved_only: bool = False,
     sort_order: Optional[str] = "asc",
+    distinct: Optional[bool] = None,
     db: Session = Depends(get_db),
     current_user: Optional[user_model.User] = Depends(get_current_user_optional)
 ):
@@ -373,6 +420,13 @@ def read_books(
             print(f"🔓 Unlocking Restricted Book ID: {book.id} for User")
 
         setattr(book, "user_has_access", has_access)
+
+    # ✅ DEDUPLICATION: For public users (or when distinct=True / approved_only=True), show ONLY 1 rich record per title
+    is_admin = bool(current_user and hasattr(current_user, 'role') and current_user.role and current_user.role.name.lower() in ['admin', 'superadmin'])
+    should_deduplicate = distinct if distinct is not None else (not is_admin or approved_only)
+    
+    if should_deduplicate:
+        books = deduplicate_public_books(books)
 
     print("="*50 + "\n")
     return books

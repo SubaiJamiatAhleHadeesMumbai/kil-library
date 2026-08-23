@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { bookService } from '../api/bookService';
+import { deduplicateBooks } from '../hooks/useBookSearch';
 import { MagnifyingGlassIcon, ArrowPathIcon, BookOpenIcon } from '@heroicons/react/20/solid';
 import Skeleton from 'react-loading-skeleton';
 import 'react-loading-skeleton/dist/skeleton.css';
@@ -64,13 +65,16 @@ const PublicBookList = () => {
 
     // --- Filtering Logic ---
     const filteredBooks = useMemo(() => {
-        if (!searchTerm) return allBooks;
-        const lowerCaseSearch = searchTerm.toLowerCase();
-        return allBooks.filter(book =>
-            book.title.toLowerCase().includes(lowerCaseSearch) ||
-            (book.author && book.author.toLowerCase().includes(lowerCaseSearch)) ||
-            (book.isbn && book.isbn.includes(lowerCaseSearch))
-        );
+        let list = allBooks;
+        if (searchTerm) {
+            const lowerCaseSearch = searchTerm.toLowerCase();
+            list = list.filter(book =>
+                book.title?.toLowerCase().includes(lowerCaseSearch) ||
+                (book.author && book.author.toLowerCase().includes(lowerCaseSearch)) ||
+                (book.isbn && book.isbn.includes(lowerCaseSearch))
+            );
+        }
+        return deduplicateBooks(list);
     }, [allBooks, searchTerm]);
 
     // --- Pagination Logic ---

@@ -38,7 +38,7 @@ import { bookService } from "../api/bookService";
 import { categoryService } from "../api/categoryService";
 import { fatawaService } from "../api/fatawaService";
 import aboutService from "../api/aboutService";
-import { useBookSearch } from "../hooks/useBookSearch";
+import { useBookSearch, deduplicateBooks } from "../hooks/useBookSearch";
 import LandingPostsPreview from "../components/public/LandingPostsPreview";
 import HomepagePostersCarousel from "../components/public/HomepagePostersCarousel";
 import DonationPanel from "../components/donation/DonationPanel";
@@ -302,9 +302,9 @@ const PublicHome = () => {
     if (Array.isArray(featuredIds) && featuredIds.length) {
       const byId = new Map(books.map((b) => [b.id, b]));
       const list = featuredIds.map((id) => byId.get(id)).filter(Boolean);
-      if (list.length) return list;
+      if (list.length) return deduplicateBooks(list);
     }
-    return books.slice(0, 6);
+    return deduplicateBooks(books).slice(0, 6);
   }, [books, homepageSettings]);
 
   const recentReadBooks = useMemo(() => {
