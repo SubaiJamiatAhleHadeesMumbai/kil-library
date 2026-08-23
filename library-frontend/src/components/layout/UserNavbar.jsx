@@ -406,7 +406,7 @@ const UserNavbar = () => {
         isOpen={isDonationOpen}
         onClose={() => setIsDonationOpen(false)}
       />
-    </div>
+    </header>
   );
 };
 
