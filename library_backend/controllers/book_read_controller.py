@@ -318,7 +318,7 @@ def read_books(
     category_id: Optional[int] = None,
     language_id: Optional[int] = None,
     approved_only: bool = False,
-    sort_order: Optional[str] = "asc",
+    sort_order: Optional[str] = "desc",
     distinct: Optional[bool] = None,
     db: Session = Depends(get_db),
     current_user: Optional[user_model.User] = Depends(get_current_user_optional)
@@ -365,10 +365,10 @@ def read_books(
     if language_id:
         query = query.filter(book_model.Book.language_id == language_id)
         
-    if sort_order == "desc":
-        books = query.order_by(book_model.Book.id.desc()).offset(skip).limit(limit).all()
-    else:
+    if sort_order == "asc":
         books = query.order_by(book_model.Book.id.asc()).offset(skip).limit(limit).all()
+    else:
+        books = query.order_by(book_model.Book.id.desc()).offset(skip).limit(limit).all()
 
     # =========================================================
     # ✅ LOGIC: User Access Permission Check (DEBUGGED)

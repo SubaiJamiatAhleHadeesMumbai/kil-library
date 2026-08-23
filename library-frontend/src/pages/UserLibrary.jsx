@@ -221,7 +221,7 @@ const UserLibrary = () => {
   const [loading, setLoading] = useState(true);
   const [dynamicCategories, setDynamicCategories] = useState([]);
   const [viewMode, setViewMode] = useState("grid"); // 'grid' | 'list'
-  const [sortBy, setSortBy] = useState("oldest"); // Natural Excel order
+  const [sortBy, setSortBy] = useState("newest"); // Default: Latest / Newest first
   const [showScrollTop, setShowScrollTop] = useState(false);
   const activeRequestRef = useRef(0);
 
@@ -291,7 +291,7 @@ const UserLibrary = () => {
       const trimmed = searchText?.trim() || "";
       const data = await bookService.getAllBooks({
         approved_only: true,
-        sort_order: 'asc',
+        sort_order: 'desc',
         search: trimmed,
         limit: 5000,
       });
@@ -417,15 +417,23 @@ const UserLibrary = () => {
   // --- SORTING ---
   const finalDisplayBooks = useMemo(() => {
     const sorted = [...(Array.isArray(filteredBooks) ? filteredBooks : [])];
-    const safeDate = (b) => new Date(b?.created_at || 0).getTime();
+    const safeDate = (b) => new Date(b?.created_at || b?.published_date || 0).getTime();
+    const safeId = (b) => Number(b?.id) || 0;
     const safeSerial = (b) => Number(b?.serial_number) || Number(b?.id) || 0;
 
-    if (sortBy === "newest") sorted.sort((a, b) => safeDate(b) - safeDate(a));
-    if (sortBy === "oldest") sorted.sort((a, b) => safeSerial(a) - safeSerial(b));
-    if (sortBy === "az")
+    if (sortBy === "newest") {
+      sorted.sort((a, b) => {
+        const dDiff = safeDate(b) - safeDate(a);
+        if (dDiff !== 0) return dDiff;
+        return safeId(b) - safeId(a);
+      });
+    } else if (sortBy === "oldest") {
+      sorted.sort((a, b) => safeSerial(a) - safeSerial(b));
+    } else if (sortBy === "az") {
       sorted.sort((a, b) => (a?.title || "").localeCompare(b?.title || ""));
-    if (sortBy === "favorites")
+    } else if (sortBy === "favorites") {
       return sorted.filter((b) => favorites.includes(b.id));
+    }
 
     return sorted;
   }, [filteredBooks, sortBy, favorites]);
@@ -558,8 +566,8 @@ const UserLibrary = () => {
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
               >
-                <option value="oldest">Serial # (1, 2, 3...)</option>
                 <option value="newest">Newest First</option>
+                <option value="oldest">Serial # (1, 2, 3...)</option>
                 <option value="az">Title (A-Z)</option>
                 <option value="favorites">My Favorites</option>
               </select>

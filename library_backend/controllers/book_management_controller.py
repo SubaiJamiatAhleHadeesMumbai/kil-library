@@ -120,24 +120,20 @@ async def create_book(
             except Exception:
                 pass
 
-        # 4. Handle Files (Smart Multi-Storage Upload)
-        cover_image_url = None
-        pdf_url = None
-        txt_file_url = None 
-
-        if cover_image and hasattr(cover_image, 'filename') and cover_image.filename:
+        # 4. Handle Files (Smart Multi-Storage Upload & Pre-Uploaded Chunk URLs)
+        if not cover_image_url and cover_image and hasattr(cover_image, 'filename') and cover_image.filename:
             try:
                 cover_image_url = smart_upload(cover_image, folder="booknest/covers", resource_type="image")
             except Exception as e:
                 print(f"Cover upload error (non-fatal): {e}")
         
-        if pdf_file and hasattr(pdf_file, 'filename') and pdf_file.filename:
+        if not pdf_url and pdf_file and hasattr(pdf_file, 'filename') and pdf_file.filename:
             try:
                 pdf_url = smart_upload(pdf_file, folder="booknest/pdfs")
             except Exception as e:
                 print(f"PDF upload error (non-fatal): {e}")
 
-        if txt_file and hasattr(txt_file, 'filename') and txt_file.filename:
+        if not txt_file_url and txt_file and hasattr(txt_file, 'filename') and txt_file.filename:
             try:
                 txt_file_url = smart_upload(txt_file, folder="booknest/texts")
             except Exception as e:
@@ -556,7 +552,12 @@ async def update_book(
          db_book.isbn = isbn
 
     # Update Files (Auto-Delete Old Files to Save Cloud Storage Memory)
-    if cover_image:
+    if cover_image_url is not None and str(cover_image_url).strip():
+        old_cover = db_book.cover_image_url
+        db_book.cover_image_url = str(cover_image_url).strip()
+        if old_cover and old_cover != db_book.cover_image_url:
+            smart_delete(old_cover)
+    elif cover_image:
         old_cover = db_book.cover_image_url
         new_cover = smart_upload(cover_image, folder="booknest/covers", resource_type="image")
         if new_cover:
@@ -564,8 +565,13 @@ async def update_book(
             if old_cover and old_cover != new_cover:
                 smart_delete(old_cover)
 
-    # ✅ PDF Update -> Smart Upload + Auto-Delete Old PDF
-    if pdf_file:
+    # ✅ PDF Update -> Chunk URL or Smart Upload + Auto-Delete Old PDF
+    if pdf_url is not None and str(pdf_url).strip():
+        old_pdf = db_book.pdf_url
+        db_book.pdf_url = str(pdf_url).strip()
+        if old_pdf and old_pdf != db_book.pdf_url:
+            smart_delete(old_pdf)
+    elif pdf_file:
         old_pdf = db_book.pdf_url
         new_pdf = smart_upload(pdf_file, folder="booknest/pdfs")
         if new_pdf:
@@ -573,8 +579,13 @@ async def update_book(
             if old_pdf and old_pdf != new_pdf:
                 smart_delete(old_pdf)
 
-    # ✅ Text File Update -> Smart Upload + Auto-Delete Old Research Text
-    if txt_file:
+    # ✅ Text File Update -> Chunk URL or Smart Upload + Auto-Delete Old Research Text
+    if txt_file_url is not None and str(txt_file_url).strip():
+        old_txt = db_book.txt_file_url or db_book.txt_file
+        db_book.txt_file_url = str(txt_file_url).strip()
+        if old_txt and old_txt != db_book.txt_file_url:
+            smart_delete(old_txt)
+    elif txt_file:
         old_txt = db_book.txt_file_url or db_book.txt_file
         new_txt = smart_upload(txt_file, folder="booknest/texts")
         if new_txt:
