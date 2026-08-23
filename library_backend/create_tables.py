@@ -248,8 +248,9 @@ sync_table_columns(
 print("✅ All tables and columns synchronized successfully!")
 
 try:
-    from seed_islamic_categories import clean_and_seed_categories
+    from seed_islamic_categories import clean_and_seed_categories, seed_announcement_post
     print("🌱 Cleaning test categories & Seeding 42 Islamic Categories & Subcategories...")
     clean_and_seed_categories()
+    seed_announcement_post()
 except Exception as e:
     print("⚠️ Seeding failed:", e)
