@@ -858,11 +858,18 @@ const PublicHome = () => {
           );
         }
 
-                // ABOUT SECTION PREVIEW (Full-Width Makhtota Manuscript without Image)
+                        // ABOUT SECTION PREVIEW (Home page initial intro preview in Makhtota format)
         if (key === 'about' && getSectionConfig('about', { enabled: false }).enabled !== false) {
           const aboutConfig = getSectionConfig('about', {});
           const fullDesc = (aboutContent?.hero?.description || aboutContent?.intro?.description || "").trim();
           
+          // Show initial intro on Home Page (up to first few sections / paragraphs)
+          let homeIntroText = fullDesc;
+          if (fullDesc) {
+            const splitMatch = fullDesc.split(/\n(?=✺\s*قیامِ مرکز|✺\s*اغراض)/);
+            homeIntroText = splitMatch[0] ? splitMatch[0].trim() : fullDesc;
+          }
+
           return (
             <div key="about" className="app-shell-container pb-4 sm:pb-8">
               <div className={sectionFrameClass}>
@@ -900,9 +907,9 @@ const PublicHome = () => {
                         </span>
                       </div>
 
-                      {fullDesc ? (
+                      {homeIntroText ? (
                         <StandardFormattedText
-                          text={fullDesc}
+                          text={homeIntroText}
                           makhtotaPaper={false}
                           showZoomControls={false}
                         />

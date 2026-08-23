@@ -133,7 +133,7 @@ const UserNavbar = () => {
   const showFatawaLink = sectionVisibility.fatawa?.enabled !== false;
 
   return (
-    <div className="flex flex-col w-full relative z-50 font-sans">
+    <header className="sticky top-0 z-50 flex flex-col w-full font-sans shadow-xs">
       
       {/* ----------------------------------------------------
           TOP BAR
@@ -155,7 +155,7 @@ const UserNavbar = () => {
       {/* ----------------------------------------------------
           MAIN NAVBAR
       ---------------------------------------------------- */}
-      <nav className="sticky top-0 bg-white/80 backdrop-blur-xl border-b border-slate-200/60 shadow-sm transition-all duration-300">
+      <nav className="bg-white/95 backdrop-blur-xl border-b border-slate-200/60 shadow-xs transition-all duration-300">
         <div className="app-shell-container">
           <div className="flex items-center justify-between min-h-[4.25rem] py-2 gap-2">
             

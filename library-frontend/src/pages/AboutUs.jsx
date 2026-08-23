@@ -145,63 +145,32 @@ const ErrorState = ({ onRetry }) => (
   </div>
 );
 
-// Sub-component: Hero & Introduction Section
-const IntroSection = ({ settings, heroImage }) => (
-  <section className="grid gap-8 overflow-hidden rounded-[2.5rem] border border-slate-200/80 bg-white/90 shadow-[0_25px_80px_-20px_rgba(15,23,42,0.08)] backdrop-blur-sm lg:grid-cols-[1.1fr_0.9fr]">
-    <div className="p-8 sm:p-10 lg:p-14 flex flex-col justify-center">
-      <div className="inline-flex items-center gap-2 rounded-full bg-[#002147]/5 px-3.5 py-1 text-xs font-bold uppercase tracking-[0.25em] text-[#002147] w-fit">
-        <SparklesIcon className="h-3.5 w-3.5 text-[#002147]" /> Introduction
+// Sub-component: Hero & Introduction Section (Clean Full-Width HD Makhtota without Image)
+const IntroSection = ({ settings }) => (
+  <section className="w-full overflow-hidden rounded-[2.5rem] border-2 border-[#E2D4BE] bg-[#FAF6EE] p-8 sm:p-12 lg:p-16 shadow-[inset_0_0_50px_rgba(180,140,75,0.04),0_10px_30px_rgba(0,0,0,0.03)] ring-1 ring-[#D8C6A5]">
+    <div className="flex flex-col text-right" dir="rtl">
+      <div className="flex items-center justify-between border-b border-[#E2D4BE] pb-4 mb-6">
+        <div className="inline-flex items-center gap-2 rounded-full bg-[#8B6E32]/10 px-4 py-1.5 text-xs font-bold uppercase tracking-[0.2em] text-[#8B6E32] w-fit">
+          📜 تعارف و پس منظر
+        </div>
+        <span className="text-sm font-serif text-[#8B6E32] tracking-widest">
+          ✦ ✦ ✦
+        </span>
       </div>
 
-      <h2 className="mt-4 text-3xl font-black tracking-tight text-slate-900 sm:text-4xl">
-        {settings.intro?.title || 'Introduction'}
+      <h2
+        className="text-2xl sm:text-3xl lg:text-4xl font-black text-[#002147] mb-6"
+        style={{ fontFamily: "'Noto Nastaliq Urdu', 'JameelNoori', serif" }}
+      >
+        {settings.hero?.title || settings.intro?.title || 'مرکز الدعوۃ الاسلامیۃ والخیریہ (سونس، کھیڈ - رتناگری)'}
       </h2>
 
-      {settings.intro?.description && (
-        <p className="mt-4 text-base leading-8 text-slate-600 font-normal">{settings.intro.description}</p>
-      )}
-
-      <div className="mt-6 grid gap-4 sm:grid-cols-2">
-        {(settings.intro?.paragraphs || []).slice(0, 2).map((paragraph, index) => (
-          <div
-            key={index}
-            className="group rounded-2xl border border-slate-200/90 bg-gradient-to-br from-slate-50/80 to-white p-5 text-sm leading-7 text-slate-600 transition-all hover:border-[#002147]/30 hover:shadow-sm"
-          >
-            <StandardFormattedText text={paragraph} />
-          </div>
-        ))}
-      </div>
-    </div>
-
-    <div className="relative min-h-[340px] bg-slate-100 overflow-hidden group">
-      {heroImage ? (
-        <>
-          <img
-            src={heroImage}
-            alt={settings.hero?.title || 'About library'}
-            className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-slate-950/60 via-transparent to-transparent" />
-          <div className="absolute bottom-6 left-6 right-6 text-white">
-            <span className="inline-flex rounded-full bg-white/20 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.2em] backdrop-blur-md">
-              Library Campus
-            </span>
-            <h3 className="mt-2 text-xl font-bold">{settings.hero?.title || 'Markaz Library'}</h3>
-          </div>
-        </>
-      ) : (
-        <div className="flex h-full min-h-[340px] items-center justify-center bg-gradient-to-br from-[#002147] via-[#0f4c81] to-cyan-700 px-8 text-center text-white relative">
-          <div className="relative z-10 max-w-sm">
-            <div className="mx-auto h-12 w-12 rounded-2xl bg-white/10 flex items-center justify-center backdrop-blur-md mb-4">
-              <BookOpenIcon className="h-6 w-6 text-cyan-200" />
-            </div>
-            <p className="text-xs font-bold uppercase tracking-[0.35em] text-cyan-200/80">Markaz Library</p>
-            <h3 className="mt-2 text-2xl font-black">Knowledge, Learning & Heritage</h3>
-            <p className="mt-3 text-xs leading-6 text-cyan-50/80">
-              Add a custom hero image from the admin panel to personalize the library identity.
-            </p>
-          </div>
-        </div>
+      {settings.hero?.description && (
+        <StandardFormattedText
+          text={settings.hero.description}
+          makhtotaPaper={false}
+          showZoomControls={true}
+        />
       )}
     </div>
   </section>
