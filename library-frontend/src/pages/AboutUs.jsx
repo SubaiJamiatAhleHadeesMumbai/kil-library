@@ -271,9 +271,8 @@ const UlmaPreviewSection = ({ quotes, ulmaPreview, ulmaPreviewLimit, onOpenModal
           Open Ulma Gallery <ArrowRightIcon className="h-4 w-4" />
         </button>
       </div>
-    </div>
 
-    <div className="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+      <div className="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
       {ulmaPreview.length > 0 ? (
         ulmaPreview.map((item, index) => {
           const imageUrl = resolveImageUrl(item.image_url);

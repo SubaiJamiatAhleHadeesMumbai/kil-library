@@ -8,9 +8,7 @@ import {
 } from "@heroicons/react/24/outline";
 import { donationService } from "../../api/donationService";
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || (import.meta.env.PROD ? "" : "http://127.0.0.1:8000");
-
-const DEFAULT_POSTER = "/uploads/donation/donation_poster.jpg";
+const DEFAULT_POSTER = "/uploads/donation/markaz_donation_qr_2026.png";
 
 const DonationPanel = () => {
   const [activeTab, setActiveTab] = useState("qr");
@@ -32,9 +30,9 @@ const DonationPanel = () => {
   }, []);
 
   const getImageUrl = (p) => {
-    if (!p) return `${DEFAULT_POSTER}?v=${Date.now()}`;
+    if (!p || p.includes("donation_poster.jpg")) return DEFAULT_POSTER;
     const cleanUrl = p.startsWith("http") ? p : `${API_BASE_URL}${p}`;
-    return `${cleanUrl}?v=20260825`;
+    return cleanUrl;
   };
 
   const copyToClipboard = (text, field) => {
