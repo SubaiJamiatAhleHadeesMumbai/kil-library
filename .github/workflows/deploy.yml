@@ -24,37 +24,30 @@ jobs:
           git push origin HEAD:refs/heads/master --force
           echo "✅ Master branch is now 100% synchronized with main!"
 
-      - name: 🔍 Check Available Credentials
-        id: check_auth
+      - name: 🚀 Deploy via Native SSH
         env:
-          KEY_VAL: ${{ secrets.VPS_SSH_KEY }}
-          PASS_VAL: ${{ secrets.VPS_PASSWORD }}
+          SSH_PRIVATE_KEY: ${{ secrets.VPS_SSH_KEY }}
+          VPS_HOST: ${{ secrets.VPS_HOST || '178.16.139.231' }}
+          VPS_USER: ${{ secrets.VPS_USER || 'root' }}
+          VPS_PORT: ${{ secrets.VPS_PORT || '22' }}
         run: |
-          if [ -n "$KEY_VAL" ]; then
-            echo "auth_mode=key" >> $GITHUB_OUTPUT
-            echo "✅ Using SSH Key Authentication"
-          elif [ -n "$PASS_VAL" ]; then
-            echo "auth_mode=password" >> $GITHUB_OUTPUT
-            echo "✅ Using Password Authentication"
-          else
-            echo "auth_mode=none" >> $GITHUB_OUTPUT
-            echo "❌ No SSH Key or Password found in GitHub Secrets!"
-          fi
+          echo "🔑 Preparing SSH Key..."
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          
+          # Write private key with normalized unix line breaks and trailing newline
+          echo "$SSH_PRIVATE_KEY" | tr -d '\r' > ~/.ssh/deploy_key
+          echo "" >> ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          
+          # Disable strict host checking for automated deployment
+          echo -e "Host *\n\tStrictHostKeyChecking no\n\tUserKnownHostsFile=/dev/null\n\tServerAliveInterval 15\n" > ~/.ssh/config
+          chmod 600 ~/.ssh/config
 
-      - name: 🌐 Deploy via SSH (Key Mode)
-        if: steps.check_auth.outputs.auth_mode == 'key'
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.VPS_HOST || '178.16.139.231' }}
-          username: ${{ secrets.VPS_USER || 'root' }}
-          key: ${{ secrets.VPS_SSH_KEY }}
-          port: 22
-          timeout: 60s
-          command_timeout: 30m
-          script_stop: true
-          script: |
-            echo "🚀 Starting Deployment on VPS via SSH Key..."
-            cd /root/kil-library || cd ~/kil-library
+          echo "🌐 Testing Connection to $VPS_USER@$VPS_HOST on port $VPS_PORT..."
+          ssh -v -i ~/.ssh/deploy_key -p $VPS_PORT -o ConnectTimeout=15 "$VPS_USER@$VPS_HOST" << 'EOF'
+            echo "🚀 Successfully Connected to VPS!"
+            cd /root/kil-library || cd ~/kil-library || { echo "Directory not found"; exit 1; }
             echo "📦 Pulling latest changes from main branch..."
             git fetch origin main
             git reset --hard origin/main
@@ -66,29 +59,4 @@ jobs:
             echo "🧹 Cleaning unused docker images..."
             docker image prune -f
             echo "✅ Deployment Completed Successfully!"
-
-      - name: 🌐 Deploy via SSH (Password Mode)
-        if: steps.check_auth.outputs.auth_mode == 'password'
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.VPS_HOST || '178.16.139.231' }}
-          username: ${{ secrets.VPS_USER || 'root' }}
-          password: ${{ secrets.VPS_PASSWORD }}
-          port: 22
-          timeout: 60s
-          command_timeout: 30m
-          script_stop: true
-          script: |
-            echo "🚀 Starting Deployment on VPS via Password..."
-            cd /root/kil-library || cd ~/kil-library
-            echo "📦 Pulling latest changes from main branch..."
-            git fetch origin main
-            git reset --hard origin/main
-            echo "🐳 Building & restarting Docker containers..."
-            docker compose up -d --build --remove-orphans
-            echo "🗄️ Checking database schema..."
-            docker compose exec -T backend python create_tables.py || true
-            docker compose exec -T backend python setup_admin.py || true
-            echo "🧹 Cleaning unused docker images..."
-            docker image prune -f
-            echo "✅ Deployment Completed Successfully!"
+          EOF
