@@ -128,18 +128,18 @@ const DonationModal = ({ isOpen, onClose }) => {
                                             Central Bank of India (Khed Branch)
                                         </p>
                                         <p className="mt-1 text-sm font-semibold text-slate-800">
-                                            MARKAZ-UD-DAAWATUL ISLAMIYAH WAL KHAYRIYAH
+                                            MARKAZ-UD-DAAWATUL ISLAMIYAH WAL KHAIRIYAH
                                         </p>
 
                                         <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
                                             <div className="flex items-center justify-between rounded-lg bg-white px-3 py-2 border border-blue-100 shadow-xs">
                                                 <div>
                                                     <p className="text-[10px] text-slate-400 font-bold uppercase">Account No</p>
-                                                    <p className="text-sm font-mono font-bold text-[#002147]">3785326835</p>
+                                                    <p className="text-sm font-mono font-bold text-[#002147]">3063920229</p>
                                                 </div>
                                                 <button
                                                     type="button"
-                                                    onClick={() => copyToClipboard("3785326835", "acc")}
+                                                    onClick={() => copyToClipboard("3063920229", "acc")}
                                                     className="p-1.5 rounded-md hover:bg-blue-100 text-slate-600 transition"
                                                     title="Copy Account Number"
                                                 >
