@@ -76,13 +76,13 @@ const DonationPanel = () => {
         />
       </div>
 
-      <div className="p-4 sm:p-6 flex justify-center">
+      <div className="p-3 sm:p-5 flex justify-center">
         {loading ? (
           <div className="flex min-h-[300px] items-center justify-center text-sm text-slate-300">
             Loading...
           </div>
         ) : (
-          <div className="w-full max-w-sm sm:max-w-md flex flex-col gap-4">
+          <div className="w-full flex flex-col gap-4">
             {activeTab === "qr" && (
               <PanelImage
                 desktop={data?.qr_code_desktop || DEFAULT_POSTER}
@@ -195,10 +195,10 @@ const TabButton = ({ active, onClick, label }) => (
 );
 
 const PanelImage = ({ desktop, mobile, getImageUrl }) => (
-  <div className="w-full flex justify-center overflow-hidden rounded-2xl border border-white/10 bg-black/40 shadow-xl">
+  <div className="w-full overflow-hidden rounded-2xl border border-white/10 bg-black/40 shadow-xl flex items-center justify-center">
     <img
       src={getImageUrl(desktop || mobile)}
-      className="w-full h-auto max-h-[75vh] object-contain rounded-2xl"
+      className="w-full h-auto object-cover rounded-2xl block"
       alt="Donation Poster & QR"
       loading="eager"
     />
