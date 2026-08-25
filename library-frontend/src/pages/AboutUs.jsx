@@ -165,9 +165,9 @@ const IntroSection = ({ settings }) => (
         {settings.hero?.title || settings.intro?.title || 'مرکز الدعوۃ الاسلامیۃ والخیریہ (سونس، کھیڈ - رتناگری)'}
       </h2>
 
-      {settings.hero?.description && (
+      {(settings.hero?.description || settings.intro?.description) && (
         <StandardFormattedText
-          text={settings.hero.description}
+          text={settings.hero?.description || settings.intro?.description}
           makhtotaPaper={false}
           showZoomControls={true}
         />
@@ -263,8 +263,7 @@ const UlmaPreviewSection = ({ quotes, ulmaPreview, ulmaPreviewLimit, onOpenModal
         </div>
         <h2 className="mt-2 text-2xl sm:text-3xl font-black text-slate-900">Praise & guidance about the library</h2>
       </div>
-      <div className="flex flex-col items-start gap-3 sm:items-end">
-        <button
+              <button
           onClick={onOpenModal}
           disabled={quotes.length === 0}
           className="inline-flex items-center gap-2 rounded-full bg-[#002147] px-6 py-2.5 text-sm font-bold text-white shadow-sm transition-all hover:bg-[#12315a] disabled:cursor-not-allowed disabled:bg-slate-300 focus:outline-none focus:ring-2 focus:ring-[#002147] focus:ring-offset-2"
@@ -284,7 +283,7 @@ const UlmaPreviewSection = ({ quotes, ulmaPreview, ulmaPreviewLimit, onOpenModal
               className="group flex flex-col justify-between rounded-2xl border border-slate-200/90 bg-gradient-to-b from-slate-50/60 to-white p-5 shadow-sm transition-all duration-300 hover:shadow-md hover:border-slate-300 relative overflow-hidden"
             >
               <div className="absolute top-2 right-4 text-slate-200 text-6xl font-serif select-none pointer-events-none opacity-40">
-                â€œ
+                “
               </div>
               <div className="relative z-10">
                 <div className="flex items-center gap-4">
@@ -307,7 +306,7 @@ const UlmaPreviewSection = ({ quotes, ulmaPreview, ulmaPreviewLimit, onOpenModal
                 </div>
 
                 <p className="mt-4 line-clamp-4 text-sm leading-6 text-slate-700 italic">
-                  â€œ{item.quote || 'Add a quote from the admin panel.'}â€
+                  “{item.quote || 'Add a quote from the admin panel.'}”
                 </p>
               </div>
 
@@ -423,7 +422,7 @@ const UlmaModal = ({ isOpen, onClose, quotes, page, setPage, totalPages }) => {
                         </p>
                       </div>
                     </div>
-                    <p className="mt-4 text-sm leading-7 text-slate-700 italic">â€œ{item.quote || 'No quote provided.'}â€</p>
+                    <p className="mt-4 text-sm leading-7 text-slate-700 italic">“{item.quote || 'No quote provided.'}”</p>
                   </div>
 
                   {item.source_url ? (

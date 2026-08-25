@@ -31,6 +31,7 @@ export const formatRawTextToBlocks = (rawText) => {
   if (!rawText || typeof rawText !== 'string') return [];
 
   let text = rawText.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+  text = text.replace(/\\+(\n|$)/g, '$1');
   text = text.replace(/([^\n])\s*([❶-❿➊-➓])/g, '$1\n$2');
 
   const rawLines = text.split('\n');
