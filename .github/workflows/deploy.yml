@@ -24,18 +24,62 @@ jobs:
           git push origin HEAD:refs/heads/master --force
           echo "✅ Master branch is now 100% synchronized with main!"
 
-      - name: 🌐 Deploy via SSH to VPS
+      - name: 🔍 Check Available Credentials
+        id: check_auth
+        env:
+          KEY_VAL: ${{ secrets.VPS_SSH_KEY }}
+          PASS_VAL: ${{ secrets.VPS_PASSWORD }}
+        run: |
+          if [ -n "$KEY_VAL" ]; then
+            echo "auth_mode=key" >> $GITHUB_OUTPUT
+            echo "✅ Using SSH Key Authentication"
+          elif [ -n "$PASS_VAL" ]; then
+            echo "auth_mode=password" >> $GITHUB_OUTPUT
+            echo "✅ Using Password Authentication"
+          else
+            echo "auth_mode=none" >> $GITHUB_OUTPUT
+            echo "❌ No SSH Key or Password found in GitHub Secrets!"
+          fi
+
+      - name: 🌐 Deploy via SSH (Key Mode)
+        if: steps.check_auth.outputs.auth_mode == 'key'
         uses: appleboy/ssh-action@v1.0.3
         with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USER }}
+          host: ${{ secrets.VPS_HOST || '178.16.139.231' }}
+          username: ${{ secrets.VPS_USER || 'root' }}
           key: ${{ secrets.VPS_SSH_KEY }}
           port: 22
           timeout: 60s
           command_timeout: 30m
           script_stop: true
           script: |
-            echo "🚀 Starting Deployment on VPS..."
+            echo "🚀 Starting Deployment on VPS via SSH Key..."
+            cd /root/kil-library || cd ~/kil-library
+            echo "📦 Pulling latest changes from main branch..."
+            git fetch origin main
+            git reset --hard origin/main
+            echo "🐳 Building & restarting Docker containers..."
+            docker compose up -d --build --remove-orphans
+            echo "🗄️ Checking database schema..."
+            docker compose exec -T backend python create_tables.py || true
+            docker compose exec -T backend python setup_admin.py || true
+            echo "🧹 Cleaning unused docker images..."
+            docker image prune -f
+            echo "✅ Deployment Completed Successfully!"
+
+      - name: 🌐 Deploy via SSH (Password Mode)
+        if: steps.check_auth.outputs.auth_mode == 'password'
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST || '178.16.139.231' }}
+          username: ${{ secrets.VPS_USER || 'root' }}
+          password: ${{ secrets.VPS_PASSWORD }}
+          port: 22
+          timeout: 60s
+          command_timeout: 30m
+          script_stop: true
+          script: |
+            echo "🚀 Starting Deployment on VPS via Password..."
             cd /root/kil-library || cd ~/kil-library
             echo "📦 Pulling latest changes from main branch..."
             git fetch origin main
