@@ -5,8 +5,8 @@ import gc
 from typing import Union, Tuple, Optional
 from fastapi import UploadFile
 
-# Strict 100 MB Threshold in Bytes
-MAX_UNCOMPRESSED_SIZE = 100 * 1024 * 1024  # 104,857,600 bytes
+# Strict 50 MB Threshold in Bytes (Any file > 50MB is optimized to save cloud storage)
+MAX_UNCOMPRESSED_SIZE = 50 * 1024 * 1024  # 52,428,800 bytes
 STREAM_CHUNK_SIZE = 8 * 1024 * 1024        # 8 MB streaming buffer for low-RAM usage
 
 
@@ -37,45 +37,30 @@ def get_file_size(file_obj: Union[UploadFile, str, io.BytesIO]) -> int:
 def compress_pdf_hd(input_path: str, output_path: str) -> bool:
     """
     Compresses a PDF file while preserving crisp HD vector text and readable images.
-    Uses PyMuPDF (fitz) for ultra-fast and deep image/stream compression,
-    with pypdf + Pillow image downsampling as a fallback.
+    Uses pypdf + Pillow image downsampling (re-compressing raster scans from 130MB to ~30MB).
     Returns True if compression succeeded.
     """
-    # --- ENGINE 1: PyMuPDF (fitz) - High Performance & Deep Image Compression ---
-    try:
-        import fitz
-        print("⚡ Using PyMuPDF (fitz) engine for PDF compression...")
-        doc = fitz.open(input_path)
-        
-        # Save with maximal stream compression, image deflating, font deflating & garbage collection
-        doc.save(
-            output_path,
-            garbage=4,
-            deflate=True,
-            deflate_images=True,
-            deflate_fonts=True
-        )
-        doc.close()
-        
-        if os.path.exists(output_path) and os.path.getsize(output_path) > 0:
-            print("✅ PyMuPDF compression completed successfully.")
-            return True
-    except Exception as fitz_err:
-        print(f"⚠️ PyMuPDF engine error/not available: {fitz_err}. Falling back to pypdf...")
-
-    # --- ENGINE 2: pypdf with Pillow Image Optimization ---
     try:
         from pypdf import PdfReader, PdfWriter
 
         reader = PdfReader(input_path)
         writer = PdfWriter()
 
+        print(f"📄 Processing {len(reader.pages)} PDF pages for scan image compression...")
+
+        # Step 1: Add all pages to writer so objects are registered in writer
         for page in reader.pages:
-            # Recompress embedded raster scan images (JPEG quality 65)
+            writer.add_page(page)
+
+        # Step 2: Recompress embedded raster scan images and deflate content streams on writer.pages
+        for page in writer.pages:
             try:
                 for img_obj in page.images:
                     try:
-                        img_obj.replace(img_obj.image, quality=65)
+                        pil_img = img_obj.image
+                        if pil_img.mode in ("RGBA", "P"):
+                            pil_img = pil_img.convert("RGB")
+                        img_obj.replace(pil_img, quality=55)
                     except Exception:
                         pass
             except Exception:
@@ -85,8 +70,6 @@ def compress_pdf_hd(input_path: str, output_path: str) -> bool:
                 page.compress_content_streams()
             except Exception:
                 pass
-
-            writer.add_page(page)
 
         try:
             writer.compress_identical_objects(remove_duplicates=True, remove_unreferenced=True)
@@ -106,7 +89,7 @@ def compress_pdf_hd(input_path: str, output_path: str) -> bool:
         return os.path.exists(output_path) and os.path.getsize(output_path) > 0
 
     except Exception as e:
-        print(f"⚠️ PDF Compression fallback error: {e}")
+        print(f"⚠️ PDF Compression error: {e}")
         return False
 
 
