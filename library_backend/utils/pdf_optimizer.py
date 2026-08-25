@@ -37,9 +37,33 @@ def get_file_size(file_obj: Union[UploadFile, str, io.BytesIO]) -> int:
 def compress_pdf_hd(input_path: str, output_path: str) -> bool:
     """
     Compresses a PDF file while preserving crisp HD vector text and readable images.
-    Uses memory-efficient page-by-page streaming.
+    Uses PyMuPDF (fitz) for ultra-fast and deep image/stream compression,
+    with pypdf + Pillow image downsampling as a fallback.
     Returns True if compression succeeded.
     """
+    # --- ENGINE 1: PyMuPDF (fitz) - High Performance & Deep Image Compression ---
+    try:
+        import fitz
+        print("⚡ Using PyMuPDF (fitz) engine for PDF compression...")
+        doc = fitz.open(input_path)
+        
+        # Save with maximal stream compression, image deflating, font deflating & garbage collection
+        doc.save(
+            output_path,
+            garbage=4,
+            deflate=True,
+            deflate_images=True,
+            deflate_fonts=True
+        )
+        doc.close()
+        
+        if os.path.exists(output_path) and os.path.getsize(output_path) > 0:
+            print("✅ PyMuPDF compression completed successfully.")
+            return True
+    except Exception as fitz_err:
+        print(f"⚠️ PyMuPDF engine error/not available: {fitz_err}. Falling back to pypdf...")
+
+    # --- ENGINE 2: pypdf with Pillow Image Optimization ---
     try:
         from pypdf import PdfReader, PdfWriter
 
@@ -47,16 +71,26 @@ def compress_pdf_hd(input_path: str, output_path: str) -> bool:
         writer = PdfWriter()
 
         for page in reader.pages:
+            # Recompress embedded raster scan images (JPEG quality 65)
             try:
-                page.compress_content_streams()  # Deflate content streams
+                for img_obj in page.images:
+                    try:
+                        img_obj.replace(img_obj.image, quality=65)
+                    except Exception:
+                        pass
             except Exception:
                 pass
+
+            try:
+                page.compress_content_streams()
+            except Exception:
+                pass
+
             writer.add_page(page)
 
-        # Compress duplicate streams, font subsets, and identical objects
         try:
             writer.compress_identical_objects(remove_duplicates=True, remove_unreferenced=True)
-        except TypeError:
+        except Exception:
             try:
                 writer.compress_identical_objects(remove_identicals=True, remove_orphans=True)
             except Exception:
@@ -65,14 +99,14 @@ def compress_pdf_hd(input_path: str, output_path: str) -> bool:
         with open(output_path, "wb") as f_out:
             writer.write(f_out)
 
-        # Force garbage collection for large 1GB files
         del reader
         del writer
         gc.collect()
 
-        return True
+        return os.path.exists(output_path) and os.path.getsize(output_path) > 0
+
     except Exception as e:
-        print(f"⚠️ PDF Compression engine error: {e}")
+        print(f"⚠️ PDF Compression fallback error: {e}")
         return False
 
 
