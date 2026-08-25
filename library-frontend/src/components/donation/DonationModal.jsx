@@ -37,10 +37,10 @@ const DonationModal = ({ isOpen, onClose }) => {
         }
     };
 
-    const getImageUrl = (path) => {
-        if (!path) return DEFAULT_POSTER;
-        if (path.startsWith('http')) return path;
-        return `${API_BASE_URL}${path}`;
+    const getImageUrl = (p) => {
+        if (!p) return `${DEFAULT_POSTER}?v=20260825`;
+        const cleanUrl = p.startsWith('http') ? p : `${API_BASE_URL}${p}`;
+        return `${cleanUrl}?v=20260825`;
     };
 
     const copyToClipboard = (text, field) => {
