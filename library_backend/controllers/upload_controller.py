@@ -14,7 +14,7 @@ router = APIRouter()
 @router.post("/image", dependencies=[Depends(require_permission("FILE_UPLOAD"))])
 async def upload_image(file: UploadFile = File(...)):
     await validate_image(file)
-    url = upload_to_cloudinary(file, folder="booknest/covers")
+    url = smart_upload(file, folder="booknest/covers", resource_type="image")
     if not url:
         raise HTTPException(status_code=500, detail="Image upload failed on server.")
     return {"url": url}
