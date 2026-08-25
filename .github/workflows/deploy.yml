@@ -24,45 +24,18 @@ jobs:
           git push origin HEAD:refs/heads/master --force
           echo "✅ Master branch is now 100% synchronized with main!"
 
-      - name: 🌐 Deploy via SSH Key
-        if: "${{ secrets.VPS_SSH_KEY != '' }}"
+      - name: 🌐 Deploy via SSH to VPS
         uses: appleboy/ssh-action@v1.0.3
         with:
-          host: ${{ secrets.VPS_HOST || '178.16.139.231' }}
-          username: ${{ secrets.VPS_USER || 'root' }}
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
-          port: ${{ secrets.VPS_PORT || 22 }}
+          port: 22
           timeout: 60s
           command_timeout: 30m
           script_stop: true
           script: |
-            echo "🚀 Starting Deployment on VPS via SSH Key..."
-            cd /root/kil-library || cd ~/kil-library
-            echo "📦 Pulling latest changes from main branch..."
-            git fetch origin main
-            git reset --hard origin/main
-            echo "🐳 Building & restarting Docker containers..."
-            docker compose up -d --build --remove-orphans
-            echo "🗄️ Checking database schema..."
-            docker compose exec -T backend python create_tables.py || true
-            docker compose exec -T backend python setup_admin.py || true
-            echo "🧹 Cleaning unused docker images..."
-            docker image prune -f
-            echo "✅ Deployment Completed Successfully!"
-
-      - name: 🌐 Deploy via SSH Password
-        if: "${{ secrets.VPS_SSH_KEY == '' && secrets.VPS_PASSWORD != '' }}"
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.VPS_HOST || '178.16.139.231' }}
-          username: ${{ secrets.VPS_USER || 'root' }}
-          password: ${{ secrets.VPS_PASSWORD }}
-          port: ${{ secrets.VPS_PORT || 22 }}
-          timeout: 60s
-          command_timeout: 30m
-          script_stop: true
-          script: |
-            echo "🚀 Starting Deployment on VPS via Password..."
+            echo "🚀 Starting Deployment on VPS..."
             cd /root/kil-library || cd ~/kil-library
             echo "📦 Pulling latest changes from main branch..."
             git fetch origin main
