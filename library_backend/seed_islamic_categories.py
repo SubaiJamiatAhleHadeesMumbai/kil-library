@@ -166,3 +166,88 @@ def clean_and_seed_categories(db: Session = None):
 
 if __name__ == "__main__":
     clean_and_seed_categories()
+    seed_announcement_post()
+    seed_donation_info()
+
+def seed_announcement_post(db: Session = None):
+    close_db = False
+    if db is None:
+        db = SessionLocal()
+        close_db = True
+
+    try:
+        from models.post_model import MarkazPost
+        from models.user_model import User
+        
+        admin_user = db.query(User).first()
+        author_id = admin_user.id if admin_user else None
+
+        title = "یک روزہ دورۂ علمیہ (شرح الأصول الثلاثة)"
+        content = """ضلعی جمعیت اہل حدیث رتناگری کی زیر سرپرستی طلبہ اور عوام کے لیے یک روزہ دورۂ علمیہ برائے شرح الأصول الثلاثة۔
+
+📅 بتاریخ: 23 اگست 2026ء / 9 ربیع الاول 1448ھ (بروز اتوار، صبح 9 بجے تا مغرب)
+🕌 بمقام: جامع مسجد اہل حدیث، ملت نگر، چپلوں
+🎙️ مدرس: فضیلۃ الشیخ عنایت اللہ سنابلی مدنی حفظہ اللہ (داعی و باحث صوبائی جمعیت اہل حدیث ممبئی)
+📍 زیر اہتمام: ادارہ دعوة القرآن والسنہ، چپلوں، رتناگری
+📞 رابطہ نمبرات برائے رجسٹریشن: 7387077408, 8007240297, 7030609113
+
+نوٹ: تمام شرکاء کے لیے ناشتے اور ظہرانے کا معقول انتظام رہے گا۔ خواتین کے لیے بھی پردے کا معقول انتظام ہے۔"""
+        file_url = "https://www.ahlehadeeskokan.com/uploads/posters/dora_ilmiya_poster.jpg"
+
+        existing = db.query(MarkazPost).filter(MarkazPost.title == title).first()
+        if not existing:
+            post = MarkazPost(
+                title=title,
+                content=content,
+                tags="دورۂ علمیہ, اعلانات, پروگرام, شرح الأصول الثلاثة",
+                media_type="image",
+                file_url=file_url,
+                author_id=author_id
+            )
+            db.add(post)
+            db.commit()
+            print("✅ Created Announcement Post for Dora-e-Ilmiya!")
+        else:
+            existing.content = content
+            existing.file_url = file_url
+            existing.media_type = "image"
+            existing.tags = "دورۂ علمیہ, اعلانات, پروگرام, شرح الأصول الثلاثة"
+            db.commit()
+            print("✅ Updated Announcement Post for Dora-e-Ilmiya!")
+    except Exception as e:
+        db.rollback()
+        print(f"❌ Announcement post error: {e}")
+    finally:
+        if close_db:
+            db.close()
+
+def seed_donation_info(db: Session = None):
+    close_db = False
+    if db is None:
+        db = SessionLocal()
+        close_db = True
+
+    try:
+        from models.donation_models import DonationInfo
+        
+        info = db.query(DonationInfo).first()
+        if not info:
+            info = DonationInfo()
+            db.add(info)
+
+        img_url = "https://www.ahlehadeeskokan.com/uploads/donation/donation_poster.jpg"
+        info.qr_code_desktop = img_url
+        info.qr_code_mobile = img_url
+        info.bank_desktop = img_url
+        info.bank_mobile = img_url
+        info.appeal_desktop = img_url
+        info.appeal_mobile = img_url
+
+        db.commit()
+        print("✅ Seeded DonationInfo with Central Bank of India & QR Poster!")
+    except Exception as e:
+        db.rollback()
+        print(f"❌ Donation info seed error: {e}")
+    finally:
+        if close_db:
+            db.close()

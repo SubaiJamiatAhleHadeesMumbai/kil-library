@@ -188,14 +188,20 @@ const Login = () => {
       authService.setUser?.(user, rememberMe);
       setAuthData({ access_token: token, user }, token);
 
-      if (isAdminUser(user)) {
-        navigate("/admin/dashboard", { replace: true });
+      const from = location.state?.from?.pathname;
+      const safeRedirect = from && from !== "/login" && from !== "/register" && from.startsWith("/");
+
+      if (safeRedirect) {
+        navigate(from, { replace: true });
         return;
       }
 
-      const from = location.state?.from?.pathname;
-      const safeRedirect = from && from !== "/login" && from !== "/register" && from.startsWith("/");
-      navigate(safeRedirect ? from : "/", { replace: true });
+      // If user is Admin, redirect to Admin Dashboard; Normal users always go to Homepage ("/")
+      if (isAdminUser(user)) {
+        navigate("/admin/dashboard", { replace: true });
+      } else {
+        navigate("/", { replace: true });
+      }
     },
     [navigate, location, setAuthData, rememberMe]
   );

@@ -1,3 +1,4 @@
+import StandardFormattedText from "../components/common/StandardFormattedText";
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import {
@@ -144,63 +145,32 @@ const ErrorState = ({ onRetry }) => (
   </div>
 );
 
-// Sub-component: Hero & Introduction Section
-const IntroSection = ({ settings, heroImage }) => (
-  <section className="grid gap-8 overflow-hidden rounded-[2.5rem] border border-slate-200/80 bg-white/90 shadow-[0_25px_80px_-20px_rgba(15,23,42,0.08)] backdrop-blur-sm lg:grid-cols-[1.1fr_0.9fr]">
-    <div className="p-8 sm:p-10 lg:p-14 flex flex-col justify-center">
-      <div className="inline-flex items-center gap-2 rounded-full bg-[#002147]/5 px-3.5 py-1 text-xs font-bold uppercase tracking-[0.25em] text-[#002147] w-fit">
-        <SparklesIcon className="h-3.5 w-3.5 text-[#002147]" /> Introduction
+// Sub-component: Hero & Introduction Section (Clean Full-Width HD Makhtota without Image)
+const IntroSection = ({ settings }) => (
+  <section className="w-full overflow-hidden rounded-[2.5rem] border-2 border-[#E2D4BE] bg-[#FAF6EE] p-8 sm:p-12 lg:p-16 shadow-[inset_0_0_50px_rgba(180,140,75,0.04),0_10px_30px_rgba(0,0,0,0.03)] ring-1 ring-[#D8C6A5]">
+    <div className="flex flex-col text-right" dir="rtl">
+      <div className="flex items-center justify-between border-b border-[#E2D4BE] pb-4 mb-6">
+        <div className="inline-flex items-center gap-2 rounded-full bg-[#8B6E32]/10 px-4 py-1.5 text-xs font-bold uppercase tracking-[0.2em] text-[#8B6E32] w-fit">
+          📜 تعارف و پس منظر
+        </div>
+        <span className="text-sm font-serif text-[#8B6E32] tracking-widest">
+          ✦ ✦ ✦
+        </span>
       </div>
 
-      <h2 className="mt-4 text-3xl font-black tracking-tight text-slate-900 sm:text-4xl">
-        {settings.intro?.title || 'Introduction'}
+      <h2
+        className="text-2xl sm:text-3xl lg:text-4xl font-black text-[#002147] mb-6"
+        style={{ fontFamily: "'Noto Nastaliq Urdu', 'JameelNoori', serif" }}
+      >
+        {settings.hero?.title || settings.intro?.title || 'مرکز الدعوۃ الاسلامیۃ والخیریہ (سونس، کھیڈ - رتناگری)'}
       </h2>
 
-      {settings.intro?.description && (
-        <p className="mt-4 text-base leading-8 text-slate-600 font-normal">{settings.intro.description}</p>
-      )}
-
-      <div className="mt-6 grid gap-4 sm:grid-cols-2">
-        {(settings.intro?.paragraphs || []).slice(0, 2).map((paragraph, index) => (
-          <div
-            key={index}
-            className="group rounded-2xl border border-slate-200/90 bg-gradient-to-br from-slate-50/80 to-white p-5 text-sm leading-7 text-slate-600 transition-all hover:border-[#002147]/30 hover:shadow-sm"
-          >
-            <p>{paragraph}</p>
-          </div>
-        ))}
-      </div>
-    </div>
-
-    <div className="relative min-h-[340px] bg-slate-100 overflow-hidden group">
-      {heroImage ? (
-        <>
-          <img
-            src={heroImage}
-            alt={settings.hero?.title || 'About library'}
-            className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-slate-950/60 via-transparent to-transparent" />
-          <div className="absolute bottom-6 left-6 right-6 text-white">
-            <span className="inline-flex rounded-full bg-white/20 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.2em] backdrop-blur-md">
-              Library Campus
-            </span>
-            <h3 className="mt-2 text-xl font-bold">{settings.hero?.title || 'Markaz Library'}</h3>
-          </div>
-        </>
-      ) : (
-        <div className="flex h-full min-h-[340px] items-center justify-center bg-gradient-to-br from-[#002147] via-[#0f4c81] to-cyan-700 px-8 text-center text-white relative">
-          <div className="relative z-10 max-w-sm">
-            <div className="mx-auto h-12 w-12 rounded-2xl bg-white/10 flex items-center justify-center backdrop-blur-md mb-4">
-              <BookOpenIcon className="h-6 w-6 text-cyan-200" />
-            </div>
-            <p className="text-xs font-bold uppercase tracking-[0.35em] text-cyan-200/80">Markaz Library</p>
-            <h3 className="mt-2 text-2xl font-black">Knowledge, Learning & Heritage</h3>
-            <p className="mt-3 text-xs leading-6 text-cyan-50/80">
-              Add a custom hero image from the admin panel to personalize the library identity.
-            </p>
-          </div>
-        </div>
+      {(settings.hero?.description || settings.intro?.description) && (
+        <StandardFormattedText
+          text={settings.hero?.description || settings.intro?.description}
+          makhtotaPaper={false}
+          showZoomControls={true}
+        />
       )}
     </div>
   </section>
@@ -293,8 +263,7 @@ const UlmaPreviewSection = ({ quotes, ulmaPreview, ulmaPreviewLimit, onOpenModal
         </div>
         <h2 className="mt-2 text-2xl sm:text-3xl font-black text-slate-900">Praise & guidance about the library</h2>
       </div>
-      <div className="flex flex-col items-start gap-3 sm:items-end">
-        <button
+              <button
           onClick={onOpenModal}
           disabled={quotes.length === 0}
           className="inline-flex items-center gap-2 rounded-full bg-[#002147] px-6 py-2.5 text-sm font-bold text-white shadow-sm transition-all hover:bg-[#12315a] disabled:cursor-not-allowed disabled:bg-slate-300 focus:outline-none focus:ring-2 focus:ring-[#002147] focus:ring-offset-2"
@@ -302,9 +271,8 @@ const UlmaPreviewSection = ({ quotes, ulmaPreview, ulmaPreviewLimit, onOpenModal
           Open Ulma Gallery <ArrowRightIcon className="h-4 w-4" />
         </button>
       </div>
-    </div>
 
-    <div className="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+      <div className="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
       {ulmaPreview.length > 0 ? (
         ulmaPreview.map((item, index) => {
           const imageUrl = resolveImageUrl(item.image_url);
@@ -314,7 +282,7 @@ const UlmaPreviewSection = ({ quotes, ulmaPreview, ulmaPreviewLimit, onOpenModal
               className="group flex flex-col justify-between rounded-2xl border border-slate-200/90 bg-gradient-to-b from-slate-50/60 to-white p-5 shadow-sm transition-all duration-300 hover:shadow-md hover:border-slate-300 relative overflow-hidden"
             >
               <div className="absolute top-2 right-4 text-slate-200 text-6xl font-serif select-none pointer-events-none opacity-40">
-                â€œ
+                “
               </div>
               <div className="relative z-10">
                 <div className="flex items-center gap-4">
@@ -337,7 +305,7 @@ const UlmaPreviewSection = ({ quotes, ulmaPreview, ulmaPreviewLimit, onOpenModal
                 </div>
 
                 <p className="mt-4 line-clamp-4 text-sm leading-6 text-slate-700 italic">
-                  â€œ{item.quote || 'Add a quote from the admin panel.'}â€
+                  “{item.quote || 'Add a quote from the admin panel.'}”
                 </p>
               </div>
 
@@ -453,7 +421,7 @@ const UlmaModal = ({ isOpen, onClose, quotes, page, setPage, totalPages }) => {
                         </p>
                       </div>
                     </div>
-                    <p className="mt-4 text-sm leading-7 text-slate-700 italic">â€œ{item.quote || 'No quote provided.'}â€</p>
+                    <p className="mt-4 text-sm leading-7 text-slate-700 italic">“{item.quote || 'No quote provided.'}”</p>
                   </div>
 
                   {item.source_url ? (
@@ -605,7 +573,7 @@ const AboutUs = () => {
   return (
     <div className="bg-[radial-gradient(circle_at_top,_rgba(0,33,71,0.06),_transparent_40%),linear-gradient(180deg,_#f8fbff_0%,_#ffffff_50%,_#f8fafc_100%)] min-h-screen">
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        <IntroSection settings={settings} heroImage={heroImage} />
+        <IntroSection settings={settings} />
 
         <GalleryPreviewSection
           galleryVisible={galleryVisible}

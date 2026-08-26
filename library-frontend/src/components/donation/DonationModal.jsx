@@ -4,40 +4,50 @@ import {
     QrCodeIcon, 
     BuildingLibraryIcon, 
     DocumentTextIcon,
+    DocumentDuplicateIcon,
+    CheckIcon,
     DevicePhoneMobileIcon,
     ComputerDesktopIcon
 } from '@heroicons/react/24/outline';
 import { donationService } from '../../api/donationService';
 
-// âœ… Config: API Base URL
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || (import.meta.env.PROD ? "" : "http://127.0.0.1:8000");
+const DEFAULT_POSTER = "/uploads/donation/markaz_donation_qr_2026.png";
 
 const DonationModal = ({ isOpen, onClose }) => {
-    const [activeTab, setActiveTab] = useState('qr'); // 'qr', 'bank', 'appeal'
+    const [activeTab, setActiveTab] = useState('qr');
     const [data, setData] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [copiedField, setCopiedField] = useState(null);
 
     useEffect(() => {
         if (isOpen) {
-            fetchData();
+            fetchDonationData();
         }
     }, [isOpen]);
 
-    const fetchData = async () => {
+    const fetchDonationData = async () => {
+        setLoading(true);
         try {
             const result = await donationService.getDonationDetails();
             setData(result);
-        } catch (error) {
+        } catch {
             console.error("Failed to load donation info");
         } finally {
             setLoading(false);
         }
     };
 
-    const getImageUrl = (path) => {
-        if (!path) return null;
-        if (path.startsWith('http')) return path;
-        return `${API_BASE_URL}${path}`;
+    const getImageUrl = (p) => {
+        if (!p || p.includes("donation_poster.jpg")) return DEFAULT_POSTER;
+        const cleanUrl = p.startsWith('http') ? p : `${API_BASE_URL}${p}`;
+        return cleanUrl;
+    };
+
+    const copyToClipboard = (text, field) => {
+        navigator.clipboard.writeText(text);
+        setCopiedField(field);
+        setTimeout(() => setCopiedField(null), 2000);
     };
 
     if (!isOpen) return null;
@@ -88,7 +98,7 @@ const DonationModal = ({ isOpen, onClose }) => {
                     />
                 </div>
 
-                {/* --- Content Area (Responsive Logic) --- */}
+                {/* --- Content Area --- */}
                 <div className="p-0 flex-1 overflow-y-auto bg-gray-100/50 flex flex-col items-center justify-start min-h-[300px] relative">
                     
                     {loading ? (
@@ -97,106 +107,90 @@ const DonationModal = ({ isOpen, onClose }) => {
                             <p className="text-sm font-medium">Loading details...</p>
                         </div>
                     ) : (
-                        <div className="w-full h-full flex flex-col items-center animate-in fade-in slide-in-from-bottom-4 duration-300">
+                        <div className="w-full h-full flex flex-col items-center p-4">
                             
-                            {/* ==========================
-                                1. QR CODE VIEW 
-                               ========================== */}
+                            {/* 1. QR CODE VIEW */}
                             {activeTab === 'qr' && (
-                                <div className="w-full h-full flex flex-col items-center justify-center p-4">
-                                    {/* ðŸ“± MOBILE VIEW (Visible only on small screens) */}
-                                    <div className="block md:hidden w-full">
-                                        {data?.qr_code_mobile ? (
-                                            <img 
-                                                src={getImageUrl(data.qr_code_mobile)} 
-                                                alt="QR Mobile" 
-                                                className="w-full h-auto rounded-lg shadow-md border border-gray-200"
-                                            />
-                                        ) : (
-                                            <NoImagePlaceholder type="Mobile" />
-                                        )}
-                                        <p className="text-xs text-center text-gray-400 mt-2 flex items-center justify-center gap-1"><DevicePhoneMobileIcon className="w-3 h-3"/> Mobile View</p>
-                                    </div>
-
-                                    {/* ðŸ’» DESKTOP VIEW (Visible only on medium/large screens) */}
-                                    <div className="hidden md:block w-full text-center">
-                                        {data?.qr_code_desktop ? (
-                                            <img 
-                                                src={getImageUrl(data.qr_code_desktop)} 
-                                                alt="QR Desktop" 
-                                                className="max-w-[80%] max-h-[60vh] mx-auto rounded-lg shadow-md border border-gray-200"
-                                            />
-                                        ) : (
-                                            <NoImagePlaceholder type="Desktop" />
-                                        )}
-                                         <p className="text-xs text-center text-gray-400 mt-2 flex items-center justify-center gap-1"><ComputerDesktopIcon className="w-3 h-3"/> Desktop View</p>
-                                    </div>
+                                <div className="w-full flex flex-col items-center">
+                                    <img 
+                                        src={getImageUrl(data?.qr_code_desktop || data?.qr_code_mobile)} 
+                                        alt="QR Code" 
+                                        className="max-h-[60vh] max-w-full rounded-lg shadow-md border border-gray-200 object-contain"
+                                    />
                                 </div>
                             )}
 
-                            {/* ==========================
-                                2. BANK DETAILS VIEW 
-                               ========================== */}
+                            {/* 2. BANK DETAILS VIEW */}
                             {activeTab === 'bank' && (
-                                <div className="w-full h-full flex flex-col items-center justify-center p-4">
-                                    {/* ðŸ“± MOBILE */}
-                                    <div className="block md:hidden w-full">
-                                        {data?.bank_mobile ? (
-                                            <img 
-                                                src={getImageUrl(data.bank_mobile)} 
-                                                alt="Bank Mobile" 
-                                                className="w-full h-auto rounded-lg shadow-md"
-                                            />
-                                        ) : (
-                                            <NoImagePlaceholder type="Mobile" />
-                                        )}
+                                <div className="w-full flex flex-col gap-4">
+                                    {/* Copyable Bank Card */}
+                                    <div className="rounded-xl border border-blue-200 bg-blue-50 p-4 text-left shadow-sm">
+                                        <p className="text-xs font-bold uppercase tracking-wider text-blue-900">
+                                            Central Bank of India (Khed Branch)
+                                        </p>
+                                        <p className="mt-1 text-sm font-semibold text-slate-800">
+                                            MARKAZ-UD-DAAWATUL ISLAMIYAH WAL KHAIRIYAH
+                                        </p>
+
+                                        <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                                            <div className="flex items-center justify-between rounded-lg bg-white px-3 py-2 border border-blue-100 shadow-xs">
+                                                <div>
+                                                    <p className="text-[10px] text-slate-400 font-bold uppercase">Account No</p>
+                                                    <p className="text-sm font-mono font-bold text-[#002147]">3063920229</p>
+                                                </div>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => copyToClipboard("3063920229", "acc")}
+                                                    className="p-1.5 rounded-md hover:bg-blue-100 text-slate-600 transition"
+                                                    title="Copy Account Number"
+                                                >
+                                                    {copiedField === "acc" ? (
+                                                        <CheckIcon className="w-4 h-4 text-emerald-600" />
+                                                    ) : (
+                                                        <DocumentDuplicateIcon className="w-4 h-4" />
+                                                    )}
+                                                </button>
+                                            </div>
+
+                                            <div className="flex items-center justify-between rounded-lg bg-white px-3 py-2 border border-blue-100 shadow-xs">
+                                                <div>
+                                                    <p className="text-[10px] text-slate-400 font-bold uppercase">IFSC Code</p>
+                                                    <p className="text-sm font-mono font-bold text-[#002147]">CBIN0283345</p>
+                                                </div>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => copyToClipboard("CBIN0283345", "ifsc")}
+                                                    className="p-1.5 rounded-md hover:bg-blue-100 text-slate-600 transition"
+                                                    title="Copy IFSC Code"
+                                                >
+                                                    {copiedField === "ifsc" ? (
+                                                        <CheckIcon className="w-4 h-4 text-emerald-600" />
+                                                    ) : (
+                                                        <DocumentDuplicateIcon className="w-4 h-4" />
+                                                    )}
+                                                </button>
+                                            </div>
+                                        </div>
                                     </div>
 
-                                    {/* ðŸ’» DESKTOP */}
-                                    <div className="hidden md:block w-full text-center">
-                                        {data?.bank_desktop ? (
-                                            <img 
-                                                src={getImageUrl(data.bank_desktop)} 
-                                                alt="Bank Desktop" 
-                                                className="max-w-full max-h-[60vh] mx-auto rounded-lg shadow-md"
-                                            />
-                                        ) : (
-                                            <NoImagePlaceholder type="Desktop" />
-                                        )}
+                                    <div className="w-full flex justify-center">
+                                        <img 
+                                            src={getImageUrl(data?.bank_desktop || data?.bank_mobile)} 
+                                            alt="Bank Details Poster" 
+                                            className="max-h-[50vh] max-w-full rounded-lg shadow-md border border-gray-200 object-contain"
+                                        />
                                     </div>
                                 </div>
                             )}
 
-                            {/* ==========================
-                                3. APPEAL VIEW 
-                               ========================== */}
+                            {/* 3. APPEAL VIEW */}
                             {activeTab === 'appeal' && (
-                                <div className="w-full h-full flex flex-col items-center justify-center p-4">
-                                    {/* ðŸ“± MOBILE */}
-                                    <div className="block md:hidden w-full">
-                                        {data?.appeal_mobile ? (
-                                            <img 
-                                                src={getImageUrl(data.appeal_mobile)} 
-                                                alt="Appeal Mobile" 
-                                                className="w-full h-auto rounded-lg shadow-md"
-                                            />
-                                        ) : (
-                                            <NoImagePlaceholder type="Mobile" />
-                                        )}
-                                    </div>
-
-                                    {/* ðŸ’» DESKTOP */}
-                                    <div className="hidden md:block w-full text-center">
-                                        {data?.appeal_desktop ? (
-                                            <img 
-                                                src={getImageUrl(data.appeal_desktop)} 
-                                                alt="Appeal Desktop" 
-                                                className="max-w-full max-h-[60vh] mx-auto rounded-lg shadow-md"
-                                            />
-                                        ) : (
-                                            <NoImagePlaceholder type="Desktop" />
-                                        )}
-                                    </div>
+                                <div className="w-full flex flex-col items-center">
+                                    <img 
+                                        src={getImageUrl(data?.appeal_desktop || data?.appeal_mobile)} 
+                                        alt="Appeal Poster" 
+                                        className="max-h-[60vh] max-w-full rounded-lg shadow-md border border-gray-200 object-contain"
+                                    />
                                 </div>
                             )}
 
@@ -206,8 +200,8 @@ const DonationModal = ({ isOpen, onClose }) => {
 
                 {/* --- Footer --- */}
                 <div className="bg-white p-3 text-center border-t border-gray-100 shrink-0">
-                    <p className="text-[10px] text-gray-400 uppercase tracking-widest font-bold">
-                        JazakAllah Khair for your support
+                    <p className="text-xs text-slate-600 font-semibold">
+                        مرکز کی مسجد، مدرسہ اور لائبریری کی تعمیر میں تعاون کر کے عند اللہ ماجور ہوں۔
                     </p>
                 </div>
 
@@ -215,8 +209,6 @@ const DonationModal = ({ isOpen, onClose }) => {
         </div>
     );
 };
-
-// --- Sub Components ---
 
 const TabButton = ({ active, onClick, icon, label }) => (
     <button
@@ -233,11 +225,4 @@ const TabButton = ({ active, onClick, icon, label }) => (
     </button>
 );
 
-const NoImagePlaceholder = ({ type }) => (
-    <div className="w-full py-20 bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center text-gray-400">
-        <p className="font-bold">No {type} Image Found</p>
-        <p className="text-xs">Please upload from Admin Panel</p>
-    </div>
-);
-
-export default DonationModal; 
+export default DonationModal;

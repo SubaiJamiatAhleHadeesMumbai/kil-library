@@ -1,3 +1,4 @@
+import StandardFormattedText from "../components/common/StandardFormattedText";
 import React, { useEffect, useMemo, useState, useCallback } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from '../context/AuthProvider';
@@ -40,7 +41,7 @@ import aboutService from "../api/aboutService";
 import socialWorkService from "../api/socialWorkService";
 import SocialWorkCard from "../components/social_work/SocialWorkCard";
 import SocialWorkItemDetailModal from "../components/social_work/SocialWorkItemDetailModal";
-import { useBookSearch } from "../hooks/useBookSearch";
+import { useBookSearch, deduplicateBooks } from "../hooks/useBookSearch";
 import LandingPostsPreview from "../components/public/LandingPostsPreview";
 import HomepagePostersCarousel from "../components/public/HomepagePostersCarousel";
 import DonationPanel from "../components/donation/DonationPanel";
@@ -182,13 +183,6 @@ const PublicHome = () => {
   const location = useLocation();
   const { isAdmin, user, loading: authLoading } = useAuth();
 
-  // Smart Admin Redirect
-  useEffect(() => {
-    if (!authLoading && user && isAdmin) {
-      console.log("ðŸ‘®â€â™‚ï¸ Admin Detected on Public Home -> Redirecting to Dashboard");
-      navigate('/admin/dashboard', { replace: true });
-    }
-  }, [user, isAdmin, authLoading, navigate]);
 
   // Data States
   const [books, setBooks] = useState([]);
@@ -325,9 +319,9 @@ const PublicHome = () => {
     if (Array.isArray(featuredIds) && featuredIds.length) {
       const byId = new Map(books.map((b) => [b.id, b]));
       const list = featuredIds.map((id) => byId.get(id)).filter(Boolean);
-      if (list.length) return list;
+      if (list.length) return deduplicateBooks(list);
     }
-    return books.slice(0, 6);
+    return deduplicateBooks(books).slice(0, 6);
   }, [books, homepageSettings]);
 
   const recentReadBooks = useMemo(() => {
@@ -716,13 +710,13 @@ const PublicHome = () => {
                 </div>
 
                 {loading ? (
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-6">
                     {Array.from({ length: 4 }).map((_, idx) => (
                       <BookCardSkeleton key={idx} />
                     ))}
                   </div>
                 ) : featuredBooks.length > 0 ? (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-6">
                     {featuredBooks.map((book) => (
                       <PublicBookCard
                         key={book.id}
@@ -877,12 +871,17 @@ const PublicHome = () => {
           );
         }
 
-        // ABOUT SECTION PREVIEW
+                        // ABOUT SECTION PREVIEW (Home page initial intro preview in Makhtota format)
         if (key === 'about' && getSectionConfig('about', { enabled: false }).enabled !== false) {
           const aboutConfig = getSectionConfig('about', {});
-          const aboutHeroImage = resolveImageUrl(aboutContent?.hero?.image_url);
-          const introDescription = aboutContent?.intro?.description || aboutConfig.description || 'Learn more about our library and mission.';
-          const introParagraphs = Array.isArray(aboutContent?.intro?.paragraphs) ? aboutContent.intro.paragraphs.filter(Boolean) : [];
+          const fullDesc = (aboutContent?.hero?.description || aboutContent?.intro?.description || "").trim();
+          
+          // Show initial intro on Home Page (up to first few sections / paragraphs)
+          let homeIntroText = fullDesc;
+          if (fullDesc) {
+            const splitMatch = fullDesc.split(/\n(?=✺\s*قیامِ مرکز|✺\s*اغراض)/);
+            homeIntroText = splitMatch[0] ? splitMatch[0].trim() : fullDesc;
+          }
 
           return (
             <div key="about" className="app-shell-container pb-4 sm:pb-8">
@@ -890,10 +889,13 @@ const PublicHome = () => {
                 <div className="mb-4 flex flex-col sm:flex-row items-start sm:items-end justify-between gap-4">
                   <div className="flex-1">
                     <p className="eyebrow text-xs font-extrabold uppercase tracking-widest" style={{ color: accentColor }}>
-                      {aboutConfig.title || 'About Page'}
+                      {aboutConfig.title || 'مرکز کا تعارف'}
                     </p>
-                    <h3 className="section-title text-xl sm:text-2xl font-extrabold text-slate-900 mt-1">
-                      {aboutContent?.intro?.title || aboutConfig.subtitle || 'Learn about our library'}
+                    <h3
+                      className="section-title text-xl sm:text-2xl font-extrabold text-slate-900 mt-1"
+                      style={{ fontFamily: "'Noto Nastaliq Urdu', 'JameelNoori', serif" }}
+                    >
+                      {aboutContent?.hero?.title || 'مرکز الدعوۃ الاسلامیۃ والخیریہ (سونس، کھیڈ - رتناگری)'}
                     </h3>
                   </div>
                   <button
@@ -901,40 +903,47 @@ const PublicHome = () => {
                     className="inline-flex items-center gap-2 rounded-full px-6 py-3 text-sm font-bold text-white transition-all shadow-lg hover:shadow-xl hover:opacity-95 focus:outline-none focus:ring-2 focus:ring-offset-2 whitespace-nowrap"
                     style={{ backgroundColor: accentColor, outlineColor: accentColor }}
                   >
-                    Read More <ArrowRightIcon className="h-4 w-4" />
+                    مزید پڑھیں <ArrowRightIcon className="h-4 w-4" />
                   </button>
                 </div>
-                <div className="grid gap-4 overflow-hidden rounded-3xl border border-slate-200/80 bg-white shadow-2xs lg:grid-cols-[1.1fr_0.9fr]">
-                  <div className="p-5 sm:p-6 flex flex-col justify-between">
-                    <div className="space-y-2">
-                      <p className="text-sm sm:text-base leading-relaxed text-slate-700 font-medium">{introDescription}</p>
-                      {introParagraphs.slice(0, 1).map((paragraph, index) => (
-                        <p key={`${paragraph}-${index}`} className="text-xs sm:text-sm leading-relaxed text-slate-500 line-clamp-2">
-                          {paragraph}
-                        </p>
-                      ))}
+
+                {/* Full-Width Makhtota Manuscript Card without image */}
+                <div className="w-full overflow-hidden rounded-[2.5rem] border-2 border-[#E2D4BE] bg-[#FAF6EE] p-6 sm:p-10 shadow-[inset_0_0_40px_rgba(180,140,75,0.04),0_8px_24px_rgba(0,0,0,0.03)] ring-1 ring-[#D8C6A5]">
+                  <div className="flex flex-col justify-between" dir="rtl">
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between border-b border-[#E2D4BE] pb-3 mb-4">
+                        <div className="inline-flex items-center gap-2 rounded-full bg-[#8B6E32]/10 px-4 py-1 text-xs font-bold text-[#8B6E32] w-fit">
+                          📜 تعارف و پس منظر
+                        </div>
+                        <span className="text-xs font-serif text-[#8B6E32] tracking-widest">
+                          ✦ ✦ ✦
+                        </span>
+                      </div>
+
+                      {homeIntroText ? (
+                        <StandardFormattedText
+                          text={homeIntroText}
+                          makhtotaPaper={false}
+                          showZoomControls={false}
+                        />
+                      ) : null}
                     </div>
-                    <div className="mt-5">
+
+                    <div className="mt-8 pt-4 border-t border-[#E8DEC9] flex flex-wrap items-center justify-between gap-4">
                       <button
                         onClick={() => navigateToTop('/about')}
-                        className="inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-xs font-extrabold text-white transition-all shadow-xs hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-[#002147]"
+                        className="inline-flex items-center gap-2 rounded-full px-7 py-3 text-sm font-bold text-white transition-all shadow-sm hover:opacity-95 focus:outline-none focus:ring-2 focus:ring-[#002147]"
                         style={{ backgroundColor: accentColor }}
                       >
-                        Learn More <ArrowRightIcon className="h-4 w-4" />
+                        مکمل تعارف و سرگرمیاں پڑھیں <ArrowRightIcon className="h-4 w-4" />
                       </button>
+                      <span
+                        className="text-xs sm:text-sm font-semibold text-[#8B6E32]"
+                        style={{ fontFamily: "'Noto Nastaliq Urdu', serif" }}
+                      >
+                        مرکز کے اغراض و مقاصد اور شاخیں ←
+                      </span>
                     </div>
-                  </div>
-                  <div className="min-h-[180px] max-h-[250px] bg-slate-100 overflow-hidden relative">
-                    {aboutHeroImage ? (
-                      <img src={aboutHeroImage} alt={aboutContent?.hero?.title || 'About the library'} className="h-full w-full object-cover" loading="lazy" />
-                    ) : (
-                      <div className="flex h-full min-h-[180px] items-center justify-center bg-gradient-to-br from-[#002147] via-[#0f4c81] to-cyan-700 p-6 text-center text-white">
-                        <div>
-                          <p className="text-xs font-bold uppercase tracking-widest text-cyan-200/80">Markaz Library</p>
-                          <h4 className="mt-2 text-xl font-extrabold">Library, learning, and community</h4>
-                        </div>
-                      </div>
-                    )}
                   </div>
                 </div>
               </div>
@@ -1174,7 +1183,7 @@ const PublicHome = () => {
                     )}
 
                     {/* Main Book Grid */}
-                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-6">
                       {finalBooks.map((book) => (
                         <PublicBookCard
                           key={book.id}

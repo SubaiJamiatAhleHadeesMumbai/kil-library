@@ -1,9 +1,10 @@
-# 📚 KIL Library System — Complete Project History, Architecture & Technical Guide
+# 📚 Kokan Islamic Library (KIL) — Complete Project History, Technical Architecture & Operational Guide
 
-**Repository**: [https://github.com/SubaiJamiatAhleHadeesMumbai/kil-library](https://github.com/SubaiJamiatAhleHadeesMumbai/kil-library)  
-**Live Production URL**: [https://www.ahlehadeeskokan.com](https://www.ahlehadeeskokan.com)  
-**Admin Portal**: [https://www.ahlehadeeskokan.com/admin](https://www.ahlehadeeskokan.com/admin) (Default Credentials: `admin` / `admin`)  
-**Last Updated**: February 2026
+> **Document Version:** 2.2  
+> **Last Synchronized:** 2026-08-25  
+> **Production Target:** `https://www.ahlehadeeskokan.com` (VPS IP: `178.16.139.231`)  
+> **GitHub Repository:** `https://github.com/SubaiJamiatAhleHadeesMumbai/kil-library.git` (`main` & `master`)  
+> **CI/CD Pipeline Status:** 🟢 Active & 100% Successful (Native OpenSSH automated Docker deployment)
 
 ---
 

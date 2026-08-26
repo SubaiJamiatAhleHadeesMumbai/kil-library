@@ -39,7 +39,9 @@ const PdfViewer = ({
   useEffect(() => {
     const updateWidth = () => {
       if (containerRef.current) {
-        setContainerWidth(containerRef.current.offsetWidth - 48); // padding
+        const w = containerRef.current.offsetWidth;
+        const pad = window.innerWidth < 768 ? 16 : 48;
+        setContainerWidth(Math.max(280, w - pad));
       }
     };
     updateWidth();
@@ -47,8 +49,8 @@ const PdfViewer = ({
     return () => window.removeEventListener('resize', updateWidth);
   }, []);
 
-  // Automatic scaling for mobile devices
-  const dynamicScale = containerWidth < 768 ? (containerWidth / 600) * scale : scale;
+  // Automatic scaling for mobile devices based on standard A4 PDF width (595.28 pt)
+  const dynamicScale = containerWidth < 768 ? Math.max(0.45, (containerWidth / 595.28) * scale) : scale;
 
   const renderHighlightedText = (textItem) => {
     if (!searchText || !textItem?.str) return textItem.str;
@@ -117,49 +119,73 @@ const PdfViewer = ({
       ref={containerRef}
       className="flex-1 min-h-0 bg-[#F8FAFC] relative flex flex-col items-stretch overflow-hidden h-full"
     >
-      {/* --- TOP FLOATING CONTROLS --- */}
+      {/* --- SLEEK FLOATING CONTROLS (Bottom on Mobile, Top on Desktop) --- */}
       {pdfUrl && (
-        <div className="absolute top-6 z-40 flex items-center gap-2 bg-white/80 backdrop-blur-md shadow-lg border border-slate-200 rounded-2xl px-4 py-2 transition-all hover:shadow-xl">
-          <div className="flex items-center gap-1 border-r border-slate-200 pr-3 mr-1">
-             <button 
-              onClick={() => setScale(s => Math.max(0.4, s - 0.1))} 
-              className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-600 transition"
+        <div className="fixed md:absolute bottom-4 md:bottom-auto md:top-4 left-1/2 -translate-x-1/2 z-40 flex items-center gap-1.5 sm:gap-2 bg-slate-900/90 md:bg-white/90 text-white md:text-slate-800 backdrop-blur-xl shadow-2xl md:shadow-lg border border-slate-700/60 md:border-slate-200/90 rounded-full px-3 py-1.5 sm:px-4 sm:py-2 transition-all">
+          {/* Prev page button */}
+          <button
+            onClick={handlePrev}
+            disabled={currentPage <= 1}
+            className="p-1 sm:p-1.5 hover:bg-white/20 md:hover:bg-slate-100 rounded-full disabled:opacity-30 transition"
+            title="Previous Page"
+          >
+            <ChevronLeft size={16} />
+          </button>
+
+          {/* Zoom controls */}
+          <div className="flex items-center gap-0.5 sm:gap-1 border-x border-slate-700 md:border-slate-200 px-1 sm:px-2 mx-0.5">
+            <button
+              onClick={() => setScale(s => Math.max(0.4, s - 0.1))}
+              className="p-1 hover:bg-white/20 md:hover:bg-slate-100 rounded-full text-slate-300 md:text-slate-600 transition"
+              title="Zoom Out"
             >
-              <ZoomOut size={18}/>
+              <ZoomOut size={15} />
             </button>
-            <span className="text-xs font-bold text-slate-700 min-w-[45px] text-center font-mono">
+            <span className="text-[11px] sm:text-xs font-bold min-w-[36px] sm:min-w-[42px] text-center font-mono">
               {Math.round(scale * 100)}%
             </span>
-            <button 
-              onClick={() => setScale(s => Math.min(2, s + 0.1))} 
-              className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-600 transition"
+            <button
+              onClick={() => setScale(s => Math.min(2.5, s + 0.1))}
+              className="p-1 hover:bg-white/20 md:hover:bg-slate-100 rounded-full text-slate-300 md:text-slate-600 transition"
+              title="Zoom In"
             >
-              <ZoomIn size={18}/>
+              <ZoomIn size={15} />
             </button>
           </div>
-          
-          <div className="flex items-center gap-2 text-xs font-semibold text-slate-500">
-            <span className="bg-slate-100 px-2 py-1 rounded text-indigo-600">{currentPage}</span>
-            <span>/</span>
+
+          {/* Page Jump indicator */}
+          <div className="flex items-center gap-1 text-[11px] sm:text-xs font-semibold px-1 font-mono">
+            <span className="bg-sky-500/20 md:bg-indigo-50 text-sky-300 md:text-indigo-600 px-1.5 py-0.5 rounded font-bold">{currentPage}</span>
+            <span className="opacity-40">/</span>
             <span>{totalPages}</span>
           </div>
+
+          {/* Next page button */}
+          <button
+            onClick={handleNext}
+            disabled={currentPage >= totalPages}
+            className="p-1 sm:p-1.5 hover:bg-white/20 md:hover:bg-slate-100 rounded-full disabled:opacity-30 transition"
+            title="Next Page"
+          >
+            <ChevronRight size={16} />
+          </button>
         </div>
       )}
 
-      {/* --- SIDE NAVIGATION (For Single/Dual Mode) --- */}
+      {/* --- SIDE NAVIGATION (For Single/Dual Mode on Desktop Only) --- */}
       {(viewMode === 'single' || viewMode === 'dual') && pdfUrl && (
         <>
           <button 
             onClick={handlePrev}
             disabled={currentPage === 1}
-            className="absolute left-4 top-1/2 -translate-y-1/2 z-30 p-3 bg-white shadow-xl rounded-full text-slate-700 disabled:opacity-30 hover:bg-indigo-50 transition-all border border-slate-100 group"
+            className="hidden md:flex absolute left-4 top-1/2 -translate-y-1/2 z-30 p-3 bg-white shadow-xl rounded-full text-slate-700 disabled:opacity-30 hover:bg-indigo-50 transition-all border border-slate-100 group"
           >
             <ChevronLeft size={24} className="group-hover:-translate-x-0.5 transition-transform" />
           </button>
           <button 
             onClick={handleNext}
             disabled={currentPage >= totalPages}
-            className="absolute right-4 top-1/2 -translate-y-1/2 z-30 p-3 bg-white shadow-xl rounded-full text-slate-700 disabled:opacity-30 hover:bg-indigo-50 transition-all border border-slate-100 group"
+            className="hidden md:flex absolute right-4 top-1/2 -translate-y-1/2 z-30 p-3 bg-white shadow-xl rounded-full text-slate-700 disabled:opacity-30 hover:bg-indigo-50 transition-all border border-slate-100 group"
           >
             <ChevronRight size={24} className="group-hover:translate-x-0.5 transition-transform" />
           </button>

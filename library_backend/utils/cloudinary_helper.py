@@ -1,3 +1,4 @@
+import uuid
 import cloudinary
 import cloudinary.uploader
 import os
@@ -60,10 +61,16 @@ def upload_to_cloudinary(file: UploadFile, folder: str = "library_uploads", reso
     if not has_cloudinary:
         return save_locally(file, folder)
 
-    temp_filename = f"temp_{uuid4().hex[:8]}_{file.filename}"
+    # Temporary Filename (Safe ASCII name to prevent errors with Urdu/Arabic filenames)
+    file_ext = os.path.splitext(file.filename or "doc.bin")[1].lower()
+    temp_filename = f"temp_{uuid.uuid4().hex[:12]}{file_ext}"
 
     try:
-        file.file.seek(0)
+        print(f"🚀 PROCESSING: {file.filename}")
+
+        if hasattr(file.file, "seek"):
+            file.file.seek(0)
+
         with open(temp_filename, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
 
@@ -98,5 +105,24 @@ def upload_to_cloudinary(file: UploadFile, folder: str = "library_uploads", reso
         if os.path.exists(temp_filename):
             try:
                 os.remove(temp_filename)
-            except Exception:
-                pass
+                print("🧹 Temp file cleaned")
+            except Exception as cleanup_err:
+                print(f"⚠️ Warning: Could not delete temp file: {cleanup_err}")
+
+
+def delete_from_cloudinary(url: str) -> bool:
+    """Deletes an asset from Cloudinary given its URL."""
+    if not url:
+        return False
+    try:
+        parts = url.split("/upload/")
+        if len(parts) > 1:
+            public_id_with_ext = parts[1].split("/", 1)[-1]
+            public_id = os.path.splitext(public_id_with_ext)[0]
+            print(f"🗑️ Deleting from Cloudinary: {public_id}")
+            cloudinary.uploader.destroy(public_id)
+            return True
+        return False
+    except Exception as e:
+        print(f"❌ Cloudinary Delete Error: {str(e)}")
+        return False

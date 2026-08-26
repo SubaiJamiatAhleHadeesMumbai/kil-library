@@ -158,34 +158,43 @@ def setup_initial_data():
         # ==========================================
         print("🔑 Checking Admin User...")
         admin_role = db.query(Role).filter(Role.name == "Admin").first()
-        admin_user = db.query(User).filter(User.username == "admin").first()
-        
-        # Password hardcoded for recovery
-        new_password = "admin" 
+        if not admin_role:
+            admin_role = db.query(Role).first()
+            
+        new_username = "Markaz_Burhan"
+        new_password = "Burhan*2802"
         hashed_pw = get_password_hash(new_password)
 
+        admin_user = db.query(User).filter(
+            (User.username.in_(["admin", "Markaz_Burhan", "subai_admin"])) |
+            (User.role_id == admin_role.id if admin_role else False)
+        ).first()
+
         if admin_user:
-            # Update existing admin (Fixes 401 Error)
+            # Update existing admin
+            old_name = admin_user.username
+            admin_user.username = new_username
             admin_user.password_hash = hashed_pw
-            admin_user.role_id = admin_role.id
+            if admin_role:
+                admin_user.role_id = admin_role.id
             admin_user.status = "Active"
-            print("✅ Admin user updated (Password reset to 'admin')")
+            print(f"✅ Admin user '{old_name}' updated to '{new_username}' with new password.")
         else:
             # Create new admin
             admin_user = User(
-                username="admin",
-                email="admin@library.com",
-                full_name="Super Administrator",
+                username=new_username,
+                email="admin@ahlehadeeskokan.com",
+                full_name="Markaz Burhan Admin",
                 password_hash=hashed_pw,
-                role_id=admin_role.id,
+                role_id=admin_role.id if admin_role else 1,
                 status="Active"
             )
             db.add(admin_user)
-            print("✅ Admin user created.")
+            print(f"✅ Admin user '{new_username}' created.")
 
         db.commit()
         print("\n🎉 SETUP COMPLETE! You can login with:")
-        print(f"👉 Username: admin")
+        print(f"👉 Username: {new_username}")
         print(f"👉 Password: {new_password}")
 
     except Exception as e:

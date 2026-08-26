@@ -156,31 +156,50 @@ const UserNavbar = () => {
   const showFatawaLink = sectionVisibility.fatawa?.enabled !== false;
 
   return (
-    <div className="flex flex-col w-full relative z-50 font-sans">
+    <header className="sticky top-0 z-50 flex flex-col w-full font-sans shadow-xs">
+      
+      {/* ----------------------------------------------------
+          TOP BAR
+      ---------------------------------------------------- */}
+      <div className="bg-[#001D3D] border-b border-white/5 hidden md:block">
+        <div className="app-shell-container h-9 flex items-center justify-between">
+          <div className="flex items-center gap-6">
+            <TopLink label={t("our_projects")} icon={GlobeAltIcon} />
+            {showAboutLink ? <TopLink label={t("about")} icon={InformationCircleIcon} to="/about" /> : null}
+            {showFatawaLink ? <TopLink label={t("fatawa")} icon={BookOpenIcon} to="/fatawa" /> : null}
+            <TopLink label={t("database")} icon={TableCellsIcon} />
+          </div>
+          <div className="text-white/20 text-[10px] font-bold tracking-[0.2em] uppercase">
+            Markaz Ahle Hadees Kokan
+          </div>
+        </div>
+      </div>
+
+>>>>>>> main
       {/* ----------------------------------------------------
           MAIN NAVBAR
       ---------------------------------------------------- */}
-      <nav className="sticky top-0 bg-white/80 backdrop-blur-xl border-b border-slate-200/60 shadow-sm transition-all duration-300">
+      <nav className="bg-white/95 backdrop-blur-xl border-b border-slate-200/60 shadow-xs transition-all duration-300">
         <div className="app-shell-container">
           <div className="flex items-center justify-between min-h-[4.25rem] py-2 gap-2">
             
             {/* LOGO */}
             <div className="flex items-center min-w-0 flex-1 md:flex-none">
-              <Link to="/" className="flex items-center gap-3 group" onClick={() => setIsMobileMenuOpen(false)}>
-                <div className="relative">
+              <Link to="/" className="flex items-center gap-2 sm:gap-3 group min-w-0" onClick={() => setIsMobileMenuOpen(false)}>
+                <div className="relative shrink-0">
                   <div className="absolute inset-0 rounded-full bg-blue-400/20 blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                   <img
                     src={MARKAZ_LOGO_URL}
                     alt="Logo"
-                    className="relative z-10 w-11 h-11 object-contain bg-white rounded-full border border-slate-100 shadow-sm group-hover:scale-105 transition-transform duration-300"
+                    className="relative z-10 w-9 h-9 sm:w-11 sm:h-11 object-contain bg-white rounded-full border border-slate-100 shadow-sm group-hover:scale-105 transition-transform duration-300"
                     onError={(e) => (e.currentTarget.style.display = "none")}
                   />
                 </div>
-                <div className="flex flex-col leading-none">
-                  <span className="font-extrabold text-lg text-[#002147] tracking-tight">
+                <div className="flex flex-col leading-tight min-w-0">
+                  <span className="font-extrabold text-sm sm:text-lg text-[#002147] tracking-tight truncate">
                     {t("markaz_title")}
                   </span>
-                  <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mt-0.5">
+                  <span className="text-[9px] sm:text-[10px] text-slate-500 font-bold uppercase tracking-wider truncate">
                     {t("markaz_sub")}
                   </span>
                 </div>
@@ -379,6 +398,16 @@ const UserNavbar = () => {
                              <p className="text-sm font-bold text-[#002147] truncate">{user?.username}</p>
                           </div>
                           <div className="p-1.5 space-y-1">
+                            {user && (user.role === 'Admin' || user.role === 'admin' || user.role === 'superadmin') && (
+                              <Link
+                                to="/admin/dashboard"
+                                onClick={() => setIsProfileOpen(false)}
+                                className="flex items-center gap-3 px-3 py-2.5 text-sm font-bold text-indigo-700 bg-indigo-50/70 rounded-xl hover:bg-indigo-100 transition-colors"
+                              >
+                                <ShieldCheckIcon className="w-5 h-5 text-indigo-600" />
+                                Admin Dashboard
+                              </Link>
+                            )}
                             <Link
                               to="/profile"
                               onClick={() => setIsProfileOpen(false)}
@@ -414,8 +443,9 @@ const UserNavbar = () => {
               )}
             </div>
 
-            {/* MOBILE TOGGLE & SEARCH */}
-            <div className="flex items-center gap-2 md:hidden">
+            {/* MOBILE TOGGLE, SEARCH & LANGUAGE */}
+            <div className="flex items-center gap-1.5 sm:gap-2 md:hidden">
+              <LanguageSwitcher />
               <button
                 type="button"
                 onClick={() => setIsUniversalSearchOpen(true)}
@@ -428,7 +458,8 @@ const UserNavbar = () => {
               
               <button
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                className="p-2.5 rounded-xl text-slate-600 hover:bg-slate-100 active:bg-slate-200 transition-colors"
+                className="p-2 rounded-xl text-slate-600 hover:bg-slate-100 active:bg-slate-200 transition-colors"
+                aria-label="Toggle navigation menu"
               >
                 {isMobileMenuOpen ? (
                   <XMarkIcon className="h-6 w-6" />
@@ -583,13 +614,12 @@ const UserNavbar = () => {
         isOpen={isDonationOpen}
         onClose={() => setIsDonationOpen(false)}
       />
-
       {/* UNIVERSAL SEARCH MODAL (Ctrl + K) */}
       <UniversalSearchModal
         isOpen={isUniversalSearchOpen}
         onClose={() => setIsUniversalSearchOpen(false)}
       />
-    </div>
+    </header>
   );
 };
 

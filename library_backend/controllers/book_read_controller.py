@@ -88,6 +88,52 @@ def _book_to_recommendation_payload(book: book_model.Book, score: int, reasons: 
         }
     }
 
+
+def normalize_book_title(title: Optional[str]) -> str:
+    """Normalizes Urdu, Arabic and English book titles for accurate deduplication."""
+    if not title:
+        return ""
+    t = str(title).strip().lower()
+    # Normalize Arabic / Urdu characters
+    t = t.replace('ي', 'ی').replace('ى', 'ی').replace('ك', 'ک').replace('ه', 'ہ').replace('ة', 'ہ')
+    t = t.replace('أ', 'ا').replace('إ', 'ا').replace('آ', 'ا')
+    # Remove punctuation & symbols
+    punctuations = ["؟", "?", "،", ",", "۔", ".", "-", "_", ":", "؛", ";", "!", "/", "\\", "|", "(", ")", "[", "]", "{", "}", '"', "'", "`", "~", "*", "^"]
+    for p in punctuations:
+        t = t.replace(p, ' ')
+    # Normalize whitespace
+    t = re.sub(r'\s+', ' ', t).strip()
+    return t
+
+def deduplicate_public_books(books_list: list) -> list:
+    """
+    For public users, groups duplicate entries by normalized title + author
+    and returns the richest/best single version (with cover image / digital assets / PDF).
+    """
+    seen = {}
+    for book in books_list:
+        norm_title = normalize_book_title(getattr(book, 'title', ''))
+        if not norm_title:
+            norm_title = f"book_{getattr(book, 'id', 0)}"
+        norm_author = normalize_book_title(getattr(book, 'author', ''))
+        key = f"{norm_title}___{norm_author}" if norm_author else norm_title
+        
+        score = 0
+        if getattr(book, 'pdf_url', None) or getattr(book, 'txt_file_url', None) or getattr(book, 'is_digital', False):
+            score += 100
+        if getattr(book, 'cover_image_url', None) or getattr(book, 'cover_image', None):
+            score += 50
+        if getattr(book, 'description', None):
+            score += 10
+        if getattr(book, 'page_count', None):
+            score += 5
+        score += (getattr(book, 'id', 0) or 0) * 0.0001
+        
+        if key not in seen or score > seen[key][0]:
+            seen[key] = (score, book)
+            
+    return [item[1] for item in seen.values()]
+
 # ==================================
 # READ OPERATIONS (Public & Admin)
 # ==================================
@@ -250,6 +296,20 @@ def get_smart_recommendations(
         ]
     }
 
+@router.get("/stats", tags=["Books (Read)"])
+def get_book_stats(db: Session = Depends(get_db)):
+    base_query = db.query(book_model.Book).filter(book_model.Book.deleted_at.is_(None))
+    total = base_query.count()
+    restricted = base_query.filter(book_model.Book.is_restricted == True).count()
+    public_access = total - restricted
+    digital_only = base_query.filter(book_model.Book.is_digital == True).count()
+    return {
+        "total": total,
+        "restricted": restricted,
+        "publicAccess": public_access,
+        "digitalOnly": digital_only
+    }
+
 @router.get("/", response_model=List[book_schema.Book])
 def read_books(
     skip: int = 0, 
@@ -258,7 +318,8 @@ def read_books(
     category_id: Optional[int] = None,
     language_id: Optional[int] = None,
     approved_only: bool = False,
-    sort_order: Optional[str] = "asc",
+    sort_order: Optional[str] = "desc",
+    distinct: Optional[bool] = None,
     db: Session = Depends(get_db),
     current_user: Optional[user_model.User] = Depends(get_current_user_optional)
 ):
@@ -283,13 +344,18 @@ def read_books(
         query = query.filter(book_model.Book.is_approved == True)
     
     # Filters
-    if search:
-        search_term = f"%{search}%"
+    if search and search.strip():
+        search_term = f"%{search.strip()}%"
         query = query.filter(
             or_(
                 book_model.Book.title.ilike(search_term),
                 book_model.Book.author.ilike(search_term),
-                book_model.Book.isbn.ilike(search_term)
+                book_model.Book.isbn.ilike(search_term),
+                book_model.Book.book_number.ilike(search_term),
+                book_model.Book.serial_number.ilike(search_term),
+                book_model.Book.publisher.ilike(search_term),
+                book_model.Book.translator.ilike(search_term),
+                book_model.Book.description.ilike(search_term)
             )
         )
 
@@ -299,10 +365,10 @@ def read_books(
     if language_id:
         query = query.filter(book_model.Book.language_id == language_id)
         
-    if sort_order == "desc":
-        books = query.order_by(book_model.Book.id.desc()).offset(skip).limit(limit).all()
-    else:
+    if sort_order == "asc":
         books = query.order_by(book_model.Book.id.asc()).offset(skip).limit(limit).all()
+    else:
+        books = query.order_by(book_model.Book.id.desc()).offset(skip).limit(limit).all()
 
     # =========================================================
     # ✅ LOGIC: User Access Permission Check (DEBUGGED)
@@ -354,6 +420,13 @@ def read_books(
             print(f"🔓 Unlocking Restricted Book ID: {book.id} for User")
 
         setattr(book, "user_has_access", has_access)
+
+    # ✅ DEDUPLICATION: For public users (or when distinct=True / approved_only=True), show ONLY 1 rich record per title
+    is_admin = bool(current_user and hasattr(current_user, 'role') and current_user.role and current_user.role.name.lower() in ['admin', 'superadmin'])
+    should_deduplicate = distinct if distinct is not None else (not is_admin or approved_only)
+    
+    if should_deduplicate:
+        books = deduplicate_public_books(books)
 
     print("="*50 + "\n")
     return books
@@ -606,3 +679,91 @@ async def stream_book_pdf(
         raise HTTPException(status_code=he.code, detail=f"Remote document error: {he.reason}")
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Unable to load document: {str(e)}")
+
+# ==================================
+# 📥 SAME-ORIGIN TEXT STREAM ROUTE (Zero CORS Issue)
+# ==================================
+@router.get("/{book_id}/stream-text", tags=["Books (Read)"])
+@router.get("/{book_id}/text", tags=["Books (Read)"])
+async def stream_book_text(
+    book_id: int,
+    db: Session = Depends(get_db),
+    current_user: Optional[user_model.User] = Depends(get_current_user_optional)
+):
+    db_book = get_book_by_id_internal(db, book_id)
+    if not db_book:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Book not found")
+        
+    txt_url = getattr(db_book, 'txt_file_url', None) or getattr(db_book, 'txt_file', None)
+    if not txt_url:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Text content not found for this book")
+
+    # 1. Approval Check
+    if not db_book.is_approved:
+        if not current_user or (current_user.role.name.lower() not in ['admin', 'superadmin']):
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Book not found.")
+
+    # 2. Restricted Access Check
+    if db_book.is_restricted:
+        has_access = False
+        if current_user and hasattr(current_user, 'role') and current_user.role.name.lower() in ['admin', 'superadmin']:
+            has_access = True
+        elif current_user:
+            accessible_ids = _get_accessible_book_ids(db, current_user)
+            if db_book.id in accessible_ids:
+                has_access = True
+        if not has_access:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access to this restricted text is not granted.")
+
+    raw_url = str(getattr(db_book, 'txt_file_url', None) or getattr(db_book, 'txt_file', None) or '').strip()
+    safe_filename = f"book_{book_id}.txt"
+
+    # Case A: Local File
+    if not raw_url.startswith("http://") and not raw_url.startswith("https://"):
+        local_path = resolve_upload_path(raw_url)
+        if local_path and os.path.exists(local_path):
+            return FileResponse(
+                path=local_path,
+                media_type="text/plain; charset=utf-8",
+                headers={
+                    "Access-Control-Allow-Origin": "*",
+                    "Access-Control-Allow-Methods": "GET, HEAD, OPTIONS",
+                    "Access-Control-Allow-Headers": "*",
+                    "Content-Disposition": f'inline; filename="{safe_filename}"',
+                    "Cache-Control": "public, max-age=86400"
+                }
+            )
+
+    # Case B: Remote R2 / Cloudinary / CDN
+    try:
+        import urllib.parse
+        parsed = urllib.parse.urlsplit(raw_url)
+        quoted_path = urllib.parse.quote(parsed.path)
+        encoded_url = urllib.parse.urlunsplit((parsed.scheme, parsed.netloc, quoted_path, parsed.query, parsed.fragment))
+
+        req = urllib.request.Request(encoded_url, headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"})
+        remote_resp = urllib.request.urlopen(req, timeout=30)
+
+        def text_stream_generator(resp):
+            try:
+                while True:
+                    chunk = resp.read(65536)
+                    if not chunk:
+                        break
+                    yield chunk
+            finally:
+                resp.close()
+
+        return StreamingResponse(
+            text_stream_generator(remote_resp),
+            media_type="text/plain; charset=utf-8",
+            headers={
+                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Methods": "GET, HEAD, OPTIONS",
+                "Access-Control-Allow-Headers": "*",
+                "Content-Disposition": f'inline; filename="{safe_filename}"',
+                "Cache-Control": "public, max-age=86400"
+            }
+        )
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Unable to load text: {str(e)}")

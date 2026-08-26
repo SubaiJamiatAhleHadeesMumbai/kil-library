@@ -1,3 +1,4 @@
+import StandardFormattedText from "../components/common/StandardFormattedText";
 import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { bookService } from '../api/bookService';
@@ -177,25 +178,25 @@ const BookDetail = () => {
 
                             {/* Download / Read Actions */}
                             <div className="space-y-3">
+                                {(book.pdf_url || book.txt_file_url) && (
+                                    <Link
+                                        to={`/read/${book.id}`}
+                                        className="w-full bg-emerald-600 text-white py-3.5 rounded-xl font-bold hover:bg-emerald-700 transition-all flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/30 text-sm"
+                                    >
+                                        <BookOpenIcon className="w-5 h-5" /> Open Split Reader (PDF + Text)
+                                    </Link>
+                                )}
+
                                 {book.pdf_url && (
                                     <a 
                                         href={book.pdf_url} 
                                         download 
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        className="w-full bg-slate-900 text-white py-3.5 rounded-xl font-bold hover:bg-slate-800 transition-all flex items-center justify-center gap-2 shadow-lg shadow-slate-900/20 text-sm"
+                                        className="w-full bg-slate-900 text-white py-3 rounded-xl font-bold hover:bg-slate-800 transition-all flex items-center justify-center gap-2 shadow-md text-sm"
                                     >
                                         <ArrowDownTrayIcon className="w-5 h-5" /> {book.pdf_url?.toLowerCase().includes('.doc') ? 'Download Document' : 'Download PDF'}
                                     </a>
-                                )}
-                                
-                                {book.txt_file_url && (
-                                    <button 
-                                        onClick={() => setViewMode("text")}
-                                        className="w-full bg-emerald-50 text-emerald-800 border border-emerald-300 py-3.5 rounded-xl font-bold hover:bg-emerald-100 transition-all flex items-center justify-center gap-2 text-sm shadow-xs"
-                                    >
-                                        <DocumentTextIcon className="w-5 h-5 text-emerald-600" /> Read Research Text ({totalPages || '1'} Pages)
-                                    </button>
                                 )}
                             </div>
 
@@ -365,11 +366,8 @@ const BookDetail = () => {
                                                     <div className="absolute top-4 left-4 bg-emerald-100 text-emerald-800 text-[11px] font-black px-2.5 py-0.5 rounded-full border border-emerald-200">
                                                         Page {idx + 1}
                                                     </div>
-                                                    <div 
-                                                        className={`prose prose-slate max-w-none text-slate-800 whitespace-pre-wrap ${langClass} ${fontSizeClass} pt-6`}
-                                                        style={{ fontFamily: isRTL ? '"Jameel Noori Nastaleeq", "Noto Naskh Arabic", serif' : 'inherit' }}
-                                                    >
-                                                        {pageText}
+                                                    <div className="pt-6">
+                                                        <StandardFormattedText text={pageText} />
                                                     </div>
                                                 </div>
                                             ))}

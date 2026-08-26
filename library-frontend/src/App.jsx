@@ -50,6 +50,7 @@ const DigitalAccessHistory = lazy(() => import("./pages/DigitalAccessHistory"));
 const AuditLogPage = lazy(() => import("./pages/AuditLogPage"));
 const AccessRequests = lazy(() => import("./components/admin/AccessRequests"));
 const BookDetail = lazy(() => import("./pages/Admin/BookDetail"));
+const PublicBookDetail = lazy(() => import("./pages/BookDetail"));
 const Profile = lazy(() => import("./pages/Profile"));
 const UserLibrary = lazy(() => import("./pages/UserLibrary"));
 const AddBookPage = lazy(() => import("./pages/AddBookPage"));
@@ -120,7 +121,7 @@ function App() {
             <Route path="authors" element={<Authors />} />
             <Route path="publishers" element={<Publishers />} />
             <Route path="books" element={<UserLibrary />} />
-            <Route path="books/:id" element={<BookDetail />} />
+            <Route path="books/:id" element={<PublicBookDetail />} />
             <Route path="read/:id" element={<ReadBook />} />
             <Route path="history" element={<History />} />
 

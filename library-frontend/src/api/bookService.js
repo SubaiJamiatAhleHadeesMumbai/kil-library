@@ -11,6 +11,16 @@ export const bookService = {
      * Fetches all books.
      * Supports both Public (isApproved=true) and Admin (queryParams object).
      */
+        async getBookStats() {
+        try {
+            const response = await apiClient.get('/api/books/stats');
+            return response.data;
+        } catch (error) {
+            console.error("Error fetching book stats:", error);
+            return null;
+        }
+    },
+
     async getAllBooks(queryParams = {}, limit = 2000, extraParams = {}) {
         try {
             let params = {};
@@ -50,14 +60,18 @@ export const bookService = {
     },
 
     /**
-     * ✅ UPDATED: Supports Text File Upload
+     * ✅ UPDATED: Supports Text File Upload & Live Upload Progress
      * formData must contain 'txt_file' if uploaded
      */
-    async createBook(formData) {
+    async createBook(formData, onUploadProgress = null) {
         try {
-            const response = await apiClient.post('/api/books/', formData, {
+            const config = {
                 headers: { 'Content-Type': 'multipart/form-data' },
-            });
+            };
+            if (onUploadProgress) {
+                config.onUploadProgress = onUploadProgress;
+            }
+            const response = await apiClient.post('/api/books/', formData, config);
             return response.data;
         } catch (error) {
             console.error("Error creating book:", error.response?.data);
@@ -66,18 +80,77 @@ export const bookService = {
     },
 
     /**
-     * ✅ UPDATED: Supports Text File Update
+     * ✅ UPDATED: Supports Text File Update & Live Upload Progress
      */
-    async updateBook(bookId, formData) {
+    async updateBook(bookId, formData, onUploadProgress = null) {
         try {
-            const response = await apiClient.put(`/api/books/${bookId}`, formData, {
+            const config = {
                 headers: { 'Content-Type': 'multipart/form-data' },
-            });
+            };
+            if (onUploadProgress) {
+                config.onUploadProgress = onUploadProgress;
+            }
+            const response = await apiClient.put(`/api/books/${bookId}`, formData, config);
             return response.data;
         } catch (error) {
             console.error(`Error updating book ${bookId}:`, error.response?.data);
             throw error;
         }
+    },
+
+    /**
+     * ✅ Uploads large files (100MB up to 1GB+) in 15MB chunks to prevent Cloudflare/Nginx 413 errors.
+     * Slices file, sends chunks to /api/upload/chunk, then completes at /api/upload/chunk/complete.
+     */
+    async uploadLargePdfChunks(file, onProgress = null) {
+        const CHUNK_SIZE = 15 * 1024 * 1024; // 15 MB chunks
+        const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
+        const uploadId = `${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+
+        for (let chunkIndex = 0; chunkIndex < totalChunks; chunkIndex++) {
+            const start = chunkIndex * CHUNK_SIZE;
+            const end = Math.min(start + CHUNK_SIZE, file.size);
+            const chunkBlob = file.slice(start, end);
+
+            const chunkFormData = new FormData();
+            chunkFormData.append('chunk', chunkBlob, file.name);
+            chunkFormData.append('upload_id', uploadId);
+            chunkFormData.append('chunk_index', chunkIndex);
+            chunkFormData.append('total_chunks', totalChunks);
+
+            await apiClient.post('/api/upload/chunk', chunkFormData, {
+                headers: { 'Content-Type': 'multipart/form-data' },
+                onUploadProgress: (progressEvent) => {
+                    if (onProgress && progressEvent.total) {
+                        const chunkLoaded = progressEvent.loaded;
+                        const chunkTotal = progressEvent.total;
+                        const totalLoadedSoFar = (chunkIndex * CHUNK_SIZE) + (chunkLoaded / chunkTotal * (end - start));
+                        const percent = Math.min(99, Math.round((totalLoadedSoFar / file.size) * 100));
+                        onProgress({
+                            loaded: totalLoadedSoFar,
+                            total: file.size,
+                            percent,
+                            statusText: `Uploading part ${chunkIndex + 1}/${totalChunks} (${percent}%)`
+                        });
+                    }
+                }
+            });
+        }
+
+        if (onProgress) {
+            onProgress({ loaded: file.size, total: file.size, percent: 100, statusText: "Optimizing & saving PDF on cloud..." });
+        }
+
+        const completeFormData = new FormData();
+        completeFormData.append('upload_id', uploadId);
+        completeFormData.append('filename', file.name);
+        completeFormData.append('folder', 'booknest/pdfs');
+
+        const completeRes = await apiClient.post('/api/upload/chunk/complete', completeFormData, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+        });
+
+        return completeRes.data;
     },
 
     async deleteBook(bookId) {

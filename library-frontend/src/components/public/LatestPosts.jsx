@@ -146,17 +146,25 @@ const LatestPosts = () => {
                   >
                     {/* IMAGE AREA */}
                     <div
-                      className="relative h-56 bg-slate-100 overflow-hidden cursor-pointer"
+                      className="relative h-72 bg-slate-950 overflow-hidden cursor-pointer flex items-center justify-center p-2"
                       onClick={() => setSelectedPost(post)}
                     >
                       {/* If image exists and not broken */}
                       {fileUrl && fileType === "image" && !isBroken ? (
-                        <img
-                          src={fileUrl}
-                          alt={post?.title || "Post Image"}
-                          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                          onError={() => handleImageFail(post?.id)}
-                        />
+                        <>
+                          <img
+                            src={fileUrl}
+                            alt="Blur backdrop"
+                            className="absolute inset-0 w-full h-full object-cover filter blur-xl opacity-30 scale-125 select-none pointer-events-none"
+                            aria-hidden="true"
+                          />
+                          <img
+                            src={fileUrl}
+                            alt={post?.title || "Post Image"}
+                            className="relative z-10 max-h-full w-auto max-w-full object-contain rounded-lg shadow-md transition-transform duration-500 group-hover:scale-105"
+                            onError={() => handleImageFail(post?.id)}
+                          />
+                        </>
                       ) : fileUrl && fileType === "pdf" ? (
                         // PDF placeholder
                         <div className="w-full h-full flex flex-col items-center justify-center text-slate-500 bg-slate-50 border-b border-slate-100">

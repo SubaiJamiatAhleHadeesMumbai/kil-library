@@ -7,7 +7,7 @@ import { useNavigate, useLocation, useSearchParams } from "react-router-dom";
 import { bookService } from "../api/bookService";
 import { categoryService } from "../api/categoryService";
 import { subcategoryService } from "../api/subcategoryService";
-import { useBookSearch, normalizeText, getText } from "../hooks/useBookSearch";
+import { useBookSearch, normalizeText, getText, deduplicateBooks } from "../hooks/useBookSearch";
 import useAuth from "../hooks/useAuth";
 import { useLanguage } from "../context/LanguageContext";
 
@@ -54,10 +54,9 @@ import {
 // --- Constants ---
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || (import.meta.env.PROD ? "" : "http://127.0.0.1:8000");
 const FALLBACK_NO_COVER = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='400' height='600' viewBox='0 0 400 600'><rect width='400' height='600' fill='%231e293b'/><circle cx='200' cy='270' r='50' fill='%23334155'/><path d='M180 255h40v30h-40z' fill='%2394a3b8'/><text x='200' y='360' font-family='sans-serif' font-size='20' font-weight='bold' fill='%23cbd5e1' text-anchor='middle'>Markaz Library</text><text x='200' y='390' font-family='sans-serif' font-size='15' fill='%2364748b' text-anchor='middle'>No Cover</text></svg>";
-const FALLBACK_BROKEN = FALLBACK_NO_COVER;
 
 // ==========================================
-// 1. PUBLIC BOOK CARD COMPONENT (Clean UI)
+// 1. PUBLIC BOOK CARD COMPONENT
 // ==========================================
 const PublicBookCard = ({
   book,
@@ -160,7 +159,7 @@ const PublicBookCard = ({
         )}
       </div>
 
-      {/* Favorite / Bookmark Button */}
+      {/* Favorite Button */}
       {typeof onToggleFavorite === "function" && (
         <button
           onClick={(e) => onToggleFavorite(e, book?.id)}
@@ -199,7 +198,6 @@ const PublicBookCard = ({
               loading="lazy"
             />
           ) : (
-            /* Built-in Pure CSS/SVG Book Cover (100% Offline & Error-Free) */
             <div className="absolute inset-0 flex flex-col items-center justify-between p-3 text-center bg-gradient-to-br from-[#111a2d] via-[#1e293b] to-[#0f172a] text-white border border-slate-700/50">
               <div className="w-full flex justify-end">
                 <span className="text-[9px] font-bold text-emerald-400 bg-emerald-950/60 px-1.5 py-0.5 rounded border border-emerald-500/30">KIL</span>
@@ -224,7 +222,6 @@ const PublicBookCard = ({
         >
           {title}
         </h3>
-
         <p className="line-clamp-1 text-[11px] text-gray-500 sm:text-xs">{author}</p>
       </div>
     </div>
@@ -248,26 +245,24 @@ const UserLibrary = () => {
   const [dynamicSubcategories, setDynamicSubcategories] = useState([]);
   const [activeLibraryTab, setActiveLibraryTab] = useState("all"); // 'all' | 'our_publications' | 'folders' | 'authors' | 'publishers'
   const [viewMode, setViewMode] = useState("grid"); // 'grid' | 'list'
-  const [sortBy, setSortBy] = useState("oldest"); // Natural Excel order
+  const [sortBy, setSortBy] = useState("oldest");
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [authorSearch, setAuthorSearch] = useState("");
   const [publisherSearch, setPublisherSearch] = useState("");
   const [folderSearch, setFolderSearch] = useState("");
   const activeRequestRef = useRef(0);
 
-  // Pagination State (Items per page dropdown: 10, 25, 50, 100)
+  // Pagination
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(25);
 
-  // --- MODAL & FLOW ---
+  // Modals
   const [selectedBook, setSelectedBook] = useState(null);
-
-  // Restricted flow
   const [restrictedBook, setRestrictedBook] = useState(null);
   const [isAccessFlowOpen, setIsAccessFlowOpen] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
 
-  // --- FAVORITES ---
+  // Favorites
   const [favorites, setFavorites] = useState(() => {
     try {
       const saved = localStorage.getItem("bookNest_favorites");
@@ -277,7 +272,7 @@ const UserLibrary = () => {
     }
   });
 
-  // --- SEARCH HOOK ---
+  // Search Hook
   const {
     searchTerm,
     setSearchTerm,
@@ -356,12 +351,11 @@ const UserLibrary = () => {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // Reset pagination on filter changes
   useEffect(() => {
     setCurrentPage(1);
   }, [searchTerm, selectedLanguage, selectedCategory, selectedSubcategory, sortBy, activeLibraryTab]);
 
-  // --- OUR PUBLICATIONS STRICT FILTER ---
+  // Our Publications strict filter
   const isOurPublication = (book) => {
     if (!book) return false;
     if (book.is_our_publication === true || book.is_markaz_publication === true) return true;
@@ -394,24 +388,19 @@ const UserLibrary = () => {
       "markazdawahpublications"
     ];
 
-    const matchesArabic = markazArabicList.some(kw => pubNorm.includes(kw));
-    const matchesLatin = markazLatinList.some(kw => pubLatin.includes(kw));
-
-    return matchesArabic || matchesLatin;
+    return markazArabicList.some(kw => pubNorm.includes(kw)) || markazLatinList.some(kw => pubLatin.includes(kw));
   };
 
-  // --- HIERARCHICAL CATEGORY DATA STRUCTURE (With Subcategories & Counts) ---
+  // Category Tree Hierarchy
   const categoryTree = useMemo(() => {
     return (dynamicCategories || []).map((cat) => {
       const catId = cat.id;
       const catNorm = normalizeText(cat.name);
 
-      // Find subcategories belonging to this category
       const subcats = (dynamicSubcategories || []).filter(sc => {
         return sc.category_id === catId || (sc.category && sc.category.id === catId) || normalizeText(sc.category?.name) === catNorm;
       });
 
-      // Calculate total books in this category
       const categoryBooks = (books || []).filter(b => {
         const bCatId = b.category_id || (typeof b.category === 'object' ? b.category?.id : null);
         const bCatName = normalizeText(getText(b.category));
@@ -423,7 +412,6 @@ const UserLibrary = () => {
         );
       });
 
-      // Subcategories with book count
       const subcatsWithCount = subcats.map(sc => {
         const scCount = (books || []).filter(b => {
           const bSubcats = Array.isArray(b.subcategories) ? b.subcategories : [];
@@ -443,7 +431,6 @@ const UserLibrary = () => {
     });
   }, [dynamicCategories, dynamicSubcategories, books]);
 
-  // Active Subcategories for the Currently Selected Category
   const activeCategorySubcategories = useMemo(() => {
     if (!selectedCategory || selectedCategory === "all" || selectedCategory === "our_publications") {
       return [];
@@ -452,7 +439,6 @@ const UserLibrary = () => {
     return found ? found.subcategories : [];
   }, [selectedCategory, categoryTree]);
 
-  // Filtered Categories in Folder View
   const filteredFolderCategories = useMemo(() => {
     const q = normalizeText(folderSearch);
     if (!q) return categoryTree;
@@ -463,7 +449,7 @@ const UserLibrary = () => {
     });
   }, [categoryTree, folderSearch]);
 
-  // --- AUTHORS DIRECTORY ---
+  // Authors
   const authorsDirectory = useMemo(() => {
     const map = new Map();
     (books || []).forEach((book) => {
@@ -487,7 +473,7 @@ const UserLibrary = () => {
     return authorsDirectory.filter(a => a.name.toLowerCase().includes(q));
   }, [authorsDirectory, authorSearch]);
 
-  // --- PUBLISHERS DIRECTORY ---
+  // Publishers
   const publishersDirectory = useMemo(() => {
     const map = new Map();
     (books || []).forEach((book) => {
@@ -543,7 +529,7 @@ const UserLibrary = () => {
     else window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  // --- SORTING & DISPLAY BOOKS ---
+  // Final Display Books
   const finalDisplayBooks = useMemo(() => {
     let list = Array.isArray(filteredBooks) ? filteredBooks : [];
 
@@ -552,27 +538,34 @@ const UserLibrary = () => {
     }
 
     const sorted = [...list];
-    const safeDate = (b) => new Date(b?.created_at || 0).getTime();
+    const safeDate = (b) => new Date(b?.created_at || b?.published_date || 0).getTime();
     const safeSerial = (b) => Number(b?.serial_number) || Number(b?.id) || 0;
+    const safeId = (b) => Number(b?.id) || 0;
 
-    if (sortBy === "newest") sorted.sort((a, b) => safeDate(b) - safeDate(a));
-    if (sortBy === "oldest") sorted.sort((a, b) => safeSerial(a) - safeSerial(b));
-    if (sortBy === "az")
+    if (sortBy === "newest") {
+      sorted.sort((a, b) => {
+        const dDiff = safeDate(b) - safeDate(a);
+        if (dDiff !== 0) return dDiff;
+        return safeId(b) - safeId(a);
+      });
+    } else if (sortBy === "oldest") {
+      sorted.sort((a, b) => safeSerial(a) - safeSerial(b));
+    } else if (sortBy === "az") {
       sorted.sort((a, b) => (a?.title || "").localeCompare(b?.title || ""));
-    if (sortBy === "favorites")
+    } else if (sortBy === "favorites") {
       return sorted.filter((b) => favorites.includes(b.id));
+    }
 
-    return sorted;
+    return deduplicateBooks(sorted);
   }, [filteredBooks, activeLibraryTab, selectedCategory, sortBy, favorites]);
 
-  // --- PAGINATION ---
+  // Pagination
   const totalPages = Math.ceil(finalDisplayBooks.length / itemsPerPage) || 1;
   const paginatedBooks = useMemo(() => {
     const start = (currentPage - 1) * itemsPerPage;
     return finalDisplayBooks.slice(start, start + itemsPerPage);
   }, [finalDisplayBooks, currentPage, itemsPerPage]);
 
-  // Active Category Label
   const activeCategoryLabel = useMemo(() => {
     if (activeLibraryTab === "our_publications" || selectedCategory === "our_publications") {
       return currentLang === 'ar' ? 'منشورات مركز الدعوة' : currentLang === 'ur' ? 'مطبوعات مرکز الدعوۃ الاسلامیہ' : 'Markaz Dawah Publications';
@@ -582,18 +575,22 @@ const UserLibrary = () => {
     return found ? found.name : selectedCategory;
   }, [selectedCategory, categoryTree, activeLibraryTab, currentLang]);
 
-  // Active Subcategory Label
   const activeSubcategoryLabel = useMemo(() => {
     if (!selectedSubcategory || selectedSubcategory === "all") return null;
     const found = (dynamicSubcategories || []).find(sc => String(sc.id) === String(selectedSubcategory) || normalizeText(sc.name) === normalizeText(selectedSubcategory));
     return found ? found.name : null;
   }, [selectedSubcategory, dynamicSubcategories]);
 
+  const safeText = (v, f = "") => {
+    if (!v) return f;
+    if (typeof v === "object") return v.name || v.title || f;
+    return String(v);
+  };
+
   return (
     <div className="min-h-screen bg-[#F8F9FC] font-sans text-slate-800 pb-24 relative">
       {/* ================= HERO & SEARCH SECTION ================= */}
       <div className="relative bg-[#0B1120] pt-10 pb-16 px-4 rounded-b-[2.5rem] shadow-2xl overflow-hidden">
-        {/* Background Glows */}
         <div className="absolute inset-0 opacity-15 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] mix-blend-overlay pointer-events-none" />
         <div className="absolute -top-24 left-1/2 -translate-x-1/2 w-[36rem] h-72 bg-emerald-500/15 rounded-full blur-[100px] pointer-events-none" />
         <div className="absolute top-1/2 right-10 w-64 h-64 bg-cyan-500/10 rounded-full blur-[90px] pointer-events-none" />
@@ -604,7 +601,6 @@ const UserLibrary = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
           >
-            {/* Main Title Only */}
             <h1 className="text-3xl sm:text-5xl md:text-6xl font-black text-white mb-6 tracking-tight">
               Markaz{" "}
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 via-teal-300 to-cyan-400">
@@ -613,7 +609,6 @@ const UserLibrary = () => {
             </h1>
           </motion.div>
 
-          {/* Single Seamless Modern Search Bar */}
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -627,14 +622,13 @@ const UserLibrary = () => {
             />
           </motion.div>
 
-          {/* ================= CLEAN PRIMARY VIEW TABS (5 PURE PILLS ONLY) ================= */}
+          {/* 5 CLEAN PRIMARY VIEW TABS */}
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.25, duration: 0.4 }}
             className="flex items-center justify-center flex-wrap gap-2.5 mt-6 pt-1"
           >
-            {/* 1. All Books */}
             <button
               onClick={() => {
                 setActiveLibraryTab("all");
@@ -651,7 +645,6 @@ const UserLibrary = () => {
               <span>{currentLang === 'ur' ? 'تمام کتب' : 'All Books'}</span>
             </button>
 
-            {/* 2. Our Publications */}
             <button
               onClick={() => {
                 setActiveLibraryTab("our_publications");
@@ -675,7 +668,6 @@ const UserLibrary = () => {
               </span>
             </button>
 
-            {/* 3. Folders & Topics */}
             <button
               onClick={() => setActiveLibraryTab("folders")}
               className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold transition-all shadow-xs cursor-pointer ${
@@ -688,7 +680,6 @@ const UserLibrary = () => {
               <span>{currentLang === 'ur' ? 'فولڈرز اور زمرہ جات' : 'Folders & Topics'}</span>
             </button>
 
-            {/* 4. Authors */}
             <button
               onClick={() => setActiveLibraryTab("authors")}
               className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold transition-all shadow-xs cursor-pointer ${
@@ -701,7 +692,6 @@ const UserLibrary = () => {
               <span>{currentLang === 'ur' ? 'مصنفین' : 'Authors'}</span>
             </button>
 
-            {/* 5. Publishers */}
             <button
               onClick={() => setActiveLibraryTab("publishers")}
               className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold transition-all shadow-xs cursor-pointer ${
@@ -717,7 +707,7 @@ const UserLibrary = () => {
         </div>
       </div>
 
-      {/* ================= VIEW: FOLDERS & TOPICS (DIGITAL ARCHIVE EXPLORER) ================= */}
+      {/* ================= VIEW: FOLDERS & TOPICS ================= */}
       {activeLibraryTab === "folders" && (
         <div className="max-w-7xl mx-auto px-4 mt-8 space-y-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-4">
@@ -733,7 +723,6 @@ const UserLibrary = () => {
               </p>
             </div>
 
-            {/* Folder & Subcategory Search */}
             <div className="flex items-center gap-2 bg-white px-3.5 py-2 rounded-xl border border-slate-200 shadow-2xs w-full sm:w-80">
               <MagnifyingGlassIcon className="w-4 h-4 text-slate-400" />
               <input
@@ -751,7 +740,6 @@ const UserLibrary = () => {
             </div>
           </div>
 
-          {/* Grid of Hierarchical Category Folders */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
             {filteredFolderCategories.map((cat) => (
               <motion.div
@@ -759,7 +747,6 @@ const UserLibrary = () => {
                 whileHover={{ y: -4 }}
                 className="bg-white rounded-3xl p-5 border border-slate-200/90 shadow-sm hover:shadow-xl hover:border-emerald-400 transition-all flex flex-col justify-between group"
               >
-                {/* Folder Header */}
                 <div>
                   <div className="flex items-center justify-between mb-4">
                     <div 
@@ -789,7 +776,6 @@ const UserLibrary = () => {
                     </span>
                   </div>
 
-                  {/* Subcategories Tags Inside Folder */}
                   {cat.subcategories.length > 0 ? (
                     <div className="mt-3 pt-3 border-t border-slate-100">
                       <div className="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto pr-1">
@@ -822,7 +808,6 @@ const UserLibrary = () => {
                   )}
                 </div>
 
-                {/* Open Folder Footer */}
                 <div 
                   onClick={() => {
                     setSelectedCategory(String(cat.id));
@@ -841,7 +826,7 @@ const UserLibrary = () => {
         </div>
       )}
 
-      {/* ================= VIEW: AUTHORS DIRECTORY ================= */}
+      {/* ================= VIEW: AUTHORS ================= */}
       {activeLibraryTab === "authors" && (
         <div className="max-w-7xl mx-auto px-4 mt-8 space-y-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-4">
@@ -855,7 +840,6 @@ const UserLibrary = () => {
               </p>
             </div>
 
-            {/* Author Search Box */}
             <div className="flex items-center gap-2 bg-white px-3.5 py-2 rounded-xl border border-slate-200 shadow-2xs w-full sm:w-72">
               <MagnifyingGlassIcon className="w-4 h-4 text-slate-400" />
               <input
@@ -902,7 +886,7 @@ const UserLibrary = () => {
         </div>
       )}
 
-      {/* ================= VIEW: PUBLISHERS DIRECTORY ================= */}
+      {/* ================= VIEW: PUBLISHERS ================= */}
       {activeLibraryTab === "publishers" && (
         <div className="max-w-7xl mx-auto px-4 mt-8 space-y-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-4">
@@ -916,7 +900,6 @@ const UserLibrary = () => {
               </p>
             </div>
 
-            {/* Publisher Search Box */}
             <div className="flex items-center gap-2 bg-white px-3.5 py-2 rounded-xl border border-slate-200 shadow-2xs w-full sm:w-72">
               <MagnifyingGlassIcon className="w-4 h-4 text-slate-400" />
               <input
@@ -963,7 +946,7 @@ const UserLibrary = () => {
         </div>
       )}
 
-      {/* ================= VIEW: BOOKS (ALL BOOKS & OUR PUBLICATIONS) ================= */}
+      {/* ================= VIEW: BOOKS ================= */}
       {(activeLibraryTab === "all" || activeLibraryTab === "our_publications") && (
         <>
           {/* STICKY FILTER TOOLBAR */}
@@ -974,9 +957,8 @@ const UserLibrary = () => {
               className="rounded-2xl border border-white/60 bg-white/90 p-3 shadow-[0_12px_35px_-24px_rgba(15,23,42,0.4)] backdrop-blur-xl flex flex-col gap-3"
             >
               <div className="flex flex-wrap items-center justify-between gap-3">
-                {/* Taxonomy Selectors */}
                 <div className="flex flex-wrap items-center gap-2.5 flex-1 min-w-0">
-                  {/* Language Selector */}
+                  {/* Language */}
                   <select
                     className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-700 outline-none transition hover:border-emerald-500 cursor-pointer"
                     value={selectedLanguage}
@@ -989,7 +971,7 @@ const UserLibrary = () => {
                     <option value="hindi">Hindi</option>
                   </select>
 
-                  {/* Primary Category Selector (With Counts) */}
+                  {/* Primary Category */}
                   <select
                     className="max-w-[260px] rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-700 outline-none transition hover:border-emerald-500 cursor-pointer truncate"
                     value={selectedCategory}
@@ -1007,7 +989,7 @@ const UserLibrary = () => {
                     ))}
                   </select>
 
-                  {/* Subcategory Selector (Dynamically populated) */}
+                  {/* Subcategory */}
                   {activeCategorySubcategories.length > 0 && (
                     <select
                       className="max-w-[220px] rounded-xl border border-emerald-300 bg-emerald-50/50 px-3 py-2 text-xs font-semibold text-emerald-800 outline-none transition hover:border-emerald-500 cursor-pointer truncate"
@@ -1023,7 +1005,7 @@ const UserLibrary = () => {
                     </select>
                   )}
 
-                  {/* Active Filter Clear Button */}
+                  {/* Clear Button */}
                   {(selectedCategory !== "all" || selectedSubcategory !== "all" || selectedLanguage !== "all" || searchTerm) && (
                     <button
                       onClick={() => {
@@ -1042,9 +1024,8 @@ const UserLibrary = () => {
                   )}
                 </div>
 
-                {/* View & Sort Controls */}
+                {/* Controls */}
                 <div className="flex items-center gap-3">
-                  {/* View Mode Toggle */}
                   <div className="flex rounded-xl bg-slate-100 p-0.5">
                     <button
                       onClick={() => setViewMode("grid")}
@@ -1071,7 +1052,6 @@ const UserLibrary = () => {
                     </button>
                   </div>
 
-                  {/* Sort Dropdown */}
                   <div className="flex items-center gap-1.5 whitespace-nowrap rounded-xl border border-slate-200 bg-slate-50 px-2.5 py-1.5">
                     <ArrowsUpDownIcon className="h-4 w-4 text-slate-400" />
                     <select
@@ -1088,7 +1068,7 @@ const UserLibrary = () => {
                 </div>
               </div>
 
-              {/* DYNAMIC SUBCATEGORY PILLS CAROUSEL (When a category is active) */}
+              {/* Subcategories Pill Strip */}
               {activeCategorySubcategories.length > 0 && (
                 <div className="flex items-center gap-1.5 overflow-x-auto pb-1 pt-1 border-t border-slate-100 no-scrollbar">
                   <span className="text-[11px] font-bold text-slate-400 shrink-0 mr-1 flex items-center gap-1">
@@ -1096,7 +1076,6 @@ const UserLibrary = () => {
                     <span>Topics:</span>
                   </span>
 
-                  {/* All Subcategories Pill */}
                   <button
                     onClick={() => setSelectedSubcategory("all")}
                     className={`px-3 py-1 rounded-full text-xs font-bold transition-all shrink-0 cursor-pointer ${
@@ -1133,7 +1112,7 @@ const UserLibrary = () => {
             </motion.div>
           </div>
 
-          {/* MAIN CONTENT CONTAINER */}
+          {/* MAIN CONTENT */}
           <div id="book-grid-container" className="max-w-7xl mx-auto px-4 mt-6 md:mt-10 space-y-8">
             
             {/* Our Publications Verified Banner */}
@@ -1156,7 +1135,7 @@ const UserLibrary = () => {
               </motion.div>
             )}
 
-            {/* Active Catalog Header & Count Bar */}
+            {/* Active Header & Count Bar */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white/70 p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-2xs">
               <div>
                 <div className="flex items-center flex-wrap gap-2.5">
@@ -1187,7 +1166,6 @@ const UserLibrary = () => {
                 </p>
               </div>
 
-              {/* Items Per Page Selector */}
               <div className="flex items-center gap-2">
                 <span className="text-xs text-slate-500 font-medium">Show:</span>
                 <select
@@ -1206,7 +1184,7 @@ const UserLibrary = () => {
               </div>
             </div>
 
-            {/* LOADING STATE */}
+            {/* Books Loading / Empty / Grid / List */}
             {loading ? (
               <div className="grid grid-cols-2 gap-3 sm:gap-6 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
                 {[...Array(10)].map((_, i) => (
@@ -1218,7 +1196,6 @@ const UserLibrary = () => {
                 ))}
               </div>
             ) : finalDisplayBooks.length === 0 ? (
-              /* EMPTY STATE */
               <div className="bg-white rounded-3xl p-12 text-center border border-slate-200 max-w-lg mx-auto shadow-sm">
                 <FaceFrownIcon className="w-16 h-16 text-slate-300 mx-auto mb-4" />
                 <h3 className="text-lg font-bold text-slate-800 mb-1">No Books Found</h3>
@@ -1239,7 +1216,6 @@ const UserLibrary = () => {
                 </button>
               </div>
             ) : (
-              /* BOOK GRID / LIST */
               viewMode === "grid" ? (
                 <div className="grid grid-cols-2 gap-3 sm:gap-6 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
                   {paginatedBooks.map((book) => (
@@ -1254,7 +1230,6 @@ const UserLibrary = () => {
                   ))}
                 </div>
               ) : (
-                /* LIST VIEW */
                 <div className="space-y-3">
                   {paginatedBooks.map((book) => (
                     <div
@@ -1287,7 +1262,7 @@ const UserLibrary = () => {
               )
             )}
 
-            {/* PAGINATION CONTROLS */}
+            {/* Pagination */}
             {totalPages > 1 && (
               <div className="flex items-center justify-center gap-2 pt-8">
                 <button

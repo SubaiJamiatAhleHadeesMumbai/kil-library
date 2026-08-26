@@ -24,15 +24,20 @@ def register_public_user(user: user_schema.UserCreate, db: Session = Depends(get
     if db.query(user_model.User).filter(user_model.User.username == user.username).first():
         raise HTTPException(status_code=409, detail="Username is already taken")
 
-    # 3. Get Default Role ('Member')
-    default_role = db.query(user_model.Role).filter(user_model.Role.name == "Member").first()
+    # 3. Get Default Role ('Member' or 'User' or 'Student')
+    default_role = db.query(user_model.Role).filter(
+        user_model.Role.name.in_(["Member", "member", "User", "user", "Student", "student"])
+    ).first()
     
-    # Safety Check: Agar Member role DB mein nahi hai to pehla role utha lo
+    # Safety Check: Agar Member role DB mein nahi hai to create kar lo ya non-admin role lo
     if not default_role:
-        default_role = db.query(user_model.Role).first()
-        # Safety Check: Agar ab bhi koi role na mile to error do
+        default_role = db.query(user_model.Role).filter(~user_model.Role.name.ilike("%admin%")).first()
         if not default_role:
-             raise HTTPException(status_code=500, detail="System Error: No roles found. Contact Admin.")
+            # Create a Member role to prevent assigning Admin role
+            default_role = user_model.Role(name="Member", description="Standard library member")
+            db.add(default_role)
+            db.commit()
+            db.refresh(default_role)
 
     # 4. Create User
     hashed_pwd = get_password_hash(user.password)

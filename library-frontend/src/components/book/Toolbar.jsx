@@ -1,3 +1,4 @@
+import StandardFormattedText from "../common/StandardFormattedText";
 import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import {
   ChevronDown,
@@ -386,22 +387,22 @@ const SplitViewer = ({
         {/* --- TEXT READER PANE (FULL HEIGHT SCROLL) --- */}
         {(layoutMode === 'text' || layoutMode === 'split') && (
           <div
-            className={`relative flex min-h-0 flex-col bg-[#FAF8F5] transition-all duration-300 ${
+            className={`relative flex min-h-0 flex-col bg-[#F3ECE0] transition-all duration-300 ${
               layoutMode === 'split' ? 'h-1/2 md:h-full md:w-1/2' : 'h-full w-full'
             }`}
           >
             <div
               ref={textScrollRef}
               onScroll={handleTextScroll}
-              className="flex-1 min-h-0 overflow-y-auto px-4 py-6 sm:px-8 sm:py-8 leading-[2.5] text-right md:px-12 custom-scrollbar"
+              className="flex-1 min-h-0 overflow-y-auto px-3 py-4 sm:px-8 sm:py-8 leading-[2.2] sm:leading-[2.5] text-right md:px-12 custom-scrollbar"
               dir="rtl"
               style={{
                 fontFamily: "'Amiri', 'Noto Nastaliq Urdu', serif",
-                fontSize: '1.25rem',
+                fontSize: '1.15rem',
               }}
             >
               <div
-                className={`mx-auto space-y-6 rounded-2xl border border-amber-900/10 bg-white/95 p-4 sm:p-8 text-slate-900 shadow-sm backdrop-blur-sm transition-all ${
+                className={`mx-auto space-y-4 sm:space-y-6 rounded-2xl border border-[#E0D1B8] bg-[#FAF6EE] p-3 sm:p-8 text-[#2C2416] shadow-[inset_0_0_40px_rgba(180,140,75,0.04),0_10px_30px_rgba(0,0,0,0.04)] transition-all ${
                   layoutMode === 'text' ? 'max-w-4xl shadow-md' : 'max-w-3xl'
                 }`}
               >
@@ -446,16 +447,12 @@ const SplitViewer = ({
                             </div>
 
                             {/* Paragraph Content */}
-                            <div className="space-y-4 text-justify leading-relaxed">
+                            <div className="text-justify leading-relaxed">
                               {pageText ? (
-                                pageText.split('\n').map((para, i) => (
-                                  <p
-                                    key={`${pageNum}-${i}`}
-                                    className="rounded-lg px-2.5 py-1.5 transition-colors hover:bg-emerald-50/60"
-                                  >
-                                    {highlightText(para)}
-                                  </p>
-                                ))
+                                <StandardFormattedText
+                                  text={pageText}
+                                  highlightQuery={searchText}
+                                />
                               ) : (
                                 <div className="flex h-20 items-center justify-center text-xs font-semibold text-slate-400 animate-pulse">
                                   Loading page {pageNum}...
@@ -468,12 +465,11 @@ const SplitViewer = ({
                     })}
                   </div>
                 ) : textContent ? (
-                  <div className="space-y-4 text-justify leading-relaxed">
-                    {textContent.split('\n').map((para, i) => (
-                      <p key={i} className="rounded-lg px-2.5 py-1.5 transition-colors hover:bg-emerald-50/60">
-                        {highlightText(para)}
-                      </p>
-                    ))}
+                  <div className="text-justify leading-relaxed">
+                    <StandardFormattedText
+                      text={textContent}
+                      highlightQuery={searchText}
+                    />
                   </div>
                 ) : (
                   <div className="flex h-44 items-center justify-center text-xs font-bold text-slate-400">

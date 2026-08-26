@@ -16,10 +16,15 @@ const BookForm = ({ initialData, isEditing, onBookAdded, onBookUpdated, onCancel
     const [subcategories, setSubcategories] = useState([]);
     const [fatawaCategories, setFatawaCategories] = useState([]);
 
-    // File Names for UI Display
+    // File Names and Size for UI Display
     const [coverImageName, setCoverImageName] = useState("");
     const [pdfFileName, setPdfFileName] = useState("");
+    const [pdfFileSizeMb, setPdfFileSizeMb] = useState(null);
     const [txtFileName, setTxtFileName] = useState(""); // ✅ NEW: State for Text File Name
+
+    // Live Upload & Compression Progress State (1% to 100%)
+    const [uploadProgress, setUploadProgress] = useState(null);
+    const [uploadStatusText, setUploadStatusText] = useState("");
 
     // Form Data
     const [formData, setFormData] = useState({
@@ -193,6 +198,8 @@ const BookForm = ({ initialData, isEditing, onBookAdded, onBookUpdated, onCancel
                 else if (name === "pdfFile") {
                     setFormData(prev => ({ ...prev, pdf_file: file }));
                     setPdfFileName(file.name);
+                    const szMb = Number((file.size / (1024 * 1024)).toFixed(1));
+                    setPdfFileSizeMb(szMb);
                 } 
                 // ✅ THIS IS THE FIX YOU NEEDED
                 else if (name === "txtFile") { 
@@ -216,9 +223,40 @@ const BookForm = ({ initialData, isEditing, onBookAdded, onBookUpdated, onCancel
         }
 
         setLoading(true);
+        setUploadProgress(1);
+        setUploadStatusText("Initiating upload...");
         const toastId = toast.loading(isEditing ? "Updating book..." : "Creating book...");
 
+        const onUploadProgress = (progressEvent) => {
+            if (progressEvent.total) {
+                const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+                setUploadProgress(percentCompleted);
+                const loadedMb = (progressEvent.loaded / (1024 * 1024)).toFixed(1);
+                const totalMb = (progressEvent.total / (1024 * 1024)).toFixed(1);
+                if (percentCompleted < 100) {
+                    setUploadStatusText(`Uploading files: ${loadedMb} MB / ${totalMb} MB (${percentCompleted}%)`);
+                } else {
+                    setUploadStatusText("File upload 100% complete. Optimizing & saving book...");
+                }
+            }
+        };
+
         try {
+            let uploadedPdfUrl = null;
+
+            // 1. If PDF file is selected and > 20 MB (up to 1 GB+), use 15MB Chunked Upload to guarantee ZERO 413 errors
+            if (formData.pdf_file && formData.pdf_file.size > 20 * 1024 * 1024) {
+                setUploadProgress(1);
+                setUploadStatusText(`Preparing chunked streaming upload for ${formData.pdf_file.name}...`);
+                const chunkRes = await bookService.uploadLargePdfChunks(formData.pdf_file, (p) => {
+                    setUploadProgress(p.percent);
+                    setUploadStatusText(p.statusText);
+                });
+                if (chunkRes && chunkRes.url) {
+                    uploadedPdfUrl = chunkRes.url;
+                }
+            }
+
             const data = new FormData();
 
             // Append all simple fields
@@ -234,24 +272,29 @@ const BookForm = ({ initialData, isEditing, onBookAdded, onBookUpdated, onCancel
             // Append Arrays
             formData.subcategory_ids.forEach(id => data.append("subcategory_ids", id));
 
-            // Append Files (Only if new file selected)
+            // Append Files & Pre-uploaded URLs
             if (formData.cover_image) data.append("cover_image", formData.cover_image);
-            if (formData.pdf_file) data.append("pdf_file", formData.pdf_file);
+
+            if (uploadedPdfUrl) {
+                data.append("pdf_url", uploadedPdfUrl);
+            } else if (formData.pdf_file) {
+                data.append("pdf_file", formData.pdf_file);
+            }
             
-            // ✅ Append Text File
+            // Append Text File
             if (formData.txt_file) {
                 console.log("📤 Uploading TXT:", formData.txt_file.name);
                 data.append("txt_file", formData.txt_file);
             }
 
-            // API Call
+            // API Call with progress callback
             let result;
             if (isEditing) {
-                result = await bookService.updateBook(initialData.id, data);
+                result = await bookService.updateBook(initialData.id, data, uploadedPdfUrl ? null : onUploadProgress);
                 toast.success("Book updated successfully!", { id: toastId });
                 if (onBookUpdated) onBookUpdated(result);
             } else {
-                result = await bookService.createBook(data);
+                result = await bookService.createBook(data, uploadedPdfUrl ? null : onUploadProgress);
                 toast.success("Book created successfully!", { id: toastId });
                 if (onBookAdded) onBookAdded(result);
             }
@@ -262,6 +305,8 @@ const BookForm = ({ initialData, isEditing, onBookAdded, onBookUpdated, onCancel
             toast.error(errMsg, { id: toastId });
         } finally {
             setLoading(false);
+            setUploadProgress(null);
+            setUploadStatusText("");
         }
     };
 
@@ -269,25 +314,28 @@ const BookForm = ({ initialData, isEditing, onBookAdded, onBookUpdated, onCancel
     return (
         <ErrorBoundary>
             <BookFormUI 
-            formData={formData}
-            languages={languages}
-            subcategories={subcategories}
-            fatawaCategories={fatawaCategories}
-            initialData={initialData}
-            isEditing={isEditing}
-            isLoading={loading}
-            isDropdownLoading={dropdownLoading}
-            
-            // File Names Props
-            coverImageName={coverImageName}
-            pdfFileName={pdfFileName}
-            txtFileName={txtFileName} // ✅ Pass state to UI
-            
-            // Handlers
-            onChange={handleChange}
-            onSubcategoryChange={handleSubcategoryChange}
-            onFileChange={handleFileChange}
-            onSubmit={handleSubmit}
+                formData={formData}
+                languages={languages}
+                subcategories={subcategories}
+                fatawaCategories={fatawaCategories}
+                initialData={initialData}
+                isEditing={isEditing}
+                isLoading={loading}
+                isDropdownLoading={dropdownLoading}
+                
+                // File Names & Progress Props
+                coverImageName={coverImageName}
+                pdfFileName={pdfFileName}
+                pdfFileSizeMb={pdfFileSizeMb}
+                txtFileName={txtFileName}
+                uploadProgress={uploadProgress}
+                uploadStatusText={uploadStatusText}
+                
+                // Handlers
+                onChange={handleChange}
+                onSubcategoryChange={handleSubcategoryChange}
+                onFileChange={handleFileChange}
+                onSubmit={handleSubmit}
                 onCancel={onCancel}
             />
         </ErrorBoundary>

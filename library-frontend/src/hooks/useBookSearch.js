@@ -155,6 +155,8 @@ export const useBookSearch = (initialBooks = []) => {
 
       return true;
     });
+
+    return deduplicateBooks(filtered);
   }, [initialBooks, debouncedTerm, selectedLanguage, selectedCategory, selectedSubcategory]);
 
   return {
@@ -168,4 +170,37 @@ export const useBookSearch = (initialBooks = []) => {
     setSelectedSubcategory,
     filteredBooks,
   };
+};
+
+/** ✅ Normalizes Urdu, Arabic & English book titles */
+export const normalizeUrduTitle = (title) => {
+  if (!title) return "";
+  let t = String(title).toLowerCase().trim();
+  t = t.replace(/ي/g, 'ی').replace(/ى/g, 'ی').replace(/ك/g, 'ک').replace(/ه/g, 'ہ').replace(/ة/g, 'ہ');
+  t = t.replace(/[أإآ]/g, 'ا');
+  t = t.replace(/[؟\?،,۔\.\-_:؛;!/\\\|\(\)\[\]\{\}"'`~\*\^]/g, ' ');
+  return t.replace(/\s+/g, ' ').trim();
+};
+
+/** ✅ Deduplicates books for public users by keeping the richest version with cover/digital assets */
+export const deduplicateBooks = (list) => {
+  if (!Array.isArray(list)) return [];
+  const seen = new Map();
+  for (const book of list) {
+    const titleKey = normalizeUrduTitle(book?.title) || `book_${book?.id}`;
+    const authorKey = normalizeUrduTitle(book?.author || book?.author_name);
+    const key = authorKey ? `${titleKey}___${authorKey}` : titleKey;
+
+    let score = 0;
+    if (book?.pdf_url || book?.pdf_file || book?.txt_file_url || book?.txt_file || book?.is_digital) score += 100;
+    if (book?.cover_image_url || book?.cover_image) score += 50;
+    if (book?.description) score += 10;
+    if (book?.page_count) score += 5;
+    score += (Number(book?.id) || 0) * 0.0001;
+
+    if (!seen.has(key) || score > seen.get(key).score) {
+      seen.set(key, { score, book });
+    }
+  }
+  return Array.from(seen.values()).map(item => item.book);
 };

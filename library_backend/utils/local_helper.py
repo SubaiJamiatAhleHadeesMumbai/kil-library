@@ -91,13 +91,14 @@ def save_txt_locally(file: UploadFile):
         print(f"🚀 Saving TXT locally: {file.filename}")
         
         file_ext = Path(file.filename or "file.txt").suffix.lower()
-        allowed_extensions = {".txt", ".md", ".docx", ".rtf", ".html", ".json", ".csv", ".xml"}
+        if not file_ext:
+            file_ext = ".txt"
+        allowed_extensions = {".txt", ".text", ".md", ".docx", ".doc", ".rtf", ".html", ".json", ".csv", ".xml"}
         if file_ext not in allowed_extensions:
-            print("❌ Unsupported text file extension")
-            return None
+            file_ext = ".txt"
                 
         # Generate unique filename
-        unique_filename = f"{uuid.uuid4()}{file_ext}"
+        unique_filename = f"{uuid.uuid4().hex[:16]}{file_ext}"
         upload_dir = _ensure_dir(TXT_DIR)
         file_path = upload_dir / unique_filename
         

@@ -4,6 +4,7 @@ import os
 from fastapi import APIRouter, Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.responses import JSONResponse
+from sqlalchemy import or_, func
 from sqlalchemy.orm import Session, joinedload
 from datetime import timedelta, datetime, timezone
 
@@ -52,11 +53,16 @@ async def login_for_access_token(
             detail="Username and password are required.",
         )
 
-    # ✅ 1) Fetch User (Eager Load Role & Permissions)
+    # ✅ 1) Fetch User (Case-insensitive username or email, Eager Load Role & Permissions)
     user = (
         db.query(user_model.User)
         .options(joinedload(user_model.User.role).joinedload(user_model.Role.permissions))
-        .filter(user_model.User.username == username)
+        .filter(
+            or_(
+                func.lower(user_model.User.username) == username.lower(),
+                func.lower(user_model.User.email) == username.lower()
+            )
+        )
         .first()
     )
 

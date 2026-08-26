@@ -133,7 +133,19 @@ const ToggleCard = ({ id, checked, onChange, disabled, icon: Icon, title, desc }
   );
 };
 
-const FileDropZone = ({ label, id, accept, onChange, currentUrl, newFileName, icon: Icon, accent = 'blue' }) => {
+const FileDropZone = ({
+  label,
+  id,
+  accept,
+  onChange,
+  currentUrl,
+  newFileName,
+  fileSizeMb,
+  uploadProgress,
+  isLoading,
+  icon: Icon,
+  accent = 'blue'
+}) => {
   const [dragging, setDragging] = useState(false);
   const [localName, setLocalName] = useState('');
   const inputRef = useRef();
@@ -154,6 +166,8 @@ const FileDropZone = ({ label, id, accept, onChange, currentUrl, newFileName, ic
   };
   const a = accentMap[accent] || accentMap.blue;
 
+  const isCurrentUploading = typeof uploadProgress === 'number' && uploadProgress > 0 && localName;
+
   return (
     <div className="flex flex-col gap-2">
       <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-widest">{label}</label>
@@ -161,49 +175,101 @@ const FileDropZone = ({ label, id, accept, onChange, currentUrl, newFileName, ic
         onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
         onDragLeave={() => setDragging(false)}
         onDrop={(e) => { e.preventDefault(); setDragging(false); handleFile(e.dataTransfer.files[0]); }}
-        onClick={() => inputRef.current?.click()}
-        className={`flex flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed px-6 py-8 cursor-pointer transition-all duration-200 group
+        onClick={() => !isLoading && inputRef.current?.click()}
+        className={`flex flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed px-6 py-6 cursor-pointer transition-all duration-200 group relative overflow-hidden
           ${dragging
             ? `${a.border} ${a.bg} scale-[1.02]`
             : localName
-              ? 'border-emerald-300 bg-emerald-50'
+              ? 'border-emerald-300 bg-emerald-50/70'
               : `border-slate-200 bg-slate-50 hover:${a.border} hover:${a.bg}`
           }`}
       >
-        <input ref={inputRef} id={id} name={id} type="file" accept={accept} className="sr-only"
+        <input ref={inputRef} id={id} name={id} type="file" accept={accept} className="sr-only" disabled={isLoading}
           onChange={(e) => { const f = e.target.files[0]; if (f) { setLocalName(f.name); if (onChange) onChange(e); } }}
         />
 
-        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-200 shadow-xs border
-          ${localName ? 'bg-emerald-100 border-emerald-200' : `bg-white border-slate-200 group-hover:${a.bg}`}`}>
-          {localName
-            ? <CheckCircleIcon className="w-6 h-6 text-emerald-500" />
-            : <Icon className={`w-6 h-6 ${a.icon} group-hover:scale-110 transition-transform duration-200`} />
-          }
-        </div>
-
-        {localName ? (
-          <div className="text-center">
-            <p className={`text-[11px] font-bold px-3 py-1.5 rounded-full ${a.badge} max-w-[180px] truncate`}>{localName}</p>
-            <p className="text-[10px] text-slate-400 mt-1">Click to replace file</p>
+        {isCurrentUploading ? (
+          /* Circular Progress (1% to 100%) inside the Box */
+          <div className="flex flex-col items-center justify-center py-2 animate-in zoom-in-90 duration-300">
+            <div className="relative w-20 h-20 flex items-center justify-center">
+              <svg className="w-full h-full -rotate-90 transform" viewBox="0 0 36 36">
+                {/* Background Track Circle */}
+                <path
+                  className="text-slate-200"
+                  strokeWidth="3.5"
+                  stroke="currentColor"
+                  fill="none"
+                  d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                />
+                {/* Progress Circle Fill */}
+                <path
+                  className="text-[#002147] transition-all duration-300 ease-out"
+                  strokeDasharray={`${uploadProgress}, 100`}
+                  strokeWidth="3.8"
+                  strokeLinecap="round"
+                  stroke="currentColor"
+                  fill="none"
+                  d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                />
+              </svg>
+              <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
+                <span className="text-sm font-black text-[#002147] font-mono leading-none">
+                  {uploadProgress}%
+                </span>
+                <span className="text-[9px] font-bold text-slate-500 uppercase mt-0.5">
+                  {uploadProgress >= 100 ? "Saving" : "Upload"}
+                </span>
+              </div>
+            </div>
+            <p className="text-[11px] font-bold text-slate-700 max-w-[200px] truncate mt-2">{localName}</p>
           </div>
         ) : (
-          <div className="text-center">
-            <p className="text-sm font-bold text-slate-700">Drop file here</p>
-            <p className="text-xs text-slate-400 mt-0.5">or <span className={`font-bold ${a.icon}`}>click to browse</span></p>
-          </div>
-        )}
+          <>
+            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-200 shadow-xs border
+              ${localName ? 'bg-emerald-100 border-emerald-200' : `bg-white border-slate-200 group-hover:${a.bg}`}`}>
+              {localName
+                ? <CheckCircleIcon className="w-6 h-6 text-emerald-500" />
+                : <Icon className={`w-6 h-6 ${a.icon} group-hover:scale-110 transition-transform duration-200`} />
+              }
+            </div>
 
-        {currentUrl && !localName && (
-          <a
-            href={currentUrl.startsWith("http") ? currentUrl : `${API_URL}${currentUrl.startsWith('/') ? currentUrl : `/${currentUrl}`}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={(e) => e.stopPropagation()}
-            className={`text-[10px] font-bold uppercase tracking-wide px-3 py-1.5 rounded-full ${a.badge} hover:opacity-80 transition-opacity`}
-          >
-            View Existing File
-          </a>
+            {localName ? (
+              <div className="text-center">
+                <p className={`text-[11px] font-bold px-3 py-1.5 rounded-full ${a.badge} max-w-[180px] truncate`}>{localName}</p>
+                {typeof fileSizeMb === 'number' && (
+                  <div className="mt-1.5">
+                    {fileSizeMb <= 100 ? (
+                      <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                        🟢 {fileSizeMb} MB (Original HD - No Compression)
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-sky-100 text-sky-800 border border-sky-200">
+                        ⚡ {fileSizeMb} MB (&gt;100MB - Smart HD Compression)
+                      </span>
+                    )}
+                  </div>
+                )}
+                <p className="text-[10px] text-slate-400 mt-1">Click to replace file</p>
+              </div>
+            ) : (
+              <div className="text-center">
+                <p className="text-sm font-bold text-slate-700">Drop file here</p>
+                <p className="text-xs text-slate-400 mt-0.5">or <span className={`font-bold ${a.icon}`}>click to browse</span></p>
+              </div>
+            )}
+
+            {currentUrl && !localName && (
+              <a
+                href={currentUrl.startsWith("http") ? currentUrl : `${API_URL}${currentUrl.startsWith('/') ? currentUrl : `/${currentUrl}`}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={(e) => e.stopPropagation()}
+                className={`text-[10px] font-bold uppercase tracking-wide px-3 py-1.5 rounded-full ${a.badge} hover:opacity-80 transition-opacity`}
+              >
+                View Existing File
+              </a>
+            )}
+          </>
         )}
       </div>
     </div>
@@ -224,7 +290,10 @@ const BookFormUI = ({
   successMessage,
   coverImageName,
   pdfFileName,
+  pdfFileSizeMb,
   txtFileName,
+  uploadProgress,
+  uploadStatusText,
   onChange,
   onSubcategoryChange,
   onFileChange,
@@ -339,13 +408,14 @@ const BookFormUI = ({
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
               <FileDropZone id="coverImageFile" label="Book Cover" accept="image/*"
                 onChange={onFileChange} currentUrl={initialData?.cover_image_url}
-                newFileName={coverImageName} icon={PhotoIcon} accent="violet" />
+                newFileName={coverImageName} isLoading={isLoading} icon={PhotoIcon} accent="violet" />
               <FileDropZone id="pdfFile" label="PDF Document" accept="application/pdf"
                 onChange={onFileChange} currentUrl={initialData?.pdf_url}
-                newFileName={pdfFileName} icon={DocumentIcon} accent="blue" />
-              <FileDropZone id="txtFile" label="Research Text" accept=".txt,.md,.docx"
+                newFileName={pdfFileName} fileSizeMb={pdfFileSizeMb}
+                uploadProgress={uploadProgress} isLoading={isLoading} icon={DocumentIcon} accent="blue" />
+              <FileDropZone id="txtFile" label="Research Text" accept=".txt,.text,.md,.docx,.doc,.rtf,text/plain,text/*"
                 onChange={onFileChange} currentUrl={initialData?.txt_file_url}
-                newFileName={txtFileName} icon={DocumentTextIcon} accent="teal" />
+                newFileName={txtFileName} isLoading={isLoading} icon={DocumentTextIcon} accent="teal" />
             </div>
           </section>
 
@@ -363,6 +433,60 @@ const BookFormUI = ({
                 desc="No physical copy - online access only." />
             </div>
           </section>
+
+          {/* 6. LIVE UPLOAD & COMPRESSION PROGRESS PANEL (1% to 100%) */}
+          <AnimatePresence>
+            {typeof uploadProgress === 'number' && (
+              <motion.div
+                initial={{ opacity: 0, y: 15 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 10 }}
+                className="rounded-2xl p-5 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white shadow-2xl border border-slate-700/80"
+              >
+                <div className="flex items-center justify-between gap-4 mb-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-sky-500/20 border border-sky-400/30 flex items-center justify-center">
+                      <CloudArrowUpIcon className="w-5 h-5 text-sky-400 animate-pulse" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-black text-white leading-tight">
+                        {uploadProgress < 100 ? "Uploading Book Assets..." : "Optimizing & Saving Book..."}
+                      </p>
+                      <p className="text-xs text-slate-400 mt-0.5 font-medium">
+                        {uploadStatusText || `${uploadProgress}% processed`}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-2xl font-black text-sky-400 font-mono tracking-tight">
+                      {uploadProgress}%
+                    </span>
+                  </div>
+                </div>
+
+                {/* Progress Bar Track */}
+                <div className="w-full bg-slate-950/80 rounded-full h-3 overflow-hidden p-0.5 border border-slate-700/60 shadow-inner">
+                  <motion.div
+                    className="bg-gradient-to-r from-sky-500 via-cyan-400 to-emerald-400 h-full rounded-full transition-all duration-300 shadow-[0_0_12px_rgba(56,189,248,0.6)]"
+                    style={{ width: `${Math.max(2, Math.min(100, uploadProgress))}%` }}
+                  />
+                </div>
+
+                <div className="flex items-center justify-between mt-3 text-[11px] text-slate-400 font-semibold">
+                  <span>
+                    {pdfFileSizeMb
+                      ? (pdfFileSizeMb <= 100
+                          ? `🟢 Original HD Quality Preserved (${pdfFileSizeMb} MB <= 100MB)`
+                          : `⚡ Smart HD Optimization Active (${pdfFileSizeMb} MB > 100MB)`)
+                      : "Multi-storage auto sync (R2 / Cloudinary / Local)"}
+                  </span>
+                  <span className="text-slate-300 font-mono">
+                    {uploadProgress < 100 ? "Step 1 of 2: Upload" : "Step 2 of 2: Process"}
+                  </span>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
         </div>
       </div>
@@ -389,7 +513,7 @@ const BookFormUI = ({
             {isLoading ? (
               <>
                 <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                Saving...
+                {typeof uploadProgress === 'number' ? `Saving (${uploadProgress}%)...` : 'Saving...'}
               </>
             ) : (
               <>
