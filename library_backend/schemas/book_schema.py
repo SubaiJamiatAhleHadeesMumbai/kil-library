@@ -96,6 +96,20 @@ class BookUpdate(BaseModel):
     txt_file_url: Optional[str] = None
     txt_file: Optional[str] = None
 
+class BookSummary(BaseModel):
+    id: int
+    title: str
+    author: Optional[str] = None
+    book_number: Optional[str] = None
+    language_id: Optional[int] = None
+    total_copies: Optional[int] = 1
+    is_digital: bool = True
+    is_approved: bool = True
+
+    class Config:
+        from_attributes = True
+
+
 # ==============================================================================
 # 🔵 4. RESPONSE SCHEMA (Output)
 # ==============================================================================

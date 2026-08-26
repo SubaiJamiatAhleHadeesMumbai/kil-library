@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 from uuid import uuid4
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, File, UploadFile, Form
 from sqlalchemy import desc, func, or_, and_
 from sqlalchemy.orm import Session, joinedload
 
@@ -11,14 +11,22 @@ from database import get_db
 from models import book_model, user_model
 from models.fatawa_model import FatawaCategory, FatawaQuestion
 from schemas import fatawa_schema as schemas, book_schema
+from utils.cloudinary_helper import upload_to_cloudinary
 
 router = APIRouter()
 
 
+from utils import create_log
+
 def ensure_admin(user: user_model.User):
     role_name = getattr(getattr(user, "role", None), "name", "") or ""
-    if role_name.lower() not in {"admin", "superadmin", "administrator"}:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Sirf admin access allowed hai.")
+    role_lower = role_name.lower()
+    if role_lower in {"admin", "superadmin", "administrator", "super admin"} or "mufti" in role_lower:
+        return
+    perms = [p.name for p in getattr(getattr(user, "role", None), "permissions", [])]
+    if "FATAWA_MANAGE" in perms:
+        return
+    raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Sirf authorized admin/mufti access allowed hai.")
 
 
 def slugify(value: str) -> str:
@@ -307,6 +315,22 @@ def admin_questions(
     return query.order_by(desc(FatawaQuestion.created_at)).offset(skip).limit(limit).all()
 
 
+@router.post("/upload-attachment")
+async def upload_fatawa_attachment(
+    file: UploadFile = File(...),
+    current_user: user_model.User = Depends(get_current_user),
+):
+    ensure_admin(current_user)
+    if not file:
+        raise HTTPException(status_code=400, detail="No file provided.")
+    
+    url = upload_to_cloudinary(file, folder="booknest/fatawa")
+    if not url:
+        raise HTTPException(status_code=500, detail="File upload failed on server.")
+    
+    return {"url": url, "filename": file.filename, "content_type": file.content_type}
+
+
 @router.patch("/admin/questions/{question_id}", response_model=schemas.FatawaQuestion)
 def update_question(
     question_id: int,
@@ -330,6 +354,20 @@ def update_question(
         question.display_name = payload.display_name
     if payload.guest_email is not None:
         question.guest_email = payload.guest_email
+    if payload.status is not None:
+        question.status = normalize_status(payload.status)
+    if payload.answer_text is not None:
+        question.answer_text = payload.answer_text.strip()
+    if payload.pdf_url is not None:
+        question.pdf_url = payload.pdf_url
+    if payload.images is not None:
+        question.images = payload.images
+    if payload.verdict_summary is not None:
+        question.verdict_summary = payload.verdict_summary
+    if payload.mufti_name is not None:
+        question.mufti_name = payload.mufti_name
+    if payload.darul_ifta_reference_no is not None:
+        question.darul_ifta_reference_no = payload.darul_ifta_reference_no
 
     db.commit()
     db.refresh(question)
@@ -345,12 +383,34 @@ def answer_question(
 ):
     ensure_admin(current_user)
     question = get_question_or_404(db, question_id)
-    question.answer_text = payload.answer_text.strip()
-    question.status = normalize_status(payload.status or "answered")
+    question.answer_text = (payload.answer_text or "").strip()
+    question.status = normalize_status(payload.status or ("answered" if question.answer_text or payload.pdf_url else question.status))
     if payload.visibility is not None:
         question.visibility = normalize_visibility(payload.visibility)
+    if payload.pdf_url is not None:
+        question.pdf_url = payload.pdf_url
+    if payload.images is not None:
+        question.images = payload.images
+    if payload.verdict_summary is not None:
+        question.verdict_summary = payload.verdict_summary
+    if payload.mufti_name is not None:
+        question.mufti_name = payload.mufti_name
+    if payload.darul_ifta_reference_no is not None:
+        question.darul_ifta_reference_no = payload.darul_ifta_reference_no
+
     question.answered_by_id = current_user.id
     question.answered_at = datetime.utcnow()
+    question.published_at = datetime.utcnow()
+    
+    create_log(
+        db=db,
+        user=current_user,
+        action_type="FATWA_ANSWERED",
+        description=f"Fatwa #{question.id} answered/updated by {current_user.username}",
+        target_type="Fatwa",
+        target_id=question.id
+    )
+    
     db.commit()
     db.refresh(question)
     return get_question_or_404(db, question.id)
@@ -365,5 +425,15 @@ def delete_question(
     ensure_admin(current_user)
     question = get_question_or_404(db, question_id)
     question.deleted_at = datetime.utcnow()
+    
+    create_log(
+        db=db,
+        user=current_user,
+        action_type="FATWA_DELETED",
+        description=f"Fatwa #{question.id} deleted by {current_user.username}",
+        target_type="Fatwa",
+        target_id=question.id
+    )
+    
     db.commit()
     return None

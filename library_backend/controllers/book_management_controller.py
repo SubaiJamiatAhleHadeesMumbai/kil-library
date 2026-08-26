@@ -194,7 +194,7 @@ async def create_book(
 # 🟣 BULK EXCEL IMPORT & STAGED BOOKS (Persistent Database Storage)
 # ==============================================================================
 
-@router.post("/bulk-import", response_model=List[book_schema.Book], status_code=status.HTTP_201_CREATED)
+@router.post("/bulk-import", response_model=List[book_schema.BookSummary], status_code=status.HTTP_201_CREATED)
 def bulk_import_books(
     payload: List[book_schema.StagedBookBase],
     replace_existing: bool = False,
@@ -202,131 +202,136 @@ def bulk_import_books(
     current_user: user_model.User = Depends(require_permission("BOOK_MANAGE"))
 ):
     """
-    Directly insert bulk books parsed from Excel spreadsheet into MySQL database (books table).
+    Directly insert bulk books parsed from Excel spreadsheet into database (books table).
     If replace_existing is True, previous books are cleared so only the new file's data is active.
     """
-    if replace_existing:
-        db.query(book_model.Book).filter(book_model.Book.deleted_at.is_(None)).update({"deleted_at": datetime.utcnow()})
+    try:
+        if replace_existing:
+            db.query(book_model.Book).filter(book_model.Book.deleted_at.is_(None)).update({"deleted_at": datetime.utcnow()})
+            db.commit()
+
+        languages = db.query(language_model.Language).filter(language_model.Language.deleted_at.is_(None)).all()
+        default_lang = languages[0] if languages else None
+        
+        LANGUAGE_MAP = {
+            'urdu': 'Urdu', 'اردو': 'Urdu',
+            'english': 'English', 'eng': 'English', 'انگریزی': 'English', 'انگريزي': 'English', 'انگلش': 'English',
+            'arabic': 'Arabic', 'عربی': 'Arabic', 'عربي': 'Arabic',
+            'hindi': 'Hindi', 'ہندی': 'Hindi', 'हिन्दी': 'Hindi',
+            'marathi': 'Marathi', 'مراٹھی': 'Marathi', 'मराठी': 'Marathi',
+            'persian': 'Persian', 'فارسی': 'Persian'
+        }
+
+        def resolve_language_id(name_str):
+            if not name_str or not languages:
+                return default_lang.id if default_lang else 1
+            name_clean = name_str.strip().lower()
+            mapped_name = LANGUAGE_MAP.get(name_clean, name_clean).lower()
+            for lang in languages:
+                if lang.name.lower() in mapped_name or mapped_name in lang.name.lower():
+                    return lang.id
+                if hasattr(lang, 'code') and lang.code and lang.code.lower() == mapped_name:
+                    return lang.id
+            return default_lang.id if default_lang else 1
+
+        import re
+        def safe_str(val, max_len=None):
+            if val is None:
+                return None
+            s = str(val).strip()
+            if not s:
+                return None
+            return s[:max_len] if max_len else s
+
+        def safe_int(val, min_val=0, max_val=2147483647, default=None):
+            if val is None or str(val).strip() == '':
+                return default
+            try:
+                clean = re.sub(r'[^\d-]', '', str(val))
+                if not clean or clean == '-':
+                    return default
+                num = int(clean)
+                if num < min_val or num > max_val:
+                    return default
+                return num
+            except Exception:
+                return default
+
+        def safe_float(val, min_val=0.0, max_val=999999999.0, default=None):
+            if val is None or str(val).strip() == '':
+                return default
+            try:
+                clean = re.sub(r'[^\d.-]', '', str(val))
+                if not clean or clean == '-' or clean == '.':
+                    return default
+                num = float(clean)
+                if num < min_val or num > max_val:
+                    return default
+                return num
+            except Exception:
+                return default
+
+        created_books = []
+        for item in payload:
+            if not item.title and not item.author and not item.book_number:
+                continue
+                
+            lang_id = resolve_language_id(item.language_name)
+            
+            parsed_pub_date = None
+            if item.publication_year:
+                try:
+                    clean_y = safe_int(str(item.publication_year)[:4], min_val=1000, max_val=2100)
+                    if clean_y:
+                        parsed_pub_date = date(clean_y, 1, 1)
+                except Exception:
+                    pass
+                    
+            qty = safe_int(item.quantity, min_val=1, max_val=10000, default=1)
+            pages = safe_int(item.page_count, min_val=1, max_val=50000, default=None)
+            price_val = safe_float(item.price, min_val=0.0, max_val=10000000.0, default=None)
+
+            new_book = book_model.Book(
+                title=safe_str(item.title, 250) or "Untitled Book",
+                author=safe_str(item.author, 250),
+                publisher=safe_str(item.publisher, 250),
+                translator=safe_str(item.translator, 250),
+                serial_number=safe_str(item.serial_number, 90),
+                book_number=safe_str(item.book_number, 90),
+                language_id=lang_id,
+                page_count=pages,
+                parts_or_volumes=safe_str(item.parts_or_volumes, 90),
+                subject_number=safe_str(item.subject_number, 90),
+                edition=safe_str(item.edition, 90),
+                total_copies=qty if qty and qty > 0 else 1,
+                available_copies=qty if qty and qty > 0 else 1,
+                price=price_val,
+                remarks=safe_str(item.remarks),
+                description=safe_str(item.description),
+                extra_data=item.extra_data or item.raw_data,
+                published_date=parsed_pub_date,
+                is_digital=True,
+                is_approved=True,
+                is_restricted=False
+            )
+            db.add(new_book)
+            created_books.append(new_book)
+
         db.commit()
 
-    languages = db.query(language_model.Language).filter(language_model.Language.deleted_at.is_(None)).all()
-    default_lang = languages[0] if languages else None
-    
-    LANGUAGE_MAP = {
-        'urdu': 'Urdu', 'اردو': 'Urdu',
-        'english': 'English', 'eng': 'English', 'انگریزی': 'English', 'انگريزي': 'English', 'انگلش': 'English',
-        'arabic': 'Arabic', 'عربی': 'Arabic', 'عربي': 'Arabic',
-        'hindi': 'Hindi', 'ہندی': 'Hindi', 'हिन्दी': 'Hindi',
-        'marathi': 'Marathi', 'مراٹھی': 'Marathi', 'मराठी': 'Marathi',
-        'persian': 'Persian', 'فارسی': 'Persian'
-    }
-
-    def resolve_language_id(name_str):
-        if not name_str or not languages:
-            return default_lang.id if default_lang else 1
-        name_clean = name_str.strip().lower()
-        mapped_name = LANGUAGE_MAP.get(name_clean, name_clean).lower()
-        for lang in languages:
-            if lang.name.lower() in mapped_name or mapped_name in lang.name.lower():
-                return lang.id
-            if hasattr(lang, 'code') and lang.code and lang.code.lower() == mapped_name:
-                return lang.id
-        return default_lang.id if default_lang else 1
-
-    import re
-    def safe_str(val, max_len=None):
-        if val is None:
-            return None
-        s = str(val).strip()
-        if not s:
-            return None
-        return s[:max_len] if max_len else s
-
-    def safe_int(val, min_val=0, max_val=2147483647, default=None):
-        if val is None or str(val).strip() == '':
-            return default
-        try:
-            clean = re.sub(r'[^\d-]', '', str(val))
-            if not clean or clean == '-':
-                return default
-            num = int(clean)
-            if num < min_val or num > max_val:
-                return default
-            return num
-        except Exception:
-            return default
-
-    def safe_float(val, min_val=0.0, max_val=999999999.0, default=None):
-        if val is None or str(val).strip() == '':
-            return default
-        try:
-            clean = re.sub(r'[^\d.-]', '', str(val))
-            if not clean or clean == '-' or clean == '.':
-                return default
-            num = float(clean)
-            if num < min_val or num > max_val:
-                return default
-            return num
-        except Exception:
-            return default
-
-    created_books = []
-    for item in payload:
-        if not item.title and not item.author and not item.book_number:
-            continue
-            
-        lang_id = resolve_language_id(item.language_name)
-        
-        parsed_pub_date = None
-        if item.publication_year:
-            try:
-                clean_y = safe_int(str(item.publication_year)[:4], min_val=1000, max_val=2100)
-                if clean_y:
-                    parsed_pub_date = date(clean_y, 1, 1)
-            except Exception:
-                pass
-                
-        qty = safe_int(item.quantity, min_val=1, max_val=10000, default=1)
-        pages = safe_int(item.page_count, min_val=1, max_val=50000, default=None)
-        price_val = safe_float(item.price, min_val=0.0, max_val=10000000.0, default=None)
-
-        new_book = book_model.Book(
-            title=safe_str(item.title, 250) or "Untitled Book",
-            author=safe_str(item.author, 250),
-            publisher=safe_str(item.publisher, 250),
-            translator=safe_str(item.translator, 250),
-            serial_number=safe_str(item.serial_number, 90),
-            book_number=safe_str(item.book_number, 90),
-            language_id=lang_id,
-            page_count=pages,
-            parts_or_volumes=safe_str(item.parts_or_volumes, 90),
-            subject_number=safe_str(item.subject_number, 90),
-            edition=safe_str(item.edition, 90),
-            total_copies=qty if qty and qty > 0 else 1,
-            available_copies=qty if qty and qty > 0 else 1,
-            price=price_val,
-            remarks=safe_str(item.remarks),
-            description=safe_str(item.description),
-            extra_data=item.extra_data or item.raw_data,
-            published_date=parsed_pub_date,
-            is_digital=True,
-            is_approved=True,  # Approved by default when admin imports via Excel so it appears in the catalog!
-            is_restricted=False
+        create_log(
+            db=db, user=current_user, action_type="BULK_EXCEL_IMPORT",
+            description=f"Admin {current_user.username} imported {len(created_books)} books via Excel spreadsheet.",
+            target_type="Book", target_id=created_books[0].id if created_books else 0
         )
-        db.add(new_book)
-        created_books.append(new_book)
 
-    db.commit()
-    for b in created_books:
-        db.refresh(b)
-
-    create_log(
-        db=db, user=current_user, action_type="BULK_EXCEL_IMPORT",
-        description=f"Admin {current_user.username} imported {len(created_books)} books via Excel spreadsheet.",
-        target_type="Book", target_id=created_books[0].id if created_books else 0
-    )
-
-    return created_books
+        return created_books
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Excel import error: {str(e)}"
+        )
 
 
 @router.delete("/bulk-clear", status_code=status.HTTP_204_NO_CONTENT)

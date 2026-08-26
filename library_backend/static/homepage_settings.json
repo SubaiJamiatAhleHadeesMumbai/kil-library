@@ -1,7 +1,7 @@
 {
   "theme": "day",
-  "theme_palette": "rose",
-  "accent_color": "#cc3d00",
+  "theme_palette": "indigo",
+  "accent_color": "#050e52",
   "heading_style": "sans",
   "background_style": "glass",
   "button_style": "glass",

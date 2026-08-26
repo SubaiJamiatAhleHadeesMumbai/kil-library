@@ -19,3 +19,4 @@ from .donation_models import DonationInfo
 from .interaction_model import UserBookInteraction
 from .analytics_model import SiteVisit
 from .library_management_models import BookCopy, IssuedBook, DigitalAccess
+from .social_work_model import SocialWorkItem

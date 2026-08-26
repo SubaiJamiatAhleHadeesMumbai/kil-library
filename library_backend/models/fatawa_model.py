@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Text, Boolean, ForeignKey, DateTime, TIMESTAMP, Index, func
+from sqlalchemy import Column, Integer, String, Text, Boolean, ForeignKey, DateTime, TIMESTAMP, Index, func, JSON
 from sqlalchemy.orm import relationship
 from database import Base
 from datetime import datetime
@@ -45,6 +45,13 @@ class FatawaQuestion(Base):
     asked_by_email = Column(String(255), nullable=True)
     reference_link = Column(Text, nullable=True)
     answered_by = Column(String(255), nullable=True)
+
+    # Rich Answer & Document Attachments
+    pdf_url = Column(String(500), nullable=True)
+    images = Column(JSON, nullable=True, default=list)
+    verdict_summary = Column(String(255), nullable=True)
+    mufti_name = Column(String(255), nullable=True)
+    darul_ifta_reference_no = Column(String(100), nullable=True)
 
     is_anonymous = Column(Boolean, default=False, nullable=False)
     visibility = Column(String(20), default="public", nullable=False)

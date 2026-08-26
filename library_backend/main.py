@@ -66,7 +66,9 @@ from controllers import (
     analytics_controller,
     settings_controller,
     about_controller,
-    fatawa_controller
+    fatawa_controller,
+    social_work_controller,
+    search_controller
 )
 
 # --- Lifespan Manager (Startup/Shutdown Logic) ---
@@ -292,6 +294,7 @@ api_router.include_router(password_controller.router, prefix="/auth", tags=["Pas
 api_router.include_router(profile_controller.router, prefix="/profile", tags=["Profile"])
 api_router.include_router(user_controller.router, prefix="/users", tags=["Users"])
 api_router.include_router(role_controller.router, prefix="/roles", tags=["Roles"])
+api_router.include_router(permission_controller.router, prefix="/permissions", tags=["Permissions"])
 api_router.include_router(permission_controller.router, tags=["Permissions"])
 
 # 3. Library Content Management
@@ -324,9 +327,13 @@ api_router.include_router(analytics_controller.router, prefix="/analytics", tags
 api_router.include_router(settings_controller.router, prefix="/settings", tags=["Homepage Settings"])
 api_router.include_router(about_controller.router, prefix="/settings", tags=["About Settings"])
 api_router.include_router(fatawa_controller.router, prefix="/fatawa", tags=["Fatawa"])
+api_router.include_router(social_work_controller.router, prefix="/social-work-items", tags=["Social Work & Activities"])
+api_router.include_router(search_controller.router, prefix="/search", tags=["Global Search"])
 
 # Register Main Router
 app.include_router(api_router)
+app.include_router(social_work_controller.router, prefix="/social-work-items", include_in_schema=False)
+app.include_router(search_controller.router, prefix="/search", include_in_schema=False)
 
 
 # ------------------------------------------------------------------
