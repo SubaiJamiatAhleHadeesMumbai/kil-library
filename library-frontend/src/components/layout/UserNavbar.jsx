@@ -44,6 +44,19 @@ const MARKAZ_LOGO_URL = `${API_BASE_URL}/static/images/MarkazLogo.png`;
 // 1. SUB-COMPONENTS
 // ==========================================
 
+const TopLink = ({ label, icon: Icon, to }) => {
+  const content = (
+    <div className="flex items-center gap-1.5 text-xs text-white/70 hover:text-white transition-colors cursor-pointer font-medium">
+      {Icon && <Icon className="w-3.5 h-3.5 text-white/50" />}
+      <span>{label}</span>
+    </div>
+  );
+
+  if (to) {
+    return <Link to={to}>{content}</Link>;
+  }
+  return content;
+};
 
 const NavItem = ({ to, label, icon: Icon, onClick }) => (
   <NavLink
@@ -175,7 +188,6 @@ const UserNavbar = () => {
         </div>
       </div>
 
->>>>>>> main
       {/* ----------------------------------------------------
           MAIN NAVBAR
       ---------------------------------------------------- */}
