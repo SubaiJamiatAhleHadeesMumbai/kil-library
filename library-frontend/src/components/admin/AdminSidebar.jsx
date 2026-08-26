@@ -9,7 +9,7 @@ import {
     ComputerDesktopIcon, DocumentDuplicateIcon, AdjustmentsHorizontalIcon,
     InformationCircleIcon, ChatBubbleLeftRightIcon, PhotoIcon,
     ChevronLeftIcon, ChevronRightIcon, ChevronDownIcon, MagnifyingGlassIcon,
-    SparklesIcon
+    SparklesIcon, UserGroupIcon
 } from '@heroicons/react/24/outline';
 
 // ✅ Custom Hooks & Services
@@ -103,35 +103,36 @@ const AdminSidebar = ({ mobileClose = () => {} }) => {
             items: [
                 { name: 'Dashboard', path: '/admin/dashboard', icon: HomeIcon, requiredPerm: null },
                 { name: 'Access Requests', path: '/admin/access-requests', icon: ShieldCheckIcon, badge: pendingCount, requiredPerm: 'REQUEST_VIEW' },
-                { name: 'Approvals', path: '/admin/approvals', icon: CheckBadgeIcon, requiredPerm: 'BOOK_APPROVE' },
+                { name: 'Approvals', path: '/admin/approvals', icon: CheckBadgeIcon, requiredPerm: 'REQUEST_APPROVE' },
             ]
         },
         { 
             section: "Library Management",
             items: [
-                { name: 'All Books', path: '/admin/books', icon: BookOpenIcon, requiredPerm: 'BOOK_VIEW' },
+                { name: 'All Books', path: '/admin/books', icon: BookOpenIcon, requiredPerm: ['BOOK_VIEW', 'BOOK_MANAGE'] },
                 { name: 'Copies & Issuing', path: '/admin/copies', icon: DocumentDuplicateIcon, requiredPerm: 'BOOK_ISSUE' },
-                { name: 'Categories', path: '/admin/categories', icon: TagIcon, requiredPerm: 'BOOK_MANAGE' },
-                { name: 'Subcategories', path: '/admin/subcategories', icon: RectangleStackIcon, requiredPerm: 'BOOK_MANAGE' },
+                { name: 'Categories', path: '/admin/categories', icon: TagIcon, requiredPerm: ['CATEGORY_MANAGE', 'BOOK_MANAGE'] },
+                { name: 'Subcategories', path: '/admin/subcategories', icon: RectangleStackIcon, requiredPerm: ['CATEGORY_MANAGE', 'BOOK_MANAGE'] },
             ]
         },
         {
             section: "Settings & Users",
             items: [
-                { name: 'Users Management', path: '/admin/users', icon: UsersIcon, requiredPerm: 'USER_VIEW' },
-                { name: 'Languages', path: '/admin/languages', icon: LanguageIcon, requiredPerm: 'BOOK_MANAGE' },
-                { name: 'Locations', path: '/admin/locations', icon: MapPinIcon, requiredPerm: 'BOOK_MANAGE' },
+                { name: 'Users Management', path: '/admin/users', icon: UsersIcon, requiredPerm: ['USER_VIEW', 'USER_MANAGE'] },
+                { name: 'Social Work & Activities', path: '/admin/social-work', icon: UserGroupIcon, requiredPerm: 'SOCIAL_WORK_MANAGE' },
+                { name: 'Languages', path: '/admin/languages', icon: LanguageIcon, requiredPerm: ['LANGUAGE_MANAGE', 'BOOK_MANAGE'] },
+                { name: 'Locations', path: '/admin/locations', icon: MapPinIcon, requiredPerm: ['LOCATION_MANAGE', 'BOOK_MANAGE'] },
                 { name: 'About Page Settings', path: '/admin/about-settings', icon: InformationCircleIcon, requiredPerm: 'HOMEPAGE_CONTENT_MANAGE' },
                 { name: 'Posters', path: '/admin/posters', icon: PhotoIcon, requiredPerm: 'HOMEPAGE_CONTENT_MANAGE' },
-                { name: 'Fatawa Management', path: '/admin/fatawa', icon: ChatBubbleLeftRightIcon, requiredPerm: 'BOOK_MANAGE' },
-                { name: 'Roles & Permissions', path: '/admin/roles-permissions', icon: KeyIcon, requiredPerm: 'ROLE_VIEW' },
+                { name: 'Fatawa Management', path: '/admin/fatawa', icon: ChatBubbleLeftRightIcon, requiredPerm: ['FATAWA_MANAGE', 'FATAWA_VIEW'] },
+                { name: 'Roles & Permissions', path: '/admin/roles-permissions', icon: KeyIcon, requiredPerm: ['ROLE_VIEW', 'ROLE_MANAGE', 'ROLE_PERMISSION_ASSIGN'] },
             ]
         },
         {
             section: "Security & Analytics",
             items: [
-                { name: 'Restricted Books', path: '/admin/book-permissions', icon: LockClosedIcon, requiredPerm: 'PERMISSION_VIEW' },
-                { name: 'Digital Access', path: '/admin/digital-access-history', icon: ComputerDesktopIcon, requiredPerm: 'LOG_VIEW' },
+                { name: 'Restricted Books', path: '/admin/book-permissions', icon: LockClosedIcon, requiredPerm: ['BOOK_PERMISSION_MANAGE', 'BOOK_PERMISSION_VIEW', 'PERMISSION_VIEW'] },
+                { name: 'Digital Access', path: '/admin/digital-access-history', icon: ComputerDesktopIcon, requiredPerm: 'DIGITAL_ACCESS_VIEW' },
                 { name: 'Audit Logs', path: '/admin/logs', icon: ClipboardDocumentListIcon, requiredPerm: 'LOG_VIEW' },
                 {
                     name: 'Homepage Settings',

@@ -20,6 +20,7 @@ import settingsService from '../../api/settingsService';
 import useAuth from '../../hooks/useAuth';
 import GlobalSearchModal from '../book/GlobalSearchModal';
 import { bookService } from '../../api/bookService';
+import { FALLBACK_COVER } from '../../utils/cover';
 
 const controlPanels = [
   {
@@ -714,9 +715,10 @@ const HomepageCustomizer = () => {
                                     className="flex items-center gap-3 rounded-xl border border-slate-200 p-2.5 shadow-2xs hover:bg-slate-50"
                                   >
                                     <img
-                                      src={book.cover_image_url || book.cover_image || 'https://via.placeholder.com/80x120?text=Book'}
+                                      src={book.cover_image_url || book.cover_image || FALLBACK_COVER}
                                       alt={book.title}
                                       className="h-16 w-12 rounded-lg object-cover shadow-2xs"
+                                      onError={(e) => e.target.src = FALLBACK_COVER}
                                     />
                                     <div className="min-w-0 flex-1">
                                       <p className="truncate text-xs font-bold text-slate-900">{book.title}</p>

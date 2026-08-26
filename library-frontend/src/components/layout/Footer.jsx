@@ -113,7 +113,6 @@ const Footer = () => {
             <li><a href="#" className="hover:text-white transition-colors">Our Other Projects</a></li>
             {showAbout ? <li><Link to="/about" className="hover:text-white transition-colors">About Us</Link></li> : null}
             {showFatawa ? <li><Link to="/fatawa" className="hover:text-white transition-colors">Fatawa Q&A</Link></li> : null}
-            <li><Link to="/login" className="hover:text-white transition-colors">Admin Login</Link></li>
           </ul>
         </div>
 
@@ -126,15 +125,33 @@ const Footer = () => {
             </li>
             <li className="flex items-center gap-3">
               <EnvelopeIcon className="w-5 h-5 text-[#F4A261] shrink-0" />
-              <span>markazdawah.khed@gmail.com</span>
+              <a 
+                href="mailto:markazdawah.khed@gmail.com" 
+                className="hover:text-[#F4A261] transition-colors break-all"
+                title="Send Email"
+              >
+                markazdawah.khed@gmail.com
+              </a>
             </li>
             <li className="flex items-center gap-3">
               <PhoneIcon className="w-5 h-5 text-[#F4A261] shrink-0" />
-              <span>+91 90059 00585</span>
+              <a 
+                href="tel:+919005900585" 
+                className="hover:text-[#F4A261] transition-colors"
+                title="Call +91 90059 00585"
+              >
+                +91 90059 00585
+              </a>
             </li>
             <li className="flex items-center gap-3">
               <PhoneIcon className="w-5 h-5 text-[#F4A261] shrink-0" />
-              <span>+91 90059 00589</span>
+              <a 
+                href="tel:+919005900589" 
+                className="hover:text-[#F4A261] transition-colors"
+                title="Call +91 90059 00589"
+              >
+                +91 90059 00589
+              </a>
             </li>
           </ul>
         </div>

@@ -1,82 +1,50 @@
 // src/hooks/useBookSearch.js
 import { useEffect, useMemo, useState } from "react";
 
-/** ✅ Strong Normalizer (Urdu/Arabic + spaces safe) */
-const normalize = (value) => {
+/** ✅ Strong Unicode Normalizer (Urdu / Arabic / English / Hindi safe) */
+export const normalizeText = (value) => {
   if (value === null || value === undefined) return "";
+  if (typeof value === "object") {
+    value = value.name || value.title || value.category_name || "";
+  }
   return String(value)
     .toLowerCase()
     .trim()
-    .replace(/\s+/g, " "); // multiple spaces -> single space
-};
-
-const slugify = (value) => {
-  return normalize(value)
-    .replace(/[^a-z0-9]+/g, "_")
-    .replace(/^_|_$/g, "");
+    .replace(/[أإآ]/g, "ا")
+    .replace(/[ة]/g, "ه")
+    .replace(/[يى]/g, "ی")
+    .replace(/[ؤئ]/g, "ء")
+    .replace(/[\u064B-\u065F\u0670]/g, "") // remove arabic diacritics / tashkeel
+    .replace(/\s+/g, " ");
 };
 
 /** ✅ Safe text extractor (string/object both) */
-const getText = (value) => {
+export const getText = (value) => {
   if (!value) return "";
   if (typeof value === "string") return value;
   if (typeof value === "object") {
-    // common patterns: {name}, {title}
-    return value.name || value.title || "";
+    return value.name || value.title || value.category_name || "";
   }
-  return "";
+  return String(value);
 };
 
-/** ✅ Language extractor (string/object both) */
+/** ✅ Language extractor */
 const getLanguageName = (book) => {
-  // backend may send: book.language = "urdu"
-  // or: book.language = { name: "Urdu" }
-  return normalize(getText(book?.language));
-};
-
-/** ✅ Category extractor (supports subcategories + category) */
-const getCategoryNames = (book) => {
-  const list = [];
-
-  // 1) subcategories array
-  if (Array.isArray(book?.subcategories) && book.subcategories.length > 0) {
-    book.subcategories.forEach((sub) => {
-      const n = normalize(getText(sub));
-      if (n) list.push(n);
-      if (sub.category) {
-        const cn = normalize(getText(sub.category));
-        if (cn) list.push(cn);
-      }
-    });
-  }
-
-  // 2) category direct (string/object)
-  const cat = normalize(getText(book?.category));
-  if (cat) list.push(cat);
-
-  // 3) common alternate property names
-  const altCat = normalize(getText(book?.category_name || book?.categoryTitle || book?.category_title));
-  if (altCat) list.push(altCat);
-
-  // If no category found, mark as "general"
-  if (list.length === 0) {
-    list.push("general");
-  }
-
-  return list;
+  return normalizeText(getText(book?.language));
 };
 
 export const useBookSearch = (initialBooks = []) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedLanguage, setSelectedLanguage] = useState("all");
   const [selectedCategory, setSelectedCategory] = useState("all");
+  const [selectedSubcategory, setSelectedSubcategory] = useState("all");
   const [debouncedTerm, setDebouncedTerm] = useState("");
 
   /** ✅ Debounce: UI smooth */
   useEffect(() => {
     const handler = setTimeout(() => {
       setDebouncedTerm(searchTerm);
-    }, 300);
+    }, 250);
 
     return () => clearTimeout(handler);
   }, [searchTerm]);
@@ -84,49 +52,110 @@ export const useBookSearch = (initialBooks = []) => {
   const filteredBooks = useMemo(() => {
     const books = Array.isArray(initialBooks) ? initialBooks : [];
 
-    const term = normalize(debouncedTerm);
-    const langFilter = normalize(selectedLanguage);
-    const catFilter = normalize(selectedCategory);
+    const term = normalizeText(debouncedTerm);
+    const langFilter = normalizeText(selectedLanguage);
+    const catFilter = selectedCategory ? String(selectedCategory).trim() : "all";
+    const subcatFilter = selectedSubcategory ? String(selectedSubcategory).trim() : "all";
 
     return books.filter((book) => {
       /** ✅ 1) Language filter */
-      const bookLang = getLanguageName(book);
-      const matchesLanguage =
-        langFilter === "all" || bookLang === langFilter || (langFilter === "urdu" && (!bookLang || bookLang === "urdu"));
-
-      /** ✅ 2) Category filter */
-      const bookCats = getCategoryNames(book);
-      const normalizedBookCats = bookCats.map(slugify).filter(Boolean);
-      const normalizedCatFilter = slugify(catFilter);
-      const matchesCategory =
-        catFilter === "all" ||
-        normalizedCatFilter === "all" ||
-        (normalizedCatFilter === "general" && (normalizedBookCats.length === 0 || normalizedBookCats.includes("general"))) ||
-        normalizedBookCats.some(
-          (cat) => cat === normalizedCatFilter || cat.includes(normalizedCatFilter) || normalizedCatFilter.includes(cat)
-        );
-
-      /** ✅ 3) Search (title + author + publisher + isbn + description) */
-      if (!term) {
-        return matchesLanguage && matchesCategory;
+      if (langFilter !== "all") {
+        const bookLang = getLanguageName(book);
+        const matchesLanguage =
+          bookLang === langFilter ||
+          (langFilter === "urdu" && (!bookLang || bookLang === "urdu" || bookLang === "اردو")) ||
+          (langFilter === "arabic" && (bookLang === "arabic" || bookLang === "عربی" || bookLang === "العربية")) ||
+          (langFilter === "english" && (bookLang === "english" || bookLang === "en" || bookLang === "انگریزی"));
+        if (!matchesLanguage) return false;
       }
 
-      const title = normalize(book?.title);
-      const author = normalize(getText(book?.author));
-      const publisher = normalize(book?.publisher);
-      const isbn = normalize(book?.isbn);
-      const description = normalize(book?.description);
+      /** ✅ 2) Category filter */
+      if (catFilter !== "all" && catFilter !== "") {
+        if (catFilter === "our_publications") {
+          // Handled externally or via publisher check
+          const rawPub = getText(book?.publisher);
+          const pubNorm = normalizeText(rawPub);
+          const pubLatin = String(rawPub).toLowerCase().replace(/[^a-z0-9]/g, "");
+          const isMarkazPub = [
+            "مركز الدعوة", "مركز الدعوة الاسلامية والخيرية", "مرکز الدعوة", "مرکز الدعوۃ",
+            "markazdawah", "markazuddawah", "markazdawahislamic"
+          ].some(kw => pubNorm.includes(normalizeText(kw)) || pubLatin.includes(kw));
+          
+          if (!isMarkazPub && !book?.is_our_publication && !book?.is_markaz_publication) {
+            return false;
+          }
+        } else {
+          // Check Category by ID or Name
+          const bookCatId = book?.category_id || (typeof book?.category === 'object' ? book.category?.id : null);
+          const bookCatName = normalizeText(getText(book?.category));
+          const subcats = Array.isArray(book?.subcategories) ? book.subcategories : [];
+          
+          const isNumericCatFilter = /^\d+$/.test(catFilter);
+          let matchesCat = false;
 
-      const matchesSearch =
-        title.includes(term) ||
-        author.includes(term) ||
-        publisher.includes(term) || // ✅ FIX: publisher search
-        isbn.includes(term) ||
-        description.includes(term);
+          if (isNumericCatFilter) {
+            const numId = Number(catFilter);
+            matchesCat = 
+              bookCatId === numId || 
+              subcats.some(sc => Number(sc.category_id) === numId || Number(sc.category?.id) === numId);
+          } else {
+            const normCatFilter = normalizeText(catFilter);
+            matchesCat = 
+              bookCatName === normCatFilter ||
+              bookCatName.includes(normCatFilter) ||
+              normCatFilter.includes(bookCatName) ||
+              subcats.some(sc => {
+                const scCatName = normalizeText(getText(sc.category));
+                const scName = normalizeText(getText(sc));
+                return scCatName.includes(normCatFilter) || scName.includes(normCatFilter);
+              });
+          }
 
-      return matchesLanguage && matchesCategory && matchesSearch;
+          if (!matchesCat) return false;
+        }
+      }
+
+      /** ✅ 3) Subcategory filter */
+      if (subcatFilter !== "all" && subcatFilter !== "") {
+        const subcats = Array.isArray(book?.subcategories) ? book.subcategories : [];
+        const isNumericSubFilter = /^\d+$/.test(subcatFilter);
+        let matchesSub = false;
+
+        if (isNumericSubFilter) {
+          const numSubId = Number(subcatFilter);
+          matchesSub = subcats.some(sc => Number(sc.id) === numSubId);
+        } else {
+          const normSubFilter = normalizeText(subcatFilter);
+          matchesSub = subcats.some(sc => {
+            const scName = normalizeText(getText(sc));
+            return scName === normSubFilter || scName.includes(normSubFilter);
+          });
+        }
+
+        if (!matchesSub) return false;
+      }
+
+      /** ✅ 4) Search Term (Title + Author + Publisher + ISBN + Description) */
+      if (term) {
+        const title = normalizeText(book?.title);
+        const author = normalizeText(getText(book?.author));
+        const publisher = normalizeText(getText(book?.publisher));
+        const isbn = normalizeText(book?.isbn);
+        const description = normalizeText(book?.description);
+
+        const matchesSearch =
+          title.includes(term) ||
+          author.includes(term) ||
+          publisher.includes(term) ||
+          isbn.includes(term) ||
+          description.includes(term);
+
+        if (!matchesSearch) return false;
+      }
+
+      return true;
     });
-  }, [initialBooks, debouncedTerm, selectedLanguage, selectedCategory]);
+  }, [initialBooks, debouncedTerm, selectedLanguage, selectedCategory, selectedSubcategory]);
 
   return {
     searchTerm,
@@ -135,6 +164,8 @@ export const useBookSearch = (initialBooks = []) => {
     setSelectedLanguage,
     selectedCategory,
     setSelectedCategory,
+    selectedSubcategory,
+    setSelectedSubcategory,
     filteredBooks,
   };
 };

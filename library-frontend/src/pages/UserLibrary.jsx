@@ -6,13 +6,16 @@ import { useNavigate, useLocation, useSearchParams } from "react-router-dom";
 // --- Services + Hooks ---
 import { bookService } from "../api/bookService";
 import { categoryService } from "../api/categoryService";
-import { useBookSearch } from "../hooks/useBookSearch";
+import { subcategoryService } from "../api/subcategoryService";
+import { useBookSearch, normalizeText, getText } from "../hooks/useBookSearch";
 import useAuth from "../hooks/useAuth";
+import { useLanguage } from "../context/LanguageContext";
 
 // --- Components ---
 import RestrictedAccessFlow from "../components/book/RestrictedAccessFlow";
 import SuccessScreen from "../components/RestrictedAccess/SuccessScreen";
 import LibrarySearchStrip from "../components/public/LibrarySearchStrip";
+import BookDetailsModal from "../components/book/BookDetailsModal";
 import { getBookCover } from "../utils/cover";
 
 // --- Icons ---
@@ -30,6 +33,17 @@ import {
   ArrowUpIcon,
   ArrowsUpDownIcon,
   BookmarkIcon as BookmarkOutline,
+  FolderIcon,
+  FolderOpenIcon,
+  BuildingOfficeIcon,
+  UserGroupIcon,
+  UserIcon,
+  MagnifyingGlassIcon,
+  CheckBadgeIcon,
+  TagIcon,
+  ArrowRightIcon,
+  AdjustmentsHorizontalIcon,
+  FunnelIcon,
 } from "@heroicons/react/24/outline";
 
 import {
@@ -39,25 +53,8 @@ import {
 
 // --- Constants ---
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || (import.meta.env.PROD ? "" : "http://127.0.0.1:8000");
-const FALLBACK_NO_COVER = "https://via.placeholder.com/400x600?text=No+Cover";
-const FALLBACK_BROKEN = "https://via.placeholder.com/400x600?text=Image+Not+Found";
-
-const showUpcomingToast = () => {
-  toast("عنقریب...", {
-    icon: "⏳",
-    duration: 3500,
-    style: {
-      borderRadius: "16px",
-      background: "#0F172A",
-      color: "#38BDF8",
-      fontSize: "20px",
-      fontWeight: "bold",
-      fontFamily: '"Jameel Noori Nastaleeq", "Noto Naskh Arabic", serif',
-      padding: "12px 24px",
-      boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.3)"
-    }
-  });
-};
+const FALLBACK_NO_COVER = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='400' height='600' viewBox='0 0 400 600'><rect width='400' height='600' fill='%231e293b'/><circle cx='200' cy='270' r='50' fill='%23334155'/><path d='M180 255h40v30h-40z' fill='%2394a3b8'/><text x='200' y='360' font-family='sans-serif' font-size='20' font-weight='bold' fill='%23cbd5e1' text-anchor='middle'>Markaz Library</text><text x='200' y='390' font-family='sans-serif' font-size='15' fill='%2364748b' text-anchor='middle'>No Cover</text></svg>";
+const FALLBACK_BROKEN = FALLBACK_NO_COVER;
 
 // ==========================================
 // 1. PUBLIC BOOK CARD COMPONENT (Clean UI)
@@ -67,10 +64,12 @@ const PublicBookCard = ({
   onClick,
   isFavorite = false,
   onToggleFavorite,
+  isOurPub = false,
   className = "",
 }) => {
   const [imgSrc, setImgSrc] = useState(null);
   const [imgLoaded, setImgLoaded] = useState(false);
+  const [imgError, setImgError] = useState(false);
 
   const safeText = (value, fallback = "Unknown") => {
     if (value === null || value === undefined) return fallback;
@@ -86,15 +85,16 @@ const PublicBookCard = ({
 
   useEffect(() => {
     setImgLoaded(false);
+    setImgError(false);
 
     if (!book) {
-      setImgSrc(FALLBACK_NO_COVER);
+      setImgSrc(null);
       return;
     }
 
     const rawUrl = book.cover_image_url || book.cover_image;
     if (!rawUrl) {
-      setImgSrc(FALLBACK_NO_COVER);
+      setImgSrc(null);
       return;
     }
 
@@ -109,13 +109,25 @@ const PublicBookCard = ({
   }, [book]);
 
   const handleImageError = () => {
-    setImgSrc(FALLBACK_BROKEN);
+    setImgError(true);
     setImgLoaded(true);
   };
 
   const handleCardClick = () => {
     if (!hasDigitalPdf) {
-      showUpcomingToast();
+      toast("Digital PDF coming soon...", {
+        icon: "⏳",
+        duration: 3000,
+        style: {
+          borderRadius: "16px",
+          background: "#0F172A",
+          color: "#38BDF8",
+          fontSize: "14px",
+          fontWeight: "bold",
+          padding: "12px 20px",
+          boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.3)"
+        }
+      });
     }
     if (typeof onClick === "function") onClick();
   };
@@ -125,7 +137,7 @@ const PublicBookCard = ({
       onClick={handleCardClick}
       className={`group relative mx-auto w-full max-w-[340px] overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-xs transition-all duration-300 cursor-pointer hover:shadow-xl hover:border-slate-300 sm:max-w-none ${className}`}
     >
-      {/* Badges - Only Restricted or Upcoming */}
+      {/* Badges - Restricted / Markaz / Upcoming */}
       <div className="absolute top-2 left-2 z-20 flex flex-col gap-1 sm:top-3 sm:left-3">
         {isRestricted && (
           <div className="flex items-center gap-1 rounded-full bg-red-600 px-2.5 py-1 text-[10px] font-extrabold text-white shadow-md sm:px-3 sm:py-1.5 sm:text-[11px]">
@@ -134,9 +146,16 @@ const PublicBookCard = ({
           </div>
         )}
 
+        {isOurPub && (
+          <div className="flex items-center gap-1 rounded-full bg-amber-500/95 text-white px-2.5 py-0.5 text-[10px] font-bold shadow-md backdrop-blur-xs border border-amber-300">
+            <span>🏛️</span>
+            <span>Markaz Dawah</span>
+          </div>
+        )}
+
         {!hasDigitalPdf && (
           <div className="rounded-full bg-slate-900/90 text-amber-300 px-2.5 py-0.5 text-[10px] font-bold shadow-sm backdrop-blur-xs flex items-center gap-1 border border-slate-700">
-            <span>⏳</span> <span>عنقریب...</span>
+            <span>⏳</span> <span>Upcoming</span>
           </div>
         )}
       </div>
@@ -162,12 +181,12 @@ const PublicBookCard = ({
 
       {/* COVER AREA */}
       <div className="relative flex justify-center bg-gradient-to-b from-[#F8F9FA] to-white px-3 pb-2 pt-4 transition-colors group-hover:from-[#F1F3F5] sm:px-4 sm:pb-3 sm:pt-5">
-        <div className="relative aspect-[2/3] w-[118px] overflow-hidden rounded-2xl bg-gray-100 shadow-md transition-all duration-300 group-hover:-translate-y-1 group-hover:shadow-xl sm:w-[150px] md:w-[175px] lg:w-[185px]">
-          {!imgLoaded && (
+        <div className="relative aspect-[2/3] w-[118px] overflow-hidden rounded-2xl bg-slate-900 shadow-md transition-all duration-300 group-hover:-translate-y-1 group-hover:shadow-xl sm:w-[150px] md:w-[175px] lg:w-[185px]">
+          {!imgLoaded && !imgError && imgSrc && (
             <div className="absolute inset-0 bg-slate-200 animate-pulse" />
           )}
 
-          {imgSrc && (
+          {imgSrc && !imgError ? (
             <img
               src={imgSrc}
               alt={title}
@@ -179,24 +198,29 @@ const PublicBookCard = ({
               style={{ objectFit: "contain", background: "#e5e7eb" }}
               loading="lazy"
             />
+          ) : (
+            /* Built-in Pure CSS/SVG Book Cover (100% Offline & Error-Free) */
+            <div className="absolute inset-0 flex flex-col items-center justify-between p-3 text-center bg-gradient-to-br from-[#111a2d] via-[#1e293b] to-[#0f172a] text-white border border-slate-700/50">
+              <div className="w-full flex justify-end">
+                <span className="text-[9px] font-bold text-emerald-400 bg-emerald-950/60 px-1.5 py-0.5 rounded border border-emerald-500/30">KIL</span>
+              </div>
+              <div className="flex flex-col items-center justify-center my-auto">
+                <div className="p-2.5 rounded-full bg-slate-800/80 text-emerald-400 mb-2 border border-slate-700 shadow-xs">
+                  <BookOpenIcon className="w-6 h-6 stroke-2" />
+                </div>
+                <p className="text-xs font-bold line-clamp-3 leading-snug px-1 text-slate-100">{title}</p>
+              </div>
+              <p className="text-[10px] text-slate-400 truncate w-full">{author}</p>
+            </div>
           )}
-
-          {/* Hover overlay */}
-          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/25 transition flex items-center justify-center">
-            <span className="rounded-full bg-black/60 px-3 py-1.5 text-[11px] font-bold text-white opacity-0 transition group-hover:opacity-100 sm:px-4 sm:py-2">
-              {hasDigitalPdf ? "Click to View" : "عنقریب..."}
-            </span>
-          </div>
         </div>
       </div>
 
-      {/* Details */}
-      <div className="flex flex-grow flex-col px-3 pb-4 text-center sm:px-4 sm:pb-5">
+      {/* TEXT INFO */}
+      <div className="p-3 text-center sm:p-4">
         <h3
-          className="mb-1.5 line-clamp-2 font-serif text-[0.95rem] font-extrabold leading-snug text-[#002147] transition-colors group-hover:text-emerald-700 sm:text-sm md:text-base"
-          style={{
-            fontFamily: '"Jameel Noori Nastaleeq", "Noto Naskh Arabic", serif',
-          }}
+          className="line-clamp-1 font-bold text-slate-800 text-xs sm:text-sm group-hover:text-emerald-600 transition-colors"
+          title={title}
         >
           {title}
         </h3>
@@ -215,14 +239,20 @@ const UserLibrary = () => {
   const location = useLocation();
   const [searchParams] = useSearchParams();
   const { isAuth } = useAuth();
+  const { currentLang, t } = useLanguage();
 
   // --- STATE ---
   const [books, setBooks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [dynamicCategories, setDynamicCategories] = useState([]);
+  const [dynamicSubcategories, setDynamicSubcategories] = useState([]);
+  const [activeLibraryTab, setActiveLibraryTab] = useState("all"); // 'all' | 'our_publications' | 'folders' | 'authors' | 'publishers'
   const [viewMode, setViewMode] = useState("grid"); // 'grid' | 'list'
   const [sortBy, setSortBy] = useState("oldest"); // Natural Excel order
   const [showScrollTop, setShowScrollTop] = useState(false);
+  const [authorSearch, setAuthorSearch] = useState("");
+  const [publisherSearch, setPublisherSearch] = useState("");
+  const [folderSearch, setFolderSearch] = useState("");
   const activeRequestRef = useRef(0);
 
   // Pagination State (Items per page dropdown: 10, 25, 50, 100)
@@ -247,31 +277,6 @@ const UserLibrary = () => {
     }
   });
 
-  // --- CATEGORIES ---
-  const categories = useMemo(() => {
-    if (dynamicCategories.length > 0) {
-      return [
-        { value: "all", label: "All Categories" },
-        { value: "general", label: "General" },
-        ...dynamicCategories.map(cat => ({
-          value: cat.slug || cat.name?.toLowerCase().replace(/\s+/g, '_'),
-          label: cat.name || cat.category_name,
-          id: cat.id
-        }))
-      ];
-    }
-    return [
-      { value: "all", label: "All Categories" },
-      { value: "general", label: "General" },
-      { value: "aqeedah_fiqh", label: "Aqeedah & Fiqh" },
-      { value: "quran_sciences", label: "Quran & Sciences" },
-      { value: "history_seerah", label: "History & Seerah" },
-      { value: "literature", label: "Literature & Adab" },
-      { value: "science_tech", label: "Science & Tech" },
-      { value: "islamic_studies", label: "General Islamic Studies" },
-    ];
-  }, [dynamicCategories]);
-
   // --- SEARCH HOOK ---
   const {
     searchTerm,
@@ -280,8 +285,34 @@ const UserLibrary = () => {
     setSelectedLanguage,
     selectedCategory,
     setSelectedCategory,
+    selectedSubcategory,
+    setSelectedSubcategory,
     filteredBooks,
   } = useBookSearch(books);
+
+  // Fetch Categories & Subcategories
+  useEffect(() => {
+    const loadTaxonomy = async () => {
+      try {
+        const [catData, subcatData] = await Promise.allSettled([
+          categoryService.getAllCategories(),
+          subcategoryService.getAllSubcategories(),
+        ]);
+
+        if (catData.status === "fulfilled") {
+          const list = Array.isArray(catData.value) ? catData.value : catData.value?.categories || [];
+          setDynamicCategories(list);
+        }
+        if (subcatData.status === "fulfilled") {
+          const subList = Array.isArray(subcatData.value) ? subcatData.value : [];
+          setDynamicSubcategories(subList);
+        }
+      } catch (error) {
+        console.error("Could not load categories/subcategories", error);
+      }
+    };
+    loadTaxonomy();
+  }, []);
 
   const fetchBooks = async (searchText = "") => {
     const requestId = ++activeRequestRef.current;
@@ -311,40 +342,10 @@ const UserLibrary = () => {
     }
   };
 
-  // --- EFFECTS ---
-  useEffect(() => {
-    const loadCategories = async () => {
-      try {
-        const data = await categoryService.getAllCategories();
-        const categoryList = Array.isArray(data) ? data : data?.categories || [];
-        setDynamicCategories(categoryList);
-      } catch (error) {
-        setDynamicCategories([]);
-      }
-    };
-    loadCategories();
-  }, []);
-
-  useEffect(() => {
-    if (loading || !Array.isArray(books) || books.length === 0) return;
-
-    const urlSearch = searchParams.get('search');
-    const stateSearch = location.state?.preSearch;
-    const searchValue = urlSearch || stateSearch;
-
-    if (searchValue && searchValue.trim()) {
-      setSearchTerm(searchValue);
-      setTimeout(() => {
-        const el = document.getElementById("book-grid-container");
-        if (el) el.scrollIntoView({ behavior: "smooth" });
-      }, 200);
-    }
-  }, [loading, books.length, searchParams.toString(), location.state?.preSearch, setSearchTerm]);
-
   useEffect(() => {
     const handler = window.setTimeout(() => {
       fetchBooks(searchTerm);
-    }, 350);
+    }, 300);
 
     return () => window.clearTimeout(handler);
   }, [searchTerm]);
@@ -358,29 +359,157 @@ const UserLibrary = () => {
   // Reset pagination on filter changes
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, selectedLanguage, selectedCategory, sortBy]);
+  }, [searchTerm, selectedLanguage, selectedCategory, selectedSubcategory, sortBy, activeLibraryTab]);
 
-  // --- HELPERS ---
-  const safeText = (v, f = "") => {
-    if (!v) return f;
-    if (typeof v === "object") return v?.name || v?.title || v?.slug || f;
-    return String(v);
+  // --- OUR PUBLICATIONS STRICT FILTER ---
+  const isOurPublication = (book) => {
+    if (!book) return false;
+    if (book.is_our_publication === true || book.is_markaz_publication === true) return true;
+
+    const rawPub = getText(book.publisher);
+    if (!rawPub) return false;
+
+    const pubNorm = normalizeText(rawPub);
+    const pubLatin = String(rawPub).toLowerCase().replace(/[^a-z0-9]/g, "");
+
+    const markazArabicList = [
+      "مركز الدعوة الاسلامية والخيرية",
+      "مركز الدعوة الاسلامية",
+      "مركز الدعوة",
+      "مرکز الدعوة الاسلامیة والخیریة",
+      "مرکز الدعوۃ الاسلامیہ والخیریہ",
+      "مرکز الدعوة",
+      "مرکز الدعوۃ",
+      "شعبة النشر مركز الدعوة",
+      "مطبوعات مركز الدعوة",
+      "مطبوعات مرکز الدعوۃ"
+    ].map(normalizeText);
+
+    const markazLatinList = [
+      "markazdawah",
+      "markazuddawah",
+      "markazdawahislamic",
+      "markazdawahislamicandcharitable",
+      "markazdawahpublication",
+      "markazdawahpublications"
+    ];
+
+    const matchesArabic = markazArabicList.some(kw => pubNorm.includes(kw));
+    const matchesLatin = markazLatinList.some(kw => pubLatin.includes(kw));
+
+    return matchesArabic || matchesLatin;
   };
 
-  const safeCategory = (book) => {
-    if (book.category && typeof book.category === 'object') {
-      return book.category.name || book.category.title || "General";
+  // --- HIERARCHICAL CATEGORY DATA STRUCTURE (With Subcategories & Counts) ---
+  const categoryTree = useMemo(() => {
+    return (dynamicCategories || []).map((cat) => {
+      const catId = cat.id;
+      const catNorm = normalizeText(cat.name);
+
+      // Find subcategories belonging to this category
+      const subcats = (dynamicSubcategories || []).filter(sc => {
+        return sc.category_id === catId || (sc.category && sc.category.id === catId) || normalizeText(sc.category?.name) === catNorm;
+      });
+
+      // Calculate total books in this category
+      const categoryBooks = (books || []).filter(b => {
+        const bCatId = b.category_id || (typeof b.category === 'object' ? b.category?.id : null);
+        const bCatName = normalizeText(getText(b.category));
+        const bSubcats = Array.isArray(b.subcategories) ? b.subcategories : [];
+        return (
+          bCatId === catId ||
+          bCatName === catNorm ||
+          bSubcats.some(sc => sc.category_id === catId || (sc.category && sc.category.id === catId) || normalizeText(sc.category?.name) === catNorm)
+        );
+      });
+
+      // Subcategories with book count
+      const subcatsWithCount = subcats.map(sc => {
+        const scCount = (books || []).filter(b => {
+          const bSubcats = Array.isArray(b.subcategories) ? b.subcategories : [];
+          return bSubcats.some(item => item.id === sc.id || normalizeText(item.name) === normalizeText(sc.name));
+        }).length;
+        return {
+          ...sc,
+          count: scCount
+        };
+      });
+
+      return {
+        ...cat,
+        subcategories: subcatsWithCount,
+        count: categoryBooks.length
+      };
+    });
+  }, [dynamicCategories, dynamicSubcategories, books]);
+
+  // Active Subcategories for the Currently Selected Category
+  const activeCategorySubcategories = useMemo(() => {
+    if (!selectedCategory || selectedCategory === "all" || selectedCategory === "our_publications") {
+      return [];
     }
-    if (book.subcategories && Array.isArray(book.subcategories) && book.subcategories.length > 0) {
-      const sub = book.subcategories[0];
-      if (sub.category && typeof sub.category === 'object') {
-        return sub.category.name;
+    const found = categoryTree.find(c => String(c.id) === String(selectedCategory) || normalizeText(c.name) === normalizeText(selectedCategory));
+    return found ? found.subcategories : [];
+  }, [selectedCategory, categoryTree]);
+
+  // Filtered Categories in Folder View
+  const filteredFolderCategories = useMemo(() => {
+    const q = normalizeText(folderSearch);
+    if (!q) return categoryTree;
+    return categoryTree.filter(cat => {
+      const catName = normalizeText(cat.name);
+      const hasSubcatMatch = cat.subcategories.some(sc => normalizeText(sc.name).includes(q));
+      return catName.includes(q) || hasSubcatMatch;
+    });
+  }, [categoryTree, folderSearch]);
+
+  // --- AUTHORS DIRECTORY ---
+  const authorsDirectory = useMemo(() => {
+    const map = new Map();
+    (books || []).forEach((book) => {
+      const author = typeof book?.author === "object" ? book.author?.name : book?.author;
+      const clean = String(author || "").trim().replace(/\s+/g, " ");
+      if (!clean || clean.toLowerCase() === "unknown" || clean.length < 2) return;
+      const key = clean.toLowerCase();
+      if (!map.has(key)) {
+        map.set(key, { name: clean, count: 1, sampleBook: book });
+      } else {
+        const item = map.get(key);
+        item.count += 1;
       }
-      return sub.name || "General";
-    }
-    if (typeof book.category === 'string') return book.category;
-    return "General";
-  };
+    });
+    return Array.from(map.values()).sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
+  }, [books]);
+
+  const filteredAuthors = useMemo(() => {
+    const q = authorSearch.trim().toLowerCase();
+    if (!q) return authorsDirectory;
+    return authorsDirectory.filter(a => a.name.toLowerCase().includes(q));
+  }, [authorsDirectory, authorSearch]);
+
+  // --- PUBLISHERS DIRECTORY ---
+  const publishersDirectory = useMemo(() => {
+    const map = new Map();
+    (books || []).forEach((book) => {
+      const pub = typeof book?.publisher === "object" ? book.publisher?.name : book?.publisher;
+      const clean = String(pub || "").trim().replace(/\s+/g, " ");
+      if (!clean || clean.toLowerCase() === "unknown" || clean.length < 2) return;
+      const key = clean.toLowerCase();
+      if (!map.has(key)) {
+        map.set(key, { name: clean, count: 1, sampleBook: book });
+      } else {
+        const item = map.get(key);
+        item.count += 1;
+      }
+    });
+    return Array.from(map.values()).sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
+  }, [books]);
+
+  const filteredPublishers = useMemo(() => {
+    const q = publisherSearch.trim().toLowerCase();
+    if (!q) return publishersDirectory;
+    return publishersDirectory.filter(p => p.name.toLowerCase().includes(q));
+  }, [publishersDirectory, publisherSearch]);
 
   const toggleFavorite = (e, bookId) => {
     e.stopPropagation();
@@ -414,9 +543,15 @@ const UserLibrary = () => {
     else window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  // --- SORTING ---
+  // --- SORTING & DISPLAY BOOKS ---
   const finalDisplayBooks = useMemo(() => {
-    const sorted = [...(Array.isArray(filteredBooks) ? filteredBooks : [])];
+    let list = Array.isArray(filteredBooks) ? filteredBooks : [];
+
+    if (activeLibraryTab === "our_publications" || selectedCategory === "our_publications") {
+      list = list.filter(isOurPublication);
+    }
+
+    const sorted = [...list];
     const safeDate = (b) => new Date(b?.created_at || 0).getTime();
     const safeSerial = (b) => Number(b?.serial_number) || Number(b?.id) || 0;
 
@@ -428,599 +563,809 @@ const UserLibrary = () => {
       return sorted.filter((b) => favorites.includes(b.id));
 
     return sorted;
-  }, [filteredBooks, sortBy, favorites]);
+  }, [filteredBooks, activeLibraryTab, selectedCategory, sortBy, favorites]);
 
-  // --- PAGINATION (10 per page) ---
+  // --- PAGINATION ---
   const totalPages = Math.ceil(finalDisplayBooks.length / itemsPerPage) || 1;
   const paginatedBooks = useMemo(() => {
     const start = (currentPage - 1) * itemsPerPage;
     return finalDisplayBooks.slice(start, start + itemsPerPage);
   }, [finalDisplayBooks, currentPage, itemsPerPage]);
 
+  // Active Category Label
   const activeCategoryLabel = useMemo(() => {
-    if (selectedCategory === "all") return "All Books";
-    const found = categories.find(c => c.value === selectedCategory);
-    return found ? found.label : selectedCategory.replace(/_/g, " ");
-  }, [selectedCategory, categories]);
+    if (activeLibraryTab === "our_publications" || selectedCategory === "our_publications") {
+      return currentLang === 'ar' ? 'منشورات مركز الدعوة' : currentLang === 'ur' ? 'مطبوعات مرکز الدعوۃ الاسلامیہ' : 'Markaz Dawah Publications';
+    }
+    if (selectedCategory === "all" || !selectedCategory) return currentLang === 'ur' ? 'تمام کتب' : 'All Books';
+    const found = categoryTree.find(c => String(c.id) === String(selectedCategory) || normalizeText(c.name) === normalizeText(selectedCategory));
+    return found ? found.name : selectedCategory;
+  }, [selectedCategory, categoryTree, activeLibraryTab, currentLang]);
+
+  // Active Subcategory Label
+  const activeSubcategoryLabel = useMemo(() => {
+    if (!selectedSubcategory || selectedSubcategory === "all") return null;
+    const found = (dynamicSubcategories || []).find(sc => String(sc.id) === String(selectedSubcategory) || normalizeText(sc.name) === normalizeText(selectedSubcategory));
+    return found ? found.name : null;
+  }, [selectedSubcategory, dynamicSubcategories]);
 
   return (
     <div className="min-h-screen bg-[#F8F9FC] font-sans text-slate-800 pb-24 relative">
-      {/* HERO SECTION */}
-      <div className="relative bg-[#0F172A] pt-12 pb-32 px-4 rounded-b-[2.5rem] shadow-xl overflow-hidden">
-        <div className="absolute inset-0 opacity-20 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] mix-blend-overlay" />
-        <div className="absolute top-0 right-0 w-96 h-96 bg-emerald-500/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+      {/* ================= HERO & SEARCH SECTION ================= */}
+      <div className="relative bg-[#0B1120] pt-10 pb-16 px-4 rounded-b-[2.5rem] shadow-2xl overflow-hidden">
+        {/* Background Glows */}
+        <div className="absolute inset-0 opacity-15 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] mix-blend-overlay pointer-events-none" />
+        <div className="absolute -top-24 left-1/2 -translate-x-1/2 w-[36rem] h-72 bg-emerald-500/15 rounded-full blur-[100px] pointer-events-none" />
+        <div className="absolute top-1/2 right-10 w-64 h-64 bg-cyan-500/10 rounded-full blur-[90px] pointer-events-none" />
 
         <div className="relative z-10 max-w-4xl mx-auto text-center">
           <motion.div
-            initial={{ opacity: 0, y: -20 }}
+            initial={{ opacity: 0, y: -16 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7 }}
+            transition={{ duration: 0.5 }}
           >
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-bold uppercase tracking-wider mb-4">
-              <SparklesIcon className="w-4 h-4" /> Digital Library
-            </div>
-
-            <h1 className="text-4xl md:text-6xl font-extrabold text-white mb-6 leading-tight">
-              Discover Islamic{" "}
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400">
-                Knowledge
+            {/* Main Title Only */}
+            <h1 className="text-3xl sm:text-5xl md:text-6xl font-black text-white mb-6 tracking-tight">
+              Markaz{" "}
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 via-teal-300 to-cyan-400">
+                Islamic Library
               </span>
             </h1>
           </motion.div>
 
+          {/* Single Seamless Modern Search Bar */}
           <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.2 }}
-            className="mx-auto mt-8 max-w-4xl"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.15, duration: 0.4 }}
+            className="mx-auto max-w-3xl"
           >
             <LibrarySearchStrip
               searchTerm={searchTerm}
               onSearchChange={setSearchTerm}
-              title="Library Search"
-              subtitle="Search the library collection"
-              description="Search by title, author, language, category, and deep-book content with a premium discovery experience."
-              placeholder="Search by title, author, or ISBN..."
-              showHint={true}
+              placeholder="Search books by title, author, subject, or ISBN..."
             />
+          </motion.div>
+
+          {/* ================= CLEAN PRIMARY VIEW TABS (5 PURE PILLS ONLY) ================= */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.25, duration: 0.4 }}
+            className="flex items-center justify-center flex-wrap gap-2.5 mt-6 pt-1"
+          >
+            {/* 1. All Books */}
+            <button
+              onClick={() => {
+                setActiveLibraryTab("all");
+                setSelectedCategory("all");
+                setSelectedSubcategory("all");
+              }}
+              className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold transition-all shadow-xs cursor-pointer ${
+                activeLibraryTab === "all" && selectedCategory === "all"
+                  ? "bg-emerald-500 text-white shadow-emerald-500/40 shadow-md scale-105"
+                  : "bg-white/10 text-slate-200 hover:bg-white/20 border border-white/10"
+              }`}
+            >
+              <BookOpenIcon className="w-4 h-4" />
+              <span>{currentLang === 'ur' ? 'تمام کتب' : 'All Books'}</span>
+            </button>
+
+            {/* 2. Our Publications */}
+            <button
+              onClick={() => {
+                setActiveLibraryTab("our_publications");
+                setSelectedCategory("our_publications");
+                setSelectedSubcategory("all");
+              }}
+              className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold transition-all shadow-xs cursor-pointer ${
+                activeLibraryTab === "our_publications" || selectedCategory === "our_publications"
+                  ? "bg-gradient-to-r from-amber-500 to-amber-600 text-white shadow-amber-500/50 shadow-md scale-105 ring-2 ring-amber-300/40"
+                  : "bg-amber-500/20 text-amber-300 hover:bg-amber-500/30 border border-amber-400/30"
+              }`}
+              title="Markaz Dawah Islamic & Charitable Publications"
+            >
+              <SparklesIcon className="w-4 h-4 text-amber-300" />
+              <span>
+                {currentLang === 'ar' 
+                  ? 'منشورات مركز الدعوة' 
+                  : currentLang === 'ur' 
+                    ? 'مطبوعات مرکز الدعوۃ' 
+                    : 'Our Publications'}
+              </span>
+            </button>
+
+            {/* 3. Folders & Topics */}
+            <button
+              onClick={() => setActiveLibraryTab("folders")}
+              className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold transition-all shadow-xs cursor-pointer ${
+                activeLibraryTab === "folders"
+                  ? "bg-emerald-500 text-white shadow-emerald-500/40 shadow-md scale-105"
+                  : "bg-white/10 text-slate-200 hover:bg-white/20 border border-white/10"
+              }`}
+            >
+              <FolderIcon className="w-4 h-4" />
+              <span>{currentLang === 'ur' ? 'فولڈرز اور زمرہ جات' : 'Folders & Topics'}</span>
+            </button>
+
+            {/* 4. Authors */}
+            <button
+              onClick={() => setActiveLibraryTab("authors")}
+              className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold transition-all shadow-xs cursor-pointer ${
+                activeLibraryTab === "authors"
+                  ? "bg-emerald-500 text-white shadow-emerald-500/40 shadow-md scale-105"
+                  : "bg-white/10 text-slate-200 hover:bg-white/20 border border-white/10"
+              }`}
+            >
+              <UserGroupIcon className="w-4 h-4" />
+              <span>{currentLang === 'ur' ? 'مصنفین' : 'Authors'}</span>
+            </button>
+
+            {/* 5. Publishers */}
+            <button
+              onClick={() => setActiveLibraryTab("publishers")}
+              className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold transition-all shadow-xs cursor-pointer ${
+                activeLibraryTab === "publishers"
+                  ? "bg-emerald-500 text-white shadow-emerald-500/40 shadow-md scale-105"
+                  : "bg-white/10 text-slate-200 hover:bg-white/20 border border-white/10"
+              }`}
+            >
+              <BuildingOfficeIcon className="w-4 h-4" />
+              <span>{currentLang === 'ur' ? 'ناشرین' : 'Publishers'}</span>
+            </button>
           </motion.div>
         </div>
       </div>
 
-      {/* FILTER BAR */}
-      <div className="relative z-30 max-w-7xl mx-auto px-4 mt-4 md:sticky md:top-16 md:mt-4">
-        <motion.div
-          initial={{ y: 20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          className="rounded-2xl border border-white/60 bg-white/85 p-2.5 shadow-[0_12px_35px_-24px_rgba(15,23,42,0.4)] backdrop-blur-xl flex flex-col gap-2.5 justify-between items-stretch md:p-3 xl:flex-row xl:items-center xl:gap-3"
-        >
-          {/* Filters */}
-          <div className="flex flex-wrap items-center gap-2 w-full xl:w-auto justify-start">
-            <select
-              className="min-w-[140px] rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-sm font-medium outline-none transition hover:border-emerald-500 cursor-pointer"
-              value={selectedLanguage}
-              onChange={(e) => setSelectedLanguage(e.target.value)}
-            >
-              <option value="all">🌐 All Languages</option>
-              <option value="urdu">Urdu (اردو)</option>
-              <option value="arabic">Arabic (عربی)</option>
-              <option value="english">English (انگریزی)</option>
-              <option value="hindi">Hindi (ہندی)</option>
-            </select>
-
-            <select
-              className="max-w-[220px] rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-sm font-medium outline-none transition hover:border-emerald-500 cursor-pointer"
-              value={selectedCategory}
-              onChange={(e) => setSelectedCategory(e.target.value)}
-            >
-              {categories.map((cat) => (
-                <option key={cat.value} value={cat.value}>
-                  {cat.label}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Controls */}
-          <div className="flex w-full items-center justify-between gap-3 border-t border-slate-100 pt-2.5 xl:w-auto xl:justify-end xl:border-t-0 xl:pt-0">
-            {/* View Toggle */}
-            <div className="flex rounded-xl bg-slate-100 p-0.5">
-              <button
-                onClick={() => setViewMode("grid")}
-                className={`p-1.5 rounded-md transition-all ${
-                  viewMode === "grid"
-                    ? "bg-white shadow text-emerald-600"
-                    : "text-slate-400 hover:text-slate-600"
-                }`}
-                title="Grid view"
-              >
-                <Squares2X2Icon className="w-5 h-5" />
-              </button>
-
-              <button
-                onClick={() => setViewMode("list")}
-                className={`p-1.5 rounded-md transition-all ${
-                  viewMode === "list"
-                    ? "bg-white shadow text-emerald-600"
-                    : "text-slate-400 hover:text-slate-600"
-                }`}
-                title="List view"
-              >
-                <ListBulletIcon className="w-5 h-5" />
-              </button>
-            </div>
-
-            {/* Sort */}
-            <div className="flex items-center gap-1.5 whitespace-nowrap rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5">
-              <ArrowsUpDownIcon className="h-4 w-4 text-slate-400" />
-              <select
-                className="bg-transparent text-sm font-medium text-slate-700 outline-none cursor-pointer"
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
-              >
-                <option value="oldest">Serial # (1, 2, 3...)</option>
-                <option value="newest">Newest First</option>
-                <option value="az">Title (A-Z)</option>
-                <option value="favorites">My Favorites</option>
-              </select>
-            </div>
-          </div>
-        </motion.div>
-      </div>
-
-      {/* MAIN CONTENT CONTAINER */}
-      <div id="book-grid-container" className="max-w-7xl mx-auto px-4 mt-6 md:mt-12 space-y-8">
-        
-        {/* Active Catalog Header */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200 pb-4 bg-white/60 p-4 rounded-2xl border border-slate-100 shadow-2xs">
-          <div>
-            <div className="flex items-center gap-2.5">
-              <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
-                {activeCategoryLabel}
+      {/* ================= VIEW: FOLDERS & TOPICS (DIGITAL ARCHIVE EXPLORER) ================= */}
+      {activeLibraryTab === "folders" && (
+        <div className="max-w-7xl mx-auto px-4 mt-8 space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-4">
+            <div>
+              <h2 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
+                <FolderIcon className="w-7 h-7 text-emerald-600" />
+                <span>{currentLang === 'ur' ? 'موضوعاتی فولڈرز اور ذیلی زمرہ جات' : 'Topic Folders & Subcategories Archive'}</span>
               </h2>
-              {selectedCategory !== "all" && (
-                <button
-                  onClick={() => setSelectedCategory("all")}
-                  className="text-xs bg-slate-100 hover:bg-slate-200 text-slate-600 px-2.5 py-1 rounded-full font-bold transition-colors"
-                >
-                  Show All
+              <p className="text-xs text-slate-500 mt-1">
+                {currentLang === 'ur' 
+                  ? 'مکمل زمرہ کھولنے کے لیے فولڈر پر یا مخصوص کتب کے لیے ذیلی زمرے پر کلک کریں' 
+                  : 'Click on a Category folder to view its entire collection, or click a subcategory tag to filter directly.'}
+              </p>
+            </div>
+
+            {/* Folder & Subcategory Search */}
+            <div className="flex items-center gap-2 bg-white px-3.5 py-2 rounded-xl border border-slate-200 shadow-2xs w-full sm:w-80">
+              <MagnifyingGlassIcon className="w-4 h-4 text-slate-400" />
+              <input
+                type="text"
+                placeholder={currentLang === 'ur' ? 'زمرہ یا ذیلی زمرہ تلاش کریں...' : 'Search categories & subcategories...'}
+                value={folderSearch}
+                onChange={(e) => setFolderSearch(e.target.value)}
+                className="w-full bg-transparent text-xs text-slate-800 outline-none font-medium placeholder:text-slate-400"
+              />
+              {folderSearch && (
+                <button onClick={() => setFolderSearch("")} className="text-slate-400 hover:text-slate-600">
+                  <XMarkIcon className="w-4 h-4" />
                 </button>
               )}
             </div>
-            <p className="text-xs sm:text-sm text-slate-500 mt-1">
-              Showing <span className="font-bold text-slate-900">{finalDisplayBooks.length > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0}</span> - <span className="font-bold text-slate-900">{Math.min(currentPage * itemsPerPage, finalDisplayBooks.length)}</span> of <span className="font-bold text-slate-900">{finalDisplayBooks.length}</span> total books
-            </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-3">
-            {/* Books Per Page Selector */}
-            <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-xl border border-slate-200 shadow-2xs">
-              <span className="text-xs font-semibold text-slate-500">Books per page:</span>
-              <div className="relative inline-block">
+          {/* Grid of Hierarchical Category Folders */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            {filteredFolderCategories.map((cat) => (
+              <motion.div
+                key={cat.id}
+                whileHover={{ y: -4 }}
+                className="bg-white rounded-3xl p-5 border border-slate-200/90 shadow-sm hover:shadow-xl hover:border-emerald-400 transition-all flex flex-col justify-between group"
+              >
+                {/* Folder Header */}
+                <div>
+                  <div className="flex items-center justify-between mb-4">
+                    <div 
+                      onClick={() => {
+                        setSelectedCategory(String(cat.id));
+                        setSelectedSubcategory("all");
+                        setActiveLibraryTab("all");
+                        setTimeout(scrollToTop, 100);
+                      }}
+                      className="flex items-center gap-3 cursor-pointer"
+                    >
+                      <div className="p-3 bg-emerald-50 rounded-2xl text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white transition-all shadow-xs">
+                        <FolderOpenIcon className="w-6 h-6 stroke-2" />
+                      </div>
+                      <div>
+                        <h3 className="font-bold text-slate-900 group-hover:text-emerald-700 text-base leading-tight transition-colors">
+                          {cat.name}
+                        </h3>
+                        <span className="text-[11px] text-slate-400 font-medium">
+                          {cat.subcategories.length} {currentLang === 'ur' ? 'ذیلی زمرہ جات' : 'Subcategories'}
+                        </span>
+                      </div>
+                    </div>
+
+                    <span className="text-xs font-extrabold px-3 py-1 rounded-full bg-slate-100 text-slate-700 group-hover:bg-emerald-50 group-hover:text-emerald-800 transition-colors">
+                      {cat.count} {currentLang === 'ur' ? 'کتب' : 'Books'}
+                    </span>
+                  </div>
+
+                  {/* Subcategories Tags Inside Folder */}
+                  {cat.subcategories.length > 0 ? (
+                    <div className="mt-3 pt-3 border-t border-slate-100">
+                      <div className="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto pr-1">
+                        {cat.subcategories.map((sub) => (
+                          <button
+                            key={sub.id}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedCategory(String(cat.id));
+                              setSelectedSubcategory(String(sub.id));
+                              setActiveLibraryTab("all");
+                              setTimeout(scrollToTop, 100);
+                            }}
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-50 hover:bg-emerald-50 border border-slate-200 hover:border-emerald-300 text-slate-700 hover:text-emerald-700 text-[11px] font-semibold transition-all cursor-pointer shadow-2xs"
+                          >
+                            <span>{sub.name}</span>
+                            {sub.count > 0 && (
+                              <span className="text-[9px] bg-slate-200/80 px-1.5 py-0.2 rounded-full font-bold text-slate-600">
+                                {sub.count}
+                              </span>
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="mt-3 pt-3 border-t border-slate-100">
+                      <p className="text-[11px] text-slate-400 italic">No subcategories defined</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Open Folder Footer */}
+                <div 
+                  onClick={() => {
+                    setSelectedCategory(String(cat.id));
+                    setSelectedSubcategory("all");
+                    setActiveLibraryTab("all");
+                    setTimeout(scrollToTop, 100);
+                  }}
+                  className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs font-bold text-emerald-600 hover:text-emerald-700 cursor-pointer"
+                >
+                  <span>{currentLang === 'ur' ? 'تمام کتب کھولیں' : 'Open Entire Category'}</span>
+                  <ArrowRightIcon className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ================= VIEW: AUTHORS DIRECTORY ================= */}
+      {activeLibraryTab === "authors" && (
+        <div className="max-w-7xl mx-auto px-4 mt-8 space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-4">
+            <div>
+              <h2 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
+                <UserGroupIcon className="w-7 h-7 text-blue-600" />
+                <span>{currentLang === 'ur' ? 'مصنفین کی ڈائرکٹری' : 'Authors Directory'}</span>
+              </h2>
+              <p className="text-xs text-slate-500 mt-1">
+                {currentLang === 'ur' ? 'مصنف پر کلک کرکے ان کی تمام کتب دیکھیں' : 'Click on any author to view their published books'}
+              </p>
+            </div>
+
+            {/* Author Search Box */}
+            <div className="flex items-center gap-2 bg-white px-3.5 py-2 rounded-xl border border-slate-200 shadow-2xs w-full sm:w-72">
+              <MagnifyingGlassIcon className="w-4 h-4 text-slate-400" />
+              <input
+                type="text"
+                placeholder={currentLang === 'ur' ? 'مصنف کا نام تلاش کریں...' : 'Search author name...'}
+                value={authorSearch}
+                onChange={(e) => setAuthorSearch(e.target.value)}
+                className="w-full bg-transparent text-xs text-slate-800 outline-none font-medium placeholder:text-slate-400"
+              />
+              {authorSearch && (
+                <button onClick={() => setAuthorSearch("")} className="text-slate-400 hover:text-slate-600">
+                  <XMarkIcon className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            {filteredAuthors.map((author, idx) => (
+              <motion.div
+                key={idx}
+                whileHover={{ y: -3 }}
+                onClick={() => {
+                  setSearchTerm(author.name);
+                  setActiveLibraryTab("all");
+                  setTimeout(scrollToTop, 100);
+                }}
+                className="bg-white rounded-2xl p-4 border border-slate-200/90 shadow-sm hover:shadow-lg hover:border-blue-400 transition-all cursor-pointer flex items-center gap-3.5 group"
+              >
+                <div className="w-11 h-11 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-base flex-shrink-0 group-hover:bg-blue-600 group-hover:text-white transition-all shadow-xs">
+                  <UserIcon className="w-5 h-5" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h4 className="font-bold text-slate-800 text-sm truncate group-hover:text-blue-600 transition-colors">
+                    {author.name}
+                  </h4>
+                  <span className="text-xs text-slate-400 font-medium">
+                    {author.count} {currentLang === 'ur' ? 'کتب' : 'Books'}
+                  </span>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ================= VIEW: PUBLISHERS DIRECTORY ================= */}
+      {activeLibraryTab === "publishers" && (
+        <div className="max-w-7xl mx-auto px-4 mt-8 space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-4">
+            <div>
+              <h2 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
+                <BuildingOfficeIcon className="w-7 h-7 text-purple-600" />
+                <span>{currentLang === 'ur' ? 'ناشرین اور مکتبہ جات' : 'Publishers Directory'}</span>
+              </h2>
+              <p className="text-xs text-slate-500 mt-1">
+                {currentLang === 'ur' ? 'ناشر پر کلک کرکے ان کی کتب دیکھیں' : 'Click on any publisher to view all published books'}
+              </p>
+            </div>
+
+            {/* Publisher Search Box */}
+            <div className="flex items-center gap-2 bg-white px-3.5 py-2 rounded-xl border border-slate-200 shadow-2xs w-full sm:w-72">
+              <MagnifyingGlassIcon className="w-4 h-4 text-slate-400" />
+              <input
+                type="text"
+                placeholder={currentLang === 'ur' ? 'ناشر کا نام تلاش کریں...' : 'Search publisher name...'}
+                value={publisherSearch}
+                onChange={(e) => setPublisherSearch(e.target.value)}
+                className="w-full bg-transparent text-xs text-slate-800 outline-none font-medium placeholder:text-slate-400"
+              />
+              {publisherSearch && (
+                <button onClick={() => setPublisherSearch("")} className="text-slate-400 hover:text-slate-600">
+                  <XMarkIcon className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            {filteredPublishers.map((pub, idx) => (
+              <motion.div
+                key={idx}
+                whileHover={{ y: -3 }}
+                onClick={() => {
+                  setSearchTerm(pub.name);
+                  setActiveLibraryTab("all");
+                  setTimeout(scrollToTop, 100);
+                }}
+                className="bg-white rounded-2xl p-4 border border-slate-200/90 shadow-sm hover:shadow-lg hover:border-purple-400 transition-all cursor-pointer flex items-center gap-3.5 group"
+              >
+                <div className="w-11 h-11 rounded-2xl bg-purple-50 text-purple-600 flex items-center justify-center font-bold text-base flex-shrink-0 group-hover:bg-purple-600 group-hover:text-white transition-all shadow-xs">
+                  <BuildingOfficeIcon className="w-5 h-5" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h4 className="font-bold text-slate-800 text-sm truncate group-hover:text-purple-600 transition-colors">
+                    {pub.name}
+                  </h4>
+                  <span className="text-xs text-slate-400 font-medium">
+                    {pub.count} {currentLang === 'ur' ? 'کتب' : 'Books'}
+                  </span>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ================= VIEW: BOOKS (ALL BOOKS & OUR PUBLICATIONS) ================= */}
+      {(activeLibraryTab === "all" || activeLibraryTab === "our_publications") && (
+        <>
+          {/* STICKY FILTER TOOLBAR */}
+          <div className="relative z-30 max-w-7xl mx-auto px-4 mt-4 md:sticky md:top-16 md:mt-4">
+            <motion.div
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              className="rounded-2xl border border-white/60 bg-white/90 p-3 shadow-[0_12px_35px_-24px_rgba(15,23,42,0.4)] backdrop-blur-xl flex flex-col gap-3"
+            >
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                {/* Taxonomy Selectors */}
+                <div className="flex flex-wrap items-center gap-2.5 flex-1 min-w-0">
+                  {/* Language Selector */}
+                  <select
+                    className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-700 outline-none transition hover:border-emerald-500 cursor-pointer"
+                    value={selectedLanguage}
+                    onChange={(e) => setSelectedLanguage(e.target.value)}
+                  >
+                    <option value="all">🌐 All Languages</option>
+                    <option value="urdu">Urdu (اردو)</option>
+                    <option value="arabic">Arabic (العربية)</option>
+                    <option value="english">English</option>
+                    <option value="hindi">Hindi</option>
+                  </select>
+
+                  {/* Primary Category Selector (With Counts) */}
+                  <select
+                    className="max-w-[260px] rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-700 outline-none transition hover:border-emerald-500 cursor-pointer truncate"
+                    value={selectedCategory}
+                    onChange={(e) => {
+                      setSelectedCategory(e.target.value);
+                      setSelectedSubcategory("all");
+                    }}
+                  >
+                    <option value="all">📖 All Categories ({books.length})</option>
+                    <option value="our_publications">🏛️ Our Publications ({books.filter(isOurPublication).length})</option>
+                    {categoryTree.map((cat) => (
+                      <option key={cat.id} value={String(cat.id)}>
+                        📖 {cat.name} ({cat.count})
+                      </option>
+                    ))}
+                  </select>
+
+                  {/* Subcategory Selector (Dynamically populated) */}
+                  {activeCategorySubcategories.length > 0 && (
+                    <select
+                      className="max-w-[220px] rounded-xl border border-emerald-300 bg-emerald-50/50 px-3 py-2 text-xs font-semibold text-emerald-800 outline-none transition hover:border-emerald-500 cursor-pointer truncate"
+                      value={selectedSubcategory}
+                      onChange={(e) => setSelectedSubcategory(e.target.value)}
+                    >
+                      <option value="all">🔖 All Subcategories</option>
+                      {activeCategorySubcategories.map((sub) => (
+                        <option key={sub.id} value={String(sub.id)}>
+                          🔖 {sub.name} ({sub.count})
+                        </option>
+                      ))}
+                    </select>
+                  )}
+
+                  {/* Active Filter Clear Button */}
+                  {(selectedCategory !== "all" || selectedSubcategory !== "all" || selectedLanguage !== "all" || searchTerm) && (
+                    <button
+                      onClick={() => {
+                        setSelectedCategory("all");
+                        setSelectedSubcategory("all");
+                        setSelectedLanguage("all");
+                        setSearchTerm("");
+                        setActiveLibraryTab("all");
+                      }}
+                      className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-red-50 text-slate-600 hover:text-red-600 text-xs font-bold transition cursor-pointer"
+                      title="Clear All Filters"
+                    >
+                      <XMarkIcon className="w-3.5 h-3.5" />
+                      <span>Clear</span>
+                    </button>
+                  )}
+                </div>
+
+                {/* View & Sort Controls */}
+                <div className="flex items-center gap-3">
+                  {/* View Mode Toggle */}
+                  <div className="flex rounded-xl bg-slate-100 p-0.5">
+                    <button
+                      onClick={() => setViewMode("grid")}
+                      className={`p-1.5 rounded-lg transition-all cursor-pointer ${
+                        viewMode === "grid"
+                          ? "bg-white shadow-xs text-emerald-600"
+                          : "text-slate-400 hover:text-slate-600"
+                      }`}
+                      title="Grid view"
+                    >
+                      <Squares2X2Icon className="w-4 h-4" />
+                    </button>
+
+                    <button
+                      onClick={() => setViewMode("list")}
+                      className={`p-1.5 rounded-lg transition-all cursor-pointer ${
+                        viewMode === "list"
+                          ? "bg-white shadow-xs text-emerald-600"
+                          : "text-slate-400 hover:text-slate-600"
+                      }`}
+                      title="List view"
+                    >
+                      <ListBulletIcon className="w-4 h-4" />
+                    </button>
+                  </div>
+
+                  {/* Sort Dropdown */}
+                  <div className="flex items-center gap-1.5 whitespace-nowrap rounded-xl border border-slate-200 bg-slate-50 px-2.5 py-1.5">
+                    <ArrowsUpDownIcon className="h-4 w-4 text-slate-400" />
+                    <select
+                      className="bg-transparent text-xs font-semibold text-slate-700 outline-none cursor-pointer"
+                      value={sortBy}
+                      onChange={(e) => setSortBy(e.target.value)}
+                    >
+                      <option value="oldest">Serial # (1, 2, 3...)</option>
+                      <option value="newest">Newest First</option>
+                      <option value="az">Title (A-Z)</option>
+                      <option value="favorites">My Favorites</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {/* DYNAMIC SUBCATEGORY PILLS CAROUSEL (When a category is active) */}
+              {activeCategorySubcategories.length > 0 && (
+                <div className="flex items-center gap-1.5 overflow-x-auto pb-1 pt-1 border-t border-slate-100 no-scrollbar">
+                  <span className="text-[11px] font-bold text-slate-400 shrink-0 mr-1 flex items-center gap-1">
+                    <TagIcon className="w-3.5 h-3.5" />
+                    <span>Topics:</span>
+                  </span>
+
+                  {/* All Subcategories Pill */}
+                  <button
+                    onClick={() => setSelectedSubcategory("all")}
+                    className={`px-3 py-1 rounded-full text-xs font-bold transition-all shrink-0 cursor-pointer ${
+                      selectedSubcategory === "all"
+                        ? "bg-emerald-600 text-white shadow-xs"
+                        : "bg-slate-100 hover:bg-slate-200 text-slate-700"
+                    }`}
+                  >
+                    All Topics
+                  </button>
+
+                  {activeCategorySubcategories.map((sub) => (
+                    <button
+                      key={sub.id}
+                      onClick={() => setSelectedSubcategory(String(sub.id))}
+                      className={`px-3 py-1 rounded-full text-xs font-bold transition-all shrink-0 flex items-center gap-1.5 cursor-pointer ${
+                        String(selectedSubcategory) === String(sub.id)
+                          ? "bg-emerald-600 text-white shadow-xs"
+                          : "bg-slate-100 hover:bg-emerald-50 text-slate-700 hover:text-emerald-700 border border-slate-200/60"
+                      }`}
+                    >
+                      <span>{sub.name}</span>
+                      {sub.count > 0 && (
+                        <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                          String(selectedSubcategory) === String(sub.id) ? "bg-emerald-800 text-white" : "bg-slate-200 text-slate-600"
+                        }`}>
+                          {sub.count}
+                        </span>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </motion.div>
+          </div>
+
+          {/* MAIN CONTENT CONTAINER */}
+          <div id="book-grid-container" className="max-w-7xl mx-auto px-4 mt-6 md:mt-10 space-y-8">
+            
+            {/* Our Publications Verified Banner */}
+            {(activeLibraryTab === "our_publications" || selectedCategory === "our_publications") && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="bg-gradient-to-r from-amber-500/10 via-amber-600/10 to-amber-500/10 border border-amber-300/60 rounded-3xl p-5 sm:p-7 text-center shadow-xs"
+              >
+                <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-amber-500 text-white text-xs font-bold mb-3 shadow-xs">
+                  <SparklesIcon className="w-4 h-4" />
+                  <span>Verified Markaz Publications</span>
+                </div>
+                <h2 className="text-2xl sm:text-3xl font-black text-slate-900">
+                  مركز الدعوة الإسلامية والخيرية
+                </h2>
+                <p className="text-xs sm:text-sm text-slate-600 mt-1.5 font-medium max-w-xl mx-auto">
+                  Markaz Dawah Islamic & Charitable Publications • ہماری مطبوعات کا مستند علمی و دعوتی ذخیرہ
+                </p>
+              </motion.div>
+            )}
+
+            {/* Active Catalog Header & Count Bar */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white/70 p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-2xs">
+              <div>
+                <div className="flex items-center flex-wrap gap-2.5">
+                  <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+                    {activeCategoryLabel}
+                  </h2>
+                  {activeSubcategoryLabel && (
+                    <span className="inline-flex items-center gap-1 bg-emerald-100 text-emerald-800 text-xs font-extrabold px-3 py-1 rounded-full border border-emerald-200">
+                      <TagIcon className="w-3.5 h-3.5" />
+                      <span>{activeSubcategoryLabel}</span>
+                    </span>
+                  )}
+                  {(selectedCategory !== "all" || selectedSubcategory !== "all") && (
+                    <button
+                      onClick={() => {
+                        setSelectedCategory("all");
+                        setSelectedSubcategory("all");
+                        setActiveLibraryTab("all");
+                      }}
+                      className="text-xs bg-slate-100 hover:bg-slate-200 text-slate-600 px-2.5 py-1 rounded-full font-bold transition-colors cursor-pointer"
+                    >
+                      Show All Books
+                    </button>
+                  )}
+                </div>
+                <p className="text-xs sm:text-sm text-slate-500 mt-1">
+                  Showing <span className="font-bold text-slate-900">{finalDisplayBooks.length > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0}</span> - <span className="font-bold text-slate-900">{Math.min(currentPage * itemsPerPage, finalDisplayBooks.length)}</span> of <span className="font-bold text-slate-900">{finalDisplayBooks.length}</span> total books
+                </p>
+              </div>
+
+              {/* Items Per Page Selector */}
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-slate-500 font-medium">Show:</span>
                 <select
                   value={itemsPerPage}
                   onChange={(e) => {
                     setItemsPerPage(Number(e.target.value));
                     setCurrentPage(1);
-                    scrollToTop();
                   }}
-                  className="bg-slate-50 border border-slate-300 hover:border-slate-400 text-slate-800 text-xs font-bold rounded-lg px-2.5 py-1 pr-7 appearance-none cursor-pointer outline-none focus:ring-2 focus:ring-[#002147]"
+                  className="bg-white border border-slate-200 rounded-lg px-2.5 py-1 text-xs font-bold text-slate-700 outline-none cursor-pointer hover:border-emerald-500"
                 >
                   <option value={10}>10</option>
                   <option value={25}>25</option>
                   <option value={50}>50</option>
                   <option value={100}>100</option>
                 </select>
-                <ChevronDownIcon className="w-3.5 h-3.5 text-slate-500 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
               </div>
             </div>
 
-            <span className="text-xs font-bold text-slate-600 bg-slate-100 px-3 py-2 rounded-xl">
-              Page {currentPage} of {totalPages}
-            </span>
-          </div>
-        </div>
-
-        {/* LOADING STATE */}
-        {loading ? (
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-6">
-            {[...Array(10)].map((_, i) => (
-              <div
-                key={i}
-                className="aspect-[2/3] bg-slate-200 rounded-2xl animate-pulse"
-              />
-            ))}
-          </div>
-        ) : paginatedBooks.length > 0 ? (
-          <div>
-            {/* BOOK GRID / LIST (10 items per page) */}
-            <motion.div
-              id="book-grid"
-              initial="hidden"
-              whileInView="show"
-              viewport={{ once: true }}
-              className={
-                viewMode === "grid"
-                  ? "grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 sm:gap-6"
-                  : "grid grid-cols-1 md:grid-cols-2 gap-4"
-              }
-            >
-              <AnimatePresence>
-                {paginatedBooks.map((book) => (
-                  <motion.div
-                    key={book.id}
-                    layout
-                    initial={{ opacity: 0, y: 18 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0 }}
-                    className={`group relative ${
-                      viewMode === "list"
-                        ? "flex bg-white p-3 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-all"
-                        : ""
-                    }`}
-                  >
-                    <div
-                      className={`relative cursor-pointer w-full ${
-                        viewMode === "list"
-                          ? "flex gap-4"
-                          : "transition-transform duration-300 group-hover:-translate-y-2"
-                      }`}
+            {/* LOADING STATE */}
+            {loading ? (
+              <div className="grid grid-cols-2 gap-3 sm:gap-6 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+                {[...Array(10)].map((_, i) => (
+                  <div key={i} className="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm space-y-3">
+                    <div className="aspect-[2/3] bg-slate-100 rounded-xl animate-pulse" />
+                    <div className="h-4 bg-slate-100 rounded w-3/4 animate-pulse" />
+                    <div className="h-3 bg-slate-100 rounded w-1/2 animate-pulse" />
+                  </div>
+                ))}
+              </div>
+            ) : finalDisplayBooks.length === 0 ? (
+              /* EMPTY STATE */
+              <div className="bg-white rounded-3xl p-12 text-center border border-slate-200 max-w-lg mx-auto shadow-sm">
+                <FaceFrownIcon className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+                <h3 className="text-lg font-bold text-slate-800 mb-1">No Books Found</h3>
+                <p className="text-sm text-slate-500 mb-6">
+                  We couldn't find any books matching your criteria.
+                </p>
+                <button
+                  onClick={() => {
+                    setSearchTerm("");
+                    setSelectedCategory("all");
+                    setSelectedSubcategory("all");
+                    setSelectedLanguage("all");
+                    setActiveLibraryTab("all");
+                  }}
+                  className="bg-emerald-600 text-white font-bold text-xs px-5 py-2.5 rounded-full hover:bg-emerald-700 transition cursor-pointer"
+                >
+                  Reset All Filters
+                </button>
+              </div>
+            ) : (
+              /* BOOK GRID / LIST */
+              viewMode === "grid" ? (
+                <div className="grid grid-cols-2 gap-3 sm:gap-6 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+                  {paginatedBooks.map((book) => (
+                    <PublicBookCard
+                      key={book.id}
+                      book={book}
+                      isFavorite={favorites.includes(book.id)}
+                      onToggleFavorite={toggleFavorite}
+                      isOurPub={isOurPublication(book)}
                       onClick={() => setSelectedBook(book)}
+                    />
+                  ))}
+                </div>
+              ) : (
+                /* LIST VIEW */
+                <div className="space-y-3">
+                  {paginatedBooks.map((book) => (
+                    <div
+                      key={book.id}
+                      onClick={() => setSelectedBook(book)}
+                      className="bg-white rounded-2xl p-4 border border-slate-200 hover:border-emerald-300 hover:shadow-md transition-all flex items-center gap-4 cursor-pointer"
                     >
-                      {/* Image / Card Area */}
-                      <div className={viewMode === "list" ? "w-24 shrink-0" : ""}>
-                        <PublicBookCard
-                          book={book}
-                          onClick={() => setSelectedBook(book)}
-                          isFavorite={favorites.includes(book.id)}
-                          onToggleFavorite={toggleFavorite}
-                          className={viewMode === "list" ? "h-36" : ""}
+                      <div className="w-12 h-16 bg-slate-100 rounded-lg overflow-hidden flex-shrink-0">
+                        <img
+                          src={book.cover_image_url || book.cover_image || FALLBACK_NO_COVER}
+                          alt={book.title}
+                          className="w-full h-full object-cover"
                         />
                       </div>
-
-                      {/* List View Details */}
-                      {viewMode === "list" && (
-                        <div className="flex-1 flex flex-col justify-center py-1">
-                          <div className="flex justify-between items-start">
-                            <span className="text-[10px] font-bold text-emerald-600 uppercase bg-emerald-50 px-2 py-0.5 rounded-full mb-1">
-                              {safeCategory(book)}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <h4 className="font-bold text-slate-800 text-sm truncate">{book.title}</h4>
+                          {isOurPublication(book) && (
+                            <span className="bg-amber-100 text-amber-800 text-[10px] font-bold px-2 py-0.5 rounded-full">
+                              🏛️ مركز الدعوة
                             </span>
-                            {book.is_restricted && (
-                              <LockOutline className="w-4 h-4 text-red-500" />
-                            )}
-                          </div>
-
-                          <h3 className="font-bold text-slate-800 leading-tight mb-1 line-clamp-2">
-                            {book.title}
-                          </h3>
-
-                          <p className="text-xs text-slate-500 mb-2">
-                            By {safeText(book.author, "Unknown")}
-                            {book.translator && ` (ترجمہ: ${book.translator})`}
-                          </p>
-
-                          <p className="text-xs text-slate-400 line-clamp-2 mb-2">
-                            {book.description || `Publisher: ${book.publisher || 'N/A'}`}
-                          </p>
-
-                          <div className="mt-auto flex items-center gap-2">
-                            {book.pdf_url || book.txt_file_url ? (
-                              <button
-                                className="text-xs font-bold text-emerald-600 hover:underline"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  navigate(`/books/${book.id}`);
-                                }}
-                              >
-                                Read Now
-                              </button>
-                            ) : (
-                              <button
-                                className="text-xs font-bold text-amber-600 inline-flex items-center gap-1"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  showUpcomingToast();
-                                }}
-                              >
-                                <span>⏳</span> <span>عنقریب...</span>
-                              </button>
-                            )}
-
-                            <span className="text-slate-300">•</span>
-
-                            <button
-                              className={`inline-flex items-center gap-1 text-xs font-bold transition-colors ${
-                                favorites.includes(book.id) ? "text-emerald-600" : "text-slate-500 hover:text-emerald-600"
-                              }`}
-                              onClick={(e) => toggleFavorite(e, book.id)}
-                            >
-                              {favorites.includes(book.id) ? (
-                                <>
-                                  <BookmarkSolid className="h-4 w-4 text-emerald-600" />
-                                  <span>Saved</span>
-                                </>
-                              ) : (
-                                <>
-                                  <BookmarkOutline className="h-4 w-4" />
-                                  <span>Save</span>
-                                </>
-                              )}
-                            </button>
-                          </div>
+                          )}
                         </div>
-                      )}
+                        <p className="text-xs text-slate-500 truncate">{safeText(book.author, "Unknown Author")}</p>
+                      </div>
+                      <span className="text-xs text-emerald-600 font-bold">View →</span>
                     </div>
-                  </motion.div>
-                ))}
-              </AnimatePresence>
-            </motion.div>
+                  ))}
+                </div>
+              )
+            )}
 
-            {/* 📄 CLEAN PAGINATION BAR WITH ROWS PER PAGE DROPDOWN */}
-            {finalDisplayBooks.length > 0 && (
-              <div className="mt-12 flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-slate-200 pt-6 bg-slate-50/50 p-4 rounded-2xl border border-slate-100">
-                {/* Books Per Page Dropdown */}
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-semibold text-slate-500">Books per page:</span>
-                  <div className="relative inline-block">
-                    <select
-                      value={itemsPerPage}
-                      onChange={(e) => {
-                        setItemsPerPage(Number(e.target.value));
-                        setCurrentPage(1);
-                        scrollToTop();
-                      }}
-                      className="bg-white border border-slate-300 hover:border-slate-400 text-slate-800 text-xs font-bold rounded-lg px-3 py-1.5 pr-8 appearance-none cursor-pointer outline-none shadow-2xs focus:ring-2 focus:ring-[#002147]"
-                    >
-                      <option value={10}>10</option>
-                      <option value={25}>25</option>
-                      <option value={50}>50</option>
-                      <option value={100}>100</option>
-                    </select>
-                    <ChevronDownIcon className="w-3.5 h-3.5 text-slate-500 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-                  </div>
-                  <span className="text-xs text-slate-400 ml-2">
-                    Showing {(currentPage - 1) * itemsPerPage + 1} - {Math.min(currentPage * itemsPerPage, finalDisplayBooks.length)} of {finalDisplayBooks.length}
-                  </span>
+            {/* PAGINATION CONTROLS */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-center gap-2 pt-8">
+                <button
+                  onClick={() => {
+                    setCurrentPage((p) => Math.max(1, p - 1));
+                    scrollToTop();
+                  }}
+                  disabled={currentPage === 1}
+                  className="p-2 rounded-xl bg-white border border-slate-200 text-slate-600 disabled:opacity-40 hover:bg-slate-50 transition shadow-xs cursor-pointer"
+                >
+                  <ChevronLeftIcon className="w-5 h-5" />
+                </button>
+
+                <div className="flex items-center gap-1.5">
+                  {[...Array(Math.min(5, totalPages))].map((_, i) => {
+                    const pageNum = i + 1;
+                    return (
+                      <button
+                        key={pageNum}
+                        onClick={() => {
+                          setCurrentPage(pageNum);
+                          scrollToTop();
+                        }}
+                        className={`w-9 h-9 rounded-xl text-xs font-bold transition shadow-xs cursor-pointer ${
+                          currentPage === pageNum
+                            ? "bg-emerald-600 text-white"
+                            : "bg-white border border-slate-200 text-slate-700 hover:bg-slate-50"
+                        }`}
+                      >
+                        {pageNum}
+                      </button>
+                    );
+                  })}
+                  {totalPages > 5 && <span className="px-1 text-slate-400 font-bold">...</span>}
                 </div>
 
-                <div className="flex items-center gap-1.5 flex-wrap justify-center">
-                  {/* Previous Button */}
-                  <button
-                    onClick={() => {
-                      if (currentPage > 1) {
-                        setCurrentPage(p => p - 1);
-                        scrollToTop();
-                      }
-                    }}
-                    disabled={currentPage === 1}
-                    className="inline-flex items-center gap-1 px-3.5 py-2 rounded-xl text-xs font-bold border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-xs"
-                  >
-                    <ChevronLeftIcon className="w-4 h-4" />
-                    <span>Previous</span>
-                  </button>
-
-                  {/* Page Numbers */}
-                  {(() => {
-                    const pages = [];
-                    const maxVisible = 5;
-                    let startPage = Math.max(1, currentPage - Math.floor(maxVisible / 2));
-                    let endPage = Math.min(totalPages, startPage + maxVisible - 1);
-
-                    if (endPage - startPage + 1 < maxVisible) {
-                      startPage = Math.max(1, endPage - maxVisible + 1);
-                    }
-
-                    if (startPage > 1) {
-                      pages.push(
-                        <button
-                          key={1}
-                          onClick={() => { setCurrentPage(1); scrollToTop(); }}
-                          className={`w-8 h-8 rounded-lg text-xs font-bold transition-all ${
-                            currentPage === 1
-                              ? "bg-[#002147] text-white shadow-sm"
-                              : "bg-white text-slate-700 border border-slate-200 hover:bg-slate-50"
-                          }`}
-                        >
-                          1
-                        </button>
-                      );
-                      if (startPage > 2) {
-                        pages.push(<span key="dots-start" className="px-1 text-slate-400 text-xs">...</span>);
-                      }
-                    }
-
-                    for (let p = startPage; p <= endPage; p++) {
-                      pages.push(
-                        <button
-                          key={p}
-                          onClick={() => { setCurrentPage(p); scrollToTop(); }}
-                          className={`w-8 h-8 rounded-lg text-xs font-bold transition-all ${
-                            currentPage === p
-                              ? "bg-[#002147] text-white shadow-sm"
-                              : "bg-white text-slate-700 border border-slate-200 hover:bg-slate-50"
-                          }`}
-                        >
-                          {p}
-                        </button>
-                      );
-                    }
-
-                    if (endPage < totalPages) {
-                      if (endPage < totalPages - 1) {
-                        pages.push(<span key="dots-end" className="px-1 text-slate-400 text-xs">...</span>);
-                      }
-                      pages.push(
-                        <button
-                          key={totalPages}
-                          onClick={() => { setCurrentPage(totalPages); scrollToTop(); }}
-                          className={`w-8 h-8 rounded-lg text-xs font-bold transition-all ${
-                            currentPage === totalPages
-                              ? "bg-[#002147] text-white shadow-sm"
-                              : "bg-white text-slate-700 border border-slate-200 hover:bg-slate-50"
-                          }`}
-                        >
-                          {totalPages}
-                        </button>
-                      );
-                    }
-
-                    return pages;
-                  })()}
-
-                  {/* Next Button */}
-                  <button
-                    onClick={() => {
-                      if (currentPage < totalPages) {
-                        setCurrentPage(p => p + 1);
-                        scrollToTop();
-                      }
-                    }}
-                    disabled={currentPage === totalPages}
-                    className="inline-flex items-center gap-1 px-3.5 py-2 rounded-xl text-xs font-bold border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-xs"
-                  >
-                    <span>Next</span>
-                    <ChevronRightIcon className="w-4 h-4" />
-                  </button>
-                </div>
+                <button
+                  onClick={() => {
+                    setCurrentPage((p) => Math.min(totalPages, p + 1));
+                    scrollToTop();
+                  }}
+                  disabled={currentPage === totalPages}
+                  className="p-2 rounded-xl bg-white border border-slate-200 text-slate-600 disabled:opacity-40 hover:bg-slate-50 transition shadow-xs cursor-pointer"
+                >
+                  <ChevronRightIcon className="w-5 h-5" />
+                </button>
               </div>
             )}
           </div>
-        ) : (
-          /* Empty State */
-          <div className="text-center py-24 bg-white rounded-3xl shadow-sm border border-slate-100">
-            <FaceFrownIcon className="h-16 w-16 text-slate-300 mx-auto mb-4" />
-            <h3 className="text-2xl font-bold text-slate-800">No books found</h3>
-            <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
-              No books matched the selected filters.
-            </p>
-            <button
-              onClick={() => {
-                setSearchTerm("");
-                setSelectedCategory("all");
-                setSelectedLanguage("all");
-              }}
-              className="mt-6 px-8 py-3 bg-emerald-600 text-white rounded-xl font-bold shadow-lg hover:bg-emerald-700 text-sm"
-            >
-              Clear Filters
-            </button>
-          </div>
-        )}
-      </div>
+        </>
+      )}
 
-      {/* Scroll top */}
-      <AnimatePresence>
-        {showScrollTop && (
-          <motion.button
-            initial={{ opacity: 0, scale: 0.5 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.5 }}
-            onClick={scrollToTop}
-            className="fixed bottom-8 right-8 z-50 p-4 bg-[#002147] text-white rounded-full shadow-2xl hover:bg-blue-900 transition-colors border-2 border-white/20"
-            title="Scroll to top"
-          >
-            <ArrowUpIcon className="w-6 h-6" />
-          </motion.button>
-        )}
-      </AnimatePresence>
+      {/* BOOK DETAILS / READER MODAL */}
+      {selectedBook && (
+        <BookDetailsModal
+          book={selectedBook}
+          onClose={() => setSelectedBook(null)}
+          onRequestAccess={handleRequestAccess}
+        />
+      )}
 
-      {/* QUICK VIEW MODAL */}
-      <AnimatePresence>
-        {selectedBook && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm"
-            onClick={() => setSelectedBook(null)}
-          >
-            <motion.div
-              initial={{ scale: 0.95, y: 20 }}
-              animate={{ scale: 1, y: 0 }}
-              className="bg-white w-full max-w-3xl rounded-3xl shadow-2xl overflow-hidden flex flex-col md:flex-row max-h-[85vh]"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="w-full md:w-5/12 bg-slate-50 flex items-center justify-center p-8">
-                <img
-                  src={getBookCover(selectedBook)}
-                  alt={selectedBook.title}
-                  className="w-40 shadow-2xl rounded-lg"
-                />
-              </div>
-
-              <div className="w-full md:w-7/12 p-8 flex flex-col overflow-y-auto">
-                <div className="flex justify-between items-center">
-                  <span className="text-xs font-bold text-emerald-600 uppercase bg-emerald-50 px-2.5 py-1 rounded-full">
-                    {safeCategory(selectedBook)}
-                  </span>
-                  <button onClick={() => setSelectedBook(null)} className="p-1 hover:bg-slate-100 rounded-lg">
-                    <XMarkIcon className="w-6 h-6 text-slate-400" />
-                  </button>
-                </div>
-
-                <h2 className="text-2xl md:text-3xl font-serif font-bold mt-4 mb-2 text-slate-900 leading-tight">
-                  {selectedBook.title}
-                </h2>
-
-                <p className="text-slate-500 text-sm mb-4">
-                  By {safeText(selectedBook.author, "Unknown")}
-                  {selectedBook.translator && ` (ترجمہ: ${selectedBook.translator})`}
-                  {selectedBook.publisher && ` — ${selectedBook.publisher}`}
-                </p>
-
-                <p className="text-slate-600 text-sm mb-6 flex-grow">
-                  {selectedBook.description || "No description provided."}
-                </p>
-
-                {/* ACTION BUTTONS */}
-                <div className="flex flex-col gap-3 pt-4 border-t border-slate-100 mt-auto">
-                  {selectedBook.is_restricted ? (
-                    <button
-                      onClick={() => handleRequestAccess(selectedBook)}
-                      className="w-full bg-slate-800 text-white py-3 rounded-xl font-bold flex justify-center gap-2 hover:bg-slate-900 transition-colors"
-                    >
-                      <LockOutline className="w-5 h-5" /> Request Access
-                    </button>
-                  ) : (
-                    <div className="flex gap-2">
-                      {selectedBook.pdf_url || selectedBook.txt_file_url ? (
-                        <button
-                          onClick={() => {
-                            navigate(`/books/${selectedBook.id}`);
-                          }}
-                          className="flex-1 bg-emerald-600 text-white py-3 rounded-xl font-bold flex justify-center items-center gap-2 hover:bg-emerald-700 transition-colors shadow-sm"
-                        >
-                          <BookOpenIcon className="w-5 h-5" /> Read Now
-                        </button>
-                      ) : (
-                        <button
-                          onClick={() => {
-                            showUpcomingToast();
-                          }}
-                          className="flex-1 bg-slate-900 text-amber-300 py-3 rounded-xl font-bold flex justify-center items-center gap-2 hover:bg-slate-800 transition-colors shadow-sm text-base"
-                        >
-                          <span>⏳</span> <span>عنقریب...</span>
-                        </button>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {isAccessFlowOpen && (
+      {/* RESTRICTED ACCESS MODAL */}
+      {isAccessFlowOpen && restrictedBook && (
         <RestrictedAccessFlow
           isOpen={isAccessFlowOpen}
           book={restrictedBook}
-          onClose={() => setIsAccessFlowOpen(false)}
+          onClose={() => {
+            setIsAccessFlowOpen(false);
+            setRestrictedBook(null);
+          }}
           onSuccess={() => setShowSuccess(true)}
         />
       )}
 
+      {/* SUCCESS SCREEN */}
       {showSuccess && (
         <SuccessScreen
+          isOpen={showSuccess}
           onClose={() => setShowSuccess(false)}
         />
       )}

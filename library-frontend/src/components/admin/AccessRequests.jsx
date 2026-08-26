@@ -19,8 +19,9 @@ import {
 } from "@heroicons/react/24/outline";
 
 import restrictedBookService from "../../api/restrictedBookService";
+import { FALLBACK_COVER } from "../../utils/cover";
 
-// âœ… CONFIG: API Base URL (Make sure this matches your Django Port)
+// ✅ CONFIG: API Base URL
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || (import.meta.env.PROD ? "" : "http://127.0.0.1:8000");
 
 // --- HELPERS ---
@@ -28,11 +29,10 @@ const normalizeStatus = (s) => String(s || "").toLowerCase();
 const safeText = (v, f = "N/A") => (v && String(v).trim() !== "" ? String(v) : f);
 const formatDate = (d) => d ? new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'N/A';
 
-// âœ… NEW: Image URL Helper
+// ✅ NEW: Image URL Helper
 const getCoverUrl = (path) => {
-    if (!path) return "https://via.placeholder.com/150x200?text=No+Cover";
+    if (!path) return FALLBACK_COVER;
     if (path.startsWith("http")) return path; // Already full URL
-    // Fix relative path
     const cleanPath = path.startsWith('/') ? path : `/${path}`;
     return `${API_BASE_URL}${cleanPath}`;
 };
@@ -273,7 +273,7 @@ const AccessRequests = () => {
                                   src={getCoverUrl(req.book_cover)} 
                                   alt="Cover" 
                                   className="w-full h-full object-cover"
-                                  onError={(e) => e.target.src = "https://via.placeholder.com/40x60?text=No+Img"}
+                                  onError={(e) => e.target.src = FALLBACK_COVER}
                                />
                            </div>
                            <div className="max-w-[180px]">
@@ -398,12 +398,12 @@ const AccessRequests = () => {
                        <div className="space-y-3">
                           <h3 className="text-xs font-black text-slate-400 uppercase tracking-wider">Book Requested</h3>
                           <div className="flex gap-4 items-start">
-                             {/* âœ… MODAL IMAGE FIXED */}
+                             {/* ✅ MODAL IMAGE FIXED */}
                              <img 
                                 src={getCoverUrl(viewModal.data.book_cover)} 
                                 className="w-16 h-24 object-cover rounded-lg shadow-sm bg-slate-100 border border-slate-200" 
                                 alt="cover" 
-                                onError={(e) => e.target.src = "https://via.placeholder.com/60x90?text=No+Img"}
+                                onError={(e) => e.target.src = FALLBACK_COVER}
                              />
                              <div>
                                 <h4 className="font-bold text-slate-900">{safeText(viewModal.data.book_title)}</h4>

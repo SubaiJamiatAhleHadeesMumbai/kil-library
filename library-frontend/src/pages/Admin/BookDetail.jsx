@@ -9,7 +9,7 @@ import {
     ZoomIn as ZoomInIcon, ZoomOut as ZoomOutIcon, Download as DownloadIcon
 } from 'lucide-react';
 import { bookService } from "../../api/bookService";
-import { getBookCover, getCoverUrl } from "../../utils/cover";
+import { getBookCover, getCoverUrl, FALLBACK_COVER } from "../../utils/cover";
 
 // --- react-pdf-viewer Imports ---
 import { Viewer, Worker, SpecialZoomLevel } from '@react-pdf-viewer/core';
@@ -431,7 +431,7 @@ const BookDetail = () => {
                             loading="lazy"
                             onError={(e) => {
                                 e.target.onerror = null;
-                                e.target.src = "https://via.placeholder.com/300x400/6366f1/ffffff?text=No+Cover";
+                                e.target.src = FALLBACK_COVER;
                             }}
                         />
                         {hasValidPdf && !isGated && (

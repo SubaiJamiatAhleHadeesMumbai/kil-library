@@ -37,10 +37,14 @@ import { bookService } from "../api/bookService";
 import { categoryService } from "../api/categoryService";
 import { fatawaService } from "../api/fatawaService";
 import aboutService from "../api/aboutService";
+import socialWorkService from "../api/socialWorkService";
+import SocialWorkCard from "../components/social_work/SocialWorkCard";
+import SocialWorkItemDetailModal from "../components/social_work/SocialWorkItemDetailModal";
 import { useBookSearch } from "../hooks/useBookSearch";
 import LandingPostsPreview from "../components/public/LandingPostsPreview";
 import HomepagePostersCarousel from "../components/public/HomepagePostersCarousel";
 import DonationPanel from "../components/donation/DonationPanel";
+import { getErrorMessage } from "../utils/errorMessage";
 
 // --- API & IMAGE HELPERS ---
 const API_BASE_URL =
@@ -55,9 +59,11 @@ const resolveImageUrl = (value) => {
   return `${API_BASE_URL}${cleanPath}`;
 };
 
+const SVG_NO_COVER = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='320' viewBox='0 0 240 320'><rect width='240' height='320' fill='%231e293b'/><circle cx='120' cy='140' r='30' fill='%23334155'/><path d='M105 130h30v20h-30z' fill='%2394a3b8'/><text x='120' y='200' font-family='sans-serif' font-size='14' font-weight='bold' fill='%23cbd5e1' text-anchor='middle'>Markaz Library</text><text x='120' y='220' font-family='sans-serif' font-size='11' fill='%2364748b' text-anchor='middle'>No Cover</text></svg>";
+
 const getBookImage = (book) => {
   const rawUrl = book?.cover_image_url || book?.cover_image;
-  if (!rawUrl) return "https://via.placeholder.com/240x320?text=No+Cover";
+  if (!rawUrl) return SVG_NO_COVER;
   if (typeof rawUrl === "string" && (rawUrl.startsWith("http://") || rawUrl.startsWith("https://"))) return rawUrl;
   const path = String(rawUrl);
   const cleanPath = path.startsWith("/") ? path : `/${path}`;
@@ -193,6 +199,8 @@ const PublicHome = () => {
   const [dynamicCategories, setDynamicCategories] = useState([]);
   const [galleryImages, setGalleryImages] = useState([]);
   const [aboutContent, setAboutContent] = useState({ hero: {}, intro: {}, display: {} });
+  const [activitiesItems, setActivitiesItems] = useState([]);
+  const [selectedActivity, setSelectedActivity] = useState(null);
 
   // Filters & State
   const [sortBy, setSortBy] = useState("newest");
@@ -234,11 +242,12 @@ const PublicHome = () => {
   const loadAllData = useCallback(async () => {
     setLoading(true);
     try {
-      const [booksRes, catRes, settingsRes, aboutRes] = await Promise.allSettled([
+      const [booksRes, catRes, settingsRes, aboutRes, activitiesRes] = await Promise.allSettled([
         bookService.getAllBooks(0, 200),
         categoryService.getAllCategories(),
         settingsService.getHomepageSettings(),
         aboutService.getAboutSettings(),
+        socialWorkService.getPublicItems('', '', 6),
       ]);
 
       // 1. Process Books
@@ -273,6 +282,14 @@ const PublicHome = () => {
           display: aboutData?.display || {},
           gallery,
         });
+      }
+
+      // 5. Process Activities / Social Work
+      if (activitiesRes.status === 'fulfilled' && activitiesRes.value) {
+        const items = Array.isArray(activitiesRes.value) ? activitiesRes.value : [];
+        setActivitiesItems(items);
+      } else {
+        setActivitiesItems([]);
       }
     } catch (error) {
       console.error("âŒ PublicHome Master Load Error:", error);
@@ -402,7 +419,7 @@ const PublicHome = () => {
       toast.success('Question submitted successfully!');
       setAskQuestionOpen(false);
     } catch (error) {
-      toast.error(error?.response?.data?.detail || 'Could not submit question');
+      toast.error(getErrorMessage(error, 'Could not submit question'));
     } finally {
       setCreateQuestionLoading(false);
     }
@@ -591,11 +608,9 @@ const PublicHome = () => {
                   autoFocus={true}
                   searchTerm={searchTerm}
                   onSearchChange={setSearchTerm}
-                  title={getSectionConfig('search', { title: 'Library Search' }).title || 'Library Search'}
-                  subtitle={getSectionConfig('search', { subtitle: 'Search the library collection' }).subtitle || 'Search the library collection'}
-                  description={getSectionConfig('search', { description: 'Find books, authors, publishers and smart recommendations right from the library section.' }).description || 'Find books, authors, publishers and smart recommendations right from the library section.'}
                   placeholder={getSectionConfig('search', { placeholder: 'Search by title, author, or ISBN...' }).placeholder || 'Search by title, author, or ISBN...'}
-                  showHint={Boolean(getSectionConfig('search', { show_hint: true }).show_hint !== false)}
+                  showHeader={false}
+                  showHint={false}
                   enableVoice={Boolean(getSectionConfig('search', { enable_voice: true }).enable_voice !== false)}
                   enableDeepSearch={Boolean(getSectionConfig('search', { enable_deep: true }).enable_deep !== false)}
                   enableSuggestions={Boolean(getSectionConfig('search', { show_suggestions: true }).show_suggestions !== false)}
@@ -735,10 +750,8 @@ const PublicHome = () => {
             galleryImages.length > 0
               ? galleryImages
               : [
-                  { image_url: 'https://via.placeholder.com/600x400?text=Gallery+Image+1', title: 'Gallery Image 1' },
-                  { image_url: 'https://via.placeholder.com/600x400?text=Gallery+Image+2', title: 'Gallery Image 2' },
-                  { image_url: 'https://via.placeholder.com/600x400?text=Gallery+Image+3', title: 'Gallery Image 3' },
-                  { image_url: 'https://via.placeholder.com/600x400?text=Gallery+Image+4', title: 'Gallery Image 4' },
+                  { image_url: "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='600' height='400' viewBox='0 0 600 400'><rect width='600' height='400' fill='%230f172a'/><text x='50%' y='50%' font-family='sans-serif' font-size='20' font-weight='bold' fill='%2338bdf8' text-anchor='middle'>Markaz Islamic Library</text></svg>", title: 'Markaz Gallery 1' },
+                  { image_url: "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='600' height='400' viewBox='0 0 600 400'><rect width='600' height='400' fill='%231e293b'/><text x='50%' y='50%' font-family='sans-serif' font-size='20' font-weight='bold' fill='%2310b981' text-anchor='middle'>Research & Manuscript Archives</text></svg>", title: 'Markaz Gallery 2' },
                 ];
 
           return (
@@ -929,41 +942,134 @@ const PublicHome = () => {
           );
         }
 
-        // EDUCATION, SOCIAL & ACTIVITY
-        if (key === 'education_social_activity' && getSectionConfig('education_social_activity', { enabled: false }).enabled !== false) {
+        // ACTIVITIES, EDUCATION & SOCIAL WELFARE SECTION
+        if (key === 'education_social_activity' && getSectionConfig('education_social_activity', { enabled: true }).enabled !== false) {
           const educationConfig = getSectionConfig('education_social_activity', {});
-          const cards = [
-            { title: 'Education', description: 'Knowledge-based learning programs, seminars, and public guidance for students and families.', icon: AcademicCapIcon },
-            { title: 'Social Work', description: 'Community welfare efforts, support initiatives, and outreach rooted in compassion and service.', icon: UserGroupIcon },
-            { title: 'Activities', description: 'Events, gatherings, and educational activities that keep the community engaged and connected.', icon: BookOpenIcon },
+          const actionCards = [
+            {
+              title: 'Education & Guidance',
+              urduTitle: 'تعلیم و رہنمائی',
+              description: 'Knowledge-based learning programs, educational seminars, and academic support for students.',
+              icon: AcademicCapIcon,
+              to: '/education',
+              color: 'from-blue-600 to-indigo-600',
+              bgColor: 'bg-blue-50',
+              textColor: 'text-blue-700',
+              borderColor: 'border-blue-200'
+            },
+            {
+              title: 'Social Work & Welfare',
+              urduTitle: 'سماجی خدمات و ریلیف',
+              description: 'Humanitarian relief drives, medical assistance, ration distribution, and welfare support.',
+              icon: UserGroupIcon,
+              to: '/social-work',
+              color: 'from-emerald-600 to-teal-600',
+              bgColor: 'bg-emerald-50',
+              textColor: 'text-emerald-700',
+              borderColor: 'border-emerald-200'
+            },
+            {
+              title: 'Markaz Activities & Events',
+              urduTitle: 'سرگرمیاں اور کانفرنسز',
+              description: 'Annual conventions, book fairs, youth gatherings, and community educational events.',
+              icon: SparklesIcon,
+              to: '/activities',
+              color: 'from-purple-600 to-pink-600',
+              bgColor: 'bg-purple-50',
+              textColor: 'text-purple-700',
+              borderColor: 'border-purple-200'
+            },
           ];
+
           return (
-            <div key="education_social_activity" className="app-shell-container pb-6 sm:pb-12">
+            <div key="education_social_activity" id="education_social_activity" className="app-shell-container pb-6 sm:pb-12 scroll-mt-24">
               <div className={sectionFrameClass}>
-                <div className="mb-6 flex items-end justify-between gap-3">
+                <div className="mb-8 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
                   <div>
-                    <p className="eyebrow text-xs font-bold uppercase tracking-[0.25em]" style={{ color: accentColor }}>
-                      {educationConfig.title || 'Education, Social & Activity'}
-                    </p>
-                    <h3 className="section-title text-2xl font-black text-slate-900 mt-1">
-                      {educationConfig.subtitle || 'Community learning, service, and engagement'}
+                    <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-50 border border-indigo-200 text-indigo-700 text-xs font-bold mb-2">
+                      <SparklesIcon className="w-3.5 h-3.5" />
+                      <span>{educationConfig.title || 'Activities, Education & Social Welfare'}</span>
+                    </div>
+                    <h3 className="section-title text-2xl sm:text-3xl font-black text-slate-900">
+                      {educationConfig.subtitle || 'Community Services & Markaz Initiatives'}
                     </h3>
+                    <p className="text-xs sm:text-sm text-slate-500 mt-1 max-w-2xl">
+                      Empowering our community through educational seminars, humanitarian relief, book fairs, and youth conventions.
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => navigateToTop('/activities')}
+                      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 transition-colors shadow-2xs cursor-pointer"
+                    >
+                      <span>View All Activities</span>
+                      <ArrowRightIcon className="w-3.5 h-3.5" />
+                    </button>
                   </div>
                 </div>
-                <div className="grid gap-5 md:grid-cols-3">
-                  {cards.map((card) => {
+
+                {/* 3 Main Action Hub Cards */}
+                <div className="grid gap-5 md:grid-cols-3 mb-8">
+                  {actionCards.map((card) => {
                     const CardIcon = card.icon;
                     return (
-                      <div key={card.title} className="rounded-[1.5rem] border border-slate-200 bg-white p-6 shadow-sm transition hover:shadow-md">
-                        <div className="h-10 w-10 rounded-xl bg-slate-100 text-[#002147] flex items-center justify-center mb-4">
-                          <CardIcon className="h-5 w-5" />
+                      <div
+                        key={card.title}
+                        onClick={() => navigateToTop(card.to)}
+                        className={`group relative rounded-3xl border ${card.borderColor} bg-white p-6 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer flex flex-col justify-between`}
+                      >
+                        <div>
+                          <div className="flex items-center justify-between mb-4">
+                            <div className={`h-12 w-12 rounded-2xl ${card.bgColor} ${card.textColor} flex items-center justify-center shadow-xs group-hover:scale-110 transition-transform`}>
+                              <CardIcon className="h-6 w-6 stroke-2" />
+                            </div>
+                            <span className={`text-[10px] font-extrabold px-2.5 py-1 rounded-full ${card.bgColor} ${card.textColor} border ${card.borderColor}`}>
+                              Explore Hub
+                            </span>
+                          </div>
+
+                          <h4 className="text-lg font-black text-slate-900 group-hover:text-emerald-700 transition-colors">
+                            {card.title}
+                          </h4>
+                          <p className="text-xs font-bold text-slate-400 mb-2 font-serif">
+                            {card.urduTitle}
+                          </p>
+                          <p className="text-xs leading-relaxed text-slate-600">
+                            {card.description}
+                          </p>
                         </div>
-                        <h4 className="text-lg font-black text-slate-900">{card.title}</h4>
-                        <p className="mt-2 text-sm leading-7 text-slate-600">{card.description}</p>
+
+                        <div className="mt-5 pt-4 border-t border-slate-100 flex items-center justify-between text-xs font-bold text-slate-800 group-hover:text-emerald-600">
+                          <span>Open Section</span>
+                          <ArrowRightIcon className="h-4 w-4 transform group-hover:translate-x-1 transition-transform" />
+                        </div>
                       </div>
                     );
                   })}
                 </div>
+
+                {/* Live Recent Activities Grid */}
+                {activitiesItems.length > 0 && (
+                  <div>
+                    <div className="flex items-center justify-between mb-4 border-t border-slate-100 pt-6">
+                      <h4 className="text-sm font-extrabold uppercase tracking-wider text-slate-400 flex items-center gap-2">
+                        <SparklesIcon className="w-4 h-4 text-amber-500" />
+                        <span>Recent Activities & Happenings</span>
+                      </h4>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                      {activitiesItems.slice(0, 3).map((item) => (
+                        <SocialWorkCard
+                          key={item.id}
+                          item={item}
+                          onSelect={(selected) => setSelectedActivity(selected)}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           );
@@ -1163,6 +1269,15 @@ const PublicHome = () => {
         loading={createQuestionLoading}
         onSubmit={handleCreateQuestion}
       />
+
+      {/* ACTIVITY DETAIL MODAL */}
+      {selectedActivity && (
+        <SocialWorkItemDetailModal
+          item={selectedActivity}
+          isOpen={!!selectedActivity}
+          onClose={() => setSelectedActivity(null)}
+        />
+      )}
     </div>
   );
 };

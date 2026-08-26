@@ -92,9 +92,16 @@ const AskQuestionModal = ({ open, onClose, onSubmit, categories = [], user, load
 
   const submit = (event) => {
     event.preventDefault();
+    const questionText = (form.question_text || '').trim();
+    if (!questionText) return;
+
     onSubmit({
-      ...form,
+      question_text: questionText,
       category_id: form.category_id ? Number(form.category_id) : null,
+      visibility: form.visibility || 'public',
+      is_anonymous: Boolean(form.is_anonymous),
+      display_name: form.is_anonymous ? 'Anonymous' : (form.display_name?.trim() || user?.full_name || user?.username || 'Guest User'),
+      guest_email: form.guest_email?.trim() || null,
     });
   };
 

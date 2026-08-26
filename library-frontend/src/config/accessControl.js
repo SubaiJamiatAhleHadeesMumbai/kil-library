@@ -1,6 +1,7 @@
 export const ROLE_NAMES = {
   ADMIN: "admin",
   SUPERADMIN: "superadmin",
+  SUPER_ADMIN: "super admin",
   ADMINISTRATOR: "administrator",
   MANAGER: "manager",
   EDITOR: "editor",
@@ -13,14 +14,51 @@ export const ROLE_NAMES = {
   MODERATOR: "moderator",
 };
 
+export const PUBLIC_ROLES = [
+  ROLE_NAMES.USER,
+  ROLE_NAMES.STUDENT,
+  ROLE_NAMES.MEMBER,
+  ROLE_NAMES.PUBLIC,
+];
+
 export const ADMIN_ALLOWED_ROLES = [
   ROLE_NAMES.ADMIN,
   ROLE_NAMES.SUPERADMIN,
+  ROLE_NAMES.SUPER_ADMIN,
   ROLE_NAMES.ADMINISTRATOR,
   ROLE_NAMES.MANAGER,
   ROLE_NAMES.EDITOR,
   ROLE_NAMES.LIBRARIAN,
   ROLE_NAMES.STAFF,
+  "mufti / dar-ul-ifta",
+  "head librarian",
+  "social & welfare officer"
+];
+
+export const STAFF_PERMISSIONS = [
+  'BOOK_VIEW',
+  'BOOK_MANAGE',
+  'BOOK_ISSUE',
+  'CATEGORY_MANAGE',
+  'LANGUAGE_MANAGE',
+  'LOCATION_MANAGE',
+  'COPY_MANAGE',
+  'FATAWA_MANAGE',
+  'FATAWA_VIEW',
+  'SOCIAL_WORK_MANAGE',
+  'USER_VIEW',
+  'USER_MANAGE',
+  'ROLE_VIEW',
+  'ROLE_MANAGE',
+  'ROLE_PERMISSION_ASSIGN',
+  'REQUEST_VIEW',
+  'REQUEST_APPROVE',
+  'LOG_VIEW',
+  'HOMEPAGE_BRANDING_MANAGE',
+  'HOMEPAGE_CONTENT_MANAGE',
+  'HOMEPAGE_LAYOUT_MANAGE',
+  'HOMEPAGE_VISIBILITY_MANAGE',
+  'HOMEPAGE_SEARCH_MANAGE'
 ];
 
 export const DEFAULT_ROLE = ROLE_NAMES.USER;
@@ -51,31 +89,60 @@ export function getUserPermissions(user) {
   return user.permissions;
 }
 
+export function isSuperAdmin(user) {
+  if (!user) return false;
+  const role = getUserRole(user);
+  return role === 'admin' || role === 'superadmin' || role === 'super admin' || role === 'administrator';
+}
+
+export function isStaffOrAdmin(user) {
+  if (!user) return false;
+  if (isSuperAdmin(user)) return true;
+
+  const role = getUserRole(user);
+  const permissions = getUserPermissions(user);
+
+  // If user has any staff permission assigned
+  if (permissions.some((p) => STAFF_PERMISSIONS.includes(p))) {
+    return true;
+  }
+
+  // If role is not a basic public member
+  if (!PUBLIC_ROLES.includes(role)) {
+    return true;
+  }
+
+  return false;
+}
+
+export function isAdminRole(roleLike) {
+  const norm = normalizeRole(roleLike);
+  return !PUBLIC_ROLES.includes(norm);
+}
+
+export function isAdminUser(user) {
+  return isStaffOrAdmin(user);
+}
+
 export function hasRole(user, role) {
   return getUserRole(user) === normalizeRole(role);
 }
 
 export function hasAnyRole(user, roles = []) {
+  if (isSuperAdmin(user)) return true;
   const normalizedTarget = new Set((roles || []).map((r) => normalizeRole(r)));
   return normalizedTarget.has(getUserRole(user));
-}
-
-export function isAdminRole(roleLike) {
-  return ADMIN_ALLOWED_ROLES.includes(normalizeRole(roleLike));
-}
-
-export function isAdminUser(user) {
-  return isAdminRole(getUserRole(user));
 }
 
 export function hasPermission(user, permissionCode) {
   if (!user) return false;
 
-  if (isAdminUser(user)) return true;
-
-  const permissions = getUserPermissions(user);
+  // Super Admin has all permissions
+  if (isSuperAdmin(user)) return true;
 
   if (!permissionCode) return true;
+
+  const permissions = getUserPermissions(user);
 
   if (Array.isArray(permissionCode)) {
     return permissionCode.some((code) => permissions.includes(code));

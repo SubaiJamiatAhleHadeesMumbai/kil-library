@@ -20,8 +20,8 @@ const API_BASE_URL = (
     : "http://127.0.0.1:8000")
 ).replace(/\/$/, "");
 
-const FALLBACK_NO_COVER = "https://via.placeholder.com/400x600?text=No+Cover";
-const FALLBACK_BROKEN = "https://via.placeholder.com/400x600?text=Image+Not+Found";
+const FALLBACK_NO_COVER = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='400' height='600' viewBox='0 0 400 600'><rect width='400' height='600' fill='%231e293b'/><circle cx='200' cy='270' r='50' fill='%23334155'/><path d='M180 255h40v30h-40z' fill='%2394a3b8'/><text x='200' y='360' font-family='sans-serif' font-size='20' font-weight='bold' fill='%23cbd5e1' text-anchor='middle'>Markaz Library</text><text x='200' y='390' font-family='sans-serif' font-size='15' fill='%2364748b' text-anchor='middle'>No Cover</text></svg>";
+const FALLBACK_BROKEN = FALLBACK_NO_COVER;
 
 const showUpcomingToast = () => {
   toast("عنقریب...", {

@@ -53,5 +53,9 @@ Thumbs.db
 # Binary / Misc
 # ==========================================
 *.exe
-*.log
+# Uploads & User Generated Static Files
 static/uploads/
+**/static/uploads/
+library_backend/static/uploads/
+library_backend/static/uploads/**
+*.pdf

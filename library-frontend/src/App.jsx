@@ -60,6 +60,10 @@ const PosterManagementPage = lazy(() => import("./pages/Admin/PosterManagementPa
 const AboutSettingsPage = lazy(() => import("./pages/Admin/AboutSettingsPage"));
 const FatawaManager = lazy(() => import("./pages/Admin/FatawaManager"));
 const EditBookPage = lazy(() => import("./pages/Admin/EditBookPage"));
+const EducationPage = lazy(() => import("./pages/EducationPage"));
+const ActivitiesPage = lazy(() => import("./pages/ActivitiesPage"));
+const SocialWorkPage = lazy(() => import("./pages/SocialWorkPage"));
+const SocialWorkManager = lazy(() => import("./pages/Admin/SocialWorkManager"));
 
 // ✅ TEST / URDU EDITOR
 const UrduEditor = lazy(() => import("./components/UrduEditor/UrduEditor"));
@@ -110,6 +114,9 @@ function App() {
             <Route path="fatawa" element={<Fatawa />} />
             <Route path="news" element={<MarkazFeed />} />
             <Route path="posts" element={<LatestPosts />} />
+            <Route path="education" element={<EducationPage />} />
+            <Route path="activities" element={<ActivitiesPage />} />
+            <Route path="social-work" element={<SocialWorkPage />} />
             <Route path="authors" element={<Authors />} />
             <Route path="publishers" element={<Publishers />} />
             <Route path="books" element={<UserLibrary />} />
@@ -152,6 +159,7 @@ function App() {
             <Route path="donation" element={<DonationManager />} />
             <Route path="posts" element={<CreatePost />} />
             <Route path="posts/add" element={<CreatePost />} />
+            <Route path="social-work" element={<SocialWorkManager />} />
             <Route path="users" element={<UserManagement />} />
             <Route path="roles" element={<RoleManagement />} />
             <Route path="roles-permissions" element={<RolePermissionManagement />} />

@@ -1,7 +1,7 @@
 // src/utils/cover.js
 
-// 1. Fallback Image
-export const FALLBACK_COVER = "https://via.placeholder.com/300x450?text=No+Cover";
+// 1. Fallback Image (Pure SVG Data URI - 100% offline & zero network errors)
+export const FALLBACK_COVER = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='300' height='450' viewBox='0 0 300 450'><rect width='300' height='450' fill='%231e293b'/><circle cx='150' cy='200' r='36' fill='%23334155'/><path d='M135 190h30v20h-30z' fill='%2394a3b8'/><text x='150' y='270' font-family='sans-serif' font-size='16' font-weight='bold' fill='%23cbd5e1' text-anchor='middle'>Markaz Library</text><text x='150' y='295' font-family='sans-serif' font-size='12' fill='%2364748b' text-anchor='middle'>No Cover</text></svg>";
 
 // 2. Base URL (Safe check)
 const API_BASE_URL = (import.meta.env.VITE_API_URL || (import.meta.env.PROD ? "" : "http://127.0.0.1:8000")).replace(/\/$/, ""); // End ka slash hata diya taaki double slash na bane

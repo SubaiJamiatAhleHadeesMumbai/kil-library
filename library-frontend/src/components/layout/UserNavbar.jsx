@@ -19,7 +19,12 @@ import {
   BuildingOfficeIcon,
   HomeIcon,
   ChevronDownIcon,
-  ArrowLeftOnRectangleIcon // Icon for Login
+  ArrowLeftOnRectangleIcon, // Icon for Login
+  AcademicCapIcon,
+  SparklesIcon,
+  UserGroupIcon,
+  EllipsisHorizontalCircleIcon,
+  MagnifyingGlassIcon
 } from "@heroicons/react/24/outline";
 
 // --- COMPONENTS & HOOKS ---
@@ -28,6 +33,7 @@ import NotificationBell from "../common/NotificationBell";
 import LanguageSwitcher from "../common/LanguageSwitcher";
 import { useLanguage } from "../../context/LanguageContext";
 import DonationModal from "../donation/DonationModal";
+import UniversalSearchModal from "../common/UniversalSearchModal";
 import settingsService from "../../api/settingsService";
 
 // âœ… CONFIG
@@ -38,15 +44,6 @@ const MARKAZ_LOGO_URL = `${API_BASE_URL}/static/images/MarkazLogo.png`;
 // 1. SUB-COMPONENTS
 // ==========================================
 
-const TopLink = ({ label, icon: Icon, to = "#" }) => (
-  <Link
-    to={to}
-    className="flex items-center gap-1.5 text-[11px] font-medium text-blue-100/70 hover:text-white transition-colors duration-200"
-  >
-    {Icon && <Icon className="h-3.5 w-3.5" />}
-    {label}
-  </Link>
-);
 
 const NavItem = ({ to, label, icon: Icon, onClick }) => (
   <NavLink
@@ -95,13 +92,33 @@ const UserNavbar = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isDonationOpen, setIsDonationOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [isSocialDropdownOpen, setIsSocialDropdownOpen] = useState(false);
+  const [isMobileSocialOpen, setIsMobileSocialOpen] = useState(false);
+  const [isUniversalSearchOpen, setIsUniversalSearchOpen] = useState(false);
   const [homepageSettings, setHomepageSettings] = useState(null);
   
   const profileRef = useRef(null);
+  const socialDropdownRef = useRef(null);
+  const socialTimeoutRef = useRef(null);
+
+  // Global Ctrl+K / Cmd+K shortcut listener
+   
+
+  const handleSocialMouseEnter = () => {
+    if (socialTimeoutRef.current) clearTimeout(socialTimeoutRef.current);
+    setIsSocialDropdownOpen(true);
+  };
+
+  const handleSocialMouseLeave = () => {
+    socialTimeoutRef.current = setTimeout(() => {
+      setIsSocialDropdownOpen(false);
+    }, 180);
+  };
 
   const handleLogout = () => {
     setIsProfileOpen(false);
     setIsMobileMenuOpen(false);
+    setIsSocialDropdownOpen(false);
     logout();
     navigate("/login");
   };
@@ -111,9 +128,15 @@ const UserNavbar = () => {
       if (profileRef.current && !profileRef.current.contains(e.target)) {
         setIsProfileOpen(false);
       }
+      if (socialDropdownRef.current && !socialDropdownRef.current.contains(e.target)) {
+        setIsSocialDropdownOpen(false);
+      }
     };
     document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
+    return () => {
+      document.removeEventListener("mousedown", handler);
+      if (socialTimeoutRef.current) clearTimeout(socialTimeoutRef.current);
+    };
   }, []);
 
   useEffect(() => {
@@ -134,24 +157,6 @@ const UserNavbar = () => {
 
   return (
     <div className="flex flex-col w-full relative z-50 font-sans">
-      
-      {/* ----------------------------------------------------
-          TOP BAR
-      ---------------------------------------------------- */}
-      <div className="bg-[#001D3D] border-b border-white/5 hidden md:block">
-        <div className="app-shell-container h-9 flex items-center justify-between">
-          <div className="flex items-center gap-6">
-            <TopLink label={t("our_projects")} icon={GlobeAltIcon} />
-            {showAboutLink ? <TopLink label={t("about")} icon={InformationCircleIcon} to="/about" /> : null}
-            {showFatawaLink ? <TopLink label={t("fatawa")} icon={BookOpenIcon} to="/fatawa" /> : null}
-            <TopLink label={t("database")} icon={TableCellsIcon} />
-          </div>
-          <div className="text-white/20 text-[10px] font-bold tracking-[0.2em] uppercase">
-            Markaz Ahle Hadees Kokan
-          </div>
-        </div>
-      </div>
-
       {/* ----------------------------------------------------
           MAIN NAVBAR
       ---------------------------------------------------- */}
@@ -189,6 +194,105 @@ const UserNavbar = () => {
               {showAboutLink ? <NavItem to="/about" label={t("about")} icon={InformationCircleIcon} /> : null}
               {showFatawaLink ? <NavItem to="/fatawa" label={t("fatawa")} icon={BookOpenIcon} /> : null}
               <NavItem to="/authors" label={t("authors")} icon={UsersIcon} />
+
+              {/* ACTIVITIES DROPDOWN (Smooth Hover) */}
+              <div
+                ref={socialDropdownRef}
+                className="relative"
+                onMouseEnter={handleSocialMouseEnter}
+                onMouseLeave={handleSocialMouseLeave}
+              >
+                <button
+                  type="button"
+                  onClick={() => setIsSocialDropdownOpen((prev) => !prev)}
+                  className={`relative flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-bold transition-all duration-200 cursor-pointer ${
+                    isSocialDropdownOpen
+                      ? "text-[#002147] bg-blue-50/80"
+                      : "text-slate-600 hover:text-[#002147] hover:bg-slate-50"
+                  }`}
+                  aria-expanded={isSocialDropdownOpen}
+                >
+                  <SparklesIcon className={`h-4 w-4 transition-colors ${isSocialDropdownOpen ? "text-[#002147]" : "text-slate-400"}`} />
+                  <span>{t("activities")}</span>
+                  <ChevronDownIcon
+                    className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 ${
+                      isSocialDropdownOpen ? "rotate-180 text-[#002147]" : ""
+                    }`}
+                  />
+                </button>
+
+                <AnimatePresence>
+                  {isSocialDropdownOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 8, scale: 0.96 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 6, scale: 0.96 }}
+                      transition={{ duration: 0.18, ease: "easeOut" }}
+                      className="absolute left-0 mt-1.5 w-64 bg-white/95 backdrop-blur-xl rounded-2xl shadow-xl border border-slate-100/90 p-2 z-50 overflow-hidden ring-1 ring-black/5"
+                    >
+                      <div className="space-y-1">
+                        {/* 1. Education (taleem) */}
+                        <Link
+                          to="/education"
+                          onClick={() => setIsSocialDropdownOpen(false)}
+                          className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-blue-50/80 transition-all duration-200 group"
+                        >
+                          <div className="h-9 w-9 rounded-xl bg-blue-100/70 text-blue-700 flex items-center justify-center flex-shrink-0 group-hover:scale-105 group-hover:bg-blue-600 group-hover:text-white transition-all shadow-sm">
+                            <AcademicCapIcon className="h-5 w-5" />
+                          </div>
+                          <div className="flex flex-col text-left">
+                            <span className="text-xs font-bold text-slate-800 group-hover:text-blue-900 transition-colors">
+                              {t("education_taleem")}
+                            </span>
+                            <span className="text-[10px] text-slate-400 font-medium">
+                              Taleem & Guidance
+                            </span>
+                          </div>
+                        </Link>
+
+                        {/* 2. Social Work */}
+                        <Link
+                          to="/social-work"
+                          onClick={() => setIsSocialDropdownOpen(false)}
+                          className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-emerald-50/80 transition-all duration-200 group"
+                        >
+                          <div className="h-9 w-9 rounded-xl bg-emerald-100/70 text-emerald-700 flex items-center justify-center flex-shrink-0 group-hover:scale-105 group-hover:bg-emerald-600 transition-all shadow-sm p-1.5">
+                            <img src="/icons/social-work.png" alt="Social Work" className="w-full h-full object-contain group-hover:brightness-0 group-hover:invert transition-all" />
+                          </div>
+                          <div className="flex flex-col text-left">
+                            <span className="text-xs font-bold text-slate-800 group-hover:text-emerald-900 transition-colors">
+                              {t("social_work")}
+                            </span>
+                            <span className="text-[10px] text-slate-400 font-medium">
+                              Welfare & Relief Drives
+                            </span>
+                          </div>
+                        </Link>
+
+                        {/* 3. Other */}
+                        <Link
+                          to="/activities"
+                          onClick={() => setIsSocialDropdownOpen(false)}
+                          className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-purple-50/80 transition-all duration-200 group"
+                        >
+                          <div className="h-9 w-9 rounded-xl bg-purple-100/70 text-purple-700 flex items-center justify-center flex-shrink-0 group-hover:scale-105 group-hover:bg-purple-600 group-hover:text-white transition-all shadow-sm">
+                            <EllipsisHorizontalCircleIcon className="h-5 w-5" />
+                          </div>
+                          <div className="flex flex-col text-left">
+                            <span className="text-xs font-bold text-slate-800 group-hover:text-purple-900 transition-colors">
+                              {t("other")}
+                            </span>
+                            <span className="text-[10px] text-slate-400 font-medium">
+                              Other Activities & Events
+                            </span>
+                          </div>
+                        </Link>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+
               <NavItem to="/publishers" label={t("publishers")} icon={BuildingOfficeIcon} />
               <NavItem to="/posts" label={t("updates")} icon={MegaphoneIcon} />
               {isAuth && (
@@ -202,6 +306,30 @@ const UserNavbar = () => {
             {/* RIGHT ACTIONS */}
             <div className="hidden md:flex items-center justify-end gap-3 lg:gap-4 min-w-0 md:flex-1 lg:flex-none">
               
+              {/* Universal Search Trigger (Expanded with placeholder on large screens) */}
+              <button
+                type="button"
+                onClick={() => setIsUniversalSearchOpen(true)}
+                className="hidden xl:flex items-center gap-2.5 px-3.5 py-1.5 rounded-full bg-slate-100/90 hover:bg-blue-50/80 text-slate-500 hover:text-[#002147] border border-slate-200/90 hover:border-blue-300 text-xs transition-all shadow-2xs cursor-pointer group w-48 2xl:w-56"
+                title={t("search_placeholder")}
+              >
+                <MagnifyingGlassIcon className="w-4 h-4 text-blue-600 group-hover:scale-110 transition-transform flex-shrink-0" />
+                <span className="font-medium text-slate-400 group-hover:text-slate-600 truncate text-[11.5px]">
+                  {t("search_placeholder")}
+                </span>
+              </button>
+
+              {/* Compact Search Trigger for Tablets / Smaller Desktops */}
+              <button
+                type="button"
+                onClick={() => setIsUniversalSearchOpen(true)}
+                className="xl:hidden flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-blue-50/90 hover:bg-blue-100 text-[#002147] border border-blue-200/80 font-bold text-xs transition-all shadow-2xs cursor-pointer group"
+                title={t("search_placeholder")}
+              >
+                <MagnifyingGlassIcon className="w-4 h-4 text-blue-700 group-hover:scale-110 transition-transform" />
+                <span className="font-bold">{t("search_btn")}</span>
+              </button>
+
               {/* Language Switcher (Urdu, Arabic, English) */}
               <LanguageSwitcher />
 
@@ -286,8 +414,16 @@ const UserNavbar = () => {
               )}
             </div>
 
-            {/* MOBILE TOGGLE */}
-            <div className="flex items-center gap-3 md:hidden">
+            {/* MOBILE TOGGLE & SEARCH */}
+            <div className="flex items-center gap-2 md:hidden">
+              <button
+                type="button"
+                onClick={() => setIsUniversalSearchOpen(true)}
+                className="p-2 rounded-xl text-slate-600 hover:bg-slate-100 active:bg-slate-200 transition-colors cursor-pointer"
+                title="Universal Search"
+              >
+                <MagnifyingGlassIcon className="h-5 w-5" />
+              </button>
               {isAuth && <NotificationBell />}
               
               <button
@@ -352,6 +488,57 @@ const UserNavbar = () => {
                   {showAboutLink ? <NavItem to="/about" label={t("about")} icon={InformationCircleIcon} onClick={() => setIsMobileMenuOpen(false)} /> : null}
                   {showFatawaLink ? <NavItem to="/fatawa" label={t("fatawa")} icon={BookOpenIcon} onClick={() => setIsMobileMenuOpen(false)} /> : null}
                   <NavItem to="/authors" label={t("authors")} icon={UsersIcon} onClick={() => setIsMobileMenuOpen(false)} />
+                  
+                  {/* Mobile Activities Accordion */}
+                  <div className="rounded-xl overflow-hidden">
+                    <button
+                      type="button"
+                      onClick={() => setIsMobileSocialOpen((p) => !p)}
+                      className="flex items-center justify-between w-full px-3 py-2 text-sm font-bold text-slate-600 hover:text-[#002147] hover:bg-slate-50 rounded-xl transition-colors cursor-pointer"
+                    >
+                      <div className="flex items-center gap-2">
+                        <SparklesIcon className="h-4 w-4 text-slate-400" />
+                        <span>{t("activities")}</span>
+                      </div>
+                      <ChevronDownIcon className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 ${isMobileSocialOpen ? 'rotate-180 text-[#002147]' : ''}`} />
+                    </button>
+                    <AnimatePresence>
+                      {isMobileSocialOpen && (
+                        <motion.div
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: "auto" }}
+                          exit={{ opacity: 0, height: 0 }}
+                          className="pl-6 pr-2 py-1 space-y-1 bg-slate-50/70 rounded-xl mt-1 overflow-hidden"
+                        >
+                          <Link
+                            to="/education"
+                            onClick={() => setIsMobileMenuOpen(false)}
+                            className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold text-slate-700 hover:text-blue-900 hover:bg-white transition-colors"
+                          >
+                            <AcademicCapIcon className="w-4 h-4 text-blue-600" />
+                            <span>{t("education_taleem")}</span>
+                          </Link>
+                          <Link
+                            to="/social-work"
+                            onClick={() => setIsMobileMenuOpen(false)}
+                            className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold text-slate-700 hover:text-emerald-900 hover:bg-white transition-colors"
+                          >
+                            <img src="/icons/social-work.png" alt="Social Work" className="w-4 h-4 object-contain" />
+                            <span>{t("social_work")}</span>
+                          </Link>
+                          <Link
+                            to="/activities"
+                            onClick={() => setIsMobileMenuOpen(false)}
+                            className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold text-slate-700 hover:text-purple-900 hover:bg-white transition-colors"
+                          >
+                            <EllipsisHorizontalCircleIcon className="w-4 h-4 text-purple-600" />
+                            <span>{t("other")}</span>
+                          </Link>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+
                   <NavItem to="/publishers" label={t("publishers")} icon={BuildingOfficeIcon} onClick={() => setIsMobileMenuOpen(false)} />
                   <NavItem to="/posts" label={t("updates")} icon={MegaphoneIcon} onClick={() => setIsMobileMenuOpen(false)} />
                   {isAuth && (
@@ -395,6 +582,12 @@ const UserNavbar = () => {
       <DonationModal
         isOpen={isDonationOpen}
         onClose={() => setIsDonationOpen(false)}
+      />
+
+      {/* UNIVERSAL SEARCH MODAL (Ctrl + K) */}
+      <UniversalSearchModal
+        isOpen={isUniversalSearchOpen}
+        onClose={() => setIsUniversalSearchOpen(false)}
       />
     </div>
   );

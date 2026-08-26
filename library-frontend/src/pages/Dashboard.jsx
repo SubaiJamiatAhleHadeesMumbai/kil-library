@@ -203,9 +203,6 @@ const Dashboard = () => {
             console.error("Dashboard Load Error:", err);
             toast.error("Partial data load failed.");
         } finally {
-            // Min loading time for smooth UX
-            const elapsed = Date.now() - loadStartTime;
-            if (elapsed < 500) await new Promise(r => setTimeout(r, 500 - elapsed));
             setIsLoading(false);
         }
     }, [role, permissions]); // Dependency on role/perms
@@ -371,9 +368,9 @@ const Dashboard = () => {
                             </h3>
                             <span className="text-xs bg-indigo-50 text-indigo-700 px-2 py-1 rounded-md font-bold">This Year</span>
                         </div>
-                        <div className="h-[300px] w-full">
+                        <div className="h-[300px] w-full min-w-0">
                             {isLoading ? <Skeleton height="100%" /> : (
-                                <ResponsiveContainer width="100%" height="100%">
+                                <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={250}>
                                     <AreaChart data={chartData.added}>
                                         <defs>
                                             <linearGradient id="colorBooks" x1="0" y1="0" x2="0" y2="1">
@@ -399,9 +396,9 @@ const Dashboard = () => {
                                 <ChartPieIcon className="w-5 h-5 text-emerald-500" />
                                 Request Distribution
                             </h3>
-                            <div className="flex-1 min-h-[250px] relative">
+                            <div className="flex-1 min-h-[250px] min-w-0 relative">
                                 {isLoading ? <Skeleton height="100%" /> : (
-                                    <ResponsiveContainer width="100%" height="100%">
+                                    <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={250}>
                                         <PieChart>
                                             <Pie
                                                 data={chartData.status}

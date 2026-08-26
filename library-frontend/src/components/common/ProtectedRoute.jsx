@@ -3,8 +3,9 @@ import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "../../context/AuthProvider";
 import {
   getUserRole,
+  isStaffOrAdmin,
+  isSuperAdmin,
   hasAnyRole,
-  ROLE_NAMES,
 } from "../../config/accessControl";
 
 // ✅ Loading Spinner
@@ -37,38 +38,37 @@ const ProtectedRoute = ({ children, allowedRoles = [], redirectTo = "/access-den
   const { user, loading } = useAuth();
   const location = useLocation();
 
-  // ✅ 1) Loading state
+  // 1) Loading state
   if (loading) {
     return <Spinner />;
   }
 
-  // ✅ 2) Fallback user from storage (refresh safe)
+  // 2) Fallback user from storage (refresh safe)
   const currentUser = user || getStoredUser();
 
-  // ✅ 3) Not logged in
+  // 3) Not logged in
   if (!currentUser) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  // ✅ 4) Normalize role
-  const userRole = getUserRole(currentUser);
-
-  // ✅ 5) Block public roles ALWAYS
-  const publicRoles = [ROLE_NAMES.STUDENT, ROLE_NAMES.MEMBER, ROLE_NAMES.USER, ROLE_NAMES.PUBLIC];
-  if (publicRoles.includes(userRole)) {
-    console.warn(`[Security] Public role blocked from admin: '${userRole}'`);
-    return <Navigate to={redirectTo} state={{ from: location }} replace />;
-  }
-
-  // ✅ 6) Normalize allowed roles list
-  const isAllowedByRole = allowedRoles.length > 0 ? hasAnyRole(currentUser, allowedRoles) : false;
-
-  if (isAllowedByRole) {
+  // 4) Super Admin always allowed
+  if (isSuperAdmin(currentUser)) {
     return children;
   }
 
-  // ❌ Not allowed role → blocked
-  console.warn(`[Security] Blocked: Role='${userRole}'`);
+  // 5) If user is staff/admin or has assigned permissions
+  if (isStaffOrAdmin(currentUser)) {
+    // If specific allowedRoles are passed, check them or allow if staff
+    if (allowedRoles.length > 0) {
+      if (hasAnyRole(currentUser, allowedRoles) || isStaffOrAdmin(currentUser)) {
+        return children;
+      }
+    } else {
+      return children;
+    }
+  }
+
+  // ❌ Plain Public user with 0 staff permissions blocked from admin routes
   return <Navigate to={redirectTo} state={{ from: location }} replace />;
 };
 

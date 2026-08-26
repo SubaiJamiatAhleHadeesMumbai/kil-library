@@ -3,6 +3,12 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { GlobeAltIcon, CheckIcon, ChevronDownIcon } from '@heroicons/react/24/outline';
 import { useLanguage } from '../../context/LanguageContext';
 
+const LANG_SHORT_CODES = {
+  en: 'EN',
+  ur: 'UR',
+  ar: 'AR',
+};
+
 const LanguageSwitcher = ({ className = '' }) => {
   const { currentLang, currentLanguage, languages, changeLanguage, isAdmin } = useLanguage();
   const [isOpen, setIsOpen] = useState(false);
@@ -32,17 +38,20 @@ const LanguageSwitcher = ({ className = '' }) => {
 
   return (
     <div className={`relative notranslate ${className}`} ref={dropdownRef} translate="no">
-      {/* Pill Button Matching User Screenshot */}
+      {/* Compact Pill Button (Space-saving EN / UR / AR) */}
       <button
         type="button"
         onClick={() => setIsOpen(prev => !prev)}
-        className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-50/90 text-emerald-800 border border-emerald-300 hover:bg-emerald-100 hover:border-emerald-400 font-semibold text-xs transition-all shadow-xs group"
+        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-emerald-50/90 text-emerald-800 border border-emerald-300 hover:bg-emerald-100 hover:border-emerald-400 font-bold text-xs transition-all shadow-xs group cursor-pointer"
         aria-label="Select Language"
         aria-expanded={isOpen}
+        title={currentLanguage?.name || 'Change Language'}
       >
-        <GlobeAltIcon className="w-4 h-4 text-emerald-600 group-hover:rotate-45 transition-transform duration-300" />
-        <span className="font-bold">{currentLanguage.label}</span>
-        <ChevronDownIcon className={`w-3.5 h-3.5 text-emerald-600 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
+        <GlobeAltIcon className="w-4 h-4 text-emerald-600 group-hover:rotate-45 transition-transform duration-300 flex-shrink-0" />
+        <span className="font-extrabold text-[11px] tracking-wide uppercase">
+          {LANG_SHORT_CODES[currentLang] || currentLang.toUpperCase()}
+        </span>
+        <ChevronDownIcon className={`w-3 h-3 text-emerald-600 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
       </button>
 
       {/* Dropdown Menu (Strictly 3 languages: Arabic, English, Urdu) */}

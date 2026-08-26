@@ -15,7 +15,8 @@ import {
     ComputerDesktopIcon,
     ClockIcon,
     ArrowLeftOnRectangleIcon,
-    CheckBadgeIcon
+    CheckBadgeIcon,
+    UserGroupIcon
 } from '@heroicons/react/24/outline';
 
 const Sidebar = () => {
@@ -58,6 +59,7 @@ const Sidebar = () => {
             title: "Settings & Users",
             items: [
                 { name: "Users Management", path: "/admin/users", icon: UsersIcon, requiredPerm: "USER_VIEW" },
+                { name: "Social Work & Activities", path: "/admin/social-work", icon: UserGroupIcon, requiredPerm: "USER_MANAGE" },
                 { name: "Languages", path: "/admin/languages", icon: LanguageIcon, requiredPerm: "BOOK_MANAGE" },
                 { name: "Locations", path: "/admin/locations", icon: MapPinIcon, requiredPerm: "BOOK_MANAGE" },
                 { name: "Roles & Permissions", path: "/admin/roles-permissions", icon: ShieldCheckIcon, requiredPerm: "ROLE_VIEW" },
