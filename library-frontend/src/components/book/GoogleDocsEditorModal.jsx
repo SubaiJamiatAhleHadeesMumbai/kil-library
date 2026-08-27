@@ -1,10 +1,11 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   X, Search, RotateCcw, RotateCw, Printer,
   Bold, Italic, Underline, Strikethrough, AlignLeft, AlignCenter, AlignRight, AlignJustify,
   List, ListOrdered, Indent, Outdent, Eraser,
   ChevronDown, ChevronLeft, ChevronRight, FileText, Star, Cloud,
-  Maximize2, Minimize2, FileCheck, BookOpen, PlusCircle, Trash2
+  Maximize2, Minimize2, FileCheck, BookOpen, PlusCircle, Trash2,
+  Wand2, Table, Sparkles
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -21,21 +22,23 @@ export default function GoogleDocsEditorModal({
   const [documentTitle, setDocumentTitle] = useState('Research Text');
   const [isStarred, setIsStarred] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  const [isPdfSplitView, setIsPdfSplitView] = useState(false);
+  const [isPdfSplitView, setIsPdfSplitView] = useState(true); // Default Split View when PDF available
   const [zoom, setZoom] = useState(100);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isRTL, setIsRTL] = useState(true);
   const [fontFamily, setFontFamily] = useState('Jameel Noori Nastaleeq');
-  const [fontSize, setFontSize] = useState('16');
+  const [fontSize, setFontSize] = useState('18');
   const [textColor, setTextColor] = useState('#111827');
   const [highlightColor, setHighlightColor] = useState('#ffffff');
-  const [lineSpacing, setLineSpacing] = useState('1.8');
+  const [lineSpacing, setLineSpacing] = useState('2.0');
   const [activeHeading, setActiveHeading] = useState('Normal text');
 
   // Multi-Page Array State
   const [pages, setPages] = useState(['<p><br></p>']);
   const [currentPage, setCurrentPage] = useState(1);
   const pageRefs = useRef([]);
+  const canvasContainerRef = useRef(null);
+  const pdfIframeRef = useRef(null);
 
   // Stats
   const [wordCount, setWordCount] = useState(0);
@@ -60,6 +63,78 @@ export default function GoogleDocsEditorModal({
       setDocumentTitle('Research Text - Untitled Document');
     }
   }, [bookTitle]);
+
+  // OCR Clean Helper: Removes excessive empty lines & merges fragmented OCR lines
+  const cleanOcrText = (rawText) => {
+    if (!rawText) return '<p><br></p>';
+    if (rawText.includes('<p>') || rawText.includes('<div>') || rawText.includes('<table')) {
+      return rawText;
+    }
+
+    const lines = rawText.split(/\r?\n/).map(l => l.trim());
+    const formattedParagraphs = [];
+    let currentBuffer = '';
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      if (!line) {
+        if (currentBuffer) {
+          formattedParagraphs.push(`<p>${currentBuffer}</p>`);
+          currentBuffer = '';
+        }
+        continue;
+      }
+
+      // If line looks like a number or table row or short heading
+      const isShortLineOrNumber = line.length <= 6 || /^\d+$/.test(line) || /^[\u0660-\u0669\u06F0-\u06F9]+$/.test(line);
+      const isPunctuationEnd = /[۔.?!:؟]$/.test(line);
+
+      if (isShortLineOrNumber) {
+        if (currentBuffer) {
+          formattedParagraphs.push(`<p>${currentBuffer}</p>`);
+          currentBuffer = '';
+        }
+        formattedParagraphs.push(`<p>${line}</p>`);
+      } else {
+        if (currentBuffer) {
+          currentBuffer += ' ' + line;
+        } else {
+          currentBuffer = line;
+        }
+
+        if (isPunctuationEnd) {
+          formattedParagraphs.push(`<p>${currentBuffer}</p>`);
+          currentBuffer = '';
+        }
+      }
+    }
+
+    if (currentBuffer) {
+      formattedParagraphs.push(`<p>${currentBuffer}</p>`);
+    }
+
+    return formattedParagraphs.join('');
+  };
+
+  // Helper: Read File As Text with UTF-8 & Windows-1256 fallback
+  const readFileAsText = (file) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const content = e.target.result || '';
+        if (content.includes('\uFFFD')) {
+          const reader1256 = new FileReader();
+          reader1256.onload = (ev) => resolve(ev.target.result || content);
+          reader1256.onerror = () => resolve(content);
+          reader1256.readAsText(file, 'windows-1256');
+        } else {
+          resolve(content);
+        }
+      };
+      reader.onerror = (e) => reject(e);
+      reader.readAsText(file, 'UTF-8');
+    });
+  };
 
   // Load Content from File, InitialText, or URL
   useEffect(() => {
@@ -97,7 +172,7 @@ export default function GoogleDocsEditorModal({
         // Split text by PAGE_SEPARATOR or form feeds
         if (textToLoad && textToLoad.trim()) {
           const rawPages = textToLoad.split(/PAGE_SEPARATOR|\f/i);
-          const formattedPages = rawPages.map(p => formatTextToHtml(p.trim()));
+          const formattedPages = rawPages.map(p => cleanOcrText(p.trim()));
           setPages(formattedPages.length > 0 ? formattedPages : ['<p><br></p>']);
         } else {
           setPages(['<p><br></p>']);
@@ -113,42 +188,6 @@ export default function GoogleDocsEditorModal({
 
     loadContent();
   }, [isOpen, initialFile, initialText, initialUrl]);
-
-  // Helper: Read File As Text with UTF-8 & Windows-1256 fallback
-  const readFileAsText = (file) => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const content = e.target.result || '';
-        if (content.includes('\uFFFD')) {
-          const reader1256 = new FileReader();
-          reader1256.onload = (ev) => resolve(ev.target.result || content);
-          reader1256.onerror = () => resolve(content);
-          reader1256.readAsText(file, 'windows-1256');
-        } else {
-          resolve(content);
-        }
-      };
-      reader.onerror = (e) => reject(e);
-      reader.readAsText(file, 'UTF-8');
-    });
-  };
-
-  // Helper: Format raw text with paragraphs for editor
-  const formatTextToHtml = (rawText) => {
-    if (!rawText) return '<p><br></p>';
-    if (rawText.includes('<p>') || rawText.includes('<div>') || rawText.includes('<h')) {
-      return rawText;
-    }
-    const lines = rawText.split(/\r?\n/);
-    return lines
-      .map(line => {
-        const trimmed = line.trim();
-        if (!trimmed) return '<p><br></p>';
-        return `<p>${line}</p>`;
-      })
-      .join('');
-  };
 
   // Update Live Word, Char, and Outline Headings
   const updateStats = () => {
@@ -182,11 +221,91 @@ export default function GoogleDocsEditorModal({
     setHeadingsList(headings);
   };
 
-  // Run updateStats whenever pages array changes
   useEffect(() => {
     const timer = setTimeout(updateStats, 100);
     return () => clearTimeout(timer);
   }, [pages]);
+
+  // Jump to specific page and sync both text & PDF
+  const jumpToPage = (pageNum) => {
+    const targetPage = Math.max(1, Math.min(pages.length, pageNum));
+    setCurrentPage(targetPage);
+
+    // Scroll Google Docs editor to page
+    const el = pageRefs.current[targetPage - 1];
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    // Sync PDF Viewer page
+    if (pdfIframeRef.current && pdfUrl) {
+      try {
+        pdfIframeRef.current.src = `${pdfUrl}#page=${targetPage}&toolbar=1&navpanes=0`;
+      } catch (err) {
+        // Fallback
+      }
+    }
+  };
+
+  // 🪄 1-Click Auto-Fix OCR for Current Page
+  const handleAutoFixCurrentPage = (pageIndex) => {
+    const el = pageRefs.current[pageIndex];
+    if (!el) return;
+    const rawText = el.innerText || '';
+    const cleanedHtml = cleanOcrText(rawText);
+    
+    setPages(prev => {
+      const next = [...prev];
+      next[pageIndex] = cleanedHtml;
+      return next;
+    });
+
+    el.innerHTML = cleanedHtml;
+    updateStats();
+    toast.success(`✨ Page ${pageIndex + 1} reformatted cleanly!`);
+  };
+
+  // 📋 1-Click Format as Index / Table of Contents
+  const handleConvertToIndexTable = (pageIndex) => {
+    const el = pageRefs.current[pageIndex];
+    if (!el) return;
+    const rawText = el.innerText || '';
+    const lines = rawText.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+
+    // Build 3-column table
+    let tableHtml = `<table style="width: 100%; border-collapse: collapse; margin: 16px 0; border: 1px solid #cbd5e1;" dir="rtl">
+      <thead>
+        <tr style="background-color: #f1f5f9; border-bottom: 2px solid #94a3b8;">
+          <th style="padding: 8px 12px; border: 1px solid #cbd5e1; text-align: center; width: 15%; font-weight: bold;">نمبر شمار</th>
+          <th style="padding: 8px 12px; border: 1px solid #cbd5e1; text-align: right; width: 70%; font-weight: bold;">عنوانات</th>
+          <th style="padding: 8px 12px; border: 1px solid #cbd5e1; text-align: center; width: 15%; font-weight: bold;">صفحہ نمبر</th>
+        </tr>
+      </thead>
+      <tbody>`;
+
+    for (let i = 0; i < lines.length; i += 3) {
+      const col1 = lines[i] || '';
+      const col2 = lines[i + 1] || '';
+      const col3 = lines[i + 2] || '';
+      tableHtml += `<tr style="border-bottom: 1px solid #e2e8f0;">
+        <td style="padding: 8px 12px; border: 1px solid #cbd5e1; text-align: center;">${col1}</td>
+        <td style="padding: 8px 12px; border: 1px solid #cbd5e1; text-align: right;">${col2}</td>
+        <td style="padding: 8px 12px; border: 1px solid #cbd5e1; text-align: center;">${col3}</td>
+      </tr>`;
+    }
+
+    tableHtml += `</tbody></table><p><br></p>`;
+
+    setPages(prev => {
+      const next = [...prev];
+      next[pageIndex] = tableHtml;
+      return next;
+    });
+
+    el.innerHTML = tableHtml;
+    updateStats();
+    toast.success(`📋 Converted to Index Table on Page ${pageIndex + 1}!`);
+  };
 
   // Handle Input on Specific Page
   const handlePageInput = (pageIndex, newHtml) => {
@@ -205,6 +324,7 @@ export default function GoogleDocsEditorModal({
       return next;
     });
     toast.success(`Page ${pageIndex + 2} inserted.`);
+    setTimeout(() => jumpToPage(pageIndex + 2), 100);
   };
 
   // Delete a page
@@ -310,7 +430,6 @@ export default function GoogleDocsEditorModal({
           e.preventDefault();
           handleSaveAndAttach();
         } else if (e.key === 'Enter') {
-          // Google Docs Page Break shortcut: Ctrl + Enter
           e.preventDefault();
           handleAddPageAfter(currentPage - 1);
         }
@@ -321,9 +440,8 @@ export default function GoogleDocsEditorModal({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, currentPage, pages, documentTitle]);
 
-  // Save and Attach Handler (Combines all pages with PAGE_SEPARATOR)
+  // Save and Attach Handler
   const handleSaveAndAttach = () => {
-    // Extract plain text for each page
     const pageTexts = pageRefs.current.map(el => (el ? el.innerText.trim() : '')).filter(t => t.length > 0);
 
     if (pageTexts.length === 0) {
@@ -331,7 +449,6 @@ export default function GoogleDocsEditorModal({
       return;
     }
 
-    // Join pages using PAGE_SEPARATOR matching the PDF reader standard
     const combinedPlainText = pageTexts.join('\n\nPAGE_SEPARATOR\n\n');
 
     const safeTitle = (documentTitle || 'book_research_text')
@@ -383,19 +500,17 @@ export default function GoogleDocsEditorModal({
           
           {/* Left: Icon, Title & Menus */}
           <div className="flex items-center gap-3 min-w-0">
-            {/* Google Docs Blue Icon */}
             <div className="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-200 flex items-center justify-center flex-shrink-0 cursor-pointer shadow-sm">
               <FileText className="w-6 h-6 text-[#1a73e8]" />
             </div>
 
             <div className="flex flex-col min-w-0">
-              {/* Document Title Bar */}
               <div className="flex items-center gap-2">
                 <input
                   type="text"
                   value={documentTitle}
                   onChange={(e) => setDocumentTitle(e.target.value)}
-                  className="text-base font-semibold text-slate-800 bg-transparent hover:bg-slate-100 focus:bg-white focus:ring-2 focus:ring-[#1a73e8] px-2 py-0.5 rounded-lg border-transparent transition-all truncate max-w-[320px] sm:max-w-[480px]"
+                  className="text-base font-semibold text-slate-800 bg-transparent hover:bg-slate-100 focus:bg-white focus:ring-2 focus:ring-[#1a73e8] px-2 py-0.5 rounded-lg border-transparent transition-all truncate max-w-[300px] sm:max-w-[420px]"
                   title="Click to rename document"
                 />
                 <button
@@ -427,6 +542,7 @@ export default function GoogleDocsEditorModal({
                   ]},
                   { name: 'View', key: 'viewMenu', items: [
                     { label: 'Toggle Sidebar Outline', action: () => setIsSidebarOpen(!isSidebarOpen) },
+                    { label: isPdfSplitView ? 'Close PDF Split View' : 'Open PDF Split View', action: () => setIsPdfSplitView(!isPdfSplitView) },
                     { label: 'Toggle Fullscreen', action: () => setIsFullscreen(!isFullscreen) },
                     { label: 'Zoom: 100%', action: () => setZoom(100) },
                     { label: 'Zoom: 125%', action: () => setZoom(125) },
@@ -436,13 +552,9 @@ export default function GoogleDocsEditorModal({
                     { label: 'Horizontal Line', action: () => execCmd('insertHorizontalRule') },
                     { label: 'Paragraph Break', action: () => execCmd('insertParagraph') },
                   ]},
-                  { name: 'Format', key: 'formatMenu', items: [
-                    { label: 'Bold (Ctrl+B)', action: () => execCmd('bold') },
-                    { label: 'Italic (Ctrl+I)', action: () => execCmd('italic') },
-                    { label: 'Underline (Ctrl+U)', action: () => execCmd('underline') },
-                    { label: 'Clear Formatting', action: () => execCmd('removeFormat') },
-                  ]},
                   { name: 'Tools', key: 'toolsMenu', items: [
+                    { label: '🪄 Auto-Fix Current Page OCR', action: () => handleAutoFixCurrentPage(currentPage - 1) },
+                    { label: '📋 Convert Page to Index Table', action: () => handleConvertToIndexTable(currentPage - 1) },
                     { label: `Word Count: ${wordCount} words`, action: () => toast(`Document contains ${wordCount} words, ${charCount} characters, and ${pages.length} pages.`, { icon: '📊' }) },
                     { label: 'Switch to Urdu RTL', action: () => setIsRTL(true) },
                     { label: 'Switch to English LTR', action: () => setIsRTL(false) },
@@ -477,13 +589,34 @@ export default function GoogleDocsEditorModal({
             </div>
           </div>
 
-          {/* Right: Save & Attach Button & Controls */}
+          {/* Center / Right: Synchronized Page Navigator & Controls */}
           <div className="flex items-center gap-2.5 flex-shrink-0">
-            {/* Live Stats Badge */}
-            <div className="hidden md:flex items-center gap-2 bg-slate-100 px-3 py-1.5 rounded-full text-xs font-semibold text-slate-600 border border-slate-200">
-              <span>{pages.length} Pages</span>
-              <span className="text-slate-300">•</span>
-              <span>{wordCount.toLocaleString()} words</span>
+            
+            {/* 🔄 Synchronized Dual-Page Stepper */}
+            <div className="flex items-center bg-slate-100 border border-slate-300 rounded-full px-2 py-1 gap-1 shadow-inner">
+              <button
+                type="button"
+                onClick={() => jumpToPage(currentPage - 1)}
+                disabled={currentPage <= 1}
+                className="p-1 rounded-full hover:bg-white text-slate-700 disabled:opacity-30 transition-all"
+                title="Previous Page (Syncs both PDF & Text)"
+              >
+                <ChevronLeft className="w-3.5 h-3.5" />
+              </button>
+
+              <span className="text-xs font-black text-slate-800 px-2 min-w-[85px] text-center select-none font-mono">
+                Page {currentPage} / {pages.length}
+              </span>
+
+              <button
+                type="button"
+                onClick={() => jumpToPage(currentPage + 1)}
+                disabled={currentPage >= pages.length}
+                className="p-1 rounded-full hover:bg-white text-slate-700 disabled:opacity-30 transition-all"
+                title="Next Page (Syncs both PDF & Text)"
+              >
+                <ChevronRight className="w-3.5 h-3.5" />
+              </button>
             </div>
 
             {/* Compare with PDF Split View Button */}
@@ -492,7 +625,7 @@ export default function GoogleDocsEditorModal({
                 type="button"
                 onClick={() => setIsPdfSplitView(!isPdfSplitView)}
                 className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all shadow-sm ${isPdfSplitView ? 'bg-indigo-600 text-white shadow-indigo-500/20' : 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-200'}`}
-                title="Compare Urdu/Arabic text side-by-side with original book PDF"
+                title="Toggle Side-by-Side Synchronized PDF View"
               >
                 <BookOpen className="w-3.5 h-3.5" />
                 <span>{isPdfSplitView ? "Close PDF Split" : "🪟 Compare with PDF"}</span>
@@ -539,7 +672,7 @@ export default function GoogleDocsEditorModal({
             type="button"
             onClick={() => setShowFindReplace(prev => !prev)}
             className={`p-1.5 rounded-full hover:bg-slate-200/80 transition-colors text-slate-600 ${showFindReplace ? 'bg-blue-100 text-[#1a73e8]' : ''}`}
-            title="Search Menus & Find (Ctrl+F)"
+            title="Search & Replace (Ctrl+F)"
           >
             <Search className="w-4 h-4" />
           </button>
@@ -555,6 +688,29 @@ export default function GoogleDocsEditorModal({
           </button>
           <button type="button" onClick={() => window.print()} className="p-1.5 rounded hover:bg-slate-200/80 text-slate-700" title="Print (Ctrl+P)">
             <Printer className="w-4 h-4" />
+          </button>
+
+          <div className="h-4 w-[1px] bg-slate-300 mx-1" />
+
+          {/* 🪄 1-Click Smart Tools */}
+          <button
+            type="button"
+            onClick={() => handleAutoFixCurrentPage(currentPage - 1)}
+            className="px-2.5 py-1 rounded bg-purple-100 hover:bg-purple-200 text-purple-800 text-xs font-bold transition-all flex items-center gap-1 shadow-xs"
+            title="Auto-Fix Broken OCR Lines on Current Page"
+          >
+            <Wand2 className="w-3.5 h-3.5 text-purple-700" />
+            <span>🪄 Auto-Fix OCR</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => handleConvertToIndexTable(currentPage - 1)}
+            className="px-2.5 py-1 rounded bg-teal-100 hover:bg-teal-200 text-teal-800 text-xs font-bold transition-all flex items-center gap-1 shadow-xs"
+            title="Format Current Page as Index Table (نمبر شمار | عنوانات | صفحہ نمبر)"
+          >
+            <Table className="w-3.5 h-3.5 text-teal-700" />
+            <span>📋 Index Table</span>
           </button>
 
           <div className="h-4 w-[1px] bg-slate-300 mx-1" />
@@ -654,7 +810,6 @@ export default function GoogleDocsEditorModal({
                   { label: 'Arial', value: 'Arial' },
                   { label: 'Times New Roman', value: 'Times New Roman' },
                   { label: 'Calibri', value: 'Calibri' },
-                  { label: 'Courier New', value: 'Courier New' },
                 ].map(f => (
                   <button
                     key={f.value}
@@ -704,74 +859,6 @@ export default function GoogleDocsEditorModal({
           <button type="button" onClick={() => execCmd('underline')} className="p-1.5 rounded hover:bg-slate-200/80 text-slate-800" title="Underline (Ctrl+U)">
             <Underline className="w-4 h-4" />
           </button>
-          <button type="button" onClick={() => execCmd('strikeThrough')} className="p-1.5 rounded hover:bg-slate-200/80 text-slate-700" title="Strikethrough">
-            <Strikethrough className="w-4 h-4" />
-          </button>
-
-          <div className="h-4 w-[1px] bg-slate-300 mx-1" />
-
-          {/* Text Color Picker */}
-          <div className="relative">
-            <button
-              type="button"
-              onClick={() => setOpenDropdown(openDropdown === 'color' ? null : 'color')}
-              className="flex items-center gap-0.5 p-1.5 rounded hover:bg-slate-200/80 text-slate-800"
-              title="Text color"
-            >
-              <div className="flex flex-col items-center">
-                <span className="text-xs font-black">A</span>
-                <div className="w-3.5 h-1 rounded-full" style={{ backgroundColor: textColor }} />
-              </div>
-            </button>
-            {openDropdown === 'color' && (
-              <div className="absolute top-full left-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-xl p-2 w-40 z-50">
-                <div className="text-[10px] font-bold text-slate-400 mb-1">Color Palette</div>
-                <div className="grid grid-cols-5 gap-1.5">
-                  {['#000000', '#434343', '#666666', '#999999', '#ffffff', '#e02424', '#e3a008', '#057a55', '#1a73e8', '#7e3af2'].map(c => (
-                    <button
-                      key={c}
-                      type="button"
-                      onClick={() => { setTextColor(c); execCmd('foreColor', c); setOpenDropdown(null); }}
-                      className="w-5 h-5 rounded-full border border-slate-300 hover:scale-110 transition-transform"
-                      style={{ backgroundColor: c }}
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Highlight Color */}
-          <div className="relative">
-            <button
-              type="button"
-              onClick={() => setOpenDropdown(openDropdown === 'highlight' ? null : 'highlight')}
-              className="p-1.5 rounded hover:bg-slate-200/80 text-slate-800"
-              title="Highlight color"
-            >
-              <div className="w-4 h-4 rounded border border-amber-400 bg-amber-200 flex items-center justify-center text-[10px] font-bold text-amber-900">
-                H
-              </div>
-            </button>
-            {openDropdown === 'highlight' && (
-              <div className="absolute top-full left-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-xl p-2 w-40 z-50">
-                <div className="text-[10px] font-bold text-slate-400 mb-1">Highlight Color</div>
-                <div className="grid grid-cols-5 gap-1.5">
-                  {['transparent', '#fef08a', '#bbf7d0', '#bfdbfe', '#fbcfe8', '#fed7aa', '#ddd6fe', '#cbd5e1'].map(c => (
-                    <button
-                      key={c}
-                      type="button"
-                      onClick={() => { setHighlightColor(c); execCmd('hiliteColor', c === 'transparent' ? '#ffffff' : c); setOpenDropdown(null); }}
-                      className="w-5 h-5 rounded border border-slate-300 hover:scale-110 transition-transform text-[9px] flex items-center justify-center font-bold"
-                      style={{ backgroundColor: c === 'transparent' ? '#ffffff' : c }}
-                    >
-                      {c === 'transparent' ? '✕' : ''}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
 
           <div className="h-4 w-[1px] bg-slate-300 mx-1" />
 
@@ -821,16 +908,6 @@ export default function GoogleDocsEditorModal({
           <button type="button" onClick={() => execCmd('insertOrderedList')} className="p-1.5 rounded hover:bg-slate-200/80 text-slate-800" title="Numbered List">
             <ListOrdered className="w-4 h-4" />
           </button>
-
-          {/* Indent / Outdent */}
-          <button type="button" onClick={() => execCmd('outdent')} className="p-1.5 rounded hover:bg-slate-200/80 text-slate-800" title="Decrease Indent">
-            <Outdent className="w-4 h-4" />
-          </button>
-          <button type="button" onClick={() => execCmd('indent')} className="p-1.5 rounded hover:bg-slate-200/80 text-slate-800" title="Increase Indent">
-            <Indent className="w-4 h-4" />
-          </button>
-
-          <div className="h-4 w-[1px] bg-slate-300 mx-1" />
 
           {/* Clear Formatting */}
           <button type="button" onClick={() => execCmd('removeFormat')} className="p-1.5 rounded hover:bg-slate-200/80 text-slate-700" title="Clear Formatting (T̸)">
@@ -900,36 +977,40 @@ export default function GoogleDocsEditorModal({
           </div>
         )}
 
-        {/* 3. MAIN WORKSPACE (SIDEBAR + RULER + REAL MULTI-PAGE SHEETS + OPTIONAL PDF SPLIT) */}
+        {/* 3. MAIN WORKSPACE (SIDEBAR + RULER + REAL MULTI-PAGE SHEETS + SYNCHRONIZED PDF SPLIT) */}
         <div className="flex-1 flex overflow-hidden relative">
           
           {/* PDF SPLIT VIEW LEFT PANEL (WHEN ACTIVE) */}
           {isPdfSplitView && pdfUrl && (
-            <div className="w-1/2 h-full border-r border-slate-300 bg-slate-100 flex flex-col flex-shrink-0 relative">
-              <div className="bg-slate-200 px-3 py-1.5 border-b border-slate-300 flex items-center justify-between text-xs font-bold text-slate-700">
+            <div className="w-1/2 h-full border-r border-slate-300 bg-slate-900 flex flex-col flex-shrink-0 relative">
+              <div className="bg-slate-800 px-3 py-1.5 border-b border-slate-700 flex items-center justify-between text-xs font-bold text-slate-200">
                 <span className="flex items-center gap-1.5">
-                  <BookOpen className="w-3.5 h-3.5 text-indigo-600" />
-                  Original PDF Book Reference
+                  <BookOpen className="w-3.5 h-3.5 text-indigo-400" />
+                  Original PDF Book (Page {currentPage})
                 </span>
-                <button
-                  type="button"
-                  onClick={() => setIsPdfSplitView(false)}
-                  className="text-slate-500 hover:text-slate-800 p-0.5 rounded font-bold"
-                  title="Close PDF View"
-                >
-                  ✕
-                </button>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] text-slate-400 font-mono">Sync Mode Active</span>
+                  <button
+                    type="button"
+                    onClick={() => setIsPdfSplitView(false)}
+                    className="text-slate-400 hover:text-white p-0.5 rounded font-bold"
+                    title="Close PDF View"
+                  >
+                    ✕
+                  </button>
+                </div>
               </div>
               <iframe
-                src={`${pdfUrl}#toolbar=1&navpanes=0`}
+                ref={pdfIframeRef}
+                src={`${pdfUrl}#page=${currentPage}&toolbar=1&navpanes=0`}
                 title="Original Book PDF Reference"
-                className="flex-1 w-full h-full border-none"
+                className="flex-1 w-full h-full border-none bg-slate-900"
               />
             </div>
           )}
 
           {/* LEFT SIDEBAR: Document Tabs & Outline */}
-          <aside className={`${isSidebarOpen && !isPdfSplitView ? 'w-64' : 'w-0'} bg-[#f9fbfd] border-r border-slate-200 transition-all duration-200 flex flex-col flex-shrink-0 overflow-hidden`}>
+          <aside className={`${isSidebarOpen && !isPdfSplitView ? 'w-60' : 'w-0'} bg-[#f9fbfd] border-r border-slate-200 transition-all duration-200 flex flex-col flex-shrink-0 overflow-hidden`}>
             <div className="p-3 border-b border-slate-200 flex items-center justify-between">
               <span className="text-xs font-bold text-slate-600 flex items-center gap-1.5">
                 <BookOpen className="w-3.5 h-3.5 text-[#1a73e8]" />
@@ -948,16 +1029,12 @@ export default function GoogleDocsEditorModal({
             {/* Page Jump Fast Index */}
             <div className="p-2 border-b border-slate-100">
               <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-2 mb-1">Page Index ({pages.length} Pages)</div>
-              <div className="grid grid-cols-4 gap-1 max-h-32 overflow-y-auto custom-scrollbar p-1">
+              <div className="grid grid-cols-4 gap-1 max-h-36 overflow-y-auto custom-scrollbar p-1">
                 {pages.map((_, pIdx) => (
                   <button
                     key={pIdx}
                     type="button"
-                    onClick={() => {
-                      const el = pageRefs.current[pIdx];
-                      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                      setCurrentPage(pIdx + 1);
-                    }}
+                    onClick={() => jumpToPage(pIdx + 1)}
                     className={`py-1 rounded text-xs font-semibold border transition-all ${currentPage === pIdx + 1 ? 'bg-[#1a73e8] text-white border-[#1a73e8]' : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'}`}
                   >
                     P.{pIdx + 1}
@@ -992,25 +1069,13 @@ export default function GoogleDocsEditorModal({
             </div>
           </aside>
 
-          {/* Collapsed Sidebar Toggle Button */}
-          {!isSidebarOpen && (
-            <button
-              type="button"
-              onClick={() => setIsSidebarOpen(true)}
-              className="absolute left-2 top-3 z-20 p-1.5 rounded-full bg-white border border-slate-300 shadow-md text-slate-600 hover:bg-slate-100"
-              title="Show Document Outline"
-            >
-              <ChevronRight className="w-4 h-4" />
-            </button>
-          )}
-
           {/* MAIN EDITING AREA WITH RULER & A4 MULTI-PAGE SHEETS */}
           <main className="flex-1 flex flex-col overflow-hidden bg-[#e9ecef]/60 relative">
             
             {/* TOP HORIZONTAL RULER */}
             <div className="h-6 bg-[#f8f9fa] border-b border-slate-300 flex items-center justify-center flex-shrink-0 select-none overflow-hidden">
-              <div className="w-[816px] h-full flex items-center justify-between text-[10px] font-mono text-slate-400 px-16 relative">
-                <div className="absolute left-[72px] top-0 bottom-0 w-2 flex flex-col items-center justify-center" title="Left Margin (1 inch)">
+              <div className={`${isPdfSplitView ? 'w-[750px]' : 'w-[816px]'} h-full flex items-center justify-between text-[10px] font-mono text-slate-400 px-16 relative`}>
+                <div className="absolute left-[72px] top-0 bottom-0 w-2 flex flex-col items-center justify-center" title="Left Margin">
                   <div className="w-0 h-0 border-l-[4px] border-l-transparent border-r-[4px] border-r-transparent border-t-[6px] border-t-[#1a73e8]" />
                 </div>
 
@@ -1021,7 +1086,7 @@ export default function GoogleDocsEditorModal({
                   </div>
                 ))}
 
-                <div className="absolute right-[72px] top-0 bottom-0 w-2 flex flex-col items-center justify-center" title="Right Margin (1 inch)">
+                <div className="absolute right-[72px] top-0 bottom-0 w-2 flex flex-col items-center justify-center" title="Right Margin">
                   <div className="w-0 h-0 border-l-[4px] border-l-transparent border-r-[4px] border-r-transparent border-t-[6px] border-t-[#1a73e8]" />
                 </div>
               </div>
@@ -1029,18 +1094,21 @@ export default function GoogleDocsEditorModal({
 
             {/* A4 DOCUMENT MULTI-PAGE CANVAS AREA */}
             <div
+              ref={canvasContainerRef}
               onScroll={(e) => {
                 const scrollTop = e.target.scrollTop;
                 const pageHeightWithGap = (1056 + 24) * (zoom / 100);
                 const curr = Math.min(pages.length, Math.max(1, Math.ceil((scrollTop + 200) / pageHeightWithGap)));
-                setCurrentPage(curr);
+                if (curr !== currentPage) {
+                  setCurrentPage(curr);
+                }
               }}
-              className="flex-1 overflow-y-auto p-6 sm:p-10 flex flex-col items-center custom-scrollbar"
+              className="flex-1 overflow-y-auto p-4 sm:p-8 flex flex-col items-center custom-scrollbar"
             >
               {isLoadingContent ? (
                 <div className="w-[816px] min-h-[1056px] bg-white rounded-xs shadow-md border border-slate-200 flex flex-col items-center justify-center text-slate-400 gap-3">
                   <span className="w-8 h-8 border-3 border-[#1a73e8] border-t-transparent rounded-full animate-spin" />
-                  <p className="text-sm font-semibold text-slate-600">Loading research text and generating pages...</p>
+                  <p className="text-sm font-semibold text-slate-600">Loading research text and optimizing Urdu formatting...</p>
                 </div>
               ) : (
                 <div
@@ -1054,12 +1122,21 @@ export default function GoogleDocsEditorModal({
                   {pages.map((pageHtml, pageIndex) => (
                     <div
                       key={pageIndex}
-                      className="w-[816px] min-h-[1056px] bg-white rounded-xs shadow-[0_1px_3px_0_rgba(60,64,67,0.3),0_4px_8px_3px_rgba(60,64,67,0.15)] border border-slate-200/90 relative flex flex-col justify-between p-16 group transition-shadow hover:shadow-[0_2px_6px_0_rgba(60,64,67,0.35),0_8px_16px_4px_rgba(60,64,67,0.18)]"
+                      className={`${isPdfSplitView ? 'w-[750px]' : 'w-[816px]'} min-h-[1056px] bg-white rounded-xs shadow-[0_1px_3px_0_rgba(60,64,67,0.3),0_4px_8px_3px_rgba(60,64,67,0.15)] border border-slate-200/90 relative flex flex-col justify-between p-12 sm:p-16 group transition-shadow hover:shadow-[0_2px_6px_0_rgba(60,64,67,0.35),0_8px_16px_4px_rgba(60,64,67,0.18)]`}
                     >
                       {/* Top Header of the Page */}
                       <div className="flex justify-between items-center text-[10px] text-slate-400 font-mono select-none border-b border-slate-100 pb-2 mb-6">
-                        <span className="truncate max-w-[320px] font-medium text-slate-500">{documentTitle}</span>
+                        <span className="truncate max-w-[280px] font-medium text-slate-500">{documentTitle}</span>
                         <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => handleAutoFixCurrentPage(pageIndex)}
+                            className="text-purple-600 hover:text-purple-800 font-sans text-[11px] font-bold flex items-center gap-1 hover:underline"
+                            title="Auto-Fix Broken OCR Lines on this page"
+                          >
+                            <Sparkles className="w-3 h-3" />
+                            <span>Fix OCR</span>
+                          </button>
                           <span className="bg-slate-100 text-slate-600 px-2 py-0.5 rounded font-bold">
                             Page {pageIndex + 1} of {pages.length}
                           </span>
@@ -1131,7 +1208,7 @@ export default function GoogleDocsEditorModal({
 
           <div className="flex items-center gap-3">
             <span className={`px-2 py-0.5 rounded font-bold ${isRTL ? 'bg-emerald-50 text-emerald-700' : 'bg-blue-50 text-blue-700'}`}>
-              {isRTL ? 'Right-to-Left (Urdu/Arabic)' : 'Left-to-Right (English)'}
+              {isRTL ? 'اردو Nastaleeq (RTL)' : 'Left-to-Right (English)'}
             </span>
             <span>•</span>
             <span>Zoom: {zoom}%</span>
