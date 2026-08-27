@@ -32,6 +32,12 @@ export default function GoogleDocsEditorModal({
   const [lineSpacing, setLineSpacing] = useState('1.6');
   const [activeHeading, setActiveHeading] = useState('Normal text');
 
+  // Multi-Page A4 Specifications
+  const PAGE_HEIGHT_PX = 1056;
+  const PAGE_GAP_PX = 24;
+  const [totalPages, setTotalPages] = useState(1);
+  const [currentPage, setCurrentPage] = useState(1);
+
   // Stats
   const [wordCount, setWordCount] = useState(0);
   const [charCount, setCharCount] = useState(0);
@@ -144,12 +150,15 @@ export default function GoogleDocsEditorModal({
       .map(line => {
         const trimmed = line.trim();
         if (!trimmed) return '<p><br></p>';
+        if (trimmed.toUpperCase() === 'PAGE_SEPARATOR' || trimmed === '---' || trimmed === '***') {
+          return '<div class="google-docs-page-break my-6 py-2 border-y border-dashed border-blue-300 text-center text-xs font-bold text-blue-500 bg-blue-50/50 rounded select-none">──────── 📄 Page Break ────────</div>';
+        }
         return `<p>${line}</p>`;
       })
       .join('');
   };
 
-  // Update Live Word, Char & Heading Stats
+  // Update Live Word, Char, Dynamic Pages & Heading Stats
   const updateStats = () => {
     if (!editorRef.current) return;
     const text = editorRef.current.innerText || '';
@@ -157,6 +166,11 @@ export default function GoogleDocsEditorModal({
     const chars = text.length;
     setWordCount(words);
     setCharCount(chars);
+
+    // Calculate Dynamic Multi-Page Count based on content height
+    const scrollHeight = editorRef.current.scrollHeight || PAGE_HEIGHT_PX;
+    const computedPages = Math.max(1, Math.ceil((scrollHeight + 80) / (PAGE_HEIGHT_PX - 120)));
+    setTotalPages(computedPages);
 
     // Extract Headings for Document Outline
     const headings = [];
@@ -912,40 +926,81 @@ export default function GoogleDocsEditorModal({
               </div>
             </div>
 
-            {/* A4 DOCUMENT CANVAS AREA */}
-            <div className="flex-1 overflow-y-auto p-6 sm:p-10 flex justify-center custom-scrollbar">
-              
+            {/* A4 DOCUMENT CANVAS AREA (MULTI-PAGE GOOGLE DOCS ENGINE) */}
+            <div
+              onScroll={(e) => {
+                const scrollTop = e.target.scrollTop;
+                const step = (PAGE_HEIGHT_PX + PAGE_GAP_PX) * (zoom / 100);
+                const curr = Math.min(totalPages, Math.max(1, Math.ceil((scrollTop + 200) / step)));
+                setCurrentPage(curr);
+              }}
+              className="flex-1 overflow-y-auto p-6 sm:p-10 flex justify-center custom-scrollbar"
+            >
               <div
                 style={{
                   transform: `scale(${zoom / 100})`,
                   transformOrigin: 'top center',
-                  transition: 'transform 0.15s ease-out'
+                  transition: 'transform 0.15s ease-out',
+                  width: '816px',
                 }}
-                className="w-[816px] min-h-[1056px] bg-white rounded shadow-[0_1px_3px_0_rgba(60,64,67,0.3),0_4px_8px_3px_rgba(60,64,67,0.15)] px-16 py-14 relative flex flex-col"
+                className="relative flex flex-col items-center pb-20"
               >
-                {isLoadingContent && (
-                  <div className="absolute inset-0 bg-white/80 backdrop-blur-xs z-10 flex flex-col items-center justify-center text-slate-400 gap-3 rounded">
-                    <span className="w-8 h-8 border-3 border-[#1a73e8] border-t-transparent rounded-full animate-spin" />
-                    <p className="text-sm font-semibold text-slate-600">Loading research text...</p>
-                  </div>
-                )}
+                {/* 📄 Authentic Physical A4 Page Sheets Stack */}
+                <div className="w-full flex flex-col items-center gap-6 absolute inset-0 pointer-events-none">
+                  {Array.from({ length: totalPages }).map((_, pageIdx) => (
+                    <div
+                      key={pageIdx}
+                      style={{ height: `${PAGE_HEIGHT_PX}px` }}
+                      className="w-[816px] bg-white rounded-xs shadow-[0_1px_3px_0_rgba(60,64,67,0.3),0_4px_8px_3px_rgba(60,64,67,0.15)] border border-slate-200/80 relative flex flex-col justify-between p-6 flex-shrink-0"
+                    >
+                      {/* Top Page Header */}
+                      <div className="flex justify-between items-center text-[10px] text-slate-300 font-mono select-none border-b border-slate-100 pb-1">
+                        <span className="truncate max-w-[300px]">{documentTitle}</span>
+                        <span>Page {pageIdx + 1} of {totalPages}</span>
+                      </div>
 
+                      {/* Bottom Page Footer */}
+                      <div className="flex justify-center items-center text-[11px] text-slate-400 font-medium select-none border-t border-slate-100 pt-1">
+                        <span>- {pageIdx + 1} -</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* ✍️ Continuous Typing Surface Over All Pages */}
                 <div
-                  ref={editorRef}
-                  contentEditable
-                  suppressContentEditableWarning
-                  onInput={updateStats}
-                  onBlur={updateStats}
-                  dir={isRTL ? 'rtl' : 'ltr'}
                   style={{
-                    fontFamily: fontFamily,
-                    fontSize: `${fontSize}px`,
-                    lineHeight: lineSpacing,
-                    color: textColor,
+                    width: '816px',
+                    minHeight: `${totalPages * (PAGE_HEIGHT_PX + PAGE_GAP_PX) - PAGE_GAP_PX}px`,
+                    padding: '56px 64px',
                   }}
-                  className="flex-1 outline-none border-none min-h-[900px] leading-relaxed text-slate-900 transition-all cursor-text select-text"
-                  placeholder="Start typing your research text, notes, or chapter contents here in Urdu or English..."
-                />
+                  className="relative z-10 bg-transparent flex flex-col"
+                >
+                  {isLoadingContent && (
+                    <div className="absolute inset-0 bg-white/80 backdrop-blur-xs z-20 flex flex-col items-center justify-center text-slate-400 gap-3 rounded">
+                      <span className="w-8 h-8 border-3 border-[#1a73e8] border-t-transparent rounded-full animate-spin" />
+                      <p className="text-sm font-semibold text-slate-600">Loading research text...</p>
+                    </div>
+                  )}
+
+                  <div
+                    ref={editorRef}
+                    contentEditable
+                    suppressContentEditableWarning
+                    onInput={updateStats}
+                    onBlur={updateStats}
+                    dir={isRTL ? 'rtl' : 'ltr'}
+                    style={{
+                      fontFamily: fontFamily,
+                      fontSize: `${fontSize}px`,
+                      lineHeight: lineSpacing,
+                      color: textColor,
+                      minHeight: `${PAGE_HEIGHT_PX - 120}px`,
+                    }}
+                    className="w-full outline-none border-none leading-relaxed text-slate-900 transition-all cursor-text select-text"
+                    placeholder="Start typing your research text, notes, or chapter contents here in Urdu or English..."
+                  />
+                </div>
               </div>
 
             </div>
@@ -956,7 +1011,9 @@ export default function GoogleDocsEditorModal({
         {/* 4. BOTTOM STATUS BAR */}
         <footer className="flex items-center justify-between px-4 py-1.5 bg-white border-t border-slate-200 text-[11px] font-medium text-slate-500 flex-shrink-0">
           <div className="flex items-center gap-3">
-            <span>Page 1 of 1</span>
+            <span className="font-bold text-[#1a73e8] bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
+              Page {currentPage} of {totalPages}
+            </span>
             <span>•</span>
             <span className="font-semibold text-slate-700">{wordCount.toLocaleString()} words</span>
             <span>•</span>
