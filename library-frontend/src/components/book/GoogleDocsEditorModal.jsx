@@ -37,6 +37,7 @@ export default function GoogleDocsEditorModal({
   const PAGE_GAP_PX = 24;
   const [totalPages, setTotalPages] = useState(1);
   const [currentPage, setCurrentPage] = useState(1);
+  const [viewMode, setViewMode] = useState('pageless'); // 'pageless' (Continuous) or 'pages' (Separated A4)
 
   // Stats
   const [wordCount, setWordCount] = useState(0);
@@ -392,6 +393,7 @@ export default function GoogleDocsEditorModal({
                   ]},
                   { name: 'View', key: 'viewMenu', items: [
                     { label: 'Toggle Sidebar Outline', action: () => setIsSidebarOpen(!isSidebarOpen) },
+                    { label: viewMode === 'pageless' ? 'Switch to Pages View (A4)' : 'Switch to Continuous (Pageless) View', action: () => setViewMode(prev => prev === 'pageless' ? 'pages' : 'pageless') },
                     { label: 'Toggle Fullscreen', action: () => setIsFullscreen(!isFullscreen) },
                     { label: 'Zoom: 100%', action: () => setZoom(100) },
                     { label: 'Zoom: 125%', action: () => setZoom(125) },
@@ -736,6 +738,16 @@ export default function GoogleDocsEditorModal({
             <span>{isRTL ? 'اردو (RTL)' : 'ENG (LTR)'}</span>
           </button>
 
+          {/* View Mode Switcher */}
+          <button
+            type="button"
+            onClick={() => setViewMode(prev => prev === 'pageless' ? 'pages' : 'pageless')}
+            className={`px-2.5 py-1 rounded text-xs font-bold transition-colors flex items-center gap-1 ${viewMode === 'pageless' ? 'bg-blue-100 text-[#1a73e8]' : 'bg-slate-200 text-slate-700'}`}
+            title="Toggle Continuous Document / Separated Pages"
+          >
+            <span>{viewMode === 'pageless' ? '📜 Continuous' : '📄 Pages'}</span>
+          </button>
+
           <div className="h-4 w-[1px] bg-slate-300 mx-1" />
 
           {/* Alignment Controls */}
@@ -926,11 +938,11 @@ export default function GoogleDocsEditorModal({
               </div>
             </div>
 
-            {/* A4 DOCUMENT CANVAS AREA (MULTI-PAGE GOOGLE DOCS ENGINE) */}
+            {/* A4 DOCUMENT CANVAS AREA (CLEAN GOOGLE DOCS CONTINUOUS ENGINE) */}
             <div
               onScroll={(e) => {
                 const scrollTop = e.target.scrollTop;
-                const step = (PAGE_HEIGHT_PX + PAGE_GAP_PX) * (zoom / 100);
+                const step = PAGE_HEIGHT_PX * (zoom / 100);
                 const curr = Math.min(totalPages, Math.max(1, Math.ceil((scrollTop + 200) / step)));
                 setCurrentPage(curr);
               }}
@@ -941,43 +953,21 @@ export default function GoogleDocsEditorModal({
                   transform: `scale(${zoom / 100})`,
                   transformOrigin: 'top center',
                   transition: 'transform 0.15s ease-out',
-                  width: '816px',
+                  width: '850px',
                 }}
                 className="relative flex flex-col items-center pb-20"
               >
-                {/* 📄 Authentic Physical A4 Page Sheets Stack */}
-                <div className="w-full flex flex-col items-center gap-6 absolute inset-0 pointer-events-none">
-                  {Array.from({ length: totalPages }).map((_, pageIdx) => (
-                    <div
-                      key={pageIdx}
-                      style={{ height: `${PAGE_HEIGHT_PX}px` }}
-                      className="w-[816px] bg-white rounded-xs shadow-[0_1px_3px_0_rgba(60,64,67,0.3),0_4px_8px_3px_rgba(60,64,67,0.15)] border border-slate-200/80 relative flex flex-col justify-between p-6 flex-shrink-0"
-                    >
-                      {/* Top Page Header */}
-                      <div className="flex justify-between items-center text-[10px] text-slate-300 font-mono select-none border-b border-slate-100 pb-1">
-                        <span className="truncate max-w-[300px]">{documentTitle}</span>
-                        <span>Page {pageIdx + 1} of {totalPages}</span>
-                      </div>
-
-                      {/* Bottom Page Footer */}
-                      <div className="flex justify-center items-center text-[11px] text-slate-400 font-medium select-none border-t border-slate-100 pt-1">
-                        <span>- {pageIdx + 1} -</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                {/* ✍️ Continuous Typing Surface Over All Pages */}
+                {/* 📄 Solid White Google Docs Sheet (No Awkward Gaps or Watermark Overlaps) */}
                 <div
                   style={{
-                    width: '816px',
-                    minHeight: `${totalPages * (PAGE_HEIGHT_PX + PAGE_GAP_PX) - PAGE_GAP_PX}px`,
+                    width: '850px',
+                    minHeight: '1056px',
                     padding: '56px 64px',
                   }}
-                  className="relative z-10 bg-transparent flex flex-col"
+                  className="w-[850px] bg-white rounded-2xl shadow-[0_1px_3px_0_rgba(60,64,67,0.3),0_4px_8px_3px_rgba(60,64,67,0.15)] border border-slate-200/80 relative flex flex-col"
                 >
                   {isLoadingContent && (
-                    <div className="absolute inset-0 bg-white/80 backdrop-blur-xs z-20 flex flex-col items-center justify-center text-slate-400 gap-3 rounded">
+                    <div className="absolute inset-0 bg-white/80 backdrop-blur-xs z-20 flex flex-col items-center justify-center text-slate-400 gap-3 rounded-2xl">
                       <span className="w-8 h-8 border-3 border-[#1a73e8] border-t-transparent rounded-full animate-spin" />
                       <p className="text-sm font-semibold text-slate-600">Loading research text...</p>
                     </div>
@@ -995,7 +985,7 @@ export default function GoogleDocsEditorModal({
                       fontSize: `${fontSize}px`,
                       lineHeight: lineSpacing,
                       color: textColor,
-                      minHeight: `${PAGE_HEIGHT_PX - 120}px`,
+                      minHeight: '900px',
                     }}
                     className="w-full outline-none border-none leading-relaxed text-slate-900 transition-all cursor-text select-text"
                     placeholder="Start typing your research text, notes, or chapter contents here in Urdu or English..."
