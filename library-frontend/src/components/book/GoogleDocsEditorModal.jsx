@@ -4,7 +4,7 @@ import {
   Bold, Italic, Underline, Strikethrough, AlignLeft, AlignCenter, AlignRight, AlignJustify,
   List, ListOrdered, Indent, Outdent, Eraser,
   ChevronDown, ChevronLeft, ChevronRight, FileText, Star, Cloud,
-  Maximize2, Minimize2, FileCheck, BookOpen
+  Maximize2, Minimize2, FileCheck, BookOpen, PlusCircle, Trash2
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -17,8 +17,6 @@ export default function GoogleDocsEditorModal({
   initialText = '',
   initialUrl = null
 }) {
-  const editorRef = useRef(null);
-
   const [documentTitle, setDocumentTitle] = useState('Research Text');
   const [isStarred, setIsStarred] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -29,15 +27,13 @@ export default function GoogleDocsEditorModal({
   const [fontSize, setFontSize] = useState('16');
   const [textColor, setTextColor] = useState('#111827');
   const [highlightColor, setHighlightColor] = useState('#ffffff');
-  const [lineSpacing, setLineSpacing] = useState('1.6');
+  const [lineSpacing, setLineSpacing] = useState('1.8');
   const [activeHeading, setActiveHeading] = useState('Normal text');
 
-  // Multi-Page A4 Specifications
-  const PAGE_HEIGHT_PX = 1056;
-  const PAGE_GAP_PX = 24;
-  const [totalPages, setTotalPages] = useState(1);
+  // Multi-Page Array State
+  const [pages, setPages] = useState(['<p><br></p>']);
   const [currentPage, setCurrentPage] = useState(1);
-  const [viewMode, setViewMode] = useState('pageless'); // 'pageless' (Continuous) or 'pages' (Separated A4)
+  const pageRefs = useRef([]);
 
   // Stats
   const [wordCount, setWordCount] = useState(0);
@@ -96,17 +92,14 @@ export default function GoogleDocsEditorModal({
           }
         }
 
-        // Apply content to editor DOM
-        setTimeout(() => {
-          if (editorRef.current) {
-            if (textToLoad && textToLoad.trim()) {
-              editorRef.current.innerHTML = formatTextToHtml(textToLoad);
-            } else if (!editorRef.current.innerHTML.trim()) {
-              editorRef.current.innerHTML = '<p><br></p>';
-            }
-            updateStats();
-          }
-        }, 50);
+        // Split text by PAGE_SEPARATOR or form feeds
+        if (textToLoad && textToLoad.trim()) {
+          const rawPages = textToLoad.split(/PAGE_SEPARATOR|\f/i);
+          const formattedPages = rawPages.map(p => formatTextToHtml(p.trim()));
+          setPages(formattedPages.length > 0 ? formattedPages : ['<p><br></p>']);
+        } else {
+          setPages(['<p><br></p>']);
+        }
 
       } catch (err) {
         console.error("Error loading content:", err);
@@ -125,7 +118,6 @@ export default function GoogleDocsEditorModal({
       const reader = new FileReader();
       reader.onload = (e) => {
         const content = e.target.result || '';
-        // If UTF-8 has replacement characters, try Arabic Windows-1256
         if (content.includes('\uFFFD')) {
           const reader1256 = new FileReader();
           reader1256.onload = (ev) => resolve(ev.target.result || content);
@@ -151,47 +143,80 @@ export default function GoogleDocsEditorModal({
       .map(line => {
         const trimmed = line.trim();
         if (!trimmed) return '<p><br></p>';
-        if (trimmed.toUpperCase() === 'PAGE_SEPARATOR' || trimmed === '---' || trimmed === '***') {
-          return '<div class="google-docs-page-break my-6 py-2 border-y border-dashed border-blue-300 text-center text-xs font-bold text-blue-500 bg-blue-50/50 rounded select-none">──────── 📄 Page Break ────────</div>';
-        }
         return `<p>${line}</p>`;
       })
       .join('');
   };
 
-  // Update Live Word, Char, Dynamic Pages & Heading Stats
+  // Update Live Word, Char, and Outline Headings
   const updateStats = () => {
-    if (!editorRef.current) return;
-    const text = editorRef.current.innerText || '';
-    const words = text.trim() ? text.trim().split(/\s+/).length : 0;
-    const chars = text.length;
-    setWordCount(words);
-    setCharCount(chars);
-
-    // Calculate Dynamic Multi-Page Count based on content height
-    const scrollHeight = editorRef.current.scrollHeight || PAGE_HEIGHT_PX;
-    const computedPages = Math.max(1, Math.ceil((scrollHeight + 80) / (PAGE_HEIGHT_PX - 120)));
-    setTotalPages(computedPages);
-
-    // Extract Headings for Document Outline
+    let totalWords = 0;
+    let totalChars = 0;
     const headings = [];
-    const elements = editorRef.current.querySelectorAll('h1, h2, h3');
-    elements.forEach((el, index) => {
-      const id = `heading-item-${index}`;
-      el.setAttribute('id', id);
-      headings.push({
-        id,
-        text: el.innerText || 'Untitled Heading',
-        level: el.tagName.toLowerCase()
+
+    pageRefs.current.forEach((el, pIdx) => {
+      if (!el) return;
+      const text = el.innerText || '';
+      if (text.trim()) {
+        totalWords += text.trim().split(/\s+/).length;
+      }
+      totalChars += text.length;
+
+      const hElements = el.querySelectorAll('h1, h2, h3');
+      hElements.forEach((hEl, hIdx) => {
+        const id = `heading-p${pIdx}-h${hIdx}`;
+        hEl.setAttribute('id', id);
+        headings.push({
+          id,
+          text: hEl.innerText || 'Untitled Heading',
+          level: hEl.tagName.toLowerCase(),
+          page: pIdx + 1
+        });
       });
     });
+
+    setWordCount(totalWords);
+    setCharCount(totalChars);
     setHeadingsList(headings);
+  };
+
+  // Run updateStats whenever pages array changes
+  useEffect(() => {
+    const timer = setTimeout(updateStats, 100);
+    return () => clearTimeout(timer);
+  }, [pages]);
+
+  // Handle Input on Specific Page
+  const handlePageInput = (pageIndex, newHtml) => {
+    setPages(prev => {
+      const next = [...prev];
+      next[pageIndex] = newHtml;
+      return next;
+    });
+  };
+
+  // Insert a new blank page after specified index
+  const handleAddPageAfter = (pageIndex) => {
+    setPages(prev => {
+      const next = [...prev];
+      next.splice(pageIndex + 1, 0, '<p><br></p>');
+      return next;
+    });
+    toast.success(`Page ${pageIndex + 2} inserted.`);
+  };
+
+  // Delete a page
+  const handleDeletePage = (pageIndex) => {
+    if (pages.length <= 1) {
+      toast.error("Document must contain at least one page.");
+      return;
+    }
+    setPages(prev => prev.filter((_, idx) => idx !== pageIndex));
+    toast.success(`Page ${pageIndex + 1} deleted.`);
   };
 
   // Execute Rich Text Command
   const execCmd = (command, value = null) => {
-    if (!editorRef.current) return;
-    editorRef.current.focus();
     document.execCommand(command, false, value);
     updateStats();
   };
@@ -232,22 +257,24 @@ export default function GoogleDocsEditorModal({
     }
   };
 
-  // Find & Replace Engine
+  // Find & Replace Engine across all pages
   const handleFindReplace = (isReplaceAll = false) => {
-    if (!findQuery || !editorRef.current) return;
-    const html = editorRef.current.innerHTML;
+    if (!findQuery) return;
     const flags = matchCase ? 'g' : 'gi';
     const regex = new RegExp(findQuery.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), flags);
 
-    const matches = html.match(regex);
+    let matchCount = 0;
+    const updatedPages = pages.map(p => {
+      const matches = p.match(regex);
+      if (matches) matchCount += matches.length;
+      return isReplaceAll ? p.replace(regex, replaceQuery) : p;
+    });
 
-    if (isReplaceAll && matches) {
-      const newHtml = html.replace(regex, replaceQuery);
-      editorRef.current.innerHTML = newHtml;
-      updateStats();
-      toast.success(`Replaced ${matches.length} occurrences!`);
-    } else if (matches) {
-      toast.success(`Found ${matches.length} matching occurrences.`);
+    if (isReplaceAll && matchCount > 0) {
+      setPages(updatedPages);
+      toast.success(`Replaced ${matchCount} occurrences across all pages!`);
+    } else if (matchCount > 0) {
+      toast.success(`Found ${matchCount} occurrences.`);
     } else {
       toast.error('No matching text found.');
     }
@@ -280,53 +307,58 @@ export default function GoogleDocsEditorModal({
         } else if (e.key === 's' || e.key === 'S') {
           e.preventDefault();
           handleSaveAndAttach();
+        } else if (e.key === 'Enter') {
+          // Google Docs Page Break shortcut: Ctrl + Enter
+          e.preventDefault();
+          handleAddPageAfter(currentPage - 1);
         }
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, documentTitle]);
+  }, [isOpen, currentPage, pages, documentTitle]);
 
-  // Save and Attach Handler
+  // Save and Attach Handler (Combines all pages with PAGE_SEPARATOR)
   const handleSaveAndAttach = () => {
-    if (!editorRef.current) return;
-    const plainText = editorRef.current.innerText || '';
-    const htmlContent = editorRef.current.innerHTML || '';
+    // Extract plain text for each page
+    const pageTexts = pageRefs.current.map(el => (el ? el.innerText.trim() : '')).filter(t => t.length > 0);
 
-    if (!plainText.trim()) {
+    if (pageTexts.length === 0) {
       toast.error("Document is empty. Please enter some text.");
       return;
     }
 
-    // Create UTF-8 Text File
+    // Join pages using PAGE_SEPARATOR matching the PDF reader standard
+    const combinedPlainText = pageTexts.join('\n\nPAGE_SEPARATOR\n\n');
+
     const safeTitle = (documentTitle || 'book_research_text')
       .replace(/[^a-zA-Z0-9_\-\u0600-\u06FF]/g, '_')
       .slice(0, 60);
     
     const fileName = `${safeTitle}.txt`;
-    const blob = new Blob([plainText], { type: 'text/plain;charset=utf-8' });
+    const blob = new Blob([combinedPlainText], { type: 'text/plain;charset=utf-8' });
     const file = new File([blob], fileName, { type: 'text/plain', lastModified: Date.now() });
 
     if (onSave) {
       onSave({
         file,
         fileName,
-        plainText,
-        htmlContent,
-        wordCount
+        plainText: combinedPlainText,
+        wordCount,
+        totalPages: pages.length
       });
     }
 
-    toast.success("✅ Research Text attached to book successfully!");
+    toast.success(`✅ ${pages.length} Pages attached to book successfully!`);
     onClose();
   };
 
   // Download Plain Text File
   const handleDownloadTxt = () => {
-    if (!editorRef.current) return;
-    const text = editorRef.current.innerText || '';
-    const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+    const pageTexts = pageRefs.current.map(el => (el ? el.innerText.trim() : '')).filter(t => t.length > 0);
+    const combinedPlainText = pageTexts.join('\n\nPAGE_SEPARATOR\n\n');
+    const blob = new Blob([combinedPlainText], { type: 'text/plain;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -373,7 +405,7 @@ export default function GoogleDocsEditorModal({
                 </button>
                 <div className="hidden sm:flex items-center gap-1 text-[11px] text-slate-400 font-medium ml-1">
                   <Cloud className="w-3.5 h-3.5 text-emerald-500" />
-                  <span>Ready to attach</span>
+                  <span>{pages.length} Pages Ready</span>
                 </div>
               </div>
 
@@ -383,7 +415,7 @@ export default function GoogleDocsEditorModal({
                   { name: 'File', key: 'fileMenu', items: [
                     { label: 'Download as .TXT', action: handleDownloadTxt },
                     { label: 'Print Document', action: () => window.print() },
-                    { label: 'Clear All Content', action: () => { if (editorRef.current) { editorRef.current.innerHTML = '<p><br></p>'; updateStats(); } } },
+                    { label: 'Clear All Content', action: () => { setPages(['<p><br></p>']); updateStats(); } },
                   ]},
                   { name: 'Edit', key: 'editMenu', items: [
                     { label: 'Undo (Ctrl+Z)', action: () => execCmd('undo') },
@@ -393,12 +425,12 @@ export default function GoogleDocsEditorModal({
                   ]},
                   { name: 'View', key: 'viewMenu', items: [
                     { label: 'Toggle Sidebar Outline', action: () => setIsSidebarOpen(!isSidebarOpen) },
-                    { label: viewMode === 'pageless' ? 'Switch to Pages View (A4)' : 'Switch to Continuous (Pageless) View', action: () => setViewMode(prev => prev === 'pageless' ? 'pages' : 'pageless') },
                     { label: 'Toggle Fullscreen', action: () => setIsFullscreen(!isFullscreen) },
                     { label: 'Zoom: 100%', action: () => setZoom(100) },
                     { label: 'Zoom: 125%', action: () => setZoom(125) },
                   ]},
                   { name: 'Insert', key: 'insertMenu', items: [
+                    { label: 'New Page Break (Ctrl+Enter)', action: () => handleAddPageAfter(currentPage - 1) },
                     { label: 'Horizontal Line', action: () => execCmd('insertHorizontalRule') },
                     { label: 'Paragraph Break', action: () => execCmd('insertParagraph') },
                   ]},
@@ -409,7 +441,7 @@ export default function GoogleDocsEditorModal({
                     { label: 'Clear Formatting', action: () => execCmd('removeFormat') },
                   ]},
                   { name: 'Tools', key: 'toolsMenu', items: [
-                    { label: `Word Count: ${wordCount} words`, action: () => toast(`Document contains ${wordCount} words and ${charCount} characters.`, { icon: '📊' }) },
+                    { label: `Word Count: ${wordCount} words`, action: () => toast(`Document contains ${wordCount} words, ${charCount} characters, and ${pages.length} pages.`, { icon: '📊' }) },
                     { label: 'Switch to Urdu RTL', action: () => setIsRTL(true) },
                     { label: 'Switch to English LTR', action: () => setIsRTL(false) },
                   ]},
@@ -424,7 +456,7 @@ export default function GoogleDocsEditorModal({
                     </button>
 
                     {openDropdown === menu.key && (
-                      <div className="absolute top-full left-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-xl py-1 min-w-[200px] z-50 animate-in fade-in zoom-in-95 duration-100">
+                      <div className="absolute top-full left-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-xl py-1 min-w-[220px] z-50 animate-in fade-in zoom-in-95 duration-100">
                         {menu.items.map((item, i) => (
                           <button
                             key={i}
@@ -447,9 +479,9 @@ export default function GoogleDocsEditorModal({
           <div className="flex items-center gap-2.5 flex-shrink-0">
             {/* Live Stats Badge */}
             <div className="hidden md:flex items-center gap-2 bg-slate-100 px-3 py-1.5 rounded-full text-xs font-semibold text-slate-600 border border-slate-200">
-              <span>{wordCount.toLocaleString()} words</span>
+              <span>{pages.length} Pages</span>
               <span className="text-slate-300">•</span>
-              <span>{charCount.toLocaleString()} chars</span>
+              <span>{wordCount.toLocaleString()} words</span>
             </div>
 
             {/* Google Blue "Save & Attach to Book" Button */}
@@ -738,14 +770,15 @@ export default function GoogleDocsEditorModal({
             <span>{isRTL ? 'اردو (RTL)' : 'ENG (LTR)'}</span>
           </button>
 
-          {/* View Mode Switcher */}
+          {/* Add Page Break Button */}
           <button
             type="button"
-            onClick={() => setViewMode(prev => prev === 'pageless' ? 'pages' : 'pageless')}
-            className={`px-2.5 py-1 rounded text-xs font-bold transition-colors flex items-center gap-1 ${viewMode === 'pageless' ? 'bg-blue-100 text-[#1a73e8]' : 'bg-slate-200 text-slate-700'}`}
-            title="Toggle Continuous Document / Separated Pages"
+            onClick={() => handleAddPageAfter(currentPage - 1)}
+            className="px-2.5 py-1 rounded text-xs font-bold bg-blue-100 hover:bg-blue-200 text-[#1a73e8] transition-colors flex items-center gap-1"
+            title="Insert Page Break (Ctrl+Enter)"
           >
-            <span>{viewMode === 'pageless' ? '📜 Continuous' : '📄 Pages'}</span>
+            <PlusCircle className="w-3.5 h-3.5" />
+            <span>+ Page Break</span>
           </button>
 
           <div className="h-4 w-[1px] bg-slate-300 mx-1" />
@@ -852,7 +885,7 @@ export default function GoogleDocsEditorModal({
           </div>
         )}
 
-        {/* 3. MAIN WORKSPACE (SIDEBAR + RULER + A4 CANVAS) */}
+        {/* 3. MAIN WORKSPACE (SIDEBAR + RULER + REAL MULTI-PAGE SHEETS) */}
         <div className="flex-1 flex overflow-hidden relative">
           
           {/* LEFT SIDEBAR: Document Tabs & Outline */}
@@ -872,15 +905,30 @@ export default function GoogleDocsEditorModal({
               </button>
             </div>
 
-            <div className="p-2">
-              <div className="flex items-center gap-2 bg-blue-100/60 text-[#1a73e8] px-3 py-2 rounded-xl text-xs font-bold border border-blue-200">
-                <FileText className="w-4 h-4" />
-                <span className="truncate">Tab 1: Main Text</span>
+            {/* Page Jump Fast Index */}
+            <div className="p-2 border-b border-slate-100">
+              <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-2 mb-1">Page Index ({pages.length} Pages)</div>
+              <div className="grid grid-cols-4 gap-1 max-h-32 overflow-y-auto custom-scrollbar p-1">
+                {pages.map((_, pIdx) => (
+                  <button
+                    key={pIdx}
+                    type="button"
+                    onClick={() => {
+                      const el = pageRefs.current[pIdx];
+                      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                      setCurrentPage(pIdx + 1);
+                    }}
+                    className={`py-1 rounded text-xs font-semibold border transition-all ${currentPage === pIdx + 1 ? 'bg-[#1a73e8] text-white border-[#1a73e8]' : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'}`}
+                  >
+                    P.{pIdx + 1}
+                  </button>
+                ))}
               </div>
             </div>
 
             {/* Headings Outline List */}
             <div className="flex-1 overflow-y-auto p-3 space-y-1.5 custom-scrollbar text-xs">
+              <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-2 mb-1">Headings</div>
               {headingsList.length > 0 ? (
                 headingsList.map(h => (
                   <button
@@ -890,9 +938,10 @@ export default function GoogleDocsEditorModal({
                       const el = document.getElementById(h.id);
                       if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
                     }}
-                    className={`w-full text-left py-1 px-2 rounded-lg hover:bg-slate-200/80 text-slate-700 truncate transition-colors ${h.level === 'h1' ? 'font-bold text-slate-900' : h.level === 'h2' ? 'pl-4 font-semibold text-slate-800' : 'pl-6 text-slate-600'}`}
+                    className={`w-full text-left py-1 px-2 rounded-lg hover:bg-slate-200/80 text-slate-700 truncate transition-colors flex items-center justify-between ${h.level === 'h1' ? 'font-bold text-slate-900' : h.level === 'h2' ? 'pl-4 font-semibold text-slate-800' : 'pl-6 text-slate-600'}`}
                   >
-                    {h.text}
+                    <span className="truncate">{h.text}</span>
+                    <span className="text-[9px] text-slate-400 ml-1 font-mono">P.{h.page}</span>
                   </button>
                 ))
               ) : (
@@ -915,7 +964,7 @@ export default function GoogleDocsEditorModal({
             </button>
           )}
 
-          {/* MAIN EDITING AREA WITH RULER & A4 CANVAS */}
+          {/* MAIN EDITING AREA WITH RULER & A4 MULTI-PAGE SHEETS */}
           <main className="flex-1 flex flex-col overflow-hidden bg-[#e9ecef]/60 relative">
             
             {/* TOP HORIZONTAL RULER */}
@@ -938,61 +987,91 @@ export default function GoogleDocsEditorModal({
               </div>
             </div>
 
-            {/* A4 DOCUMENT CANVAS AREA (CLEAN GOOGLE DOCS CONTINUOUS ENGINE) */}
+            {/* A4 DOCUMENT MULTI-PAGE CANVAS AREA */}
             <div
               onScroll={(e) => {
                 const scrollTop = e.target.scrollTop;
-                const step = PAGE_HEIGHT_PX * (zoom / 100);
-                const curr = Math.min(totalPages, Math.max(1, Math.ceil((scrollTop + 200) / step)));
+                const pageHeightWithGap = (1056 + 24) * (zoom / 100);
+                const curr = Math.min(pages.length, Math.max(1, Math.ceil((scrollTop + 200) / pageHeightWithGap)));
                 setCurrentPage(curr);
               }}
-              className="flex-1 overflow-y-auto p-6 sm:p-10 flex justify-center custom-scrollbar"
+              className="flex-1 overflow-y-auto p-6 sm:p-10 flex flex-col items-center custom-scrollbar"
             >
-              <div
-                style={{
-                  transform: `scale(${zoom / 100})`,
-                  transformOrigin: 'top center',
-                  transition: 'transform 0.15s ease-out',
-                  width: '850px',
-                }}
-                className="relative flex flex-col items-center pb-20"
-              >
-                {/* 📄 Solid White Google Docs Sheet (No Awkward Gaps or Watermark Overlaps) */}
+              {isLoadingContent ? (
+                <div className="w-[816px] min-h-[1056px] bg-white rounded-xs shadow-md border border-slate-200 flex flex-col items-center justify-center text-slate-400 gap-3">
+                  <span className="w-8 h-8 border-3 border-[#1a73e8] border-t-transparent rounded-full animate-spin" />
+                  <p className="text-sm font-semibold text-slate-600">Loading research text and generating pages...</p>
+                </div>
+              ) : (
                 <div
                   style={{
-                    width: '850px',
-                    minHeight: '1056px',
-                    padding: '56px 64px',
+                    transform: `scale(${zoom / 100})`,
+                    transformOrigin: 'top center',
+                    transition: 'transform 0.15s ease-out',
                   }}
-                  className="w-[850px] bg-white rounded-2xl shadow-[0_1px_3px_0_rgba(60,64,67,0.3),0_4px_8px_3px_rgba(60,64,67,0.15)] border border-slate-200/80 relative flex flex-col"
+                  className="flex flex-col items-center gap-6 pb-20"
                 >
-                  {isLoadingContent && (
-                    <div className="absolute inset-0 bg-white/80 backdrop-blur-xs z-20 flex flex-col items-center justify-center text-slate-400 gap-3 rounded-2xl">
-                      <span className="w-8 h-8 border-3 border-[#1a73e8] border-t-transparent rounded-full animate-spin" />
-                      <p className="text-sm font-semibold text-slate-600">Loading research text...</p>
+                  {pages.map((pageHtml, pageIndex) => (
+                    <div
+                      key={pageIndex}
+                      className="w-[816px] min-h-[1056px] bg-white rounded-xs shadow-[0_1px_3px_0_rgba(60,64,67,0.3),0_4px_8px_3px_rgba(60,64,67,0.15)] border border-slate-200/90 relative flex flex-col justify-between p-16 group transition-shadow hover:shadow-[0_2px_6px_0_rgba(60,64,67,0.35),0_8px_16px_4px_rgba(60,64,67,0.18)]"
+                    >
+                      {/* Top Header of the Page */}
+                      <div className="flex justify-between items-center text-[10px] text-slate-400 font-mono select-none border-b border-slate-100 pb-2 mb-6">
+                        <span className="truncate max-w-[320px] font-medium text-slate-500">{documentTitle}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="bg-slate-100 text-slate-600 px-2 py-0.5 rounded font-bold">
+                            Page {pageIndex + 1} of {pages.length}
+                          </span>
+                          {pages.length > 1 && (
+                            <button
+                              type="button"
+                              onClick={() => handleDeletePage(pageIndex)}
+                              className="opacity-0 group-hover:opacity-100 text-rose-500 hover:text-rose-700 hover:bg-rose-50 p-1 rounded transition-all"
+                              title="Delete this page"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Contenteditable Editor for THIS Specific Page */}
+                      <div
+                        ref={el => pageRefs.current[pageIndex] = el}
+                        contentEditable
+                        suppressContentEditableWarning
+                        onInput={(e) => handlePageInput(pageIndex, e.currentTarget.innerHTML)}
+                        onBlur={updateStats}
+                        dir={isRTL ? 'rtl' : 'ltr'}
+                        style={{
+                          fontFamily: fontFamily,
+                          fontSize: `${fontSize}px`,
+                          lineHeight: lineSpacing,
+                          color: textColor,
+                          minHeight: '800px',
+                        }}
+                        dangerouslySetInnerHTML={{ __html: pageHtml }}
+                        className="flex-1 outline-none border-none leading-relaxed text-slate-900 transition-all cursor-text select-text"
+                        placeholder={`Start typing page ${pageIndex + 1} contents here...`}
+                      />
+
+                      {/* Bottom Footer of the Page */}
+                      <div className="flex justify-between items-center text-[10px] text-slate-400 font-mono select-none border-t border-slate-100 pt-3 mt-6">
+                        <button
+                          type="button"
+                          onClick={() => handleAddPageAfter(pageIndex)}
+                          className="opacity-0 group-hover:opacity-100 text-[#1a73e8] hover:underline font-semibold flex items-center gap-1 transition-opacity"
+                        >
+                          <PlusCircle className="w-3 h-3" />
+                          <span>+ Insert Page Break Here</span>
+                        </button>
+                        <span className="font-bold text-slate-500">- {pageIndex + 1} -</span>
+                      </div>
                     </div>
-                  )}
-
-                  <div
-                    ref={editorRef}
-                    contentEditable
-                    suppressContentEditableWarning
-                    onInput={updateStats}
-                    onBlur={updateStats}
-                    dir={isRTL ? 'rtl' : 'ltr'}
-                    style={{
-                      fontFamily: fontFamily,
-                      fontSize: `${fontSize}px`,
-                      lineHeight: lineSpacing,
-                      color: textColor,
-                      minHeight: '900px',
-                    }}
-                    className="w-full outline-none border-none leading-relaxed text-slate-900 transition-all cursor-text select-text"
-                    placeholder="Start typing your research text, notes, or chapter contents here in Urdu or English..."
-                  />
+                  ))}
                 </div>
-              </div>
-
+              )}
             </div>
 
           </main>
@@ -1001,8 +1080,8 @@ export default function GoogleDocsEditorModal({
         {/* 4. BOTTOM STATUS BAR */}
         <footer className="flex items-center justify-between px-4 py-1.5 bg-white border-t border-slate-200 text-[11px] font-medium text-slate-500 flex-shrink-0">
           <div className="flex items-center gap-3">
-            <span className="font-bold text-[#1a73e8] bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
-              Page {currentPage} of {totalPages}
+            <span className="font-bold text-[#1a73e8] bg-blue-50 px-2.5 py-0.5 rounded-full border border-blue-200">
+              Page {currentPage} of {pages.length}
             </span>
             <span>•</span>
             <span className="font-semibold text-slate-700">{wordCount.toLocaleString()} words</span>
