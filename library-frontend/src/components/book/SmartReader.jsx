@@ -121,11 +121,30 @@ const SmartReader = ({
       setIsLoadingText(true);
       let text = "";
 
+      const decodeArrayBuffer = (buffer) => {
+        const bytes = new Uint8Array(buffer);
+        try {
+          const utf8Decoder = new TextDecoder('utf-8', { fatal: true });
+          const decoded = utf8Decoder.decode(bytes);
+          const mojibakeCount = (decoded.match(/[ùø§©®±²³µ¿]/g) || []).length;
+          const urduArabicCount = (decoded.match(/[\u0600-\u06FF]/g) || []).length;
+          if (urduArabicCount > 0 || mojibakeCount < 5) {
+            return decoded;
+          }
+          const win1256Decoder = new TextDecoder('windows-1256');
+          return win1256Decoder.decode(bytes);
+        } catch {
+          const win1256Decoder = new TextDecoder('windows-1256');
+          return win1256Decoder.decode(bytes);
+        }
+      };
+
       // Try primary stream URL first
       try {
         const response = await fetch(txtUrl || directTxtUrl);
         if (response.ok) {
-          text = await response.text();
+          const buf = await response.arrayBuffer();
+          text = decodeArrayBuffer(buf);
         } else {
           throw new Error(`HTTP ${response.status}`);
         }
@@ -135,7 +154,8 @@ const SmartReader = ({
           try {
             const fallbackResp = await fetch(directTxtUrl);
             if (fallbackResp.ok) {
-              text = await fallbackResp.text();
+              const buf = await fallbackResp.arrayBuffer();
+              text = decodeArrayBuffer(buf);
             }
           } catch (fallbackErr) {
             console.error("Text fetch fallback failed:", fallbackErr);

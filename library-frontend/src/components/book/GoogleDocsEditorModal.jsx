@@ -63,24 +63,43 @@ export default function GoogleDocsEditorModal({
     }
   }, [bookTitle]);
 
-  // Helper: Read File As Text with UTF-8 & Windows-1256 fallback
-  const readFileAsText = (file) => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const content = e.target.result || '';
-        if (content.includes('\uFFFD')) {
-          const reader1256 = new FileReader();
-          reader1256.onload = (ev) => resolve(ev.target.result || content);
-          reader1256.onerror = () => resolve(content);
-          reader1256.readAsText(file, 'windows-1256');
-        } else {
-          resolve(content);
+  // Helper: Read File As Text with UTF-8 & Windows-1256 fallback via native TextDecoder
+  const readFileAsText = async (file) => {
+    try {
+      const arrayBuffer = await file.arrayBuffer();
+      const bytes = new Uint8Array(arrayBuffer);
+
+      // 1. Try Strict UTF-8 first
+      try {
+        const utf8Decoder = new TextDecoder('utf-8', { fatal: true });
+        const decoded = utf8Decoder.decode(bytes);
+        const mojibakeCount = (decoded.match(/[ùø§©®±²³µ¿]/g) || []).length;
+        const urduArabicCount = (decoded.match(/[\u0600-\u06FF]/g) || []).length;
+        if (urduArabicCount > 0 || mojibakeCount < 5) {
+          return decoded;
         }
-      };
-      reader.onerror = (e) => reject(e);
-      reader.readAsText(file, 'UTF-8');
-    });
+      } catch (err) {
+        // Not valid UTF-8, continue to Windows-1256
+      }
+
+      // 2. Decode as Windows-1256 (Urdu / Arabic ANSI)
+      try {
+        const win1256Decoder = new TextDecoder('windows-1256');
+        const text1256 = win1256Decoder.decode(bytes);
+        if (text1256 && text1256.trim()) {
+          return text1256;
+        }
+      } catch (err) {
+        console.warn("Windows-1256 decoding failed, falling back to standard UTF-8");
+      }
+
+      // 3. Fallback to standard TextDecoder
+      const fallbackDecoder = new TextDecoder('utf-8');
+      return fallbackDecoder.decode(bytes);
+    } catch (err) {
+      console.error("Error reading file buffer:", err);
+      return '';
+    }
   };
 
   // Helper: Format raw text faithfully into lines (No line mixing)
@@ -128,7 +147,23 @@ export default function GoogleDocsEditorModal({
           
           const res = await fetch(fullUrl);
           if (res.ok) {
-            textToLoad = await res.text();
+            const arrayBuffer = await res.arrayBuffer();
+            const bytes = new Uint8Array(arrayBuffer);
+            try {
+              const utf8Decoder = new TextDecoder('utf-8', { fatal: true });
+              const decoded = utf8Decoder.decode(bytes);
+              const mojibakeCount = (decoded.match(/[ùø§©®±²³µ¿]/g) || []).length;
+              const urduArabicCount = (decoded.match(/[\u0600-\u06FF]/g) || []).length;
+              if (urduArabicCount > 0 || mojibakeCount < 5) {
+                textToLoad = decoded;
+              } else {
+                const win1256Decoder = new TextDecoder('windows-1256');
+                textToLoad = win1256Decoder.decode(bytes);
+              }
+            } catch {
+              const win1256Decoder = new TextDecoder('windows-1256');
+              textToLoad = win1256Decoder.decode(bytes);
+            }
           }
         }
 
