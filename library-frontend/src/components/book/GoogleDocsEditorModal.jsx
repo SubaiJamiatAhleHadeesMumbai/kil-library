@@ -61,71 +61,73 @@ export default function GoogleDocsEditorModal({
     if (!isOpen) return;
 
     const loadContent = async () => {
-      // 1. If File object is provided
-      if (initialFile instanceof File) {
-        setIsLoadingContent(true);
-        try {
-          const text = await readFileAsText(initialFile);
-          if (editorRef.current) {
-            editorRef.current.innerHTML = formatTextToHtml(text);
-            updateStats();
-          }
+      setIsLoadingContent(true);
+      try {
+        let textToLoad = '';
+
+        // 1. If File object is provided
+        if (initialFile instanceof File) {
+          textToLoad = await readFileAsText(initialFile);
           if (initialFile.name) {
             const cleanName = initialFile.name.replace(/\.[^/.]+$/, '');
             setDocumentTitle(cleanName);
           }
-        } catch (err) {
-          console.error("Error reading file:", err);
-          toast.error("Could not read text file.");
-        } finally {
-          setIsLoadingContent(false);
         }
-      }
-      // 2. If Direct Text String is provided
-      else if (initialText) {
-        if (editorRef.current) {
-          editorRef.current.innerHTML = formatTextToHtml(initialText);
-          updateStats();
+        // 2. If Direct Text String is provided
+        else if (initialText) {
+          textToLoad = initialText;
         }
-      }
-      // 3. If URL is provided (Edit Mode)
-      else if (initialUrl) {
-        setIsLoadingContent(true);
-        try {
+        // 3. If URL is provided (Edit Mode)
+        else if (initialUrl) {
           const fullUrl = initialUrl.startsWith('http')
             ? initialUrl
             : `${import.meta.env.VITE_API_BASE_URL || ''}${initialUrl}`;
           
           const res = await fetch(fullUrl);
           if (res.ok) {
-            const text = await res.text();
-            if (editorRef.current) {
-              editorRef.current.innerHTML = formatTextToHtml(text);
-              updateStats();
-            }
+            textToLoad = await res.text();
           }
-        } catch (err) {
-          console.error("Error fetching existing text:", err);
-        } finally {
-          setIsLoadingContent(false);
         }
-      } else {
-        // Fresh blank document
-        if (editorRef.current && !editorRef.current.innerHTML.trim()) {
-          editorRef.current.innerHTML = '<p><br></p>';
-          updateStats();
-        }
+
+        // Apply content to editor DOM
+        setTimeout(() => {
+          if (editorRef.current) {
+            if (textToLoad && textToLoad.trim()) {
+              editorRef.current.innerHTML = formatTextToHtml(textToLoad);
+            } else if (!editorRef.current.innerHTML.trim()) {
+              editorRef.current.innerHTML = '<p><br></p>';
+            }
+            updateStats();
+          }
+        }, 50);
+
+      } catch (err) {
+        console.error("Error loading content:", err);
+        toast.error("Could not read text file.");
+      } finally {
+        setIsLoadingContent(false);
       }
     };
 
     loadContent();
   }, [isOpen, initialFile, initialText, initialUrl]);
 
-  // Helper: Read File As Text with UTF-8
+  // Helper: Read File As Text with UTF-8 & Windows-1256 fallback
   const readFileAsText = (file) => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
-      reader.onload = (e) => resolve(e.target.result);
+      reader.onload = (e) => {
+        const content = e.target.result || '';
+        // If UTF-8 has replacement characters, try Arabic Windows-1256
+        if (content.includes('\uFFFD')) {
+          const reader1256 = new FileReader();
+          reader1256.onload = (ev) => resolve(ev.target.result || content);
+          reader1256.onerror = () => resolve(content);
+          reader1256.readAsText(file, 'windows-1256');
+        } else {
+          resolve(content);
+        }
+      };
       reader.onerror = (e) => reject(e);
       reader.readAsText(file, 'UTF-8');
     });
@@ -137,9 +139,13 @@ export default function GoogleDocsEditorModal({
     if (rawText.includes('<p>') || rawText.includes('<div>') || rawText.includes('<h')) {
       return rawText;
     }
-    return rawText
-      .split('\n\n')
-      .map(para => `<p>${para.replace(/\n/g, '<br>')}</p>`)
+    const lines = rawText.split(/\r?\n/);
+    return lines
+      .map(line => {
+        const trimmed = line.trim();
+        if (!trimmed) return '<p><br></p>';
+        return `<p>${line}</p>`;
+      })
       .join('');
   };
 
@@ -917,29 +923,29 @@ export default function GoogleDocsEditorModal({
                 }}
                 className="w-[816px] min-h-[1056px] bg-white rounded shadow-[0_1px_3px_0_rgba(60,64,67,0.3),0_4px_8px_3px_rgba(60,64,67,0.15)] px-16 py-14 relative flex flex-col"
               >
-                {isLoadingContent ? (
-                  <div className="flex-1 flex flex-col items-center justify-center py-20 text-slate-400 gap-3">
+                {isLoadingContent && (
+                  <div className="absolute inset-0 bg-white/80 backdrop-blur-xs z-10 flex flex-col items-center justify-center text-slate-400 gap-3 rounded">
                     <span className="w-8 h-8 border-3 border-[#1a73e8] border-t-transparent rounded-full animate-spin" />
                     <p className="text-sm font-semibold text-slate-600">Loading research text...</p>
                   </div>
-                ) : (
-                  <div
-                    ref={editorRef}
-                    contentEditable
-                    suppressContentEditableWarning
-                    onInput={updateStats}
-                    onBlur={updateStats}
-                    dir={isRTL ? 'rtl' : 'ltr'}
-                    style={{
-                      fontFamily: fontFamily,
-                      fontSize: `${fontSize}px`,
-                      lineHeight: lineSpacing,
-                      color: textColor,
-                    }}
-                    className="flex-1 outline-none border-none min-h-[900px] leading-relaxed text-slate-900 transition-all cursor-text select-text"
-                    placeholder="Start typing your research text, notes, or chapter contents here in Urdu or English..."
-                  />
                 )}
+
+                <div
+                  ref={editorRef}
+                  contentEditable
+                  suppressContentEditableWarning
+                  onInput={updateStats}
+                  onBlur={updateStats}
+                  dir={isRTL ? 'rtl' : 'ltr'}
+                  style={{
+                    fontFamily: fontFamily,
+                    fontSize: `${fontSize}px`,
+                    lineHeight: lineSpacing,
+                    color: textColor,
+                  }}
+                  className="flex-1 outline-none border-none min-h-[900px] leading-relaxed text-slate-900 transition-all cursor-text select-text"
+                  placeholder="Start typing your research text, notes, or chapter contents here in Urdu or English..."
+                />
               </div>
 
             </div>
