@@ -1,11 +1,10 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   X, Search, RotateCcw, RotateCw, Printer,
   Bold, Italic, Underline, Strikethrough, AlignLeft, AlignCenter, AlignRight, AlignJustify,
   List, ListOrdered, Indent, Outdent, Eraser,
   ChevronDown, ChevronLeft, ChevronRight, FileText, Star, Cloud,
-  Maximize2, Minimize2, FileCheck, BookOpen, PlusCircle, Trash2,
-  Wand2, Table, Sparkles
+  Maximize2, Minimize2, FileCheck, BookOpen, PlusCircle, Trash2
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -30,7 +29,7 @@ export default function GoogleDocsEditorModal({
   const [fontSize, setFontSize] = useState('18');
   const [textColor, setTextColor] = useState('#111827');
   const [highlightColor, setHighlightColor] = useState('#ffffff');
-  const [lineSpacing, setLineSpacing] = useState('2.0');
+  const [lineSpacing, setLineSpacing] = useState('1.8');
   const [activeHeading, setActiveHeading] = useState('Normal text');
 
   // Multi-Page Array State
@@ -64,58 +63,6 @@ export default function GoogleDocsEditorModal({
     }
   }, [bookTitle]);
 
-  // OCR Clean Helper: Removes excessive empty lines & merges fragmented OCR lines
-  const cleanOcrText = (rawText) => {
-    if (!rawText) return '<p><br></p>';
-    if (rawText.includes('<p>') || rawText.includes('<div>') || rawText.includes('<table')) {
-      return rawText;
-    }
-
-    const lines = rawText.split(/\r?\n/).map(l => l.trim());
-    const formattedParagraphs = [];
-    let currentBuffer = '';
-
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i];
-      if (!line) {
-        if (currentBuffer) {
-          formattedParagraphs.push(`<p>${currentBuffer}</p>`);
-          currentBuffer = '';
-        }
-        continue;
-      }
-
-      // If line looks like a number or table row or short heading
-      const isShortLineOrNumber = line.length <= 6 || /^\d+$/.test(line) || /^[\u0660-\u0669\u06F0-\u06F9]+$/.test(line);
-      const isPunctuationEnd = /[۔.?!:؟]$/.test(line);
-
-      if (isShortLineOrNumber) {
-        if (currentBuffer) {
-          formattedParagraphs.push(`<p>${currentBuffer}</p>`);
-          currentBuffer = '';
-        }
-        formattedParagraphs.push(`<p>${line}</p>`);
-      } else {
-        if (currentBuffer) {
-          currentBuffer += ' ' + line;
-        } else {
-          currentBuffer = line;
-        }
-
-        if (isPunctuationEnd) {
-          formattedParagraphs.push(`<p>${currentBuffer}</p>`);
-          currentBuffer = '';
-        }
-      }
-    }
-
-    if (currentBuffer) {
-      formattedParagraphs.push(`<p>${currentBuffer}</p>`);
-    }
-
-    return formattedParagraphs.join('');
-  };
-
   // Helper: Read File As Text with UTF-8 & Windows-1256 fallback
   const readFileAsText = (file) => {
     return new Promise((resolve, reject) => {
@@ -136,7 +83,23 @@ export default function GoogleDocsEditorModal({
     });
   };
 
-  // Load Content from File, InitialText, or URL
+  // Helper: Format raw text faithfully into lines (No line mixing)
+  const formatPageTextToHtml = (rawPageText) => {
+    if (!rawPageText) return '<p><br></p>';
+    if (rawPageText.includes('<p>') || rawPageText.includes('<div>') || rawPageText.includes('<h')) {
+      return rawPageText;
+    }
+    const lines = rawPageText.split(/\r?\n/);
+    return lines
+      .map(line => {
+        const trimmed = line.trim();
+        if (!trimmed) return '<p><br></p>';
+        return `<p>${line}</p>`;
+      })
+      .join('');
+  };
+
+  // Load Content using EXACT SmartReader Delimiter and Chunking Algorithm
   useEffect(() => {
     if (!isOpen) return;
 
@@ -169,10 +132,40 @@ export default function GoogleDocsEditorModal({
           }
         }
 
-        // Split text by PAGE_SEPARATOR or form feeds
-        if (textToLoad && textToLoad.trim()) {
-          const rawPages = textToLoad.split(/PAGE_SEPARATOR|\f/i);
-          const formattedPages = rawPages.map(p => cleanOcrText(p.trim()));
+        if (textToLoad && textToLoad.trim().length > 0) {
+          // Exact Comprehensive Delimiters from SmartReader.jsx:
+          // 1. --- or ——— (3 or more dashes / horizontal rule)
+          // 2. ... or . . . or … (3 or more dots / horizontal ellipsis)
+          // 3. *** or ___ (3 or more asterisks or underscores)
+          // 4. ===PAGE===, PAGE_SEPARATOR, [PAGE X]
+          const delimiterPattern = /(?:\r?\n|^)\s*(?:[-—_]{3,}|\*{3,}|(?:\.\s*){3,}|…+|===PAGE===|PAGE_SEPARATOR|\[PAGE\s*\d+\])\s*(?:\r?\n|$)/gi;
+
+          let rawPages = textToLoad.split(delimiterPattern)
+            .map(p => p.trim())
+            .filter(p => p.length > 0);
+
+          // Fallback: Smart paragraph chunking ONLY if text file has no explicit delimiters and is 1 continuous block
+          if (rawPages.length === 1 && textToLoad.length > 1500) {
+            const paragraphs = textToLoad.split(/\n\s*\n/);
+            const chunks = [];
+            let currentChunk = "";
+            for (const para of paragraphs) {
+              if ((currentChunk + "\n\n" + para).length > 1400 && currentChunk.length > 0) {
+                chunks.push(currentChunk.trim());
+                currentChunk = para;
+              } else {
+                currentChunk = currentChunk ? currentChunk + "\n\n" + para : para;
+              }
+            }
+            if (currentChunk.trim()) chunks.push(currentChunk.trim());
+            if (chunks.length > 1) rawPages = chunks;
+          }
+
+          if (rawPages.length === 0 && textToLoad.trim().length > 0) {
+            rawPages = [textToLoad.trim()];
+          }
+
+          const formattedPages = rawPages.map(pageText => formatPageTextToHtml(pageText));
           setPages(formattedPages.length > 0 ? formattedPages : ['<p><br></p>']);
         } else {
           setPages(['<p><br></p>']);
@@ -245,66 +238,6 @@ export default function GoogleDocsEditorModal({
         // Fallback
       }
     }
-  };
-
-  // 🪄 1-Click Auto-Fix OCR for Current Page
-  const handleAutoFixCurrentPage = (pageIndex) => {
-    const el = pageRefs.current[pageIndex];
-    if (!el) return;
-    const rawText = el.innerText || '';
-    const cleanedHtml = cleanOcrText(rawText);
-    
-    setPages(prev => {
-      const next = [...prev];
-      next[pageIndex] = cleanedHtml;
-      return next;
-    });
-
-    el.innerHTML = cleanedHtml;
-    updateStats();
-    toast.success(`✨ Page ${pageIndex + 1} reformatted cleanly!`);
-  };
-
-  // 📋 1-Click Format as Index / Table of Contents
-  const handleConvertToIndexTable = (pageIndex) => {
-    const el = pageRefs.current[pageIndex];
-    if (!el) return;
-    const rawText = el.innerText || '';
-    const lines = rawText.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
-
-    // Build 3-column table
-    let tableHtml = `<table style="width: 100%; border-collapse: collapse; margin: 16px 0; border: 1px solid #cbd5e1;" dir="rtl">
-      <thead>
-        <tr style="background-color: #f1f5f9; border-bottom: 2px solid #94a3b8;">
-          <th style="padding: 8px 12px; border: 1px solid #cbd5e1; text-align: center; width: 15%; font-weight: bold;">نمبر شمار</th>
-          <th style="padding: 8px 12px; border: 1px solid #cbd5e1; text-align: right; width: 70%; font-weight: bold;">عنوانات</th>
-          <th style="padding: 8px 12px; border: 1px solid #cbd5e1; text-align: center; width: 15%; font-weight: bold;">صفحہ نمبر</th>
-        </tr>
-      </thead>
-      <tbody>`;
-
-    for (let i = 0; i < lines.length; i += 3) {
-      const col1 = lines[i] || '';
-      const col2 = lines[i + 1] || '';
-      const col3 = lines[i + 2] || '';
-      tableHtml += `<tr style="border-bottom: 1px solid #e2e8f0;">
-        <td style="padding: 8px 12px; border: 1px solid #cbd5e1; text-align: center;">${col1}</td>
-        <td style="padding: 8px 12px; border: 1px solid #cbd5e1; text-align: right;">${col2}</td>
-        <td style="padding: 8px 12px; border: 1px solid #cbd5e1; text-align: center;">${col3}</td>
-      </tr>`;
-    }
-
-    tableHtml += `</tbody></table><p><br></p>`;
-
-    setPages(prev => {
-      const next = [...prev];
-      next[pageIndex] = tableHtml;
-      return next;
-    });
-
-    el.innerHTML = tableHtml;
-    updateStats();
-    toast.success(`📋 Converted to Index Table on Page ${pageIndex + 1}!`);
   };
 
   // Handle Input on Specific Page
@@ -440,7 +373,7 @@ export default function GoogleDocsEditorModal({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, currentPage, pages, documentTitle]);
 
-  // Save and Attach Handler
+  // Save and Attach Handler (Preserves standard PAGE_SEPARATOR for Reader)
   const handleSaveAndAttach = () => {
     const pageTexts = pageRefs.current.map(el => (el ? el.innerText.trim() : '')).filter(t => t.length > 0);
 
@@ -552,9 +485,13 @@ export default function GoogleDocsEditorModal({
                     { label: 'Horizontal Line', action: () => execCmd('insertHorizontalRule') },
                     { label: 'Paragraph Break', action: () => execCmd('insertParagraph') },
                   ]},
+                  { name: 'Format', key: 'formatMenu', items: [
+                    { label: 'Bold (Ctrl+B)', action: () => execCmd('bold') },
+                    { label: 'Italic (Ctrl+I)', action: () => execCmd('italic') },
+                    { label: 'Underline (Ctrl+U)', action: () => execCmd('underline') },
+                    { label: 'Clear Formatting', action: () => execCmd('removeFormat') },
+                  ]},
                   { name: 'Tools', key: 'toolsMenu', items: [
-                    { label: '🪄 Auto-Fix Current Page OCR', action: () => handleAutoFixCurrentPage(currentPage - 1) },
-                    { label: '📋 Convert Page to Index Table', action: () => handleConvertToIndexTable(currentPage - 1) },
                     { label: `Word Count: ${wordCount} words`, action: () => toast(`Document contains ${wordCount} words, ${charCount} characters, and ${pages.length} pages.`, { icon: '📊' }) },
                     { label: 'Switch to Urdu RTL', action: () => setIsRTL(true) },
                     { label: 'Switch to English LTR', action: () => setIsRTL(false) },
@@ -692,29 +629,6 @@ export default function GoogleDocsEditorModal({
 
           <div className="h-4 w-[1px] bg-slate-300 mx-1" />
 
-          {/* 🪄 1-Click Smart Tools */}
-          <button
-            type="button"
-            onClick={() => handleAutoFixCurrentPage(currentPage - 1)}
-            className="px-2.5 py-1 rounded bg-purple-100 hover:bg-purple-200 text-purple-800 text-xs font-bold transition-all flex items-center gap-1 shadow-xs"
-            title="Auto-Fix Broken OCR Lines on Current Page"
-          >
-            <Wand2 className="w-3.5 h-3.5 text-purple-700" />
-            <span>🪄 Auto-Fix OCR</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => handleConvertToIndexTable(currentPage - 1)}
-            className="px-2.5 py-1 rounded bg-teal-100 hover:bg-teal-200 text-teal-800 text-xs font-bold transition-all flex items-center gap-1 shadow-xs"
-            title="Format Current Page as Index Table (نمبر شمار | عنوانات | صفحہ نمبر)"
-          >
-            <Table className="w-3.5 h-3.5 text-teal-700" />
-            <span>📋 Index Table</span>
-          </button>
-
-          <div className="h-4 w-[1px] bg-slate-300 mx-1" />
-
           {/* Zoom Dropdown */}
           <div className="relative">
             <button
@@ -810,6 +724,7 @@ export default function GoogleDocsEditorModal({
                   { label: 'Arial', value: 'Arial' },
                   { label: 'Times New Roman', value: 'Times New Roman' },
                   { label: 'Calibri', value: 'Calibri' },
+                  { label: 'Courier New', value: 'Courier New' },
                 ].map(f => (
                   <button
                     key={f.value}
@@ -858,6 +773,9 @@ export default function GoogleDocsEditorModal({
           </button>
           <button type="button" onClick={() => execCmd('underline')} className="p-1.5 rounded hover:bg-slate-200/80 text-slate-800" title="Underline (Ctrl+U)">
             <Underline className="w-4 h-4" />
+          </button>
+          <button type="button" onClick={() => execCmd('strikeThrough')} className="p-1.5 rounded hover:bg-slate-200/80 text-slate-700" title="Strikethrough">
+            <Strikethrough className="w-4 h-4" />
           </button>
 
           <div className="h-4 w-[1px] bg-slate-300 mx-1" />
@@ -1108,7 +1026,7 @@ export default function GoogleDocsEditorModal({
               {isLoadingContent ? (
                 <div className="w-[816px] min-h-[1056px] bg-white rounded-xs shadow-md border border-slate-200 flex flex-col items-center justify-center text-slate-400 gap-3">
                   <span className="w-8 h-8 border-3 border-[#1a73e8] border-t-transparent rounded-full animate-spin" />
-                  <p className="text-sm font-semibold text-slate-600">Loading research text and optimizing Urdu formatting...</p>
+                  <p className="text-sm font-semibold text-slate-600">Loading research text...</p>
                 </div>
               ) : (
                 <div
@@ -1128,15 +1046,6 @@ export default function GoogleDocsEditorModal({
                       <div className="flex justify-between items-center text-[10px] text-slate-400 font-mono select-none border-b border-slate-100 pb-2 mb-6">
                         <span className="truncate max-w-[280px] font-medium text-slate-500">{documentTitle}</span>
                         <div className="flex items-center gap-2">
-                          <button
-                            type="button"
-                            onClick={() => handleAutoFixCurrentPage(pageIndex)}
-                            className="text-purple-600 hover:text-purple-800 font-sans text-[11px] font-bold flex items-center gap-1 hover:underline"
-                            title="Auto-Fix Broken OCR Lines on this page"
-                          >
-                            <Sparkles className="w-3 h-3" />
-                            <span>Fix OCR</span>
-                          </button>
                           <span className="bg-slate-100 text-slate-600 px-2 py-0.5 rounded font-bold">
                             Page {pageIndex + 1} of {pages.length}
                           </span>
