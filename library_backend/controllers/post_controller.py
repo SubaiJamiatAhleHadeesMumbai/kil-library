@@ -1,4 +1,6 @@
+from datetime import datetime, timezone
 from typing import List, Optional
+
 from fastapi import APIRouter, Depends, HTTPException, File, UploadFile, Form
 from sqlalchemy.orm import Session
 
@@ -55,7 +57,9 @@ def _to_post_response(post_obj) -> PostResponse:
 def create_post(
     title: str = Form(...),
     content: Optional[str] = Form(None),
-    tags: Optional[str] = Form(None),  # Tags field add kar diya
+    tags: Optional[str] = Form(None),
+    status: Optional[str] = Form("published"),       # ✅ NEW: draft | scheduled | published
+    published_at: Optional[str] = Form(None),         # ✅ NEW: ISO datetime string for scheduled posts
     file: Optional[UploadFile] = File(None),
     db: Session = Depends(get_db),
     current_user: user_model.User = Depends(require_permission("USER_MANAGE"))
@@ -63,6 +67,30 @@ def create_post(
     title = title.strip()
     if not title:
         raise HTTPException(status_code=400, detail="Title is required")
+
+    # Validate status
+    valid_statuses = {"draft", "scheduled", "published"}
+    if status not in valid_statuses:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid status '{status}'. Must be one of: {', '.join(valid_statuses)}"
+        )
+
+    # Parse published_at for scheduled posts
+    parsed_published_at = None
+    if status == "scheduled":
+        if not published_at:
+            raise HTTPException(
+                status_code=400,
+                detail="published_at is required when status is 'scheduled'"
+            )
+        try:
+            parsed_published_at = datetime.fromisoformat(published_at.replace("Z", "+00:00"))
+        except (ValueError, AttributeError):
+            raise HTTPException(
+                status_code=400,
+                detail="Invalid published_at format. Use ISO 8601 (e.g., 2025-01-15T10:00:00Z)"
+            )
 
     media_type = "none"
     file_url = None
@@ -81,7 +109,7 @@ def create_post(
             )
 
         # 2. Upload to Cloudinary
-        print(f"Uploading {file.filename} to Cloudinary...") # Debugging
+        print(f"Uploading {file.filename} to Cloudinary...")
         file_url = upload_to_cloudinary(file, folder="library_posts")
 
         if not file_url:
@@ -92,8 +120,10 @@ def create_post(
         title=title,
         content=content,
         media_type=media_type,
-        file_url=file_url,   # Cloudinary URL yahan save hoga
-        tags=tags,           # Tags save honge
+        file_url=file_url,
+        tags=tags,
+        status=status,
+        published_at=parsed_published_at,
         author_id=current_user.id
     )
 
@@ -110,8 +140,11 @@ def get_public_posts(
     limit: int = 20,
     db: Session = Depends(get_db)
 ):
+    """Public endpoint — returns only published posts."""
+    now = datetime.now(timezone.utc)
     posts = (
         db.query(post_model.MarkazPost)
+        .filter(post_model.MarkazPost.status == "published")
         .order_by(post_model.MarkazPost.created_at.desc())
         .offset(skip)
         .limit(limit)
@@ -125,11 +158,18 @@ def get_public_posts(
 def get_admin_posts(
     skip: int = 0,
     limit: int = 50,
+    status_filter: Optional[str] = None,
     db: Session = Depends(get_db),
     current_user: user_model.User = Depends(require_permission("USER_MANAGE"))
 ):
+    """Admin endpoint — returns all posts. Optional status filter."""
+    query = db.query(post_model.MarkazPost)
+
+    if status_filter and status_filter in {"draft", "scheduled", "published"}:
+        query = query.filter(post_model.MarkazPost.status == status_filter)
+
     posts = (
-        db.query(post_model.MarkazPost)
+        query
         .order_by(post_model.MarkazPost.created_at.desc())
         .offset(skip)
         .limit(limit)
@@ -159,6 +199,8 @@ def update_post(
     title: str = Form(...),
     content: Optional[str] = Form(None),
     tags: Optional[str] = Form(None),
+    status: Optional[str] = Form(None),               # ✅ NEW: update status
+    published_at: Optional[str] = Form(None),          # ✅ NEW: update schedule
     file: Optional[UploadFile] = File(None),
     db: Session = Depends(get_db),
     current_user: user_model.User = Depends(require_permission("USER_MANAGE"))
@@ -175,6 +217,27 @@ def update_post(
     post.title = cleaned_title
     post.content = content
     post.tags = tags
+
+    # ✅ Update scheduling fields
+    if status is not None:
+        valid_statuses = {"draft", "scheduled", "published"}
+        if status not in valid_statuses:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid status '{status}'. Must be one of: {', '.join(valid_statuses)}"
+            )
+        post.status = status
+
+        if status == "scheduled" and published_at:
+            try:
+                post.published_at = datetime.fromisoformat(published_at.replace("Z", "+00:00"))
+            except (ValueError, AttributeError):
+                raise HTTPException(
+                    status_code=400,
+                    detail="Invalid published_at format. Use ISO 8601"
+                )
+        elif status == "published":
+            post.published_at = None  # Clear schedule if publishing immediately
 
     if file:
         if file.content_type in ALLOWED_IMAGE_TYPES:
@@ -211,9 +274,6 @@ def delete_post(
     if not post:
         raise HTTPException(status_code=404, detail="Post not found")
 
-    # Note: Cloudinary se delete karna optional hai aur thoda complex hota hai (Public ID chahiye hoti hai).
-    # Abhi hum sirf database se link hata rahe hain.
-    
     db.delete(post)
     db.commit()
 

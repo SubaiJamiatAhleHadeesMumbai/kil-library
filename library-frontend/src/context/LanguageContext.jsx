@@ -202,7 +202,7 @@ export const LanguageProvider = ({ children }) => {
   };
 
   const changeLanguage = (langCode) => {
-    const target = ['ur', 'ar', 'en'].includes(langCode) ? langCode : 'ur';
+    const target = ['ur', 'ar', 'en'].includes(langCode) ? langCode : 'en';
     setCurrentLang(target);
     localStorage.setItem('kil_language', target);
     setGoogleCookies(target);
@@ -219,12 +219,19 @@ export const LanguageProvider = ({ children }) => {
     window.location.reload();
   };
 
+  const resetToEnglish = () => {
+    setCurrentLang('en');
+    localStorage.setItem('kil_language', 'en');
+    setGoogleCookies('en');
+    applyLanguage('en');
+  };
+
   useEffect(() => {
     applyLanguage(currentLang);
   }, [currentLang, location.pathname]);
 
   const activeLangObj = useMemo(() => {
-    return LANGUAGES.find(l => l.code === currentLang) || LANGUAGES[0];
+    return LANGUAGES.find(l => l.code === currentLang) || LANGUAGES.find(l => l.code === 'en') || LANGUAGES[0];
   }, [currentLang]);
 
   // Translation helper function
@@ -239,6 +246,7 @@ export const LanguageProvider = ({ children }) => {
       currentLanguage: activeLangObj,
       languages: LANGUAGES,
       changeLanguage,
+      resetToEnglish,
       isRTL: activeLangObj.dir === 'rtl',
       isAdmin,
       t

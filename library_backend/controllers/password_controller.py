@@ -30,17 +30,19 @@ class ResetPasswordRequest(BaseModel):
             raise ValueError('Passwords do not match')
         return self
 
+from sqlalchemy import func
+import os
+
 # ==========================================
 # 1. SEND OTP ENDPOINT
 # ==========================================
 @router.post("/forgot-password")
 def forgot_password(request: ForgotPasswordRequest, db: Session = Depends(get_db)):
-    # 1. User check karein
-    user = db.query(user_model.User).filter(user_model.User.email == request.email).first()
+    # 1. User check karein (case-insensitive)
+    email_clean = request.email.strip().lower()
+    user = db.query(user_model.User).filter(func.lower(user_model.User.email) == email_clean).first()
     
     if not user:
-        # Security: User nahi mila to bhi 200 OK bhejte hain taake hackers ko pata na chale
-        # Lekin development ke liye hum 404 de sakte hain.
         raise HTTPException(status_code=404, detail="User with this email not found")
 
     # 2. OTP Generate karein (6 Digit)
@@ -55,7 +57,13 @@ def forgot_password(request: ForgotPasswordRequest, db: Session = Depends(get_db
     email_sent = send_otp_email(user.email, otp)
     
     if not email_sent:
-        raise HTTPException(status_code=500, detail="Failed to send email. Please try again later.")
+        is_dev = os.getenv("ENV", "development").lower() == "development"
+        if is_dev:
+            return {
+                "message": f"OTP generated. (SMTP unavailable in dev mode). OTP: {otp}",
+                "dev_otp": otp
+            }
+        raise HTTPException(status_code=500, detail="Failed to send email. Please check SMTP settings.")
 
     return {"message": "OTP sent successfully to your email"}
 

@@ -65,6 +65,9 @@ const EducationPage = lazy(() => import("./pages/EducationPage"));
 const ActivitiesPage = lazy(() => import("./pages/ActivitiesPage"));
 const SocialWorkPage = lazy(() => import("./pages/SocialWorkPage"));
 const SocialWorkManager = lazy(() => import("./pages/Admin/SocialWorkManager"));
+const NewspaperClippingsPage = lazy(() => import("./pages/NewspaperClippingsPage"));
+const NewspaperClippingsManager = lazy(() => import("./pages/Admin/NewspaperClippingsManager"));
+const SystemHealthPage = lazy(() => import("./pages/Admin/SystemHealthPage"));
 
 // ✅ TEST / URDU EDITOR
 const UrduEditor = lazy(() => import("./components/UrduEditor/UrduEditor"));
@@ -86,14 +89,9 @@ const ScrollToTop = () => {
   return null;
 };
 
-const PageLoader = () => (
-  <div className="flex h-screen w-full flex-col items-center justify-center bg-white">
-    <div className="w-12 h-12 border-4 border-slate-200 border-t-[#002147] rounded-full animate-spin"></div>
-    <p className="mt-4 text-sm font-bold text-slate-400 tracking-widest uppercase">
-      Loading Library...
-    </p>
-  </div>
-);
+import AppPageLoader from "./components/common/loaders/AppPageLoader";
+
+const PageLoader = () => <AppPageLoader />;
 
 // ================= APP =================
 function App() {
@@ -118,6 +116,7 @@ function App() {
             <Route path="education" element={<EducationPage />} />
             <Route path="activities" element={<ActivitiesPage />} />
             <Route path="social-work" element={<SocialWorkPage />} />
+            <Route path="clippings" element={<NewspaperClippingsPage />} />
             <Route path="authors" element={<Authors />} />
             <Route path="publishers" element={<Publishers />} />
             <Route path="books" element={<UserLibrary />} />
@@ -161,6 +160,7 @@ function App() {
             <Route path="posts" element={<CreatePost />} />
             <Route path="posts/add" element={<CreatePost />} />
             <Route path="social-work" element={<SocialWorkManager />} />
+            <Route path="newspaper-clippings" element={<NewspaperClippingsManager />} />
             <Route path="users" element={<UserManagement />} />
             <Route path="roles" element={<RoleManagement />} />
             <Route path="roles-permissions" element={<RolePermissionManagement />} />
@@ -182,6 +182,7 @@ function App() {
             <Route path="posters" element={<PosterManagementPage />} />
             <Route path="about-settings" element={<AboutSettingsPage />} />
             <Route path="fatawa" element={<FatawaManager />} />
+            <Route path="system-health" element={<SystemHealthPage />} />
 
             {/* (Optional) Admin-only editor */}
             <Route path="test-editor" element={<UrduEditor />} />

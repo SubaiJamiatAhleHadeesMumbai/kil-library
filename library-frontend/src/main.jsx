@@ -7,7 +7,8 @@ import { AuthProvider } from "./context/AuthProvider";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 import "./index.css";
 
-const GOOGLE_CLIENT_ID = (import.meta.env.VITE_GOOGLE_CLIENT_ID || "").trim();
+const DEFAULT_GOOGLE_CLIENT_ID = "158248986174-cv22ngbp9ctjlf0dmditmsre151lpqm9.apps.googleusercontent.com";
+const GOOGLE_CLIENT_ID = (import.meta.env.VITE_GOOGLE_CLIENT_ID || DEFAULT_GOOGLE_CLIENT_ID).trim();
 const googleAuthEnabled = Boolean(GOOGLE_CLIENT_ID);
 const queryClient = new QueryClient({
   defaultOptions: {

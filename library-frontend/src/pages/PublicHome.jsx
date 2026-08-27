@@ -32,6 +32,11 @@ import BookDetailsModal from "../components/book/BookDetailsModal";
 import RestrictedAccessFlow from "../components/book/RestrictedAccessFlow";
 import SuccessScreen from "../components/RestrictedAccess/SuccessScreen";
 import AskQuestionModal from "../components/fatawa/AskQuestionModal";
+import AppPageLoader from "../components/common/loaders/AppPageLoader";
+import KokanHubBento from "../components/public/KokanHubBento";
+import NewspaperClippingsHomeSection from "../components/public/NewspaperClippingsHomeSection";
+import ImpactStatsCounter from "../components/public/ImpactStatsCounter";
+import WhatsAppCommunityBlock from "../components/public/WhatsAppCommunityBlock";
 
 // Services + Hooks
 import { bookService } from "../api/bookService";
@@ -60,7 +65,34 @@ const resolveImageUrl = (value) => {
   return `${API_BASE_URL}${cleanPath}`;
 };
 
-const SVG_NO_COVER = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='320' viewBox='0 0 240 320'><rect width='240' height='320' fill='%231e293b'/><circle cx='120' cy='140' r='30' fill='%23334155'/><path d='M105 130h30v20h-30z' fill='%2394a3b8'/><text x='120' y='200' font-family='sans-serif' font-size='14' font-weight='bold' fill='%23cbd5e1' text-anchor='middle'>Markaz Library</text><text x='120' y='220' font-family='sans-serif' font-size='11' fill='%2364748b' text-anchor='middle'>No Cover</text></svg>";
+const SVG_NO_COVER =
+  "data:image/svg+xml;utf8," +
+  encodeURIComponent(`
+    <svg xmlns="http://www.w3.org/2000/svg" width="360" height="520" viewBox="0 0 360 520">
+      <defs>
+        <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="#0b1120"/>
+          <stop offset="50%" stop-color="#002147"/>
+          <stop offset="100%" stop-color="#064e3b"/>
+        </linearGradient>
+        <linearGradient id="gold" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stop-color="#fbbf24"/>
+          <stop offset="100%" stop-color="#f59e0b"/>
+        </linearGradient>
+      </defs>
+      <rect width="360" height="520" fill="url(#bg)"/>
+      <rect x="16" y="16" width="328" height="488" rx="8" fill="none" stroke="#334155" stroke-width="1.5" stroke-dasharray="4 4"/>
+      <rect x="22" y="22" width="316" height="476" rx="6" fill="none" stroke="#10b981" stroke-opacity="0.3" stroke-width="1"/>
+      <circle cx="180" cy="180" r="54" fill="#0f172a" stroke="#10b981" stroke-width="2" stroke-opacity="0.4"/>
+      <path d="M160 162h40c2.2 0 4 1.8 4 4v32c0 2.2-1.8 4-4 4h-40c-2.2 0-4-1.8-4-4v-32c0-2.2 1.8-4 4-4zm4 8v24h32v-24h-32z" fill="#34d399"/>
+      <path d="M168 178h16v4h-16zm0 8h24v4h-24z" fill="#6ee7b7"/>
+      <text x="180" y="275" font-family="'Segoe UI', Roboto, sans-serif" font-size="11" font-weight="700" fill="#94a3b8" letter-spacing="3" text-anchor="middle">MARKAZ ISLAMIC LIBRARY</text>
+      <text x="180" y="320" font-family="'Traditional Arabic', 'Amiri', serif" font-size="28" font-weight="bold" fill="url(#gold)" text-anchor="middle">قَرِيبـاً</text>
+      <text x="180" y="355" font-family="'Segoe UI', Roboto, sans-serif" font-size="18" font-weight="800" fill="#ffffff" letter-spacing="2" text-anchor="middle">COMING SOON</text>
+      <rect x="120" y="375" width="120" height="22" rx="11" fill="#10b981" fill-opacity="0.15" stroke="#10b981" stroke-opacity="0.4"/>
+      <text x="180" y="390" font-family="'Segoe UI', Roboto, sans-serif" font-size="10" font-weight="700" fill="#34d399" letter-spacing="1" text-anchor="middle">COVER IN PROCESS</text>
+    </svg>
+  `);
 
 const getBookImage = (book) => {
   const rawUrl = book?.cover_image_url || book?.cover_image;
@@ -572,17 +604,9 @@ const PublicHome = () => {
     };
   }, [accentColor]);
 
-  // Loading Screen State
+  // Loading Screen State (Admin Configurable: Islamic Splash / Skeleton / Hybrid)
   if (authLoading || !homepageSettingsLoaded) {
-    return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-        <div className="rounded-[2rem] border border-slate-200/80 bg-white px-10 py-12 text-center shadow-lg">
-          <div className="mx-auto h-12 w-12 animate-spin rounded-full border-4 border-slate-200 border-t-[#002147]" />
-          <p className="mt-5 text-base font-bold text-slate-700">Loading library experience...</p>
-          <p className="mt-1 text-xs text-slate-400">Fetching collection & settings</p>
-        </div>
-      </div>
-    );
+    return <AppPageLoader config={homepageSettings?.loader_config} />;
   }
 
   return (
@@ -593,33 +617,44 @@ const PublicHome = () => {
       {/* HERO SECTION */}
       {getSectionConfig('hero', { enabled: true }).enabled !== false && (
         <div className="app-shell-container py-3 sm:py-5">
-          <LibraryHero />
-          {/* Place search under hero for immediate access */}
-          {showSearchStripBlock && getSectionConfig('search', { enabled: true }).enabled !== false && (
-            <div className="mt-6">
-              <div className={`${sectionFrameClass} overflow-hidden`}>
-                <LibrarySearchStrip
-                  autoFocus={true}
-                  searchTerm={searchTerm}
-                  onSearchChange={setSearchTerm}
-                  placeholder={getSectionConfig('search', { placeholder: 'Search by title, author, or ISBN...' }).placeholder || 'Search by title, author, or ISBN...'}
-                  showHeader={false}
-                  showHint={false}
-                  enableVoice={Boolean(getSectionConfig('search', { enable_voice: true }).enable_voice !== false)}
-                  enableDeepSearch={Boolean(getSectionConfig('search', { enable_deep: true }).enable_deep !== false)}
-                  enableSuggestions={Boolean(getSectionConfig('search', { show_suggestions: true }).show_suggestions !== false)}
-                />
-              </div>
-            </div>
-          )}
+          <LibraryHero config={getSectionConfig('hero', {})} />
         </div>
       )}
 
       {/* DYNAMIC HOMEPAGE SECTIONS */}
       {orderedHomepageSections.map(({ key }) => {
-        if (key === 'hero') return null;
+        if (key === 'hero' || key === 'search' || key === 'featured' || key === 'catalog') return null;
 
-        // POSTERS
+        // 1. KOKAN HUB BENTO GRID
+        if (key === 'bento_hub' && getSectionConfig('bento_hub', { enabled: true }).enabled !== false) {
+          return (
+            <div key="bento_hub" className="app-shell-container pb-4 sm:pb-8">
+              <KokanHubBento config={getSectionConfig('bento_hub', {})} />
+            </div>
+          );
+        }
+
+        // 2. LIVE IMPACT STATS COUNTER
+        if (key === 'stats_impact' && getSectionConfig('stats_impact', { enabled: true }).enabled !== false) {
+          return (
+            <div key="stats_impact" className="app-shell-container pb-4 sm:pb-8">
+              <ImpactStatsCounter config={getSectionConfig('stats_impact', {})} />
+            </div>
+          );
+        }
+
+        // 3. NEWSPAPER PRESS CLIPPINGS
+        if (key === 'newspaper_clippings' && getSectionConfig('newspaper_clippings', { enabled: true }).enabled !== false) {
+          return (
+            <div key="newspaper_clippings" className="app-shell-container pb-6 sm:pb-10">
+              <div className={sectionFrameClass}>
+                <NewspaperClippingsHomeSection config={getSectionConfig('newspaper_clippings', {})} />
+              </div>
+            </div>
+          );
+        }
+
+        // 4. POSTERS STUDIO CAROUSEL
         if (key === 'posters' && showPosterBlock) {
           return (
             <div key="posters" className={`app-shell-container py-2 sm:py-4 lg:py-6 ${themeClasses.spacing}`}>
@@ -628,111 +663,11 @@ const PublicHome = () => {
           );
         }
 
-        // SEARCH STRIP
-        if (key === 'search' && getSectionConfig('search', { enabled: true }).enabled !== false && showSearchStripBlock) {
+        // 5. WHATSAPP & SOCIAL COMMUNITY
+        if (key === 'whatsapp_community' && getSectionConfig('whatsapp_community', { enabled: true }).enabled !== false) {
           return (
-            <div key="search" className="app-shell-container scroll-mt-24 pb-5 sm:pb-8" id="search">
-              <div className={`${sectionFrameClass} overflow-hidden`}>
-                <LibrarySearchStrip
-                  searchTerm={searchTerm}
-                  onSearchChange={setSearchTerm}
-                  title={getSectionConfig('search', { title: 'Library Search' }).title || 'Library Search'}
-                  subtitle={getSectionConfig('search', { subtitle: 'Search the library collection' }).subtitle || 'Search the library collection'}
-                  description={getSectionConfig('search', { description: 'Find books, authors, publishers and smart recommendations right from the library section.' }).description || 'Find books, authors, publishers and smart recommendations right from the library section.'}
-                  placeholder={getSectionConfig('search', { placeholder: 'Search by title, author, or ISBN...' }).placeholder || 'Search by title, author, or ISBN...'}
-                  showHint={Boolean(getSectionConfig('search', { show_hint: true }).show_hint !== false)}
-                  enableVoice={Boolean(getSectionConfig('search', { enable_voice: true }).enable_voice !== false)}
-                  enableDeepSearch={Boolean(getSectionConfig('search', { enable_deep: true }).enable_deep !== false)}
-                  enableSuggestions={Boolean(getSectionConfig('search', { show_suggestions: true }).show_suggestions !== false)}
-                />
-              </div>
-            </div>
-          );
-        }
-
-        // CONTINUE READING
-        if (key === 'continue_reading' && getSectionConfig('continue_reading', { enabled: true }).enabled !== false && recentReadBooks.length > 0) {
-          return (
-            <div key="continue_reading" className="app-shell-container pb-6 sm:pb-10">
-              <div className={sectionFrameClass}>
-                <div className="mb-5 flex items-end justify-between gap-3">
-                  <div>
-                    <p className="eyebrow text-emerald-600 font-bold uppercase tracking-[0.25em] text-xs">Continue reading</p>
-                    <h3 className="section-title text-2xl font-black text-slate-900 mt-1">Pick up where you left off</h3>
-                  </div>
-                </div>
-                <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-                  {recentReadBooks.map((entry) => (
-                    <CompactBookCard
-                      key={entry.book.id}
-                      book={entry.book}
-                      label={`Page ${entry.last_page_read || 1}`}
-                      meta={
-                        entry.total_pages > 0
-                          ? `Page ${entry.last_page_read || 1} of ${entry.total_pages}`
-                          : entry.updated_at
-                          ? new Date(entry.updated_at).toLocaleDateString("en-IN", { month: "short", day: "numeric" })
-                          : "Recently"
-                      }
-                      progress={entry.total_pages > 0 ? (Number(entry.last_page_read || 1) / Number(entry.total_pages)) * 100 : null}
-                      onClick={() => handleResumeReading(entry.book.id)}
-                    />
-                  ))}
-                </div>
-              </div>
-            </div>
-          );
-        }
-
-        // FEATURED HIGHLIGHTS
-        if (key === 'featured' && getSectionConfig('featured', { enabled: true }).enabled !== false && showFeaturedPanel) {
-          return (
-            <div key="featured" className="app-shell-container pb-6 sm:pb-12">
-              <div className={sectionFrameClass}>
-                <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between mb-8">
-                  <div>
-                    <p className="eyebrow text-xs font-bold uppercase tracking-[0.25em]" style={{ color: accentColor }}>
-                      {getSectionConfig('featured', { title: 'Library Highlights' }).title || 'Library Highlights'}
-                    </p>
-                    <h2 className="section-title text-2xl sm:text-3xl font-black text-slate-900 mt-1">
-                      {getSectionConfig('featured', { subtitle: 'Recommended by the library team' }).subtitle || 'Recommended by the library team'}
-                    </h2>
-                  </div>
-                  <button
-                    onClick={() => {
-                      const el = document.getElementById("book-grid");
-                      if (el) el.scrollIntoView({ behavior: "smooth" });
-                    }}
-                    className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-5 py-2.5 text-sm font-bold text-slate-700 shadow-sm transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-[#002147]"
-                  >
-                    Browse full collection <ArrowRightIcon className="h-4 w-4" />
-                  </button>
-                </div>
-
-                {loading ? (
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-6">
-                    {Array.from({ length: 4 }).map((_, idx) => (
-                      <BookCardSkeleton key={idx} />
-                    ))}
-                  </div>
-                ) : featuredBooks.length > 0 ? (
-                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-6">
-                    {featuredBooks.map((book) => (
-                      <PublicBookCard
-                        key={book.id}
-                        book={book}
-                        isFavorite={favorites.includes(book.id)}
-                        onToggleFavorite={(e) => toggleFavorite(e, book.id)}
-                        onClick={() => setSelectedBook(book)}
-                      />
-                    ))}
-                  </div>
-                ) : (
-                  <div className="rounded-3xl border border-dashed border-slate-300 bg-slate-50/50 p-10 text-center text-slate-500">
-                    No featured titles are available yet. Please check back soon.
-                  </div>
-                )}
-              </div>
+            <div key="whatsapp_community" className="app-shell-container pb-6 sm:pb-10">
+              <WhatsAppCommunityBlock config={getSectionConfig('whatsapp_community', {})} />
             </div>
           );
         }
@@ -1084,139 +1019,7 @@ const PublicHome = () => {
           );
         }
 
-        // CATALOG & FULL BOOK GRID
-        if (key === 'catalog' && getSectionConfig('catalog', { enabled: true }).enabled !== false) {
-          return (
-            <div key="catalog" className="app-shell-container py-5 sm:py-8 scroll-mt-20" id="book-grid">
-              <div className={sectionFrameClass}>
-                {/* Catalog Header & Filter Bar */}
-                <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-8 border-b border-slate-200 pb-6">
-                  <div>
-                    <h2 className="page-title text-2xl sm:text-3xl font-black text-[#002147] max-w-4xl">
-                      {searchTerm ? `Results for "${searchTerm}"` : getSectionConfig('catalog', { title: 'Explore the Library' }).title || 'Explore the Library'}
-                    </h2>
-                    <p className="mt-2 text-sm text-slate-600">
-                      {getSectionConfig('catalog', { description: 'Browse our handpicked selection, curated recommendations, and full catalog from Kokan Islamic Library.' }).description || 'Browse our handpicked selection, curated recommendations, and full catalog from Kokan Islamic Library.'}
-                    </p>
-                  </div>
 
-                  <div className="flex flex-wrap items-center gap-3">
-                    <button
-                      onClick={() => setShowFavoritesOnly((p) => !p)}
-                      className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl border text-sm font-bold transition-all shadow-sm focus:outline-none focus:ring-2 focus:ring-[#002147] ${
-                        showFavoritesOnly
-                          ? "bg-pink-50 border-pink-200 text-pink-700"
-                          : "bg-white border-slate-200 text-slate-700 hover:bg-slate-50"
-                      }`}
-                      title="Show only favorite books"
-                    >
-                      <HeartIcon className="w-4 h-4 text-pink-500 fill-pink-500" />
-                      Favorites
-                      {favorites.length > 0 && (
-                        <span className="ml-1 text-xs bg-pink-100 text-pink-800 border border-pink-200 px-2 py-0.5 rounded-full font-bold">
-                          {favorites.length}
-                        </span>
-                      )}
-                    </button>
-
-                    <button
-                      onClick={loadAllData}
-                      disabled={loading}
-                      className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 text-sm font-bold shadow-sm disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-[#002147]"
-                      title="Refresh Books"
-                    >
-                      <ArrowPathIcon className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
-                      Refresh
-                    </button>
-
-                    <div className="text-sm font-semibold text-slate-500 bg-slate-100 px-3 py-1.5 rounded-xl border border-slate-200">
-                      Showing <span className="font-bold text-slate-900">{finalBooks.length}</span> books
-                    </div>
-                  </div>
-                </div>
-
-                {/* Catalog Grid Content */}
-                {loading ? (
-                  <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
-                    {Array.from({ length: 10 }).map((_, i) => (
-                      <BookCardSkeleton key={i} />
-                    ))}
-                  </div>
-                ) : finalBooks.length > 0 ? (
-                  <div className="mb-10 space-y-10">
-                    {/* Trending Swiper */}
-                    {!searchTerm && !showFavoritesOnly && sortedBooks.length > 0 && (
-                      <div>
-                        <div className="flex items-center gap-2 mb-4">
-                          <SparklesIcon className="h-5 w-5 text-amber-500" />
-                          <h3 className="text-base font-bold uppercase tracking-wider text-slate-800">
-                            Trending Now
-                          </h3>
-                        </div>
-                        <Swiper
-                          modules={[Autoplay, Navigation]}
-                          spaceBetween={20}
-                          loop={sortedBooks.length > 4}
-                          autoplay={{
-                            delay: 3500,
-                            disableOnInteraction: false,
-                          }}
-                          breakpoints={{
-                            320: { slidesPerView: 2 },
-                            640: { slidesPerView: 3 },
-                            768: { slidesPerView: 4 },
-                            1024: { slidesPerView: 5 },
-                          }}
-                        >
-                          {sortedBooks.slice(0, 8).map((book) => (
-                            <SwiperSlide key={book.id}>
-                              <PublicBookCard
-                                book={book}
-                                isFavorite={favorites.includes(book.id)}
-                                onToggleFavorite={(e) => toggleFavorite(e, book.id)}
-                                onClick={() => setSelectedBook(book)}
-                              />
-                            </SwiperSlide>
-                          ))}
-                        </Swiper>
-                      </div>
-                    )}
-
-                    {/* Main Book Grid */}
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-6">
-                      {finalBooks.map((book) => (
-                        <PublicBookCard
-                          key={book.id}
-                          book={book}
-                          isFavorite={favorites.includes(book.id)}
-                          onToggleFavorite={(e) => toggleFavorite(e, book.id)}
-                          onClick={() => setSelectedBook(book)}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="text-center py-16 bg-slate-50/80 rounded-2xl border border-dashed border-slate-300">
-                    <FaceFrownIcon className="w-12 h-12 text-slate-400 mx-auto mb-3" />
-                    <p className="text-slate-800 font-bold text-lg">
-                      No books found matching your criteria.
-                    </p>
-                    <p className="text-slate-500 text-sm mt-1">
-                      Try different keywords or clear filters.
-                    </p>
-                    <button
-                      onClick={handleClearAll}
-                      className="mt-6 inline-flex items-center justify-center px-6 py-2.5 rounded-full text-white font-bold transition-all shadow-sm focus:outline-none focus:ring-2 focus:ring-[#002147]"
-                      style={{ backgroundColor: accentColor }}
-                    >
-                      Clear All Filters
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
-          );
-        }
 
         // POSTS & DONATIONS
         if (key === 'posts' || key === 'donation') {

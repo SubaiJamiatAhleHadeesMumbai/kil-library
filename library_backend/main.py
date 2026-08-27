@@ -68,7 +68,11 @@ from controllers import (
     about_controller,
     fatawa_controller,
     social_work_controller,
-    search_controller
+    search_controller,
+    newspaper_clipping_controller,
+    system_health_controller,
+    bulk_actions_controller,
+    admin_dashboard_controller
 )
 
 def sync_database_schema():
@@ -109,6 +113,8 @@ def sync_database_schema():
         "ALTER TABLE users ADD COLUMN IF NOT EXISTS social_activities VARCHAR(1000);",
         "ALTER TABLE users ADD COLUMN IF NOT EXISTS otp_code VARCHAR(6);",
         "ALTER TABLE users ADD COLUMN IF NOT EXISTS otp_expires_at TIMESTAMP;",
+        # newspaper_clippings
+        "ALTER TABLE newspaper_clippings ADD COLUMN IF NOT EXISTS images TEXT;",
     ]
     
     try:
@@ -160,9 +166,22 @@ async def lifespan(app: FastAPI):
     else:
         print("⚠️ Rate Limiting skipped (slowapi library missing).")
 
+    # 5. ✅ Start Content Scheduler (auto-publish scheduled posts/posters)
+    import asyncio
+    scheduler_task = None
+    try:
+        from utils.content_scheduler import content_scheduler_loop
+        scheduler_task = asyncio.create_task(content_scheduler_loop())
+        print("✅ Content Scheduler Started")
+    except Exception as e:
+        print(f"⚠️ Content scheduler skipped: {str(e)[:100]}")
+
     yield  # Application runs here
 
     # 🛑 Shutdown
+    if scheduler_task:
+        scheduler_task.cancel()
+        print("🕐 Content Scheduler Stopped")
     print("🛑 System Shutting Down...")
 
 # --- Initialize FastAPI App ---
@@ -384,11 +403,17 @@ api_router.include_router(about_controller.router, prefix="/settings", tags=["Ab
 api_router.include_router(fatawa_controller.router, prefix="/fatawa", tags=["Fatawa"])
 api_router.include_router(social_work_controller.router, prefix="/social-work-items", tags=["Social Work & Activities"])
 api_router.include_router(search_controller.router, prefix="/search", tags=["Global Search"])
+api_router.include_router(newspaper_clipping_controller.router, prefix="/newspaper-clippings", tags=["Newspaper Clippings"])
+api_router.include_router(system_health_controller.router, prefix="/system", tags=["System Health"])
+
+api_router.include_router(bulk_actions_controller.router, prefix="/bulk", tags=["Bulk Actions"])
+api_router.include_router(admin_dashboard_controller.router, prefix="/admin", tags=["Admin Dashboard"])
 
 # Register Main Router
 app.include_router(api_router)
 app.include_router(social_work_controller.router, prefix="/social-work-items", include_in_schema=False)
 app.include_router(search_controller.router, prefix="/search", include_in_schema=False)
+app.include_router(newspaper_clipping_controller.router, prefix="/newspaper-clippings", include_in_schema=False)
 
 
 # ------------------------------------------------------------------

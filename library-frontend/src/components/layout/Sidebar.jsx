@@ -16,7 +16,8 @@ import {
     ClockIcon,
     ArrowLeftOnRectangleIcon,
     CheckBadgeIcon,
-    UserGroupIcon
+    UserGroupIcon,
+    NewspaperIcon
 } from '@heroicons/react/24/outline';
 
 const Sidebar = () => {
@@ -50,6 +51,7 @@ const Sidebar = () => {
             title: "Library Management",
             items: [
                 { name: "All Books", path: "/admin/books", icon: BookOpenIcon, requiredPerm: "BOOK_VIEW" },
+                { name: "Newspaper Clippings", path: "/admin/newspaper-clippings", icon: NewspaperIcon, requiredPerm: "BOOK_MANAGE" },
                 { name: "Copies & Issuing", path: "/admin/copies", icon: DocumentDuplicateIcon, requiredPerm: "BOOK_ISSUE" },
                 { name: "Categories", path: "/admin/categories", icon: TagIcon, requiredPerm: "BOOK_MANAGE" },
                 { name: "Subcategories", path: "/admin/subcategories", icon: TagIcon, requiredPerm: "BOOK_MANAGE" },

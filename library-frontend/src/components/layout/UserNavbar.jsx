@@ -24,7 +24,10 @@ import {
   SparklesIcon,
   UserGroupIcon,
   EllipsisHorizontalCircleIcon,
-  MagnifyingGlassIcon
+  MagnifyingGlassIcon,
+  NewspaperIcon,
+  ShieldCheckIcon,
+  BookmarkIcon
 } from "@heroicons/react/24/outline";
 
 // --- COMPONENTS & HOOKS ---
@@ -43,20 +46,6 @@ const MARKAZ_LOGO_URL = `${API_BASE_URL}/static/images/MarkazLogo.png`;
 // ==========================================
 // 1. SUB-COMPONENTS
 // ==========================================
-
-const TopLink = ({ label, icon: Icon, to }) => {
-  const content = (
-    <div className="flex items-center gap-1.5 text-xs text-white/70 hover:text-white transition-colors cursor-pointer font-medium">
-      {Icon && <Icon className="w-3.5 h-3.5 text-white/50" />}
-      <span>{label}</span>
-    </div>
-  );
-
-  if (to) {
-    return <Link to={to}>{content}</Link>;
-  }
-  return content;
-};
 
 const NavItem = ({ to, label, icon: Icon, onClick }) => (
   <NavLink
@@ -114,9 +103,6 @@ const UserNavbar = () => {
   const socialDropdownRef = useRef(null);
   const socialTimeoutRef = useRef(null);
 
-  // Global Ctrl+K / Cmd+K shortcut listener
-   
-
   const handleSocialMouseEnter = () => {
     if (socialTimeoutRef.current) clearTimeout(socialTimeoutRef.current);
     setIsSocialDropdownOpen(true);
@@ -168,29 +154,18 @@ const UserNavbar = () => {
   const showAboutLink = sectionVisibility.about?.enabled !== false;
   const showFatawaLink = sectionVisibility.fatawa?.enabled !== false;
 
+  const brandLogoUrl = homepageSettings?.site_logo_url
+    ? (homepageSettings.site_logo_url.startsWith("http")
+        ? homepageSettings.site_logo_url
+        : `${API_BASE_URL}${homepageSettings.site_logo_url.startsWith("/") ? "" : "/"}${homepageSettings.site_logo_url}`)
+    : MARKAZ_LOGO_URL;
+
+  const brandTitle = homepageSettings?.site_title || t("markaz_title");
+  const brandSub = homepageSettings?.site_subtitle || t("markaz_sub");
+
   return (
     <header className="sticky top-0 z-50 flex flex-col w-full font-sans shadow-xs">
-      
-      {/* ----------------------------------------------------
-          TOP BAR
-      ---------------------------------------------------- */}
-      <div className="bg-[#001D3D] border-b border-white/5 hidden md:block">
-        <div className="app-shell-container h-9 flex items-center justify-between">
-          <div className="flex items-center gap-6">
-            <TopLink label={t("our_projects")} icon={GlobeAltIcon} />
-            {showAboutLink ? <TopLink label={t("about")} icon={InformationCircleIcon} to="/about" /> : null}
-            {showFatawaLink ? <TopLink label={t("fatawa")} icon={BookOpenIcon} to="/fatawa" /> : null}
-            <TopLink label={t("database")} icon={TableCellsIcon} />
-          </div>
-          <div className="text-white/20 text-[10px] font-bold tracking-[0.2em] uppercase">
-            Markaz Ahle Hadees Kokan
-          </div>
-        </div>
-      </div>
-
-      {/* ----------------------------------------------------
-          MAIN NAVBAR
-      ---------------------------------------------------- */}
+      {/* MAIN NAVBAR */}
       <nav className="bg-white/95 backdrop-blur-xl border-b border-slate-200/60 shadow-xs transition-all duration-300">
         <div className="app-shell-container">
           <div className="flex items-center justify-between min-h-[4.25rem] py-2 gap-2">
@@ -201,18 +176,21 @@ const UserNavbar = () => {
                 <div className="relative shrink-0">
                   <div className="absolute inset-0 rounded-full bg-blue-400/20 blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                   <img
-                    src={MARKAZ_LOGO_URL}
+                    src={brandLogoUrl}
                     alt="Logo"
                     className="relative z-10 w-9 h-9 sm:w-11 sm:h-11 object-contain bg-white rounded-full border border-slate-100 shadow-sm group-hover:scale-105 transition-transform duration-300"
-                    onError={(e) => (e.currentTarget.style.display = "none")}
+                    onError={(e) => {
+                      e.currentTarget.onerror = null;
+                      e.currentTarget.src = MARKAZ_LOGO_URL;
+                    }}
                   />
                 </div>
                 <div className="flex flex-col leading-tight min-w-0">
                   <span className="font-extrabold text-sm sm:text-lg text-[#002147] tracking-tight truncate">
-                    {t("markaz_title")}
+                    {brandTitle}
                   </span>
                   <span className="text-[9px] sm:text-[10px] text-slate-500 font-bold uppercase tracking-wider truncate">
-                    {t("markaz_sub")}
+                    {brandSub}
                   </span>
                 </div>
               </Link>
@@ -224,7 +202,6 @@ const UserNavbar = () => {
               <NavItem to="/books" label={t("library")} icon={BookOpenIcon} />
               {showAboutLink ? <NavItem to="/about" label={t("about")} icon={InformationCircleIcon} /> : null}
               {showFatawaLink ? <NavItem to="/fatawa" label={t("fatawa")} icon={BookOpenIcon} /> : null}
-              <NavItem to="/authors" label={t("authors")} icon={UsersIcon} />
 
               {/* ACTIVITIES DROPDOWN (Smooth Hover) */}
               <div
@@ -300,7 +277,26 @@ const UserNavbar = () => {
                           </div>
                         </Link>
 
-                        {/* 3. Other */}
+                        {/* 3. Newspaper Clippings */}
+                        <Link
+                          to="/clippings"
+                          onClick={() => setIsSocialDropdownOpen(false)}
+                          className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-amber-50/80 transition-all duration-200 group"
+                        >
+                          <div className="h-9 w-9 rounded-xl bg-amber-100/70 text-amber-800 flex items-center justify-center flex-shrink-0 group-hover:scale-105 group-hover:bg-amber-600 group-hover:text-white transition-all shadow-sm">
+                            <NewspaperIcon className="h-5 w-5" />
+                          </div>
+                          <div className="flex flex-col text-left">
+                            <span className="text-xs font-bold text-slate-800 group-hover:text-amber-900 transition-colors">
+                              Newspaper Clippings
+                            </span>
+                            <span className="text-[10px] text-slate-400 font-medium">
+                              اخباری تراشے و پریس کٹنگس
+                            </span>
+                          </div>
+                        </Link>
+
+                        {/* 4. Other */}
                         <Link
                           to="/activities"
                           onClick={() => setIsSocialDropdownOpen(false)}
@@ -324,116 +320,142 @@ const UserNavbar = () => {
                 </AnimatePresence>
               </div>
 
-              <NavItem to="/publishers" label={t("publishers")} icon={BuildingOfficeIcon} />
               <NavItem to="/posts" label={t("updates")} icon={MegaphoneIcon} />
-              {isAuth && (
-                <>
-                  <div className="h-4 w-px bg-slate-300 mx-2" />
-                  <NavItem to="/history" label={t("history")} icon={ClockIcon} />
-                </>
-              )}
             </div>
 
             {/* RIGHT ACTIONS */}
-            <div className="hidden md:flex items-center justify-end gap-3 lg:gap-4 min-w-0 md:flex-1 lg:flex-none">
+            <div className="hidden md:flex items-center justify-end gap-1.5 lg:gap-2 min-w-0 md:flex-1 lg:flex-none">
               
-              {/* Universal Search Trigger (Expanded with placeholder on large screens) */}
+              {/* Universal Search Trigger (Desktop: Sleek Search Pill) */}
               <button
                 type="button"
                 onClick={() => setIsUniversalSearchOpen(true)}
-                className="hidden xl:flex items-center gap-2.5 px-3.5 py-1.5 rounded-full bg-slate-100/90 hover:bg-blue-50/80 text-slate-500 hover:text-[#002147] border border-slate-200/90 hover:border-blue-300 text-xs transition-all shadow-2xs cursor-pointer group w-48 2xl:w-56"
+                className="hidden xl:flex items-center justify-between gap-1.5 px-3 py-1.5 rounded-full bg-slate-100/80 hover:bg-white text-slate-500 hover:text-[#002147] border border-slate-200/80 hover:border-blue-300 text-xs transition-all duration-200 shadow-2xs hover:shadow-xs cursor-pointer group w-36 2xl:w-44"
                 title={t("search_placeholder")}
               >
-                <MagnifyingGlassIcon className="w-4 h-4 text-blue-600 group-hover:scale-110 transition-transform flex-shrink-0" />
-                <span className="font-medium text-slate-400 group-hover:text-slate-600 truncate text-[11.5px]">
-                  {t("search_placeholder")}
-                </span>
+                <div className="flex items-center gap-1.5 min-w-0">
+                  <MagnifyingGlassIcon className="w-3.5 h-3.5 text-blue-600 group-hover:scale-110 transition-transform flex-shrink-0" />
+                  <span className="font-medium text-slate-400 group-hover:text-slate-600 truncate text-[11px]">
+                    {t("search_btn") || "Search"}
+                  </span>
+                </div>
+                <kbd className="hidden 2xl:inline-flex items-center px-1 py-0.2 text-[8.5px] font-bold text-slate-400 bg-white border border-slate-200 rounded shadow-2xs">
+                  Ctrl K
+                </kbd>
               </button>
 
               {/* Compact Search Trigger for Tablets / Smaller Desktops */}
               <button
                 type="button"
                 onClick={() => setIsUniversalSearchOpen(true)}
-                className="xl:hidden flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-blue-50/90 hover:bg-blue-100 text-[#002147] border border-blue-200/80 font-bold text-xs transition-all shadow-2xs cursor-pointer group"
+                className="xl:hidden flex items-center gap-1 px-2.5 py-1.5 rounded-full bg-blue-50/80 hover:bg-blue-100 text-[#002147] border border-blue-200/80 font-bold text-[11px] transition-all duration-200 shadow-2xs cursor-pointer group"
                 title={t("search_placeholder")}
               >
-                <MagnifyingGlassIcon className="w-4 h-4 text-blue-700 group-hover:scale-110 transition-transform" />
-                <span className="font-bold">{t("search_btn")}</span>
+                <MagnifyingGlassIcon className="w-3.5 h-3.5 text-blue-700 group-hover:scale-110 transition-transform" />
+                <span className="font-bold text-[11px]">{t("search_btn")}</span>
               </button>
 
               {/* Language Switcher (Urdu, Arabic, English) */}
               <LanguageSwitcher />
 
-              {/* Donate */}
+              {/* Donate Button */}
               <button
                 onClick={() => setIsDonationOpen(true)}
-                className="group flex items-center gap-2 px-4 py-2 bg-rose-50 text-rose-600 rounded-full hover:bg-rose-600 hover:text-white transition-all duration-300 border border-rose-100 hover:border-rose-600 shadow-sm"
+                className="group flex items-center gap-1 px-2.5 py-1.5 bg-gradient-to-r from-rose-50 to-pink-50 text-rose-700 rounded-full hover:from-rose-600 hover:to-pink-600 hover:text-white transition-all duration-300 border border-rose-200/80 hover:border-transparent shadow-2xs hover:shadow-xs cursor-pointer"
+                title={t("donate")}
               >
-                <HeartIcon className="w-4 h-4 group-hover:scale-110 transition-transform" />
-                <span className="text-xs font-bold">{t("donate")}</span>
+                <HeartIcon className="w-3 h-3 text-rose-500 group-hover:text-white group-hover:scale-110 transition-transform" />
+                <span className="text-[11px] font-bold">{t("donate")}</span>
               </button>
 
-              {/* Auth Logic */}
+              {/* Auth Logic (Logged-in vs Logged-out) */}
               {isAuth ? (
-                <div className="flex items-center gap-3 pl-3 border-l border-slate-200">
+                <div className="flex items-center gap-2 ps-1.5 border-s border-slate-200">
                   <NotificationBell />
 
                   {/* Profile Dropdown */}
                   <div ref={profileRef} className="relative">
                     <button
                       onClick={() => setIsProfileOpen((p) => !p)}
-                      className="flex items-center gap-2 pl-1 pr-2 py-1 rounded-full hover:bg-slate-50 border border-transparent hover:border-slate-200 transition-all group"
+                      className="flex items-center gap-1.5 p-0.5 rounded-full hover:bg-slate-100/80 border border-transparent hover:border-slate-200/80 transition-all group cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-400/30"
+                      aria-expanded={isProfileOpen}
                     >
-                      <div className="flex flex-col items-end leading-none">
-                        <span className="text-[9px] text-slate-400 font-bold uppercase">Hi,</span>
-                        <span className="text-sm font-bold text-[#002147] max-w-[100px] truncate">
+                      <div className="h-7 w-7 rounded-full bg-gradient-to-br from-[#002147] to-blue-900 text-white flex items-center justify-center border border-white shadow-xs font-extrabold text-[11px]">
+                        {user?.username?.[0]?.toUpperCase() || "U"}
+                      </div>
+                      <div className="hidden lg:flex flex-col items-start leading-none pe-1">
+                        <span className="text-[11px] font-bold text-[#002147] max-w-[80px] truncate">
                           {user?.username || "User"}
                         </span>
+                        <span className="text-[8.5px] text-slate-400 font-semibold uppercase tracking-wider mt-0.5">
+                          {user?.role === "Admin" || user?.role === "admin" || user?.role === "superadmin" ? "Admin" : "Member"}
+                        </span>
                       </div>
-                      <div className="h-9 w-9 rounded-full bg-[#002147] text-white flex items-center justify-center border-2 border-white shadow-md font-bold text-sm ring-2 ring-transparent group-hover:ring-blue-100 transition-all">
-                        {user?.username?.[0]?.toUpperCase()}
-                      </div>
-                      <ChevronDownIcon className={`w-3 h-3 text-slate-400 transition-transform duration-200 ${isProfileOpen ? 'rotate-180' : ''}`} />
+                      <ChevronDownIcon className={`w-3 h-3 text-slate-400 transition-transform duration-200 ${isProfileOpen ? 'rotate-180 text-[#002147]' : ''}`} />
                     </button>
 
                     <AnimatePresence>
                       {isProfileOpen && (
                         <motion.div
-                          initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                          initial={{ opacity: 0, y: 8, scale: 0.96 }}
                           animate={{ opacity: 1, y: 0, scale: 1 }}
-                          exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                          transition={{ duration: 0.2 }}
-                          className="absolute right-0 mt-2 w-56 bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden ring-1 ring-black/5"
+                          exit={{ opacity: 0, y: 6, scale: 0.96 }}
+                          transition={{ duration: 0.15, ease: "easeOut" }}
+                          className="absolute end-0 mt-2 w-60 bg-white/95 backdrop-blur-xl rounded-2xl shadow-xl border border-slate-200/90 p-1.5 z-[100] overflow-hidden ring-1 ring-black/5"
                         >
-                          <div className="px-4 py-3 bg-slate-50 border-b border-slate-100">
-                             <p className="text-xs text-slate-500 font-semibold">Signed in as</p>
-                             <p className="text-sm font-bold text-[#002147] truncate">{user?.username}</p>
+                          {/* User Header Info Card */}
+                          <div className="px-3.5 py-3 bg-gradient-to-br from-slate-50 to-blue-50/40 rounded-xl border border-slate-100 mb-1">
+                            <div className="flex items-center justify-between gap-2 mb-1">
+                              <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Signed in as</span>
+                              <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${
+                                user?.role === 'Admin' || user?.role === 'admin' || user?.role === 'superadmin'
+                                  ? 'bg-indigo-100 text-indigo-800'
+                                  : 'bg-emerald-100 text-emerald-800'
+                              }`}>
+                                {user?.role || "Member"}
+                              </span>
+                            </div>
+                            <p className="text-sm font-extrabold text-[#002147] truncate">{user?.username}</p>
+                            {user?.email && (
+                              <p className="text-xs text-slate-500 font-medium truncate mt-0.5">{user.email}</p>
+                            )}
                           </div>
-                          <div className="p-1.5 space-y-1">
+
+                          {/* Navigation Items in Dropdown */}
+                          <div className="space-y-0.5">
                             {user && (user.role === 'Admin' || user.role === 'admin' || user.role === 'superadmin') && (
                               <Link
                                 to="/admin/dashboard"
                                 onClick={() => setIsProfileOpen(false)}
-                                className="flex items-center gap-3 px-3 py-2.5 text-sm font-bold text-indigo-700 bg-indigo-50/70 rounded-xl hover:bg-indigo-100 transition-colors"
+                                className="flex items-center gap-2.5 px-3 py-2 text-xs font-bold text-indigo-700 bg-indigo-50/60 rounded-xl hover:bg-indigo-100 transition-colors"
                               >
-                                <ShieldCheckIcon className="w-5 h-5 text-indigo-600" />
-                                Admin Dashboard
+                                <ShieldCheckIcon className="w-4 h-4 text-indigo-600 flex-shrink-0" />
+                                <span>Admin Dashboard</span>
                               </Link>
                             )}
                             <Link
                               to="/profile"
                               onClick={() => setIsProfileOpen(false)}
-                              className="flex items-center gap-3 px-3 py-2.5 text-sm font-semibold text-slate-600 rounded-xl hover:bg-blue-50 hover:text-blue-700 transition-colors"
+                              className="flex items-center gap-2.5 px-3 py-2 text-xs font-bold text-slate-700 rounded-xl hover:bg-blue-50/80 hover:text-blue-900 transition-colors"
                             >
-                              <UserCircleIcon className="w-5 h-5 text-slate-400" />
-                              My Profile
+                              <UserCircleIcon className="w-4 h-4 text-slate-400 flex-shrink-0" />
+                              <span>{t("profile") || "My Profile"}</span>
+                            </Link>
+                            <Link
+                              to="/user-library"
+                              onClick={() => setIsProfileOpen(false)}
+                              className="flex items-center gap-2.5 px-3 py-2 text-xs font-bold text-slate-700 rounded-xl hover:bg-blue-50/80 hover:text-blue-900 transition-colors"
+                            >
+                              <BookmarkIcon className="w-4 h-4 text-slate-400 flex-shrink-0" />
+                              <span>My Saved / History</span>
                             </Link>
                             <button
+                              type="button"
                               onClick={handleLogout}
-                              className="w-full flex items-center gap-3 px-3 py-2.5 text-sm font-semibold text-red-600 rounded-xl hover:bg-red-50 transition-colors text-left"
+                              className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-bold text-rose-600 rounded-xl hover:bg-rose-50 transition-colors text-start cursor-pointer mt-1 border-t border-slate-100"
                             >
-                              <ArrowRightOnRectangleIcon className="w-5 h-5" />
-                              Log Out
+                              <ArrowRightOnRectangleIcon className="w-4 h-4 flex-shrink-0" />
+                              <span>{t("logout") || "Log Out"}</span>
                             </button>
                           </div>
                         </motion.div>
@@ -442,14 +464,13 @@ const UserNavbar = () => {
                   </div>
                 </div>
               ) : (
-                <div className="flex items-center gap-3 pl-3 border-l border-slate-200">
-                  {/* âœ… ONLY LOGIN BUTTON (Register Removed) */}
+                <div className="flex items-center gap-2 ps-1.5 border-s border-slate-200">
                   <Link
                     to="/login"
-                    className="flex items-center gap-2 bg-[#002147] text-white px-6 py-2.5 rounded-full text-sm font-bold shadow-md hover:bg-[#003366] hover:shadow-lg hover:-translate-y-0.5 transition-all"
+                    className="flex items-center gap-1 bg-[#002147] hover:bg-[#003366] text-white px-3 py-1.5 rounded-full text-[11px] font-extrabold shadow-2xs hover:shadow-xs hover:-translate-y-0.5 transition-all duration-200"
                   >
-                    <ArrowLeftOnRectangleIcon className="w-4 h-4" />
-                    {t("login")}
+                    <ArrowLeftOnRectangleIcon className="w-3.5 h-3.5" />
+                    <span>{t("login")}</span>
                   </Link>
                 </div>
               )}
@@ -500,14 +521,29 @@ const UserNavbar = () => {
                 <div className="mb-6 pb-6 border-b border-slate-100">
                     {isAuth ? (
                         <div className="flex items-center gap-3 bg-slate-50 p-3 rounded-2xl">
-                            <div className="h-10 w-10 rounded-full bg-[#002147] text-white flex items-center justify-center font-bold text-lg shadow-md">
+                            <div className="h-10 w-10 rounded-full bg-[#002147] text-white flex items-center justify-center font-bold text-lg shadow-md flex-shrink-0">
                                 {user?.username?.[0]?.toUpperCase()}
                             </div>
                             <div className="flex-1 min-w-0">
                                 <p className="text-sm font-bold text-slate-800 truncate">{user?.username}</p>
-                                <p className="text-xs text-slate-500">Active Member</p>
+                                <p className="text-xs text-slate-500">{user?.role || "Active Member"}</p>
                             </div>
-                            <Link to="/profile" onClick={() => setIsMobileMenuOpen(false)} className="p-2 bg-white text-blue-600 rounded-lg shadow-sm border border-slate-100">
+                            {user && (user.role === 'Admin' || user.role === 'admin' || user.role === 'superadmin') && (
+                              <Link
+                                to="/admin/dashboard"
+                                onClick={() => setIsMobileMenuOpen(false)}
+                                className="p-2 bg-indigo-50 text-indigo-700 rounded-lg shadow-xs border border-indigo-100"
+                                title="Admin Dashboard"
+                              >
+                                <ShieldCheckIcon className="w-5 h-5" />
+                              </Link>
+                            )}
+                            <Link
+                              to="/profile"
+                              onClick={() => setIsMobileMenuOpen(false)}
+                              className="p-2 bg-white text-blue-600 rounded-lg shadow-xs border border-slate-100"
+                              title="My Profile"
+                            >
                                 <UserCircleIcon className="w-5 h-5" />
                             </Link>
                         </div>
@@ -530,7 +566,6 @@ const UserNavbar = () => {
                   <NavItem to="/books" label={t("library")} icon={BookOpenIcon} onClick={() => setIsMobileMenuOpen(false)} />
                   {showAboutLink ? <NavItem to="/about" label={t("about")} icon={InformationCircleIcon} onClick={() => setIsMobileMenuOpen(false)} /> : null}
                   {showFatawaLink ? <NavItem to="/fatawa" label={t("fatawa")} icon={BookOpenIcon} onClick={() => setIsMobileMenuOpen(false)} /> : null}
-                  <NavItem to="/authors" label={t("authors")} icon={UsersIcon} onClick={() => setIsMobileMenuOpen(false)} />
                   
                   {/* Mobile Activities Accordion */}
                   <div className="rounded-xl overflow-hidden">
@@ -570,6 +605,14 @@ const UserNavbar = () => {
                             <span>{t("social_work")}</span>
                           </Link>
                           <Link
+                            to="/clippings"
+                            onClick={() => setIsMobileMenuOpen(false)}
+                            className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold text-slate-700 hover:text-amber-900 hover:bg-white transition-colors"
+                          >
+                            <NewspaperIcon className="w-4 h-4 text-amber-600" />
+                            <span>Newspaper Clippings (اخباری تراشے)</span>
+                          </Link>
+                          <Link
                             to="/activities"
                             onClick={() => setIsMobileMenuOpen(false)}
                             className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold text-slate-700 hover:text-purple-900 hover:bg-white transition-colors"
@@ -582,7 +625,6 @@ const UserNavbar = () => {
                     </AnimatePresence>
                   </div>
 
-                  <NavItem to="/publishers" label={t("publishers")} icon={BuildingOfficeIcon} onClick={() => setIsMobileMenuOpen(false)} />
                   <NavItem to="/posts" label={t("updates")} icon={MegaphoneIcon} onClick={() => setIsMobileMenuOpen(false)} />
                   {isAuth && (
                       <NavItem to="/history" label={t("history")} icon={ClockIcon} onClick={() => setIsMobileMenuOpen(false)} />
@@ -591,8 +633,9 @@ const UserNavbar = () => {
 
                 {/* Mobile Actions */}
                 <div className="mt-6 pt-6 border-t border-slate-100 space-y-3">
-                    <div className="flex justify-center pb-2">
-                      <LanguageSwitcher />
+                    {/* Inline Segmented Language Selector (English / اردو / العربية) */}
+                    <div className="pb-1">
+                      <LanguageSwitcher variant="segmented" />
                     </div>
                     <button
                         onClick={() => {

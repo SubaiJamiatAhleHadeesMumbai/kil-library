@@ -19,6 +19,7 @@ import {
 } from "@heroicons/react/24/outline";
 
 import restrictedBookService from "../../api/restrictedBookService";
+import bulkActionService from "../../api/bulkActionService";
 import { FALLBACK_COVER } from "../../utils/cover";
 
 // ✅ CONFIG: API Base URL
@@ -44,6 +45,11 @@ const AccessRequests = () => {
   const [filter, setFilter] = useState("pending");
   const [searchTerm, setSearchTerm] = useState("");
   const [sortOrder, setSortOrder] = useState("desc"); 
+  
+  // --- Bulk Action State ---
+  const [selectedRequests, setSelectedRequests] = useState(new Set());
+  const [bulkActionLoading, setBulkActionLoading] = useState(false);
+  const [bulkRejectModal, setBulkRejectModal] = useState(false);
 
   // --- MODALS ---
   const [rejectModal, setRejectModal] = useState({ open: false, requestId: null });
@@ -100,6 +106,40 @@ const AccessRequests = () => {
   const copyToClipboard = (text) => {
     navigator.clipboard.writeText(text);
     toast.success("Copied!");
+  };
+
+  const handleBulkAction = async (action, reason = null) => {
+    if (!selectedRequests.size) return;
+    const confirmMsg = `Are you sure you want to ${action} ${selectedRequests.size} requests?`;
+    if (!window.confirm(confirmMsg)) return;
+    setBulkActionLoading(true);
+    try {
+        const result = await bulkActionService.bulkRequestAction(action, [...selectedRequests], reason);
+        toast.success(result.message);
+        setSelectedRequests(new Set());
+        setBulkRejectModal(false);
+        setRejectionReason("");
+        fetchRequests();
+    } catch (err) {
+        toast.error(err.response?.data?.detail || 'Bulk action failed');
+    } finally {
+        setBulkActionLoading(false);
+    }
+  };
+
+  const toggleSelectAll = (e) => {
+      if (e.target.checked) {
+          setSelectedRequests(new Set(processedRequests.map(r => r.id)));
+      } else {
+          setSelectedRequests(new Set());
+      }
+  };
+
+  const toggleSelectRequest = (id) => {
+      const newSet = new Set(selectedRequests);
+      if (newSet.has(id)) newSet.delete(id);
+      else newSet.add(id);
+      setSelectedRequests(newSet);
   };
 
   // --- FILTERING & SORTING ---
@@ -210,13 +250,31 @@ const AccessRequests = () => {
           </div>
         </div>
 
+        {/* Bulk Actions Toolbar */}
+        {selectedRequests.size > 0 && (
+          <div className="flex flex-wrap items-center gap-3 px-6 py-4 bg-indigo-50 border border-indigo-100 rounded-2xl shadow-sm">
+            <span className="text-sm font-bold text-indigo-700">{selectedRequests.size} selected</span>
+            <button disabled={bulkActionLoading} onClick={() => handleBulkAction('approve')} className="px-3 py-1.5 text-xs font-bold bg-emerald-100 text-emerald-700 rounded-xl hover:bg-emerald-200 transition disabled:opacity-50">Approve Selected</button>
+            <button disabled={bulkActionLoading} onClick={() => setBulkRejectModal(true)} className="px-3 py-1.5 text-xs font-bold bg-red-100 text-red-700 rounded-xl hover:bg-red-200 transition disabled:opacity-50">Reject Selected</button>
+            <button disabled={bulkActionLoading} onClick={() => setSelectedRequests(new Set())} className="ml-auto px-3 py-1.5 text-xs font-bold bg-slate-100 text-slate-600 rounded-xl hover:bg-slate-200 transition disabled:opacity-50">Clear</button>
+          </div>
+        )}
+
         {/* DATA TABLE */}
         <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-slate-50/50 border-b border-slate-200 text-xs font-bold text-slate-500 uppercase tracking-wider">
-                  <th className="p-4 pl-6">User Details</th>
+                  <th className="p-4 pl-6 w-12 text-center">
+                      <input 
+                          type="checkbox" 
+                          className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                          checked={processedRequests.length > 0 && selectedRequests.size === processedRequests.length}
+                          onChange={toggleSelectAll}
+                      />
+                  </th>
+                  <th className="p-4">User Details</th>
                   <th className="p-4">Requested Book</th>
                   <th className="p-4">Purpose & Info</th>
                   <th className="p-4 cursor-pointer hover:bg-slate-100 transition-colors" onClick={() => setSortOrder(o => o === 'asc' ? 'desc' : 'asc')}>
@@ -247,8 +305,16 @@ const AccessRequests = () => {
                         className="group hover:bg-slate-50/80 transition-colors cursor-pointer"
                         onClick={() => setViewModal({ open: true, data: req })}
                     >
+                      <td className="p-4 pl-6 text-center" onClick={e => e.stopPropagation()}>
+                          <input 
+                              type="checkbox" 
+                              className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                              checked={selectedRequests.has(req.id)}
+                              onChange={() => toggleSelectRequest(req.id)}
+                          />
+                      </td>
                       {/* User */}
-                      <td className="p-4 pl-6">
+                      <td className="p-4">
                         <div className="flex items-center gap-3">
                           <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 font-bold text-sm border border-slate-200">
                             {req.name?.[0] || <UserIcon className="w-5 h-5" />}
@@ -500,6 +566,43 @@ const AccessRequests = () => {
                  <div className="p-4 bg-slate-50 flex gap-3">
                     <button onClick={() => setRejectModal({open:false, requestId:null})} className="flex-1 py-2 font-bold text-slate-600 hover:bg-slate-200 rounded-lg transition-colors text-sm">Cancel</button>
                     <button onClick={handleRejectConfirm} className="flex-1 py-2 bg-red-600 text-white font-bold rounded-lg hover:bg-red-700 transition-colors text-sm">Confirm Reject</button>
+                 </div>
+              </motion.div>
+           </div>
+        )}
+      </AnimatePresence>
+
+      {/* 3. BULK REJECT MODAL */}
+      <AnimatePresence>
+        {bulkRejectModal && (
+           <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+              <motion.div 
+                 initial={{ opacity: 0, scale: 0.9 }}
+                 animate={{ opacity: 1, scale: 1 }}
+                 exit={{ opacity: 0, scale: 0.9 }}
+                 className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden"
+              >
+                 <div className="p-6">
+                    <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center text-red-600 mb-4">
+                       <XCircleIcon className="w-6 h-6" />
+                    </div>
+                    <h3 className="text-lg font-bold text-slate-900">Bulk Reject {selectedRequests.size} Requests</h3>
+                    <p className="text-slate-500 text-sm mt-1 mb-4">Please provide a reason. This will be visible to all selected users.</p>
+                    
+                    <textarea 
+                       autoFocus
+                       value={rejectionReason}
+                       onChange={(e) => setRejectionReason(e.target.value)}
+                       className="w-full h-32 p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none resize-none"
+                       placeholder="e.g. Incomplete details provided..."
+                    />
+                 </div>
+                 <div className="p-4 bg-slate-50 flex gap-3">
+                    <button onClick={() => { setBulkRejectModal(false); setRejectionReason(''); }} className="flex-1 py-2 font-bold text-slate-600 hover:bg-slate-200 rounded-lg transition-colors text-sm">Cancel</button>
+                    <button onClick={() => {
+                        if (!rejectionReason.trim()) return toast.error("Reason required");
+                        handleBulkAction('reject', rejectionReason);
+                    }} className="flex-1 py-2 bg-red-600 text-white font-bold rounded-lg hover:bg-red-700 transition-colors text-sm">Confirm Reject</button>
                  </div>
               </motion.div>
            </div>

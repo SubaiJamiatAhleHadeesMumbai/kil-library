@@ -9,7 +9,7 @@ import {
     ComputerDesktopIcon, DocumentDuplicateIcon, AdjustmentsHorizontalIcon,
     InformationCircleIcon, ChatBubbleLeftRightIcon, PhotoIcon,
     ChevronLeftIcon, ChevronRightIcon, ChevronDownIcon, MagnifyingGlassIcon,
-    SparklesIcon, UserGroupIcon
+    SparklesIcon, UserGroupIcon, NewspaperIcon, ServerStackIcon
 } from '@heroicons/react/24/outline';
 
 // ✅ Custom Hooks & Services
@@ -110,6 +110,7 @@ const AdminSidebar = ({ mobileClose = () => {} }) => {
             section: "Library Management",
             items: [
                 { name: 'All Books', path: '/admin/books', icon: BookOpenIcon, requiredPerm: ['BOOK_VIEW', 'BOOK_MANAGE'] },
+                { name: 'Newspaper Clippings', path: '/admin/newspaper-clippings', icon: NewspaperIcon, requiredPerm: ['BOOK_VIEW', 'BOOK_MANAGE', 'HOMEPAGE_CONTENT_MANAGE'] },
                 { name: 'Copies & Issuing', path: '/admin/copies', icon: DocumentDuplicateIcon, requiredPerm: 'BOOK_ISSUE' },
                 { name: 'Categories', path: '/admin/categories', icon: TagIcon, requiredPerm: ['CATEGORY_MANAGE', 'BOOK_MANAGE'] },
                 { name: 'Subcategories', path: '/admin/subcategories', icon: RectangleStackIcon, requiredPerm: ['CATEGORY_MANAGE', 'BOOK_MANAGE'] },
@@ -134,6 +135,7 @@ const AdminSidebar = ({ mobileClose = () => {} }) => {
                 { name: 'Restricted Books', path: '/admin/book-permissions', icon: LockClosedIcon, requiredPerm: ['BOOK_PERMISSION_MANAGE', 'BOOK_PERMISSION_VIEW', 'PERMISSION_VIEW'] },
                 { name: 'Digital Access', path: '/admin/digital-access-history', icon: ComputerDesktopIcon, requiredPerm: 'DIGITAL_ACCESS_VIEW' },
                 { name: 'Audit Logs', path: '/admin/logs', icon: ClipboardDocumentListIcon, requiredPerm: 'LOG_VIEW' },
+                { name: 'System Health', path: '/admin/system-health', icon: ServerStackIcon, requiredPerm: 'LOG_VIEW' },
                 {
                     name: 'Homepage Settings',
                     path: '/admin/homepage-settings',

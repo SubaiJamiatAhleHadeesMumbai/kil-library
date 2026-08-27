@@ -21,6 +21,7 @@ import useAuth from '../../hooks/useAuth';
 import GlobalSearchModal from '../book/GlobalSearchModal';
 import { bookService } from '../../api/bookService';
 import { FALLBACK_COVER } from '../../utils/cover';
+import AppPageLoader from '../common/loaders/AppPageLoader';
 
 const controlPanels = [
   {
@@ -51,20 +52,28 @@ const controlPanels = [
     icon: EyeIcon,
     requiredPermissions: ['HOMEPAGE_VISIBILITY_MANAGE'],
   },
+  {
+    key: 'loader',
+    title: 'Splash & Loader',
+    description: 'Islamic Splash, Skeleton Shimmer, Festive Modes & Live Test.',
+    icon: SparklesIcon,
+    requiredPermissions: ['HOMEPAGE_BRANDING_MANAGE', 'HOMEPAGE_LAYOUT_MANAGE'],
+  },
 ];
 
 const defaultSections = [
   { key: 'hero', label: 'Hero / Welcome Banner', description: 'Main landing intro and spotlight area' },
-  { key: 'search', label: 'Search Strip', description: 'Search, filters, and discovery tools' },
-  { key: 'featured', label: 'Featured Books', description: 'Curated recommended titles' },
-  { key: 'catalog', label: 'Library Catalog', description: 'Main book browsing grid' },
-  { key: 'posts', label: 'Announcements', description: 'News and latest updates' },
-  { key: 'donation', label: 'Donation Panel', description: 'Support and donation block' },
-  { key: 'about', label: 'About Page', description: 'Public about page link visibility' },
-  { key: 'education_social_activity', label: 'Education, Social & Activity', description: 'Community education and social service section visibility' },
-  { key: 'fatawa', label: 'Fatawa Q&A', description: 'Public fatawa page link visibility' },
-  { key: 'gallery', label: 'Gallery', description: 'Public gallery section visibility' },
-  { key: 'posters', label: 'Media Posters', description: 'Rotating poster carousel and campaign visuals' },
+  { key: 'bento_hub', label: 'Kokan Hub (4-Bento Portals)', description: 'Quick access cards to Library, Press Clippings, Fatawa & Social Welfare' },
+  { key: 'stats_impact', label: 'Live Impact Stats Counter', description: 'Real-time metrics for Books, Clippings, Fatawa and Active Readers' },
+  { key: 'newspaper_clippings', label: 'Newspaper Press Clippings', description: 'Recent press releases and published news coverage from Roznama Inquilab, Urdu Times, etc.' },
+  { key: 'posters', label: 'Media & Campaign Posters', description: 'Rotating poster carousel and campaign visuals' },
+  { key: 'posts', label: 'Announcements & Updates', description: 'News, events and official announcements' },
+  { key: 'education_social_activity', label: 'Education, Social & Activities', description: 'Community education, relief work and Markaz projects' },
+  { key: 'fatawa', label: 'Darul Ifta & Fatawa Showcase', description: 'Public Islamic fatawa questions and answers highlight' },
+  { key: 'gallery', label: 'Photo & Event Gallery', description: 'Event photos and activities showcase' },
+  { key: 'whatsapp_community', label: 'WhatsApp & Social Community', description: '1-Click official WhatsApp and Telegram community connect card' },
+  { key: 'donation', label: 'Donation & Support Module', description: 'Support, Sadaqah and Taawun block' },
+  { key: 'about', label: 'About Markaz Section', description: 'Introduction to Markaz Jamiat Ahle Hadees Kokan' },
 ];
 
 const buildOrderedSections = (sections = {}) => {
@@ -95,14 +104,35 @@ const HomepageCustomizer = () => {
     language: 'en',
     hero_badge: '',
     site_title: '',
+    site_subtitle: '',
+    site_logo_url: '',
     sections: {},
     layout: {},
+    loader_config: {
+      loader_style: 'hybrid', // 'islamic_splash' | 'skeleton_shimmer' | 'hybrid'
+      splash_theme: 'navy', // 'navy' | 'black' | 'ivory'
+      occasion_theme: 'default', // 'default' | 'ramadan' | 'eid' | 'conference'
+      show_quotes: true,
+      splash_duration: 1800,
+    },
   });
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
   const [isError, setIsError] = useState(false);
   const [origSettings, setOrigSettings] = useState(null);
   const [activePanel, setActivePanel] = useState('branding');
+  const [previewLoaderModalOpen, setPreviewLoaderModalOpen] = useState(false);
+  const [previewLoaderStyle, setPreviewLoaderStyle] = useState('islamic_splash');
+
+  const updateLoaderConfig = (key, value) => {
+    setSettings((prev) => ({
+      ...prev,
+      loader_config: {
+        ...(prev.loader_config || {}),
+        [key]: value,
+      },
+    }));
+  };
 
   const { user } = useAuth();
 
@@ -250,6 +280,30 @@ const HomepageCustomizer = () => {
         },
       },
     }));
+  };
+
+  const moveSection = (currentIndex, direction) => {
+    const targetIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
+    if (targetIndex < 0 || targetIndex >= sectionEntries.length) return;
+
+    const currentSec = sectionEntries[currentIndex];
+    const targetSec = sectionEntries[targetIndex];
+
+    setSettings((prev) => {
+      const updatedSections = { ...(prev.sections || {}) };
+      updatedSections[currentSec.key] = {
+        ...(updatedSections[currentSec.key] || {}),
+        order: targetIndex,
+      };
+      updatedSections[targetSec.key] = {
+        ...(updatedSections[targetSec.key] || {}),
+        order: currentIndex,
+      };
+      return {
+        ...prev,
+        sections: updatedSections,
+      };
+    });
   };
 
   const handleSave = async () => {
@@ -512,14 +566,91 @@ const HomepageCustomizer = () => {
                     <LanguageIcon className="h-5 w-5" />
                   </div>
                   <div>
-                    <h3 className="text-base font-bold text-slate-900">Language & Identity</h3>
-                    <p className="text-xs text-slate-500">Configure global website titles, languages, and spotlight badges.</p>
+                    <h3 className="text-base font-bold text-slate-900">Brand Header & Identity</h3>
+                    <p className="text-xs text-slate-500">Configure public website logo, brand titles, navbar subtitle, and language.</p>
+                  </div>
+                </div>
+
+                {/* Live Brand Header Preview Box */}
+                <div className="rounded-2xl border border-blue-100 bg-gradient-to-r from-blue-50/50 to-indigo-50/30 p-4">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-blue-600 block mb-2">Live Navbar Header Preview</span>
+                  <div className="flex items-center gap-3 bg-white p-3 rounded-xl border border-slate-200/80 shadow-xs max-w-md">
+                    <img
+                      src={
+                        settings.site_logo_url
+                          ? (settings.site_logo_url.startsWith('http')
+                              ? settings.site_logo_url
+                              : `${import.meta.env.VITE_API_BASE_URL || ''}${settings.site_logo_url.startsWith('/') ? '' : '/'}${settings.site_logo_url}`)
+                          : `${import.meta.env.VITE_API_BASE_URL || ''}/static/images/MarkazLogo.png`
+                      }
+                      alt="Logo Preview"
+                      className="w-10 h-10 object-contain rounded-full border border-slate-100 bg-white p-0.5 shadow-xs"
+                      onError={(e) => {
+                        e.currentTarget.onerror = null;
+                        e.currentTarget.src = `${import.meta.env.VITE_API_BASE_URL || ''}/static/images/MarkazLogo.png`;
+                      }}
+                    />
+                    <div className="flex flex-col leading-tight min-w-0">
+                      <span className="font-extrabold text-base text-[#002147] truncate">
+                        {settings.site_title || 'Markaz Library'}
+                      </span>
+                      <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider truncate">
+                        {settings.site_subtitle || 'AHLE HADEES KOKAN'}
+                      </span>
+                    </div>
                   </div>
                 </div>
 
                 <div className="grid gap-4 sm:grid-cols-2">
                   <label className="block">
-                    <span className="mb-1.5 block text-xs font-semibold text-slate-700">Interface Language</span>
+                    <span className="mb-1.5 block text-xs font-semibold text-slate-700">Public Site Title</span>
+                    <input
+                      type="text"
+                      value={settings.site_title || ''}
+                      onChange={(e) => updateContentField('site_title', e.target.value)}
+                      placeholder="e.g. Markaz Library"
+                      className="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-3.5 py-2.5 text-sm text-slate-800 focus:border-indigo-500 focus:bg-white focus:outline-none"
+                    />
+                  </label>
+
+                  <label className="block">
+                    <span className="mb-1.5 block text-xs font-semibold text-slate-700">Public Site Subtitle (Navbar Tagline)</span>
+                    <input
+                      type="text"
+                      value={settings.site_subtitle || ''}
+                      onChange={(e) => updateContentField('site_subtitle', e.target.value)}
+                      placeholder="e.g. AHLE HADEES KOKAN"
+                      className="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-3.5 py-2.5 text-sm text-slate-800 focus:border-indigo-500 focus:bg-white focus:outline-none"
+                    />
+                  </label>
+                </div>
+
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <label className="block">
+                    <span className="mb-1.5 block text-xs font-semibold text-slate-700">Brand Logo Image URL / Path</span>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="text"
+                        value={settings.site_logo_url || ''}
+                        onChange={(e) => updateContentField('site_logo_url', e.target.value)}
+                        placeholder="e.g. /static/images/MarkazLogo.png or https://..."
+                        className="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-3.5 py-2.5 text-sm text-slate-800 focus:border-indigo-500 focus:bg-white focus:outline-none"
+                      />
+                      {settings.site_logo_url && (
+                        <button
+                          type="button"
+                          onClick={() => updateContentField('site_logo_url', '')}
+                          className="text-xs text-slate-500 hover:text-red-600 px-2 py-1 rounded border border-slate-200 whitespace-nowrap"
+                          title="Reset to default Markaz logo"
+                        >
+                          Reset
+                        </button>
+                      )}
+                    </div>
+                  </label>
+
+                  <label className="block">
+                    <span className="mb-1.5 block text-xs font-semibold text-slate-700">Default Interface Language</span>
                     <select
                       value={settings.language || 'en'}
                       onChange={(e) => updateLanguage(e.target.value)}
@@ -529,17 +660,6 @@ const HomepageCustomizer = () => {
                       <option value="ur">Urdu (اردو)</option>
                       <option value="ar">Arabic (العربية)</option>
                     </select>
-                  </label>
-
-                  <label className="block">
-                    <span className="mb-1.5 block text-xs font-semibold text-slate-700">Public Site Title</span>
-                    <input
-                      type="text"
-                      value={settings.site_title || ''}
-                      onChange={(e) => updateContentField('site_title', e.target.value)}
-                      placeholder="e.g. Kokan Digital Library"
-                      className="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-3.5 py-2.5 text-sm text-slate-800 focus:border-indigo-500 focus:bg-white focus:outline-none"
-                    />
                   </label>
                 </div>
 
@@ -571,35 +691,63 @@ const HomepageCustomizer = () => {
                 </div>
 
                 <div className="mt-6 space-y-5">
-                  {sectionEntries.map((section) => (
+                  {sectionEntries.map((section, idx) => (
                     <div
                       key={section.key}
                       className="rounded-2xl border border-slate-200 bg-slate-50/50 p-5 transition-all hover:border-slate-300 hover:bg-slate-50"
                     >
-                      <div className="flex items-center justify-between gap-3 border-b border-slate-200/60 pb-3">
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm font-bold text-slate-900">{section.label}</span>
-                            <span className="rounded-md bg-slate-200/70 px-2 py-0.5 text-[10px] font-semibold text-slate-700">
-                              Order: {section.order}
-                            </span>
+                      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200/60 pb-3">
+                        <div className="flex items-center gap-3">
+                          {/* 1-Click Reorder Buttons */}
+                          <div className="flex items-center gap-1 bg-white p-1 rounded-xl border border-slate-200 shadow-2xs">
+                            <button
+                              type="button"
+                              disabled={idx === 0}
+                              onClick={() => moveSection(idx, 'up')}
+                              className="p-1 rounded-lg text-slate-600 hover:bg-slate-100 disabled:opacity-30 disabled:hover:bg-transparent transition cursor-pointer"
+                              title="Move Up"
+                            >
+                              ▲
+                            </button>
+                            <button
+                              type="button"
+                              disabled={idx === sectionEntries.length - 1}
+                              onClick={() => moveSection(idx, 'down')}
+                              className="p-1 rounded-lg text-slate-600 hover:bg-slate-100 disabled:opacity-30 disabled:hover:bg-transparent transition cursor-pointer"
+                              title="Move Down"
+                            >
+                              ▼
+                            </button>
                           </div>
-                          <p className="text-xs text-slate-500">{section.description}</p>
+
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-bold text-slate-900">{section.label}</span>
+                              <span className="rounded-md bg-slate-200/70 px-2 py-0.5 text-[10px] font-semibold text-slate-700">
+                                Position: {idx + 1}
+                              </span>
+                            </div>
+                            <p className="text-xs text-slate-500">{section.description}</p>
+                          </div>
                         </div>
-                        <span
-                          className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold ${
+
+                        <button
+                          type="button"
+                          onClick={() => toggleSection(section.key)}
+                          className={`inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-bold transition cursor-pointer ${
                             section.enabled
-                              ? 'bg-emerald-100/80 text-emerald-700'
-                              : 'bg-slate-200/60 text-slate-600'
+                              ? 'bg-emerald-500 text-white shadow-xs hover:bg-emerald-600'
+                              : 'bg-slate-200 text-slate-600 hover:bg-slate-300'
                           }`}
+                          title={`Click to ${section.enabled ? 'Hide' : 'Show'} this section`}
                         >
                           <span
                             className={`h-1.5 w-1.5 rounded-full ${
-                              section.enabled ? 'bg-emerald-500' : 'bg-slate-400'
+                              section.enabled ? 'bg-white' : 'bg-slate-400'
                             }`}
                           />
-                          {section.enabled ? 'Visible' : 'Hidden'}
-                        </span>
+                          {section.enabled ? 'Visible (ON)' : 'Hidden (OFF)'}
+                        </button>
                       </div>
 
                       <div className="mt-4 grid gap-3 sm:grid-cols-2">
@@ -626,175 +774,189 @@ const HomepageCustomizer = () => {
                         </label>
                       </div>
 
-                      <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                        <label className="block">
-                          <span className="mb-1 block text-xs font-medium text-slate-700">Display Order Index</span>
-                          <input
-                            type="number"
-                            value={settings.sections?.[section.key]?.order ?? 0}
-                            onChange={(e) => updateSectionField(section.key, 'order', Number(e.target.value))}
+                      {section.key === 'hero' ? (
+                        <div className="mt-4 space-y-4 rounded-2xl border border-indigo-100 bg-indigo-50/40 p-4">
+                          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-indigo-100 pb-3">
+                            <div>
+                              <span className="text-xs font-black uppercase tracking-wider text-indigo-900 block">
+                                ✨ Hero Banner & Quranic Ayah Settings
+                              </span>
+                              <span className="text-[11px] text-slate-500">
+                                Main landing intro and spotlight area
+                              </span>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => toggleSection('hero')}
+                              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-bold text-xs transition cursor-pointer ${
+                                settings.sections?.hero?.enabled !== false
+                                  ? 'bg-emerald-600 text-white shadow-xs hover:bg-emerald-700'
+                                  : 'bg-red-100 text-red-700 hover:bg-red-200'
+                              }`}
+                            >
+                              {settings.sections?.hero?.enabled !== false ? '✅ Hero is ON (Visible)' : '❌ Hero is OFF (Hidden)'}
+                            </button>
+                          </div>
+
+                          {/* Hero Live Visual Preview */}
+                          <div className="overflow-hidden rounded-2xl bg-[#000814] border border-white/10 p-5 text-center relative shadow-md">
+                            {settings.sections?.hero?.banner_image_url && (
+                              <div
+                                className="absolute inset-0 bg-cover bg-center"
+                                style={{
+                                  backgroundImage: `url(${settings.sections.hero.banner_image_url})`,
+                                  opacity: 1 - ((settings.sections.hero.banner_overlay_opacity || 70) / 100) * 0.7,
+                                }}
+                              />
+                            )}
+                            <div className="relative z-10 space-y-2">
+                              {settings.sections?.hero?.show_badge !== false && (
+                                <span className="inline-block px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest bg-white/10 text-cyan-200 border border-white/10">
+                                  🏛️ {settings.sections?.hero?.badge || 'MARKAZ AHLE HADEES KOKAN'}
+                                </span>
+                              )}
+                              {settings.sections?.hero?.show_ayah !== false && (
+                                <p dir="rtl" className="text-sm font-serif text-[#F4A261]">
+                                  {settings.sections?.hero?.ayah_arabic || 'يَا أَيُّهَا الَّذِينَ آمَنُوا أَطِيعُوا اللَّهَ وَأَطِيعُوا الرَّسُولَ'}
+                                </p>
+                              )}
+                              {settings.sections?.hero?.ayah_translation && (
+                                <p className="text-[11px] text-cyan-200/80 italic font-sans">
+                                  "{settings.sections.hero.ayah_translation}"
+                                </p>
+                              )}
+                              <h4 className="text-lg font-serif font-black text-white">
+                                {settings.sections?.hero?.title || 'Kokan Islamic Library'}
+                              </h4>
+                              <p className="text-xs text-slate-300 max-w-md mx-auto">
+                                {settings.sections?.hero?.description || 'Explore curated Islamic knowledge with a calm, modern reading experience.'}
+                              </p>
+                            </div>
+                          </div>
+
+                          {/* Badge Controls */}
+                          <div className="grid gap-3 sm:grid-cols-3 items-end">
+                            <label className="sm:col-span-2 block">
+                              <span className="mb-1 block text-xs font-semibold text-slate-700">Top Badge Text</span>
+                              <input
+                                type="text"
+                                value={settings.sections?.hero?.badge ?? 'MARKAZ AHLE HADEES KOKAN'}
+                                onChange={(e) => updateSectionField('hero', 'badge', e.target.value)}
+                                placeholder="MARKAZ AHLE HADEES KOKAN"
+                                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 focus:border-indigo-500 focus:outline-none"
+                              />
+                            </label>
+                            <label className="flex items-center gap-2 pb-2.5 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={settings.sections?.hero?.show_badge !== false}
+                                onChange={(e) => updateSectionField('hero', 'show_badge', e.target.checked)}
+                                className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                              />
+                              <span className="text-xs font-semibold text-slate-700">Show Badge</span>
+                            </label>
+                          </div>
+
+                          {/* Quranic Ayah Controls */}
+                          <div className="space-y-3">
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs font-semibold text-slate-700">Arabic Ayah / Quote</span>
+                              <label className="flex items-center gap-2 cursor-pointer">
+                                <input
+                                  type="checkbox"
+                                  checked={settings.sections?.hero?.show_ayah !== false}
+                                  onChange={(e) => updateSectionField('hero', 'show_ayah', e.target.checked)}
+                                  className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                                />
+                                <span className="text-xs font-semibold text-slate-700">Show Ayah</span>
+                              </label>
+                            </div>
+                            <textarea
+                              rows={2}
+                              dir="rtl"
+                              value={settings.sections?.hero?.ayah_arabic ?? 'يَا أَيُّهَا الَّذِينَ آمَنُوا أَطِيعُوا اللَّهَ وَأَطِيعُوا الرَّسُولَ'}
+                              onChange={(e) => updateSectionField('hero', 'ayah_arabic', e.target.value)}
+                              placeholder="يَا أَيُّهَا الَّذِينَ آمَنُوا..."
+                              className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-serif text-slate-800 focus:border-indigo-500 focus:outline-none"
+                            />
+                            <label className="block">
+                              <span className="mb-1 block text-xs font-semibold text-slate-700">Ayah Translation (Optional - Urdu / English)</span>
+                              <input
+                                type="text"
+                                value={settings.sections?.hero?.ayah_translation || ''}
+                                onChange={(e) => updateSectionField('hero', 'ayah_translation', e.target.value)}
+                                placeholder="e.g. O you who have believed, obey Allah and obey the Messenger..."
+                                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 focus:border-indigo-500 focus:outline-none"
+                              />
+                            </label>
+                          </div>
+
+                          {/* Banner Image & Overlay Controls */}
+                          <div className="grid gap-4 sm:grid-cols-2">
+                            <label className="block">
+                              <span className="mb-1 block text-xs font-semibold text-slate-700">Hero Background Banner Image URL</span>
+                              <div className="flex items-center gap-2">
+                                <input
+                                  type="text"
+                                  value={settings.sections?.hero?.banner_image_url || ''}
+                                  onChange={(e) => updateSectionField('hero', 'banner_image_url', e.target.value)}
+                                  placeholder="e.g. https://... or /static/images/..."
+                                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 focus:border-indigo-500 focus:outline-none"
+                                />
+                                {settings.sections?.hero?.banner_image_url && (
+                                  <button
+                                    type="button"
+                                    onClick={() => updateSectionField('hero', 'banner_image_url', '')}
+                                    className="text-xs text-slate-500 hover:text-red-600 px-2 py-1 rounded border border-slate-200 whitespace-nowrap"
+                                  >
+                                    Clear
+                                  </button>
+                                )}
+                              </div>
+                            </label>
+
+                            <label className="block">
+                              <div className="flex justify-between mb-1">
+                                <span className="text-xs font-semibold text-slate-700">Dark Overlay Opacity</span>
+                                <span className="text-xs font-bold text-indigo-600">
+                                  {settings.sections?.hero?.banner_overlay_opacity || 70}%
+                                </span>
+                              </div>
+                              <input
+                                type="range"
+                                min="20"
+                                max="95"
+                                step="5"
+                                value={settings.sections?.hero?.banner_overlay_opacity || 70}
+                                onChange={(e) => updateSectionField('hero', 'banner_overlay_opacity', Number(e.target.value))}
+                                className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
+                              />
+                            </label>
+                          </div>
+
+                          {/* Star Animation Toggle */}
+                          <label className="flex items-center gap-2 cursor-pointer pt-1">
+                            <input
+                              type="checkbox"
+                              checked={settings.sections?.hero?.show_stars !== false}
+                              onChange={(e) => updateSectionField('hero', 'show_stars', e.target.checked)}
+                              className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                            />
+                            <span className="text-xs font-semibold text-slate-700">Enable Ambient Star / Particle Animation</span>
+                          </label>
+                        </div>
+                      ) : (
+                        <label className="mt-3 block">
+                          <span className="mb-1 block text-xs font-medium text-slate-700">Section Description / Paragraph</span>
+                          <textarea
+                            rows={2}
+                            value={settings.sections?.[section.key]?.description || ''}
+                            onChange={(e) => updateSectionField(section.key, 'description', e.target.value)}
+                            placeholder="Section description paragraph..."
                             className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 focus:border-indigo-500 focus:outline-none"
                           />
                         </label>
-
-                        {section.key === 'hero' && (
-                          <label className="block">
-                            <span className="mb-1 block text-xs font-medium text-slate-700">Primary Button Text</span>
-                            <input
-                              type="text"
-                              value={settings.sections?.hero?.primary_cta_label || ''}
-                              onChange={(e) => updateSectionField('hero', 'primary_cta_label', e.target.value)}
-                              placeholder="Explore Library"
-                              className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 focus:border-indigo-500 focus:outline-none"
-                            />
-                          </label>
-                        )}
-                      </div>
-
-                      {section.key === 'hero' && (
-                        <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                          <label className="block">
-                            <span className="mb-1 block text-xs font-medium text-slate-700">Primary Button URL</span>
-                            <input
-                              type="text"
-                              value={settings.sections?.hero?.primary_cta_url || ''}
-                              onChange={(e) => updateSectionField('hero', 'primary_cta_url', e.target.value)}
-                              placeholder="/books"
-                              className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 focus:border-indigo-500 focus:outline-none"
-                            />
-                          </label>
-                          <label className="block">
-                            <span className="mb-1 block text-xs font-medium text-slate-700">Secondary Button URL</span>
-                            <input
-                              type="text"
-                              value={settings.sections?.hero?.secondary_cta_url || ''}
-                              onChange={(e) => updateSectionField('hero', 'secondary_cta_url', e.target.value)}
-                              placeholder="/contact"
-                              className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 focus:border-indigo-500 focus:outline-none"
-                            />
-                          </label>
-                        </div>
                       )}
-
-                      {/* Featured Books Special Manager */}
-                      {section.key === 'featured' && (
-                        <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-4">
-                          <div className="flex items-center justify-between gap-2 border-b border-slate-100 pb-3">
-                            <div>
-                              <span className="text-xs font-bold uppercase tracking-wider text-slate-600">Curated Featured Books</span>
-                              <p className="text-xs text-slate-500">Add titles directly to highlight on landing section.</p>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <button
-                                onClick={() => setSearchOpen(true)}
-                                className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white shadow-xs hover:bg-emerald-700 transition"
-                              >
-                                <PlusIcon className="h-4 w-4" />
-                                Add Books
-                              </button>
-                              <button
-                                onClick={() => {
-                                  setFeaturedBooksList([]);
-                                  updateSectionField('featured', 'featured_books', []);
-                                }}
-                                className="rounded-xl border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-100"
-                              >
-                                Clear All
-                              </button>
-                            </div>
-                          </div>
-
-                          <div className="mt-3">
-                            {featuredBooksList.length === 0 ? (
-                              <p className="py-4 text-center text-xs text-slate-400">No featured books selected yet.</p>
-                            ) : (
-                              <div className="grid gap-3 sm:grid-cols-2">
-                                {featuredBooksList.map((book) => (
-                                  <div
-                                    key={book.id}
-                                    className="flex items-center gap-3 rounded-xl border border-slate-200 p-2.5 shadow-2xs hover:bg-slate-50"
-                                  >
-                                    <img
-                                      src={book.cover_image_url || book.cover_image || FALLBACK_COVER}
-                                      alt={book.title}
-                                      className="h-16 w-12 rounded-lg object-cover shadow-2xs"
-                                      onError={(e) => e.target.src = FALLBACK_COVER}
-                                    />
-                                    <div className="min-w-0 flex-1">
-                                      <p className="truncate text-xs font-bold text-slate-900">{book.title}</p>
-                                      <p className="truncate text-[11px] text-slate-500">{book.author || 'Unknown Author'}</p>
-                                    </div>
-                                    <button
-                                      onClick={() => removeFeaturedBook(book.id)}
-                                      className="rounded-lg p-1 text-slate-400 hover:bg-red-50 hover:text-red-600"
-                                      title="Remove book"
-                                    >
-                                      <TrashIcon className="h-4 w-4" />
-                                    </button>
-                                  </div>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Search Strip Custom Options */}
-                      {section.key === 'search' && (
-                        <div className="mt-4 space-y-3 rounded-2xl border border-slate-200 bg-white p-4">
-                          {!hasPermission('HOMEPAGE_SEARCH_MANAGE') && (
-                            <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
-                              You do not have permission to modify search options.
-                            </div>
-                          )}
-
-                          <div className="grid gap-2 sm:grid-cols-2">
-                            {[
-                              { field: 'show_hint', label: 'Keyboard Search Hints' },
-                              { field: 'enable_voice', label: 'Voice Search' },
-                              { field: 'enable_deep', label: 'Deep Catalog Search' },
-                              { field: 'show_suggestions', label: 'Search Auto-Suggestions' },
-                            ].map((opt) => (
-                              <label
-                                key={opt.field}
-                                className="flex items-center justify-between rounded-xl border border-slate-200 p-3 text-xs font-medium text-slate-700"
-                              >
-                                <span>{opt.label}</span>
-                                <input
-                                  type="checkbox"
-                                  disabled={!hasPermission('HOMEPAGE_SEARCH_MANAGE')}
-                                  checked={Boolean(settings.sections?.search?.[opt.field] ?? true)}
-                                  onChange={(e) => updateSectionField('search', opt.field, e.target.checked)}
-                                  className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
-                                />
-                              </label>
-                            ))}
-                          </div>
-
-                          <label className="block">
-                            <span className="mb-1 block text-xs font-medium text-slate-700">Search Placeholder</span>
-                            <input
-                              type="text"
-                              disabled={!hasPermission('HOMEPAGE_SEARCH_MANAGE')}
-                              value={settings.sections?.search?.placeholder || ''}
-                              onChange={(e) => updateSectionField('search', 'placeholder', e.target.value)}
-                              placeholder="Search books, authors..."
-                              className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 focus:border-indigo-500 focus:outline-none"
-                            />
-                          </label>
-                        </div>
-                      )}
-
-                      <label className="mt-3 block">
-                        <span className="mb-1 block text-xs font-medium text-slate-700">Section Description / Paragraph</span>
-                        <textarea
-                          rows={2}
-                          value={settings.sections?.[section.key]?.description || ''}
-                          onChange={(e) => updateSectionField(section.key, 'description', e.target.value)}
-                          placeholder="Section description paragraph..."
-                          className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 focus:border-indigo-500 focus:outline-none"
-                        />
-                      </label>
                     </div>
                   ))}
                 </div>
@@ -877,6 +1039,210 @@ const HomepageCustomizer = () => {
               </div>
             </div>
           )}
+
+          {activePanel === 'loader' && (
+            <div className="space-y-6">
+              {/* Main Banner */}
+              <div className="rounded-3xl border border-slate-200/80 bg-white p-6 shadow-xs space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-amber-50 text-amber-600 shadow-2xs">
+                      <SparklesIcon className="h-6 w-6" />
+                    </div>
+                    <div>
+                      <h3 className="text-base font-bold text-slate-900">Splash & Page Loader Experience</h3>
+                      <p className="text-xs text-slate-500">Configure branded Islamic splash, instant skeleton shimmers, festive modes, and live testing.</p>
+                    </div>
+                  </div>
+
+                  {/* Live Preview Button */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPreviewLoaderStyle(settings.loader_config?.loader_style || 'hybrid');
+                      setPreviewLoaderModalOpen(true);
+                    }}
+                    className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-[#002147] text-white font-bold text-xs shadow-md hover:shadow-lg hover:scale-102 transition-all cursor-pointer shrink-0"
+                  >
+                    <SparklesIcon className="w-4 h-4 text-amber-300" />
+                    <span>👁️ Live Preview / Test Loader</span>
+                  </button>
+                </div>
+
+                {/* 1. Loader Style Selector (3 Cards) */}
+                <div className="space-y-2">
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-600">
+                    1. Select Loader Architecture (لوڈر کا انداز منتخب کریں)
+                  </label>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    {[
+                      {
+                        key: 'hybrid',
+                        title: 'Option 3: Hybrid (Recommended)',
+                        badge: '👑 BEST UX',
+                        desc: 'Islamic Splash on 1st visit, instant Skeleton Shimmer on subsequent page clicks.',
+                        icon: '🌟'
+                      },
+                      {
+                        key: 'islamic_splash',
+                        title: 'Option 1: Islamic Luxury Splash',
+                        badge: '🏛️ BRANDED',
+                        desc: 'Markaz Logo + Glowing Halo + Rabbi Zidni Ilma + Hadith Quotes + Progress Line.',
+                        icon: '✨'
+                      },
+                      {
+                        key: 'skeleton_shimmer',
+                        title: 'Option 2: Fast Skeleton Shimmer',
+                        badge: '⚡ ULTRA-FAST',
+                        desc: 'Instant YouTube/Linear style layout shimmer with zero waiting perception.',
+                        icon: '⚡'
+                      }
+                    ].map((item) => {
+                      const isSelected = (settings.loader_config?.loader_style || 'hybrid') === item.key;
+                      return (
+                        <div
+                          key={item.key}
+                          onClick={() => updateLoaderConfig('loader_style', item.key)}
+                          className={`relative p-4 rounded-2xl border-2 transition-all cursor-pointer flex flex-col justify-between space-y-3 ${
+                            isSelected
+                              ? 'border-emerald-600 bg-emerald-50/50 shadow-sm'
+                              : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50'
+                          }`}
+                        >
+                          <div className="space-y-1">
+                            <div className="flex items-center justify-between">
+                              <span className="text-xl">{item.icon}</span>
+                              <span className="text-[10px] font-black px-2 py-0.5 rounded-md bg-slate-100 text-slate-700">
+                                {item.badge}
+                              </span>
+                            </div>
+                            <h4 className="font-extrabold text-sm text-slate-900">{item.title}</h4>
+                            <p className="text-xs text-slate-500 leading-relaxed">{item.desc}</p>
+                          </div>
+
+                          <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-xs">
+                            <span className={`font-bold ${isSelected ? 'text-emerald-700' : 'text-slate-400'}`}>
+                              {isSelected ? '✓ Selected Active' : 'Click to Select'}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setPreviewLoaderStyle(item.key);
+                                setPreviewLoaderModalOpen(true);
+                              }}
+                              className="text-[11px] font-bold text-blue-600 hover:underline cursor-pointer"
+                            >
+                              Test Style →
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* 2. Occasion & Festive Modes */}
+                <div className="space-y-2 pt-3 border-t border-slate-100">
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-600">
+                    2. Occasion & Festive Modes (خصوصی مناسبت و تھیم)
+                  </label>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    {[
+                      { key: 'default', title: 'Default Islamic', emoji: '🌟', desc: 'Standard Royal Gold & Emerald' },
+                      { key: 'ramadan', title: 'Ramadan Mubarak', emoji: '🌙', desc: 'Crescent Moon & Quranic Dua' },
+                      { key: 'eid', title: 'Eid Mubarak', emoji: '🕌', desc: 'Festive Celebration Greetings' },
+                      { key: 'conference', title: 'Markaz Conference', emoji: '🏛️', desc: 'Annual Educational Conference' }
+                    ].map((occ) => {
+                      const isSelected = (settings.loader_config?.occasion_theme || 'default') === occ.key;
+                      return (
+                        <div
+                          key={occ.key}
+                          onClick={() => updateLoaderConfig('occasion_theme', occ.key)}
+                          className={`p-3 rounded-2xl border-2 transition-all cursor-pointer text-center space-y-1.5 ${
+                            isSelected
+                              ? 'border-emerald-600 bg-emerald-50/70 shadow-2xs font-black'
+                              : 'border-slate-200 bg-white hover:bg-slate-50'
+                          }`}
+                        >
+                          <span className="text-2xl">{occ.emoji}</span>
+                          <p className="text-xs font-bold text-slate-800">{occ.title}</p>
+                          <p className="text-[10px] text-slate-400 leading-tight">{occ.desc}</p>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* 3. Splash Color Moods */}
+                <div className="space-y-2 pt-3 border-t border-slate-100">
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-600">
+                    3. Splash Background Color Theme (بیک گراؤنڈ تھیم)
+                  </label>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    {[
+                      { key: 'navy', title: 'Deep Midnight & Emerald', bg: 'bg-[#070D18] text-emerald-300', desc: 'Markaz Kokan Signature' },
+                      { key: 'black', title: 'Imperial Black & Gold', bg: 'bg-[#0A0A0A] text-amber-300', desc: 'Kiswa Luxury Aesthetic' },
+                      { key: 'ivory', title: 'Minimal Ivory White', bg: 'bg-slate-100 text-slate-800', desc: 'Daylight Clean & Soft' }
+                    ].map((mood) => {
+                      const isSelected = (settings.loader_config?.splash_theme || 'navy') === mood.key;
+                      return (
+                        <div
+                          key={mood.key}
+                          onClick={() => updateLoaderConfig('splash_theme', mood.key)}
+                          className={`p-3.5 rounded-2xl border-2 transition-all cursor-pointer flex items-center gap-3 ${
+                            isSelected ? 'border-emerald-600 bg-emerald-50/40 shadow-xs' : 'border-slate-200 bg-white hover:bg-slate-50'
+                          }`}
+                        >
+                          <div className={`w-8 h-8 rounded-xl shrink-0 flex items-center justify-center font-bold text-xs shadow-xs ${mood.bg}`}>
+                            ✦
+                          </div>
+                          <div>
+                            <p className="text-xs font-bold text-slate-800">{mood.title}</p>
+                            <p className="text-[10px] text-slate-400">{mood.desc}</p>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* 4. Controls & Quotes Toggle */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-3 border-t border-slate-100">
+                  <label className="flex items-center justify-between p-3.5 rounded-2xl border border-slate-200 bg-slate-50/50 cursor-pointer">
+                    <div>
+                      <span className="text-xs font-bold text-slate-800 block">Show Hadith & Quranic Quotes</span>
+                      <span className="text-[11px] text-slate-500">Rotate inspirational Islamic quotes while loading</span>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={settings.loader_config?.show_quotes !== false}
+                      onChange={(e) => updateLoaderConfig('show_quotes', e.target.checked)}
+                      className="w-5 h-5 rounded text-emerald-600 focus:ring-emerald-500"
+                    />
+                  </label>
+
+                  <div className="p-3.5 rounded-2xl border border-slate-200 bg-slate-50/50 flex flex-col justify-between">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-slate-800">Splash Minimum Duration</span>
+                      <span className="text-xs font-mono font-bold text-emerald-700">
+                        {((settings.loader_config?.splash_duration || 1800) / 1000).toFixed(1)}s
+                      </span>
+                    </div>
+                    <input
+                      type="range"
+                      min="1000"
+                      max="3000"
+                      step="200"
+                      value={settings.loader_config?.splash_duration || 1800}
+                      onChange={(e) => updateLoaderConfig('splash_duration', Number(e.target.value))}
+                      className="w-full mt-2 accent-emerald-600 cursor-pointer"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Right Column: Sticky Interactive Live Preview Card */}
@@ -943,6 +1309,79 @@ const HomepageCustomizer = () => {
           </div>
         </div>
       </div>
+
+      {/* ================= INTERACTIVE LOADER LIVE PREVIEW MODAL ================= */}
+      {previewLoaderModalOpen && (
+        <div className="fixed inset-0 z-[999999] flex flex-col bg-black/90">
+          {/* Top Control Strip */}
+          <div className="relative z-[1000000] flex flex-wrap items-center justify-between gap-3 p-4 bg-slate-950/95 border-b border-slate-800 text-white shadow-2xl">
+            <div className="flex items-center gap-3">
+              <span className="p-2 rounded-xl bg-emerald-500/20 text-emerald-400 font-black text-xs">
+                ✦ LIVE PREVIEW MODE
+              </span>
+              <span className="text-xs text-slate-300 font-bold hidden sm:inline">
+                Viewing: <span className="text-amber-400 font-mono">{previewLoaderStyle}</span>
+              </span>
+            </div>
+
+            {/* Switchers on the fly */}
+            <div className="flex items-center gap-1.5 p-1 bg-slate-900 rounded-2xl border border-slate-800">
+              <button
+                type="button"
+                onClick={() => setPreviewLoaderStyle('islamic_splash')}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition ${
+                  previewLoaderStyle === 'islamic_splash'
+                    ? 'bg-emerald-600 text-white shadow-xs'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                Option 1: Islamic Splash
+              </button>
+              <button
+                type="button"
+                onClick={() => setPreviewLoaderStyle('skeleton_shimmer')}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition ${
+                  previewLoaderStyle === 'skeleton_shimmer'
+                    ? 'bg-emerald-600 text-white shadow-xs'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                Option 2: Skeleton
+              </button>
+              <button
+                type="button"
+                onClick={() => setPreviewLoaderStyle('hybrid')}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition ${
+                  previewLoaderStyle === 'hybrid'
+                    ? 'bg-emerald-600 text-white shadow-xs'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                Option 3: Hybrid
+              </button>
+            </div>
+
+            {/* Exit Preview Button */}
+            <button
+              type="button"
+              onClick={() => setPreviewLoaderModalOpen(false)}
+              className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold transition flex items-center gap-1.5 cursor-pointer"
+            >
+              <span>✕ Exit Preview</span>
+            </button>
+          </div>
+
+          {/* Loader Canvas */}
+          <div className="relative flex-1">
+            <AppPageLoader
+              key={previewLoaderStyle + JSON.stringify(settings.loader_config)}
+              config={settings.loader_config}
+              isPreview={true}
+              previewStyle={previewLoaderStyle}
+            />
+          </div>
+        </div>
+      )}
 
       {/* Global Book Search Modal Component */}
       <GlobalSearchModal

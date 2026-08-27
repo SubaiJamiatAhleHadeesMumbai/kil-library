@@ -12,38 +12,52 @@ import {
   DocumentTextIcon,
   ArrowLeftIcon,
   SparklesIcon,
-  StarIcon
+  StarIcon,
+  ShareIcon,
+  UserIcon,
+  LinkIcon,
+  CheckIcon
 } from "@heroicons/react/24/outline";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-hot-toast";
 import { motion, AnimatePresence } from "framer-motion";
 
-// âœ… Services
+// Services
 import authService from "../../api/authService";
 
-// âœ… Components
+// Components
 import PolicyStatement from "../book/PolicyStatement";
 import AccessForm from "../RestrictedAccess/AccessForm";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || (import.meta.env.PROD ? "" : "http://127.0.0.1:8000");
 
-// âœ… Offline fallback cover
+// ✅ Offline fallback cover (Coming Soon Badge)
 const FALLBACK_COVER =
   "data:image/svg+xml;utf8," +
   encodeURIComponent(`
-    <svg xmlns="http://www.w3.org/2000/svg" width="360" height="520">
+    <svg xmlns="http://www.w3.org/2000/svg" width="360" height="520" viewBox="0 0 360 520">
       <defs>
-        <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stop-color="#f1f5f9"/>
-          <stop offset="100%" stop-color="#e2e8f0"/>
+        <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="#0b1120"/>
+          <stop offset="50%" stop-color="#002147"/>
+          <stop offset="100%" stop-color="#064e3b"/>
+        </linearGradient>
+        <linearGradient id="gold" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stop-color="#fbbf24"/>
+          <stop offset="100%" stop-color="#f59e0b"/>
         </linearGradient>
       </defs>
-      <rect width="100%" height="100%" fill="url(#g)"/>
-      <text x="50%" y="50%" font-size="22" fill="#64748b"
-        text-anchor="middle" dominant-baseline="middle"
-        font-family="Arial, sans-serif">
-        No Cover
-      </text>
+      <rect width="360" height="520" fill="url(#bg)"/>
+      <rect x="16" y="16" width="328" height="488" rx="8" fill="none" stroke="#334155" stroke-width="1.5" stroke-dasharray="4 4"/>
+      <rect x="22" y="22" width="316" height="476" rx="6" fill="none" stroke="#10b981" stroke-opacity="0.3" stroke-width="1"/>
+      <circle cx="180" cy="180" r="54" fill="#0f172a" stroke="#10b981" stroke-width="2" stroke-opacity="0.4"/>
+      <path d="M160 162h40c2.2 0 4 1.8 4 4v32c0 2.2-1.8 4-4 4h-40c-2.2 0-4-1.8-4-4v-32c0-2.2 1.8-4 4-4zm4 8v24h32v-24h-32z" fill="#34d399"/>
+      <path d="M168 178h16v4h-16zm0 8h24v4h-24z" fill="#6ee7b7"/>
+      <text x="180" y="275" font-family="'Segoe UI', Roboto, sans-serif" font-size="11" font-weight="700" fill="#94a3b8" letter-spacing="3" text-anchor="middle">MARKAZ ISLAMIC LIBRARY</text>
+      <text x="180" y="320" font-family="'Traditional Arabic', 'Amiri', serif" font-size="28" font-weight="bold" fill="url(#gold)" text-anchor="middle">قَرِيبـاً</text>
+      <text x="180" y="355" font-family="'Segoe UI', Roboto, sans-serif" font-size="18" font-weight="800" fill="#ffffff" letter-spacing="2" text-anchor="middle">COMING SOON</text>
+      <rect x="120" y="375" width="120" height="22" rx="11" fill="#10b981" fill-opacity="0.15" stroke="#10b981" stroke-opacity="0.4"/>
+      <text x="180" y="390" font-family="'Segoe UI', Roboto, sans-serif" font-size="10" font-weight="700" fill="#34d399" letter-spacing="1" text-anchor="middle">COVER IN PROCESS</text>
     </svg>
   `);
 
@@ -166,6 +180,54 @@ const BookDetailsModal = ({
     setShowSmartReader(true);
   };
 
+  // -----------------------------
+  // Share Handlers
+  // -----------------------------
+  const getShareUrl = () => {
+    const base = window.location.origin || "";
+    return `${base}/books?bookId=${book?.id || ""}`;
+  };
+
+  const handleShare = async () => {
+    const shareUrl = getShareUrl();
+    const titleText = book?.title || "Book";
+    const authorText = author !== "Unknown" ? ` by ${author}` : "";
+    const shareMessage = `Check out "${titleText}"${authorText} on Markaz Islamic Library:`;
+
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: titleText,
+          text: shareMessage,
+          url: shareUrl,
+        });
+        return;
+      } catch (err) {
+        if (err.name !== "AbortError") {
+          console.error("Share error:", err);
+        }
+      }
+    }
+
+    // Fallback to clipboard
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      toast.success("Book link copied to clipboard!", { icon: "🔗" });
+    } catch (err) {
+      toast.error("Failed to copy link");
+    }
+  };
+
+  const handleCopyLink = async () => {
+    const shareUrl = getShareUrl();
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      toast.success("Link copied to clipboard!", { icon: "📋" });
+    } catch (err) {
+      toast.error("Failed to copy link");
+    }
+  };
+
   if (!book) return null;
 
   // -----------------------------
@@ -246,15 +308,41 @@ const BookDetailsModal = ({
                 </div>
               </div>
 
-              {/* Close Button */}
-              <motion.button
-                onClick={handleClose}
-                whileHover={{ scale: 1.1, rotate: 90 }}
-                className="p-2 rounded-full bg-slate-100 hover:bg-red-100 transition text-slate-700 hover:text-red-600"
-                title="Close (ESC)"
-              >
-                <XMarkIcon className="w-5 h-5" />
-              </motion.button>
+              {/* Header Actions */}
+              <div className="flex items-center gap-2">
+                {/* Share Button */}
+                <motion.button
+                  onClick={handleShare}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold text-xs transition border border-blue-200 shadow-xs cursor-pointer"
+                  title="Share this book"
+                >
+                  <ShareIcon className="w-4 h-4" />
+                  <span className="hidden sm:inline">Share</span>
+                </motion.button>
+
+                {/* Copy Link Button */}
+                <motion.button
+                  onClick={handleCopyLink}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="p-2 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 transition"
+                  title="Copy link to clipboard"
+                >
+                  <LinkIcon className="w-4 h-4" />
+                </motion.button>
+
+                {/* Close Button */}
+                <motion.button
+                  onClick={handleClose}
+                  whileHover={{ scale: 1.1, rotate: 90 }}
+                  className="p-2 rounded-full bg-slate-100 hover:bg-red-100 transition text-slate-700 hover:text-red-600"
+                  title="Close (ESC)"
+                >
+                  <XMarkIcon className="w-5 h-5" />
+                </motion.button>
+              </div>
             </div>
           </motion.div>
 
@@ -356,12 +444,26 @@ const BookDetailsModal = ({
                         <h3 className="text-2xl md:text-4xl font-black text-[#002147] leading-tight mb-2">
                           {title}
                         </h3>
-                        <motion.p 
-                          className="text-lg text-blue-600 font-bold flex items-center gap-2"
-                          whileHover={{ x: 5 }}
-                        >
-                          âœï¸ By <span className="text-slate-800">{author}</span>
-                        </motion.p>
+                        <div className="flex flex-wrap items-center gap-3">
+                          <motion.p 
+                            className="text-base md:text-lg text-blue-700 font-bold flex items-center gap-1.5 bg-blue-50/70 px-3 py-1 rounded-xl border border-blue-100/80"
+                            whileHover={{ x: 3 }}
+                          >
+                            <UserIcon className="w-4 h-4 text-blue-600 shrink-0" />
+                            <span>By</span>
+                            <span className="text-slate-800 font-extrabold">{author}</span>
+                          </motion.p>
+
+                          {/* Quick Share Link Pill */}
+                          <button
+                            type="button"
+                            onClick={handleShare}
+                            className="text-xs font-semibold text-slate-500 hover:text-blue-700 flex items-center gap-1 hover:bg-slate-100 px-2.5 py-1 rounded-lg transition"
+                            title="Share Book"
+                          >
+                            <ShareIcon className="w-3.5 h-3.5" /> Share
+                          </button>
+                        </div>
                       </motion.div>
 
                       {/* Premium Description Box */}

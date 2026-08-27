@@ -52,8 +52,34 @@ import {
 } from "@heroicons/react/24/solid";
 
 // --- Constants ---
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || (import.meta.env.PROD ? "" : "http://127.0.0.1:8000");
-const FALLBACK_NO_COVER = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='400' height='600' viewBox='0 0 400 600'><rect width='400' height='600' fill='%231e293b'/><circle cx='200' cy='270' r='50' fill='%23334155'/><path d='M180 255h40v30h-40z' fill='%2394a3b8'/><text x='200' y='360' font-family='sans-serif' font-size='20' font-weight='bold' fill='%23cbd5e1' text-anchor='middle'>Markaz Library</text><text x='200' y='390' font-family='sans-serif' font-size='15' fill='%2364748b' text-anchor='middle'>No Cover</text></svg>";
+const FALLBACK_NO_COVER =
+  "data:image/svg+xml;utf8," +
+  encodeURIComponent(`
+    <svg xmlns="http://www.w3.org/2000/svg" width="360" height="520" viewBox="0 0 360 520">
+      <defs>
+        <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="#0b1120"/>
+          <stop offset="50%" stop-color="#002147"/>
+          <stop offset="100%" stop-color="#064e3b"/>
+        </linearGradient>
+        <linearGradient id="gold" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stop-color="#fbbf24"/>
+          <stop offset="100%" stop-color="#f59e0b"/>
+        </linearGradient>
+      </defs>
+      <rect width="360" height="520" fill="url(#bg)"/>
+      <rect x="16" y="16" width="328" height="488" rx="8" fill="none" stroke="#334155" stroke-width="1.5" stroke-dasharray="4 4"/>
+      <rect x="22" y="22" width="316" height="476" rx="6" fill="none" stroke="#10b981" stroke-opacity="0.3" stroke-width="1"/>
+      <circle cx="180" cy="180" r="54" fill="#0f172a" stroke="#10b981" stroke-width="2" stroke-opacity="0.4"/>
+      <path d="M160 162h40c2.2 0 4 1.8 4 4v32c0 2.2-1.8 4-4 4h-40c-2.2 0-4-1.8-4-4v-32c0-2.2 1.8-4 4-4zm4 8v24h32v-24h-32z" fill="#34d399"/>
+      <path d="M168 178h16v4h-16zm0 8h24v4h-24z" fill="#6ee7b7"/>
+      <text x="180" y="275" font-family="'Segoe UI', Roboto, sans-serif" font-size="11" font-weight="700" fill="#94a3b8" letter-spacing="3" text-anchor="middle">MARKAZ ISLAMIC LIBRARY</text>
+      <text x="180" y="320" font-family="'Traditional Arabic', 'Amiri', serif" font-size="28" font-weight="bold" fill="url(#gold)" text-anchor="middle">قَرِيبـاً</text>
+      <text x="180" y="355" font-family="'Segoe UI', Roboto, sans-serif" font-size="18" font-weight="800" fill="#ffffff" letter-spacing="2" text-anchor="middle">COMING SOON</text>
+      <rect x="120" y="375" width="120" height="22" rx="11" fill="#10b981" fill-opacity="0.15" stroke="#10b981" stroke-opacity="0.4"/>
+      <text x="180" y="390" font-family="'Segoe UI', Roboto, sans-serif" font-size="10" font-weight="700" fill="#34d399" letter-spacing="1" text-anchor="middle">COVER IN PROCESS</text>
+    </svg>
+  `);
 
 // ==========================================
 // 1. PUBLIC BOOK CARD COMPONENT
@@ -234,7 +260,7 @@ const PublicBookCard = ({
 const UserLibrary = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { isAuth } = useAuth();
   const { currentLang, t } = useLanguage();
 
@@ -246,6 +272,7 @@ const UserLibrary = () => {
   const [activeLibraryTab, setActiveLibraryTab] = useState("all"); // 'all' | 'our_publications' | 'folders' | 'authors' | 'publishers'
   const [viewMode, setViewMode] = useState("grid"); // 'grid' | 'list'
   const [sortBy, setSortBy] = useState("oldest");
+  const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [authorSearch, setAuthorSearch] = useState("");
   const [publisherSearch, setPublisherSearch] = useState("");
@@ -261,6 +288,61 @@ const UserLibrary = () => {
   const [restrictedBook, setRestrictedBook] = useState(null);
   const [isAccessFlowOpen, setIsAccessFlowOpen] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+
+  // Modal Handlers with URL Sync
+  const handleOpenBookModal = (book) => {
+    setSelectedBook(book);
+    if (book?.id) {
+      setSearchParams((prev) => {
+        const next = new URLSearchParams(prev);
+        next.set("bookId", String(book.id));
+        return next;
+      }, { replace: true });
+    }
+  };
+
+  const handleCloseBookModal = () => {
+    setSelectedBook(null);
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.delete("bookId");
+      next.delete("id");
+      return next;
+    }, { replace: true });
+  };
+
+  // Deep Link / Shared Link Handler (/books?bookId=123)
+  const urlBookId = searchParams.get("bookId") || searchParams.get("id");
+
+  useEffect(() => {
+    if (!urlBookId) return;
+
+    if (selectedBook && String(selectedBook.id) === String(urlBookId)) return;
+
+    const matched = books.find((b) => String(b.id) === String(urlBookId));
+    if (matched) {
+      setSelectedBook(matched);
+      return;
+    }
+
+    let isMounted = true;
+    const fetchSharedBook = async () => {
+      try {
+        const bookData = await bookService.getBookById(urlBookId);
+        if (isMounted && bookData) {
+          setSelectedBook(bookData);
+        }
+      } catch (err) {
+        console.error("Failed to load shared book by ID:", urlBookId, err);
+      }
+    };
+
+    fetchSharedBook();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [urlBookId, books, selectedBook]);
 
   // Favorites
   const [favorites, setFavorites] = useState(() => {
@@ -627,7 +709,7 @@ const UserLibrary = () => {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.25, duration: 0.4 }}
-            className="flex items-center justify-center flex-wrap gap-2.5 mt-6 pt-1"
+            className="flex items-center justify-start sm:justify-center overflow-x-auto no-scrollbar gap-2 mt-5 pt-1 px-2 max-w-full"
           >
             <button
               onClick={() => {
@@ -635,7 +717,7 @@ const UserLibrary = () => {
                 setSelectedCategory("all");
                 setSelectedSubcategory("all");
               }}
-              className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold transition-all shadow-xs cursor-pointer ${
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-full text-xs font-bold transition-all shadow-xs shrink-0 cursor-pointer ${
                 activeLibraryTab === "all" && selectedCategory === "all"
                   ? "bg-emerald-500 text-white shadow-emerald-500/40 shadow-md scale-105"
                   : "bg-white/10 text-slate-200 hover:bg-white/20 border border-white/10"
@@ -651,7 +733,7 @@ const UserLibrary = () => {
                 setSelectedCategory("our_publications");
                 setSelectedSubcategory("all");
               }}
-              className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold transition-all shadow-xs cursor-pointer ${
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-full text-xs font-bold transition-all shadow-xs shrink-0 cursor-pointer ${
                 activeLibraryTab === "our_publications" || selectedCategory === "our_publications"
                   ? "bg-gradient-to-r from-amber-500 to-amber-600 text-white shadow-amber-500/50 shadow-md scale-105 ring-2 ring-amber-300/40"
                   : "bg-amber-500/20 text-amber-300 hover:bg-amber-500/30 border border-amber-400/30"
@@ -670,7 +752,7 @@ const UserLibrary = () => {
 
             <button
               onClick={() => setActiveLibraryTab("folders")}
-              className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold transition-all shadow-xs cursor-pointer ${
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-full text-xs font-bold transition-all shadow-xs shrink-0 cursor-pointer ${
                 activeLibraryTab === "folders"
                   ? "bg-emerald-500 text-white shadow-emerald-500/40 shadow-md scale-105"
                   : "bg-white/10 text-slate-200 hover:bg-white/20 border border-white/10"
@@ -682,7 +764,7 @@ const UserLibrary = () => {
 
             <button
               onClick={() => setActiveLibraryTab("authors")}
-              className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold transition-all shadow-xs cursor-pointer ${
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-full text-xs font-bold transition-all shadow-xs shrink-0 cursor-pointer ${
                 activeLibraryTab === "authors"
                   ? "bg-emerald-500 text-white shadow-emerald-500/40 shadow-md scale-105"
                   : "bg-white/10 text-slate-200 hover:bg-white/20 border border-white/10"
@@ -694,7 +776,7 @@ const UserLibrary = () => {
 
             <button
               onClick={() => setActiveLibraryTab("publishers")}
-              className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold transition-all shadow-xs cursor-pointer ${
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-full text-xs font-bold transition-all shadow-xs shrink-0 cursor-pointer ${
                 activeLibraryTab === "publishers"
                   ? "bg-emerald-500 text-white shadow-emerald-500/40 shadow-md scale-105"
                   : "bg-white/10 text-slate-200 hover:bg-white/20 border border-white/10"
@@ -949,16 +1031,17 @@ const UserLibrary = () => {
       {/* ================= VIEW: BOOKS ================= */}
       {(activeLibraryTab === "all" || activeLibraryTab === "our_publications") && (
         <>
-          {/* STICKY FILTER TOOLBAR */}
-          <div className="relative z-30 max-w-7xl mx-auto px-4 mt-4 md:sticky md:top-16 md:mt-4">
+          {/* STICKY FILTER TOOLBAR (RESPONSIVE: MOBILE APP-STYLE + DESKTOP) */}
+          <div className="relative z-30 max-w-7xl mx-auto px-3 sm:px-4 mt-4 md:sticky md:top-16 md:mt-4">
             <motion.div
               initial={{ y: 20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
-              className="rounded-2xl border border-white/60 bg-white/90 p-3 shadow-[0_12px_35px_-24px_rgba(15,23,42,0.4)] backdrop-blur-xl flex flex-col gap-3"
+              className="rounded-2xl sm:rounded-3xl border border-white/60 bg-white/95 p-3 sm:p-4 shadow-[0_12px_35px_-24px_rgba(15,23,42,0.3)] backdrop-blur-xl flex flex-col gap-3"
             >
-              <div className="flex flex-wrap items-center justify-between gap-3">
+              {/* --- DESKTOP TOOLBAR (md and above) --- */}
+              <div className="hidden md:flex flex-wrap items-center justify-between gap-3">
                 <div className="flex flex-wrap items-center gap-2.5 flex-1 min-w-0">
-                  {/* Language */}
+                  {/* Language Selector */}
                   <select
                     className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-700 outline-none transition hover:border-emerald-500 cursor-pointer"
                     value={selectedLanguage}
@@ -971,7 +1054,7 @@ const UserLibrary = () => {
                     <option value="hindi">Hindi</option>
                   </select>
 
-                  {/* Primary Category */}
+                  {/* Primary Category Selector */}
                   <select
                     className="max-w-[260px] rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-700 outline-none transition hover:border-emerald-500 cursor-pointer truncate"
                     value={selectedCategory}
@@ -989,7 +1072,7 @@ const UserLibrary = () => {
                     ))}
                   </select>
 
-                  {/* Subcategory */}
+                  {/* Subcategory Selector */}
                   {activeCategorySubcategories.length > 0 && (
                     <select
                       className="max-w-[220px] rounded-xl border border-emerald-300 bg-emerald-50/50 px-3 py-2 text-xs font-semibold text-emerald-800 outline-none transition hover:border-emerald-500 cursor-pointer truncate"
@@ -1068,11 +1151,127 @@ const UserLibrary = () => {
                 </div>
               </div>
 
-              {/* Subcategories Pill Strip */}
+              {/* --- MOBILE TOOLBAR (Below md) --- */}
+              <div className="flex md:hidden flex-col gap-2.5">
+                {/* Top Action Row on Mobile */}
+                <div className="flex items-center justify-between gap-2">
+                  <button
+                    onClick={() => setIsMobileFilterOpen(true)}
+                    className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition shadow-xs cursor-pointer ${
+                      selectedLanguage !== "all" || sortBy !== "oldest"
+                        ? "bg-emerald-600 text-white"
+                        : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                    }`}
+                  >
+                    <AdjustmentsHorizontalIcon className="w-4 h-4" />
+                    <span>Filter & Sort</span>
+                    {(selectedLanguage !== "all" || sortBy !== "oldest") && (
+                      <span className="w-2 h-2 rounded-full bg-amber-400" />
+                    )}
+                  </button>
+
+                  <div className="flex items-center gap-2">
+                    {(selectedCategory !== "all" || selectedSubcategory !== "all" || selectedLanguage !== "all" || searchTerm) && (
+                      <button
+                        onClick={() => {
+                          setSelectedCategory("all");
+                          setSelectedSubcategory("all");
+                          setSelectedLanguage("all");
+                          setSearchTerm("");
+                          setActiveLibraryTab("all");
+                        }}
+                        className="inline-flex items-center gap-1 px-2.5 py-2 rounded-xl bg-rose-50 text-rose-600 text-xs font-bold transition cursor-pointer"
+                      >
+                        <XMarkIcon className="w-3.5 h-3.5" />
+                        <span>Reset</span>
+                      </button>
+                    )}
+
+                    <div className="flex rounded-xl bg-slate-100 p-0.5">
+                      <button
+                        onClick={() => setViewMode("grid")}
+                        className={`p-1.5 rounded-lg transition-all ${
+                          viewMode === "grid" ? "bg-white shadow-xs text-emerald-600" : "text-slate-400"
+                        }`}
+                      >
+                        <Squares2X2Icon className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => setViewMode("list")}
+                        className={`p-1.5 rounded-lg transition-all ${
+                          viewMode === "list" ? "bg-white shadow-xs text-emerald-600" : "text-slate-400"
+                        }`}
+                      >
+                        <ListBulletIcon className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Mobile Horizontal Category Carousel Rail */}
+                <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-1">
+                  <button
+                    onClick={() => {
+                      setSelectedCategory("all");
+                      setSelectedSubcategory("all");
+                      setActiveLibraryTab("all");
+                    }}
+                    className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all shrink-0 flex items-center gap-1.5 cursor-pointer ${
+                      selectedCategory === "all" && activeLibraryTab === "all"
+                        ? "bg-[#002147] text-white shadow-sm"
+                        : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                    }`}
+                  >
+                    <span>📖 All Books</span>
+                    <span className="text-[10px] opacity-75">({books.length})</span>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setSelectedCategory("our_publications");
+                      setSelectedSubcategory("all");
+                      setActiveLibraryTab("our_publications");
+                    }}
+                    className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all shrink-0 flex items-center gap-1.5 cursor-pointer ${
+                      selectedCategory === "our_publications" || activeLibraryTab === "our_publications"
+                        ? "bg-amber-600 text-white shadow-sm"
+                        : "bg-amber-50 text-amber-800 border border-amber-200"
+                    }`}
+                  >
+                    <span>🏛️ Our Publications</span>
+                    <span className="text-[10px] opacity-80">({books.filter(isOurPublication).length})</span>
+                  </button>
+
+                  {categoryTree.map((cat) => (
+                    <button
+                      key={cat.id}
+                      onClick={() => {
+                        setSelectedCategory(String(cat.id));
+                        setSelectedSubcategory("all");
+                        setActiveLibraryTab("all");
+                      }}
+                      className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all shrink-0 flex items-center gap-1.5 cursor-pointer ${
+                        String(selectedCategory) === String(cat.id)
+                          ? "bg-emerald-600 text-white shadow-sm"
+                          : "bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200/60"
+                      }`}
+                    >
+                      <span>{cat.name}</span>
+                      <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${
+                        String(selectedCategory) === String(cat.id) ? "bg-emerald-800 text-white" : "bg-slate-200/80 text-slate-600"
+                      }`}>
+                        {cat.count}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Subcategories Pill Strip (Both Mobile & Desktop) */}
               {activeCategorySubcategories.length > 0 && (
-                <div className="flex items-center gap-1.5 overflow-x-auto pb-1 pt-1 border-t border-slate-100 no-scrollbar">
+                <div className="flex items-center gap-1.5 overflow-x-auto pb-1 pt-1.5 border-t border-slate-100 no-scrollbar">
                   <span className="text-[11px] font-bold text-slate-400 shrink-0 mr-1 flex items-center gap-1">
-                    <TagIcon className="w-3.5 h-3.5" />
+                    <TagIcon className="w-3.5 h-3.5 text-emerald-600" />
                     <span>Topics:</span>
                   </span>
 
@@ -1115,26 +1314,6 @@ const UserLibrary = () => {
           {/* MAIN CONTENT */}
           <div id="book-grid-container" className="max-w-7xl mx-auto px-4 mt-6 md:mt-10 space-y-8">
             
-            {/* Our Publications Verified Banner */}
-            {(activeLibraryTab === "our_publications" || selectedCategory === "our_publications") && (
-              <motion.div
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="bg-gradient-to-r from-amber-500/10 via-amber-600/10 to-amber-500/10 border border-amber-300/60 rounded-3xl p-5 sm:p-7 text-center shadow-xs"
-              >
-                <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-amber-500 text-white text-xs font-bold mb-3 shadow-xs">
-                  <SparklesIcon className="w-4 h-4" />
-                  <span>Verified Markaz Publications</span>
-                </div>
-                <h2 className="text-2xl sm:text-3xl font-black text-slate-900">
-                  مركز الدعوة الإسلامية والخيرية
-                </h2>
-                <p className="text-xs sm:text-sm text-slate-600 mt-1.5 font-medium max-w-xl mx-auto">
-                  Markaz Dawah Islamic & Charitable Publications • ہماری مطبوعات کا مستند علمی و دعوتی ذخیرہ
-                </p>
-              </motion.div>
-            )}
-
             {/* Active Header & Count Bar */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white/70 p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-2xs">
               <div>
@@ -1225,7 +1404,7 @@ const UserLibrary = () => {
                       isFavorite={favorites.includes(book.id)}
                       onToggleFavorite={toggleFavorite}
                       isOurPub={isOurPublication(book)}
-                      onClick={() => setSelectedBook(book)}
+                      onClick={() => handleOpenBookModal(book)}
                     />
                   ))}
                 </div>
@@ -1234,7 +1413,7 @@ const UserLibrary = () => {
                   {paginatedBooks.map((book) => (
                     <div
                       key={book.id}
-                      onClick={() => setSelectedBook(book)}
+                      onClick={() => handleOpenBookModal(book)}
                       className="bg-white rounded-2xl p-4 border border-slate-200 hover:border-emerald-300 hover:shadow-md transition-all flex items-center gap-4 cursor-pointer"
                     >
                       <div className="w-12 h-16 bg-slate-100 rounded-lg overflow-hidden flex-shrink-0">
@@ -1249,7 +1428,7 @@ const UserLibrary = () => {
                           <h4 className="font-bold text-slate-800 text-sm truncate">{book.title}</h4>
                           {isOurPublication(book) && (
                             <span className="bg-amber-100 text-amber-800 text-[10px] font-bold px-2 py-0.5 rounded-full">
-                              🏛️ مركز الدعوة
+                              🏛️ مرکز الدعوة
                             </span>
                           )}
                         </div>
@@ -1319,7 +1498,7 @@ const UserLibrary = () => {
       {selectedBook && (
         <BookDetailsModal
           book={selectedBook}
-          onClose={() => setSelectedBook(null)}
+          onClose={handleCloseBookModal}
           onRequestAccess={handleRequestAccess}
         />
       )}
@@ -1344,6 +1523,119 @@ const UserLibrary = () => {
           onClose={() => setShowSuccess(false)}
         />
       )}
+
+      {/* MOBILE FILTER & SORT BOTTOM SHEET MODAL */}
+      <AnimatePresence>
+        {isMobileFilterOpen && (
+          <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-900/60 backdrop-blur-xs">
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsMobileFilterOpen(false)}
+              className="fixed inset-0"
+            />
+
+            {/* Bottom Sheet Modal Container */}
+            <motion.div
+              initial={{ y: "100%", opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: "100%", opacity: 0 }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className="relative w-full max-w-lg bg-white rounded-t-[2rem] sm:rounded-3xl shadow-2xl p-6 space-y-5 z-10 max-h-[85vh] overflow-y-auto"
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                <div className="flex items-center gap-2">
+                  <AdjustmentsHorizontalIcon className="w-5 h-5 text-emerald-600" />
+                  <h3 className="text-base font-bold text-slate-900">Filter & Sort Library</h3>
+                </div>
+                <button
+                  onClick={() => setIsMobileFilterOpen(false)}
+                  className="p-1.5 rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200"
+                >
+                  <XMarkIcon className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Language Selection Chips */}
+              <div className="space-y-2">
+                <label className="block text-xs font-bold text-slate-700">Language (زبان)</label>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  {[
+                    { id: "all", label: "🌐 All Languages" },
+                    { id: "urdu", label: "اردو (Urdu)" },
+                    { id: "arabic", label: "العربية (Arabic)" },
+                    { id: "english", label: "English" },
+                    { id: "hindi", label: "Hindi" },
+                  ].map((lang) => (
+                    <button
+                      key={lang.id}
+                      onClick={() => setSelectedLanguage(lang.id)}
+                      className={`p-2.5 rounded-xl text-xs font-bold transition text-left border cursor-pointer ${
+                        selectedLanguage === lang.id
+                          ? "bg-emerald-50 border-emerald-500 text-emerald-800 shadow-2xs"
+                          : "bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100"
+                      }`}
+                    >
+                      {lang.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Sorting Selection Chips */}
+              <div className="space-y-2">
+                <label className="block text-xs font-bold text-slate-700">Sort By (ترتیب)</label>
+                <div className="grid grid-cols-2 gap-2">
+                  {[
+                    { id: "oldest", label: "🔢 Serial # (1, 2...)" },
+                    { id: "newest", label: "✨ Newest First" },
+                    { id: "az", label: "🔤 Title (A - Z)" },
+                    { id: "favorites", label: "⭐ My Favorites" },
+                  ].map((sortOption) => (
+                    <button
+                      key={sortOption.id}
+                      onClick={() => setSortBy(sortOption.id)}
+                      className={`p-2.5 rounded-xl text-xs font-bold transition text-left border cursor-pointer ${
+                        sortBy === sortOption.id
+                          ? "bg-emerald-50 border-emerald-500 text-emerald-800 shadow-2xs"
+                          : "bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100"
+                      }`}
+                    >
+                      {sortOption.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Bottom Actions */}
+              <div className="flex items-center gap-3 pt-3 border-t border-slate-100">
+                <button
+                  onClick={() => {
+                    setSelectedCategory("all");
+                    setSelectedSubcategory("all");
+                    setSelectedLanguage("all");
+                    setSortBy("oldest");
+                    setSearchTerm("");
+                    setIsMobileFilterOpen(false);
+                  }}
+                  className="flex-1 py-3 rounded-2xl bg-slate-100 text-slate-700 text-xs font-bold hover:bg-slate-200 transition"
+                >
+                  Reset Filters
+                </button>
+                <button
+                  onClick={() => setIsMobileFilterOpen(false)}
+                  className="flex-1 py-3 rounded-2xl bg-[#002147] text-white text-xs font-bold hover:bg-slate-900 transition shadow-sm"
+                >
+                  Apply & View
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

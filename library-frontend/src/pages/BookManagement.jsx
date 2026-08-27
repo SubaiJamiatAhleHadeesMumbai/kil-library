@@ -4,6 +4,8 @@ import { useNavigate } from 'react-router-dom';
 import { Toaster, toast } from 'react-hot-toast';
 import { bookService } from '../api/bookService';
 
+import bulkActionService from '../api/bulkActionService';
+
 // Components
 import Modal from '../components/common/Modal';
 import BookDetailsModal from '../components/book/BookDetailsModal';
@@ -59,6 +61,9 @@ const BookManagement = () => {
     // --- State ---
     const [allBooks, setAllBooks] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
+    
+    const [selectedBooks, setSelectedBooks] = useState(new Set());
+    const [bulkActionLoading, setBulkActionLoading] = useState(false);
     
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [deletingBook, setDeletingBook] = useState(null);
@@ -225,6 +230,38 @@ const BookManagement = () => {
     const closeDeleteModal = () => { 
         setIsDeleteModalOpen(false); 
         setDeletingBook(null); 
+    };
+
+    const handleBulkAction = async (action) => {
+        if (!selectedBooks.size) return;
+        const confirmMsg = `Are you sure you want to ${action} ${selectedBooks.size} books?`;
+        if (!window.confirm(confirmMsg)) return;
+        setBulkActionLoading(true);
+        try {
+            const result = await bulkActionService.bulkBookAction(action, [...selectedBooks]);
+            toast.success(result.message);
+            setSelectedBooks(new Set());
+            fetchData();
+        } catch (err) {
+            toast.error(err.response?.data?.detail || 'Bulk action failed');
+        } finally {
+            setBulkActionLoading(false);
+        }
+    };
+
+    const toggleSelectAll = (e) => {
+        if (e.target.checked) {
+            setSelectedBooks(new Set(paginatedBooks.map(b => b.id)));
+        } else {
+            setSelectedBooks(new Set());
+        }
+    };
+
+    const toggleSelectBook = (id) => {
+        const newSet = new Set(selectedBooks);
+        if (newSet.has(id)) newSet.delete(id);
+        else newSet.add(id);
+        setSelectedBooks(newSet);
     };
 
     return (
@@ -397,8 +434,21 @@ const BookManagement = () => {
 
             {/* --- CATALOG TABLE SECTION --- */}
             <div className="bg-white rounded-3xl shadow-sm border border-slate-200/80 overflow-hidden">
+                
+                {/* Bulk Actions Toolbar */}
+                {selectedBooks.size > 0 && (
+                  <div className="flex flex-wrap items-center gap-3 px-6 py-4 bg-indigo-50 border-b border-indigo-100">
+                    <span className="text-sm font-bold text-indigo-700">{selectedBooks.size} selected</span>
+                    <button disabled={bulkActionLoading} onClick={() => handleBulkAction('delete')} className="px-3 py-1.5 text-xs font-bold bg-red-100 text-red-700 rounded-xl hover:bg-red-200 transition disabled:opacity-50">Delete Selected</button>
+                    <button disabled={bulkActionLoading} onClick={() => handleBulkAction('restrict')} className="px-3 py-1.5 text-xs font-bold bg-amber-100 text-amber-700 rounded-xl hover:bg-amber-200 transition disabled:opacity-50">Restrict</button>
+                    <button disabled={bulkActionLoading} onClick={() => handleBulkAction('unrestrict')} className="px-3 py-1.5 text-xs font-bold bg-emerald-100 text-emerald-700 rounded-xl hover:bg-emerald-200 transition disabled:opacity-50">Unrestrict</button>
+                    <button disabled={bulkActionLoading} onClick={() => setSelectedBooks(new Set())} className="ml-auto px-3 py-1.5 text-xs font-bold bg-slate-100 text-slate-600 rounded-xl hover:bg-slate-200 transition disabled:opacity-50">Clear</button>
+                  </div>
+                )}
+
                 {/* Top Control Bar with Book Information + Rows per page */}
                 <div className="px-6 py-3.5 bg-slate-50/90 border-b border-slate-200/80 flex flex-wrap items-center justify-between gap-3">
+
                     <div className="flex flex-wrap items-center gap-3">
                         <span className="text-xs font-black text-slate-700 uppercase tracking-wider">Book Information</span>
                         <span className="text-slate-300 hidden sm:inline">•</span>
@@ -458,6 +508,14 @@ const BookManagement = () => {
                         <table className="w-full text-left border-collapse">
                             <thead>
                                 <tr className="bg-slate-50/50 border-b border-slate-200/80 text-[11px] font-black text-slate-500 uppercase tracking-widest">
+                                    <th className="px-6 py-4 w-12 text-center">
+                                        <input 
+                                            type="checkbox" 
+                                            className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
+                                            checked={paginatedBooks.length > 0 && selectedBooks.size === paginatedBooks.length}
+                                            onChange={toggleSelectAll}
+                                        />
+                                    </th>
                                     <th className="px-6 py-4">Book Details</th>
                                     <th className="px-6 py-4">ISBN & Language</th>
                                     <th className="px-6 py-4 text-center">Files & Media</th>
@@ -468,6 +526,15 @@ const BookManagement = () => {
                             <tbody className="divide-y divide-slate-100 text-xs font-medium">
                                 {paginatedBooks.map((book) => (
                                     <tr key={book.id} className="hover:bg-slate-50/80 transition-colors group">
+                                        
+                                        <td className="px-6 py-4 text-center">
+                                            <input 
+                                                type="checkbox" 
+                                                className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
+                                                checked={selectedBooks.has(book.id)}
+                                                onChange={() => toggleSelectBook(book.id)}
+                                            />
+                                        </td>
                                         
                                         {/* Book Title, Author & Metadata */}
                                         <td className="px-6 py-4">

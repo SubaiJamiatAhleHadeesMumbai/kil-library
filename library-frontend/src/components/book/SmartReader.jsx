@@ -29,7 +29,7 @@ const SmartReader = ({
     return 'pdf';
   }); 
 
-  const [viewMode, setViewMode] = useState(() => (typeof window !== 'undefined' && window.innerWidth < 768 ? 'single' : 'scroll')); 
+  const [viewMode, setViewMode] = useState('scroll'); 
   
   const [currentPage, setCurrentPage] = useState(initialPage);
   const [searchText, setSearchText] = useState(initialSearchText);
@@ -97,13 +97,12 @@ const SmartReader = ({
   useEffect(() => {
     if (isMobile) {
       if (layoutMode === 'split') setLayoutMode(pdfUrl ? 'pdf' : 'text');
-      if (viewMode !== 'single') setViewMode('single');
     } else {
       if (pdfUrl && txtUrl && layoutMode !== 'split' && layoutMode !== 'pdf' && layoutMode !== 'text') {
         setLayoutMode('split');
       }
     }
-  }, [isMobile, layoutMode, viewMode, pdfUrl, txtUrl]);
+  }, [isMobile, layoutMode, pdfUrl, txtUrl]);
 
   // ---------------------------------------------------------
   // 1. FETCH & SPLIT TEXT BY DELIMITERS (with Fallback to Direct URL)

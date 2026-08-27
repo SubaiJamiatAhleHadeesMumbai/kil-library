@@ -18,6 +18,7 @@ import {
     NoSymbolIcon,
 } from '@heroicons/react/24/outline';
 import { userService } from '../api/userService';
+import bulkActionService from '../api/bulkActionService';
 import Modal from '../components/common/Modal';
 import UserForm from '../components/user/UserForm';
 
@@ -99,6 +100,10 @@ const UserManagement = () => {
     // --- Delete confirmation state ---
     const [userPendingDelete, setUserPendingDelete] = useState(null);
     const [deletingId, setDeletingId] = useState(null);
+    
+    // --- Bulk Action State ---
+    const [selectedUsers, setSelectedUsers] = useState(new Set());
+    const [bulkActionLoading, setBulkActionLoading] = useState(false);
 
     // Debounce search input
     useEffect(() => {
@@ -240,6 +245,38 @@ const UserManagement = () => {
             setDeletingId(null);
             setUserPendingDelete(null);
         }
+    };
+
+    const handleBulkAction = async (action) => {
+        if (!selectedUsers.size) return;
+        const confirmMsg = `Are you sure you want to ${action} ${selectedUsers.size} users?`;
+        if (!window.confirm(confirmMsg)) return;
+        setBulkActionLoading(true);
+        try {
+            const result = await bulkActionService.bulkUserAction(action, [...selectedUsers]);
+            toast.success(result.message);
+            setSelectedUsers(new Set());
+            fetchData();
+        } catch (err) {
+            toast.error(err.response?.data?.detail || 'Bulk action failed');
+        } finally {
+            setBulkActionLoading(false);
+        }
+    };
+
+    const toggleSelectAll = (e) => {
+        if (e.target.checked) {
+            setSelectedUsers(new Set(pagedUsers.map(u => u.id)));
+        } else {
+            setSelectedUsers(new Set());
+        }
+    };
+
+    const toggleSelectUser = (id) => {
+        const newSet = new Set(selectedUsers);
+        if (newSet.has(id)) newSet.delete(id);
+        else newSet.add(id);
+        setSelectedUsers(newSet);
     };
 
     const SortHeader = ({ label, sortKey, className = '' }) => (
@@ -393,11 +430,30 @@ const UserManagement = () => {
                     </div>
                 </div>
 
+                {/* Bulk Actions Toolbar */}
+                {selectedUsers.size > 0 && (
+                  <div className="flex flex-wrap items-center gap-3 px-6 py-4 bg-indigo-50 border-b border-indigo-100">
+                    <span className="text-sm font-bold text-indigo-700">{selectedUsers.size} selected</span>
+                    <button disabled={bulkActionLoading} onClick={() => handleBulkAction('suspend')} className="px-3 py-1.5 text-xs font-bold bg-amber-100 text-amber-700 rounded-xl hover:bg-amber-200 transition disabled:opacity-50">Suspend</button>
+                    <button disabled={bulkActionLoading} onClick={() => handleBulkAction('activate')} className="px-3 py-1.5 text-xs font-bold bg-emerald-100 text-emerald-700 rounded-xl hover:bg-emerald-200 transition disabled:opacity-50">Activate</button>
+                    <button disabled={bulkActionLoading} onClick={() => handleBulkAction('delete')} className="px-3 py-1.5 text-xs font-bold bg-red-100 text-red-700 rounded-xl hover:bg-red-200 transition disabled:opacity-50">Delete Selected</button>
+                    <button disabled={bulkActionLoading} onClick={() => setSelectedUsers(new Set())} className="ml-auto px-3 py-1.5 text-xs font-bold bg-slate-100 text-slate-600 rounded-xl hover:bg-slate-200 transition disabled:opacity-50">Clear</button>
+                  </div>
+                )}
+
                 {/* Table (Desktop) */}
                 <div className="overflow-x-auto hidden md:block">
                     <table className="w-full text-left border-collapse">
                         <thead>
                             <tr className="bg-slate-50/80 border-b border-slate-200/80 text-[11px] font-black text-slate-500 uppercase tracking-widest">
+                                <th className="px-6 py-4 w-12 text-center">
+                                    <input 
+                                        type="checkbox" 
+                                        className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                                        checked={pagedUsers.length > 0 && selectedUsers.size === pagedUsers.length}
+                                        onChange={toggleSelectAll}
+                                    />
+                                </th>
                                 <th className="px-6 py-4">Security ID</th>
                                 <SortHeader label="User Account" sortKey="username" />
                                 <SortHeader label="Role Level" sortKey="role" className="text-center" />
@@ -432,6 +488,14 @@ const UserManagement = () => {
                             ) : (
                                 pagedUsers.map(user => (
                                     <tr key={user.id} className="hover:bg-slate-50/80 transition-colors group">
+                                        <td className="px-6 py-4 text-center">
+                                            <input 
+                                                type="checkbox" 
+                                                className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                                                checked={selectedUsers.has(user.id)}
+                                                onChange={() => toggleSelectUser(user.id)}
+                                            />
+                                        </td>
                                         <td className="px-6 py-4 text-xs font-mono font-bold text-slate-400">
                                             #{String(user.id).padStart(3, '0')}
                                         </td>

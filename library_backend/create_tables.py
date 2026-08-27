@@ -245,13 +245,34 @@ sync_table_columns(
     }
 )
 
-print("✅ All tables and columns synchronized successfully!")
+# 9. Markaz Posts
+sync_table_columns(
+    "markaz_posts",
+    {},
+    {
+        "tags": "VARCHAR(255)",
+        "status": "VARCHAR(20) DEFAULT 'published'",
+        "published_at": "TIMESTAMP"
+    }
+)
+
+# 10. Homepage Posters
+sync_table_columns(
+    "homepage_posters",
+    {},
+    {
+        "status": "VARCHAR(20) DEFAULT 'published'",
+        "published_at": "TIMESTAMP"
+    }
+)
+
+print("[SUCCESS] All tables and columns synchronized successfully!")
 
 try:
     from seed_islamic_categories import clean_and_seed_categories, seed_announcement_post, seed_donation_info
-    print("🌱 Cleaning test categories & Seeding 42 Islamic Categories & Subcategories...")
+    print("[INFO] Cleaning test categories & Seeding 42 Islamic Categories & Subcategories...")
     clean_and_seed_categories()
     seed_announcement_post()
     seed_donation_info()
 except Exception as e:
-    print("⚠️ Seeding failed:", e)
+    print("[WARNING] Seeding failed:", e)

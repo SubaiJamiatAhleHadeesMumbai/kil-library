@@ -109,7 +109,28 @@ const BookDetail = () => {
         </div>
     );
 
-    if (!book) return <div className="p-20 text-center text-xl text-gray-500">Book Not Found</div>;
+    if (!book) {
+        return (
+            <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6 text-center">
+                <div className="bg-white p-8 sm:p-12 rounded-3xl border border-slate-200 shadow-sm max-w-md w-full space-y-4">
+                    <div className="w-16 h-16 bg-slate-100 text-slate-400 rounded-2xl flex items-center justify-center mx-auto">
+                        <BookOpenIcon className="w-8 h-8 stroke-1" />
+                    </div>
+                    <h2 className="text-xl font-bold text-slate-800">Book Not Found</h2>
+                    <p className="text-xs text-slate-500">
+                        This book ID ({id}) either does not exist, has been removed, or is awaiting admin approval.
+                    </p>
+                    <Link
+                        to="/books"
+                        className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full bg-[#002147] text-white text-xs font-bold hover:bg-slate-900 transition shadow-sm"
+                    >
+                        <ArrowLeftIcon className="w-4 h-4" />
+                        <span>Return to Library</span>
+                    </Link>
+                </div>
+            </div>
+        );
+    }
 
     // --- SMART STYLING LOGIC ---
     const isRTL = ['arabic', 'urdu', 'persian'].includes(book.language?.name?.toLowerCase());

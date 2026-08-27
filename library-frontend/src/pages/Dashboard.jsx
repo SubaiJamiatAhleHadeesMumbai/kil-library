@@ -4,14 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import useAuth from '../hooks/useAuth'; // Ensure this hook provides permissions
 import toast from 'react-hot-toast';
 
-// --- Services ---
-import { bookService } from '../api/bookService';
-import { userService } from '../api/userService';
-import restrictedBookService from "../api/restrictedBookService";
-import analyticsService from '../api/analyticsService';
-
-import { copyIssueService } from '../api/copyIssueService';
-import { logService } from '../api/logService';
+import adminDashboardService from '../api/adminDashboardService';
 
 // --- Icons ---
 import {
@@ -135,77 +128,31 @@ const Dashboard = () => {
     // --- Fetch Logic ---
     const fetchDashboardData = useCallback(async () => {
         setIsLoading(true);
-        const loadStartTime = Date.now();
-
         try {
-            // Define promises based on permissions to save bandwidth
-            const promises = [
-                hasPermission('BOOK_VIEW') ? bookService.getAllBooks(false) : Promise.resolve([]),
-                hasPermission('USER_VIEW') ? userService.getAllUsers() : Promise.resolve([]),
-                hasPermission('REQUEST_VIEW') ? restrictedBookService.getAllRequests() : Promise.resolve([]),
-                hasPermission('BOOK_ISSUE') ? copyIssueService.getAllIssues() : Promise.resolve([]),
-                hasPermission('LOG_VIEW') ? logService.getRecentLogs(5) : Promise.resolve([]),
-                hasPermission('LOG_VIEW') ? analyticsService.getSummary() : Promise.resolve(null)
-            ];
-
-            const results = await Promise.allSettled(promises);
-
-            // Helper to safely get value
-            const getValue = (idx) => (results[idx].status === 'fulfilled' ? results[idx].value : []);
-
-            const books = getValue(0);
-            const users = getValue(1);
-            const requests = getValue(2);
-            const issues = getValue(3);
-            const logs = getValue(4);
-            const analyticsSummary = getValue(5);
-
-            // 1. Process Stats
+            const data = await adminDashboardService.getDashboardStats();
+            
             setStats({
-                totalBooks: books.length,
-                activeUsers: users.filter(u => u.status !== 'banned' && u.status !== 'Deleted').length,
-                pendingRequests: requests.filter(r => r.status === 'pending').length,
-                booksOnLoan: issues.filter(i => i.status === 'issued').length
-            });
-
-            // 2. Process Line Chart (Growth)
-            const monthlyData = Array(12).fill(0);
-            books.forEach(book => {
-                if (book.created_at) {
-                    const d = new Date(book.created_at);
-                    if (!isNaN(d.getTime())) monthlyData[d.getMonth()]++;
-                }
+                totalBooks: data.stats.total_books,
+                activeUsers: data.stats.active_users,
+                pendingRequests: data.stats.pending_requests,
+                booksOnLoan: data.stats.books_on_loan,
+                totalCopies: 0
             });
             
-            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-            const lineData = months.map((m, i) => ({ name: m, books: monthlyData[i] }));
-
-            // 3. Process Pie Chart (Requests)
-            const approved = requests.filter(r => r.status === 'approved').length;
-            const pending = requests.filter(r => r.status === 'pending').length;
-            const rejected = requests.filter(r => r.status === 'rejected').length;
-
             setChartData({
-                added: lineData,
-                status: [
-                    { name: 'Approved', value: approved, color: '#10B981' },
-                    { name: 'Pending', value: pending, color: '#F59E0B' },
-                    { name: 'Rejected', value: rejected, color: '#EF4444' }
-                ]
+                added: data.charts.monthly_growth,
+                status: data.charts.request_breakdown
             });
-
-            // 4. Logs
-            setRecentLogs(logs);
-            setAnalytics(analyticsSummary || null);
-            setLastUpdated(new Date());
-
+            
+            setRecentLogs(data.recent_logs);
+            setLastUpdated(new Date(data.generated_at));
         } catch (err) {
             console.error("Dashboard Load Error:", err);
-            toast.error("Partial data load failed.");
+            toast.error("Dashboard data load failed.");
         } finally {
             setIsLoading(false);
         }
-    }, [role, permissions]); // Dependency on role/perms
+    }, []); // Dependency on role/perms removed since backend handles it
 
     useEffect(() => {
         fetchDashboardData();
@@ -368,9 +315,9 @@ const Dashboard = () => {
                             </h3>
                             <span className="text-xs bg-indigo-50 text-indigo-700 px-2 py-1 rounded-md font-bold">This Year</span>
                         </div>
-                        <div className="h-[300px] w-full min-w-0">
+                        <div className="h-[280px] w-full min-w-0">
                             {isLoading ? <Skeleton height="100%" /> : (
-                                <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={250}>
+                                <ResponsiveContainer width="100%" height={260} minWidth={0}>
                                     <AreaChart data={chartData.added}>
                                         <defs>
                                             <linearGradient id="colorBooks" x1="0" y1="0" x2="0" y2="1">
@@ -396,9 +343,9 @@ const Dashboard = () => {
                                 <ChartPieIcon className="w-5 h-5 text-emerald-500" />
                                 Request Distribution
                             </h3>
-                            <div className="flex-1 min-h-[250px] min-w-0 relative">
+                            <div className="flex-1 min-h-[260px] min-w-0 relative">
                                 {isLoading ? <Skeleton height="100%" /> : (
-                                    <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={250}>
+                                    <ResponsiveContainer width="100%" height={260} minWidth={0}>
                                         <PieChart>
                                             <Pie
                                                 data={chartData.status}

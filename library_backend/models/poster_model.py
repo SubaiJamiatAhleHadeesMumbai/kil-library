@@ -36,6 +36,10 @@ class HomepagePoster(Base):
     sort_order = Column(Integer, default=0, nullable=False)
     is_active = Column(Boolean, default=True, nullable=False)
 
+    # ✅ Content Scheduling Fields
+    status = Column(String(20), nullable=False, default="published", index=True)  # draft | scheduled | published
+    published_at = Column(DateTime, nullable=True)  # When to auto-publish (for scheduled posters)
+
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 

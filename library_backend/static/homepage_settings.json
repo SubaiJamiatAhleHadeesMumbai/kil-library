@@ -9,15 +9,24 @@
   "ui_feel": "premium",
   "language": "en",
   "hero_badge": "",
-  "site_title": "",
+  "site_title": "AHLE HADEES KOKAN",
+  "site_subtitle": "",
+  "site_logo_url": "",
   "sections": {
     "hero": {
       "enabled": true,
       "order": 5,
+      "badge": "MARKAZ AHLE HADEES KOKAN",
+      "show_badge": true,
+      "ayah_arabic": "\u064a\u064e\u0627 \u0623\u064e\u064a\u064f\u0651\u0647\u064e\u0627 \u0627\u0644\u064e\u0651\u0630\u0650\u064a\u0646\u064e \u0622\u0645\u064e\u0646\u064f\u0648\u0627 \u0623\u064e\u0637\u0650\u064a\u0639\u064f\u0648\u0627 \u0627\u0644\u0644\u064e\u0651\u0647\u064e \u0648\u064e\u0623\u064e\u0637\u0650\u064a\u0639\u064f\u0648\u0627 \u0627\u0644\u0631\u064e\u0651\u0633\u064f\u0648\u0644\u064e",
+      "ayah_translation": "",
+      "show_ayah": true,
       "title": "Welcome to the future of the library",
-      "subtitle": "A modern, intelligent reading experience",
       "description": "Main landing intro and spotlight area",
-      "badge": "Adaptive Knowledge Grid",
+      "banner_image_url": "",
+      "banner_overlay_opacity": 75,
+      "show_stars": true,
+      "subtitle": "A modern, intelligent reading experience",
       "cta_label": "Explore the catalog",
       "primary_cta_label": "Explore the catalog",
       "primary_cta_url": "/books",
@@ -93,6 +102,18 @@
       "title": "Support the Library",
       "subtitle": "Help the library grow",
       "description": "Support and donation block"
+    },
+    "bento_hub": {
+      "enabled": true
+    },
+    "stats_impact": {
+      "enabled": true
+    },
+    "newspaper_clippings": {
+      "enabled": true
+    },
+    "whatsapp_community": {
+      "enabled": true
     }
   },
   "layout": {
@@ -103,5 +124,12 @@
     "show_featured_books": true,
     "show_donation_panel": true,
     "show_posters": true
+  },
+  "loader_config": {
+    "loader_style": "skeleton_shimmer",
+    "splash_theme": "navy",
+    "occasion_theme": "ramadan",
+    "show_quotes": true,
+    "splash_duration": 1800
   }
 }

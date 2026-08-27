@@ -364,7 +364,7 @@ const SplitViewer = ({
             }`}
           >
             {/* Added Padding to Prevent Floating Controls from covering text */}
-            <div className="flex flex-1 min-h-0 justify-center overflow-auto p-4 sm:p-6 pb-20 sm:pb-24 custom-scrollbar">
+            <div className="flex flex-1 min-h-0 w-full h-full">
               {pdfComponent}
             </div>
 
@@ -406,7 +406,7 @@ const SplitViewer = ({
                   layoutMode === 'text' ? 'max-w-4xl shadow-md' : 'max-w-3xl'
                 }`}
               >
-                {layoutMode === 'text' && viewMode === 'scroll' && pageEntries.length > 0 ? (
+                {pageEntries.length > 0 ? (
                   <div className="flex flex-col gap-10">
                     {pageEntries.map(([pageKey, pageValue]) => {
                       const pageNum = Number(pageKey);

@@ -1,18 +1,30 @@
+import os
+import json
+import urllib.request
 from fastapi import APIRouter, HTTPException, Depends, status
 from pydantic import BaseModel
 from google.oauth2 import id_token
 from google.auth.transport import requests
 from sqlalchemy.orm import Session
-import secrets # Random username ke liye
+from sqlalchemy import func
 
-# --- Imports (Apne project ke hisaab se check karein) ---
 from database import get_db
-from models import user_model  # User aur Role dono models chahiye
+from models import user_model
 from auth import create_access_token
 
 router = APIRouter()
 
-GOOGLE_CLIENT_ID = "158248986174-cv22ngbp9ctjlf0dmditmsre151lpqm9.apps.googleusercontent.com"
+GOOGLE_CLIENT_ID = os.getenv(
+    "GOOGLE_CLIENT_ID",
+    "158248986174-cv22ngbp9ctjlf0dmditmsre151lpqm9.apps.googleusercontent.com"
+)
+
+# Explicitly allowed admin emails (comma-separated in env or empty)
+ADMIN_EMAILS = [
+    e.strip().lower()
+    for e in os.getenv("ADMIN_EMAILS", "admin@markaz.org,admin@kil.local").split(",")
+    if e.strip()
+]
 
 class GoogleLoginRequest(BaseModel):
     token: str
@@ -20,67 +32,97 @@ class GoogleLoginRequest(BaseModel):
 @router.post("/auth/google")
 def google_login(payload: GoogleLoginRequest, db: Session = Depends(get_db)):
     try:
-        # 1. Google Token Verify karein
-        info = id_token.verify_oauth2_token(
-            payload.token,
-            requests.Request(),
-            GOOGLE_CLIENT_ID
-        )
+        # 1. Verify Google Token (Supports both ID Token and OAuth2 Access Token)
+        info = None
+        try:
+            info = id_token.verify_oauth2_token(
+                payload.token,
+                requests.Request(),
+                GOOGLE_CLIENT_ID
+            )
+        except Exception:
+            try:
+                req = urllib.request.Request(
+                    "https://www.googleapis.com/oauth2/v3/userinfo",
+                    headers={"Authorization": f"Bearer {payload.token}"}
+                )
+                with urllib.request.urlopen(req, timeout=10) as resp:
+                    info = json.loads(resp.read().decode("utf-8"))
+            except Exception:
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Invalid or expired Google authentication token"
+                )
 
-        email = info.get("email")
-        full_name = info.get("name") or ""
+        if not info or not info.get("email"):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Google account email not found"
+            )
 
-        if not email:
-            raise HTTPException(status_code=400, detail="Google account email not found")
+        email = info.get("email").strip().lower()
+        full_name = info.get("name") or info.get("given_name") or ""
 
-        # 2. Check karein User pehle se hai ya nahi
-        user = db.query(user_model.User).filter(user_model.User.email == email).first()
+        # 2. Check if user already exists
+        user = db.query(user_model.User).filter(func.lower(user_model.User.email) == email).first()
 
         if not user:
-            # --- NEW USER LOGIC ---
-            
-            # A. Default Role Dhundhein (e.g., 'Student' ya 'Member')
-            default_role = db.query(user_model.Role).filter(user_model.Role.name == "Student").first()
-            
-            # Agar 'Student' role nahi mila, to fallback karein
-            if not default_role:
-                default_role = db.query(user_model.Role).first() # Jo bhi pehla role ho wo le lo
-                if not default_role:
-                    raise HTTPException(status_code=500, detail="No roles found in system. Please contact admin.")
+            # ─── SECURE ROLE ASSIGNMENT ─────────────────────────────────────
+            # Only assign Admin role if email is explicitly listed in ADMIN_EMAILS
+            if email in ADMIN_EMAILS:
+                role = db.query(user_model.Role).filter(
+                    func.lower(user_model.Role.name) == "admin"
+                ).first()
+            else:
+                # Find standard public member role (strictly non-admin)
+                role = db.query(user_model.Role).filter(
+                    func.lower(user_model.Role.name).in_(["user", "registered member / student", "member", "student", "viewer"])
+                ).first()
 
-            # B. Unique Username Generate karein
-            base_username = email.split("@")[0]
+                # Safety fallback: find any role that does NOT contain admin keywords
+                if not role:
+                    role = db.query(user_model.Role).filter(
+                        ~func.lower(user_model.Role.name).contains("admin")
+                    ).first()
+
+                # Hard security invariant: Never grant Admin role by default
+                if not role or "admin" in (role.name or "").lower():
+                    # Fallback to creating/fetching a clean 'user' role
+                    role = db.query(user_model.Role).filter(user_model.Role.name == "user").first()
+                    if not role:
+                        role = user_model.Role(name="user")
+                        db.add(role)
+                        db.commit()
+                        db.refresh(role)
+
+            # Generate a unique username
+            base_username = email.split("@")[0].replace(".", "_")
             username = base_username
             counter = 1
-            # Check karein ke username duplicate na ho
             while db.query(user_model.User).filter(user_model.User.username == username).first():
                 username = f"{base_username}{counter}"
                 counter += 1
 
-            # C. Create User Object (Sab fields ke sath)
+            # Create the new user with least privilege
             user = user_model.User(
                 username=username,
                 email=email,
                 full_name=full_name,
                 status="Active",
-                role_id=default_role.id,  # ✅ Zaroori hai
-                password_hash="GOOGLE_OAUTH_LOGIN_NO_PASSWORD" # ✅ Placeholder password zaroori hai
+                role_id=role.id,
+                password_hash="GOOGLE_OAUTH_LOGIN_NO_PASSWORD"
             )
-
             db.add(user)
             db.commit()
             db.refresh(user)
 
-        # 3. Access Token Generate karein
-        # Role ko handle karein (string ya object)
-        role_name = user.role.name if user.role else "User"
-        
+        # 3. Build Access Token & Permissions Payload
+        role_name = user.role.name if user.role else "user"
         access_token = create_access_token(
             data={"sub": str(user.id), "email": user.email, "role": role_name}
         )
 
-        # 4. Permissions List Fetch karein (Frontend ke liye zaroori)
-        permissions_list = [p.name for p in user.role.permissions] if user.role and user.role.permissions else []
+        permissions_list = [p.name for p in user.role.permissions] if (user.role and user.role.permissions) else []
 
         return {
             "access_token": access_token,
@@ -90,14 +132,16 @@ def google_login(payload: GoogleLoginRequest, db: Session = Depends(get_db)):
                 "username": user.username,
                 "email": user.email,
                 "full_name": user.full_name,
-                "role": {"name": role_name}, # Frontend structure match karein
-                "permissions": permissions_list # ✅ Permissions bhejna zaroori hai
+                "role": {"name": role_name},
+                "permissions": permissions_list
             }
         }
 
-    except ValueError:
-        raise HTTPException(status_code=401, detail="Invalid Google token")
+    except HTTPException:
+        raise
     except Exception as e:
-        # Debugging ke liye error print karein
-        print(f"Error: {str(e)}") 
-        raise HTTPException(status_code=500, detail=f"Google login failed: {str(e)}")
+        print(f"[Google Auth Error]: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Google login failed: {str(e)}"
+        )
