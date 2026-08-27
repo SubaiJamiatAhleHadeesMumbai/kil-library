@@ -15,11 +15,13 @@ export default function GoogleDocsEditorModal({
   bookTitle = '',
   initialFile = null,
   initialText = '',
-  initialUrl = null
+  initialUrl = null,
+  pdfUrl = null
 }) {
   const [documentTitle, setDocumentTitle] = useState('Research Text');
   const [isStarred, setIsStarred] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isPdfSplitView, setIsPdfSplitView] = useState(false);
   const [zoom, setZoom] = useState(100);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isRTL, setIsRTL] = useState(true);
@@ -484,6 +486,19 @@ export default function GoogleDocsEditorModal({
               <span>{wordCount.toLocaleString()} words</span>
             </div>
 
+            {/* Compare with PDF Split View Button */}
+            {pdfUrl && (
+              <button
+                type="button"
+                onClick={() => setIsPdfSplitView(!isPdfSplitView)}
+                className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all shadow-sm ${isPdfSplitView ? 'bg-indigo-600 text-white shadow-indigo-500/20' : 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-200'}`}
+                title="Compare Urdu/Arabic text side-by-side with original book PDF"
+              >
+                <BookOpen className="w-3.5 h-3.5" />
+                <span>{isPdfSplitView ? "Close PDF Split" : "🪟 Compare with PDF"}</span>
+              </button>
+            )}
+
             {/* Google Blue "Save & Attach to Book" Button */}
             <button
               type="button"
@@ -885,11 +900,36 @@ export default function GoogleDocsEditorModal({
           </div>
         )}
 
-        {/* 3. MAIN WORKSPACE (SIDEBAR + RULER + REAL MULTI-PAGE SHEETS) */}
+        {/* 3. MAIN WORKSPACE (SIDEBAR + RULER + REAL MULTI-PAGE SHEETS + OPTIONAL PDF SPLIT) */}
         <div className="flex-1 flex overflow-hidden relative">
           
+          {/* PDF SPLIT VIEW LEFT PANEL (WHEN ACTIVE) */}
+          {isPdfSplitView && pdfUrl && (
+            <div className="w-1/2 h-full border-r border-slate-300 bg-slate-100 flex flex-col flex-shrink-0 relative">
+              <div className="bg-slate-200 px-3 py-1.5 border-b border-slate-300 flex items-center justify-between text-xs font-bold text-slate-700">
+                <span className="flex items-center gap-1.5">
+                  <BookOpen className="w-3.5 h-3.5 text-indigo-600" />
+                  Original PDF Book Reference
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setIsPdfSplitView(false)}
+                  className="text-slate-500 hover:text-slate-800 p-0.5 rounded font-bold"
+                  title="Close PDF View"
+                >
+                  ✕
+                </button>
+              </div>
+              <iframe
+                src={`${pdfUrl}#toolbar=1&navpanes=0`}
+                title="Original Book PDF Reference"
+                className="flex-1 w-full h-full border-none"
+              />
+            </div>
+          )}
+
           {/* LEFT SIDEBAR: Document Tabs & Outline */}
-          <aside className={`${isSidebarOpen ? 'w-64' : 'w-0'} bg-[#f9fbfd] border-r border-slate-200 transition-all duration-200 flex flex-col flex-shrink-0 overflow-hidden`}>
+          <aside className={`${isSidebarOpen && !isPdfSplitView ? 'w-64' : 'w-0'} bg-[#f9fbfd] border-r border-slate-200 transition-all duration-200 flex flex-col flex-shrink-0 overflow-hidden`}>
             <div className="p-3 border-b border-slate-200 flex items-center justify-between">
               <span className="text-xs font-bold text-slate-600 flex items-center gap-1.5">
                 <BookOpen className="w-3.5 h-3.5 text-[#1a73e8]" />

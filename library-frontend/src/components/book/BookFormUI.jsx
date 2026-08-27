@@ -571,6 +571,7 @@ const BookFormUI = ({
         bookTitle={formData.title}
         initialFile={googleDocsFile}
         initialUrl={initialData?.txt_file_url}
+        pdfUrl={formData.pdf_file ? URL.createObjectURL(formData.pdf_file) : (initialData?.pdf_url ? (initialData.pdf_url.startsWith('http') ? initialData.pdf_url : `${API_URL}${initialData.pdf_url.startsWith('/') ? initialData.pdf_url : `/${initialData.pdf_url}`}`) : null)}
       />
     </form>
   );
