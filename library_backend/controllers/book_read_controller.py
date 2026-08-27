@@ -129,10 +129,9 @@ def deduplicate_public_books(books_list: list) -> list:
             score += 5
         score += (getattr(book, 'id', 0) or 0) * 0.0001
         
-        if key not in seen or score > seen[key][0]:
-            seen[key] = (score, book)
-            
-    return [item[1] for item in seen.values()]
+    result = [item[1] for item in seen.values()]
+    # Ensure newest uploaded books (highest ID) are always at the top!
+    return sorted(result, key=lambda b: getattr(b, 'id', 0) or 0, reverse=True)
 
 # ==================================
 # READ OPERATIONS (Public & Admin)

@@ -419,22 +419,16 @@ const PublicHome = () => {
   const sortedBooks = useMemo(() => {
     const list = Array.isArray(filteredBooks) ? [...filteredBooks] : [];
     const safeTitle = (b) => String(b?.title || b?.name || "").toLowerCase();
+    const safeId = (b) => Number(b?.id) || 0;
 
     if (sortBy === "az") {
       return list.sort((a, b) => safeTitle(a).localeCompare(safeTitle(b)));
     }
     if (sortBy === "oldest") {
-      return list.sort((a, b) => {
-        const da = new Date(a?.created_at || a?.upload_date || 0).getTime();
-        const db = new Date(b?.created_at || b?.upload_date || 0).getTime();
-        return da - db;
-      });
+      return list.sort((a, b) => safeId(a) - safeId(b));
     }
-    return list.sort((a, b) => {
-      const da = new Date(a?.created_at || a?.upload_date || 0).getTime();
-      const db = new Date(b?.created_at || b?.upload_date || 0).getTime();
-      return db - da;
-    });
+    // Default: "newest" -> Highest ID (Newest upload) first
+    return list.sort((a, b) => safeId(b) - safeId(a));
   }, [filteredBooks, sortBy]);
 
   // Filter by Favorites

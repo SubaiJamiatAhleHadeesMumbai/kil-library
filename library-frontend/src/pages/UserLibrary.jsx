@@ -417,18 +417,12 @@ const UserLibrary = () => {
   // --- SORTING ---
   const finalDisplayBooks = useMemo(() => {
     const sorted = [...(Array.isArray(filteredBooks) ? filteredBooks : [])];
-    const safeDate = (b) => new Date(b?.created_at || b?.published_date || 0).getTime();
     const safeId = (b) => Number(b?.id) || 0;
-    const safeSerial = (b) => Number(b?.serial_number) || Number(b?.id) || 0;
 
     if (sortBy === "newest") {
-      sorted.sort((a, b) => {
-        const dDiff = safeDate(b) - safeDate(a);
-        if (dDiff !== 0) return dDiff;
-        return safeId(b) - safeId(a);
-      });
+      sorted.sort((a, b) => safeId(b) - safeId(a));
     } else if (sortBy === "oldest") {
-      sorted.sort((a, b) => safeSerial(a) - safeSerial(b));
+      sorted.sort((a, b) => safeId(a) - safeId(b));
     } else if (sortBy === "az") {
       sorted.sort((a, b) => (a?.title || "").localeCompare(b?.title || ""));
     } else if (sortBy === "favorites") {
