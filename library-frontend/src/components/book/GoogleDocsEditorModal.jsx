@@ -4,7 +4,9 @@ import {
   Bold, Italic, Underline, Strikethrough, AlignLeft, AlignCenter, AlignRight, AlignJustify,
   List, ListOrdered, Indent, Outdent, Eraser,
   ChevronDown, ChevronLeft, ChevronRight, FileText, Star, Cloud,
-  Maximize2, Minimize2, FileCheck, BookOpen, PlusCircle, Trash2
+  Maximize2, Minimize2, FileCheck, BookOpen, PlusCircle, Trash2,
+  Table, Image as ImageIcon, Link as LinkIcon, Sparkles, Volume2, HelpCircle,
+  Puzzle, Keyboard, Copy, Check, FileDown, Scissors, Type, Clock
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -21,14 +23,13 @@ export default function GoogleDocsEditorModal({
   const [documentTitle, setDocumentTitle] = useState('Research Text');
   const [isStarred, setIsStarred] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  const [isPdfSplitView, setIsPdfSplitView] = useState(true); // Default Split View when PDF available
+  const [isPdfSplitView, setIsPdfSplitView] = useState(true);
   const [zoom, setZoom] = useState(100);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isRTL, setIsRTL] = useState(true);
   const [fontFamily, setFontFamily] = useState('Jameel Noori Nastaleeq');
   const [fontSize, setFontSize] = useState('18');
   const [textColor, setTextColor] = useState('#111827');
-  const [highlightColor, setHighlightColor] = useState('#ffffff');
   const [lineSpacing, setLineSpacing] = useState('1.8');
   const [activeHeading, setActiveHeading] = useState('Normal text');
 
@@ -38,6 +39,8 @@ export default function GoogleDocsEditorModal({
   const pageRefs = useRef([]);
   const canvasContainerRef = useRef(null);
   const pdfIframeRef = useRef(null);
+  const fileInputRef = useRef(null);
+  const imageInputRef = useRef(null);
 
   // Stats
   const [wordCount, setWordCount] = useState(0);
@@ -45,11 +48,19 @@ export default function GoogleDocsEditorModal({
   const [headingsList, setHeadingsList] = useState([]);
   const [isLoadingContent, setIsLoadingContent] = useState(false);
 
-  // Find & Replace
+  // Modals & Popups
   const [showFindReplace, setShowFindReplace] = useState(false);
   const [findQuery, setFindQuery] = useState('');
   const [replaceQuery, setReplaceQuery] = useState('');
   const [matchCase, setMatchCase] = useState(false);
+
+  const [showWordCountModal, setShowWordCountModal] = useState(false);
+  const [showShortcutsModal, setShowShortcutsModal] = useState(false);
+  const [showSymbolsModal, setShowSymbolsModal] = useState(false);
+  const [showKeyboardModal, setShowKeyboardModal] = useState(false);
+  const [showLinkModal, setShowLinkModal] = useState(false);
+  const [linkUrl, setLinkUrl] = useState('');
+  const [linkText, setLinkText] = useState('');
 
   // Dropdowns
   const [openDropdown, setOpenDropdown] = useState(null);
@@ -79,7 +90,7 @@ export default function GoogleDocsEditorModal({
           return decoded;
         }
       } catch (err) {
-        // Not valid UTF-8, continue to Windows-1256
+        // Not valid UTF-8, proceed to Windows-1256
       }
 
       // 2. Decode as Windows-1256 (Urdu / Arabic ANSI)
@@ -105,7 +116,7 @@ export default function GoogleDocsEditorModal({
   // Helper: Format raw text faithfully into lines (No line mixing)
   const formatPageTextToHtml = (rawPageText) => {
     if (!rawPageText) return '<p><br></p>';
-    if (rawPageText.includes('<p>') || rawPageText.includes('<div>') || rawPageText.includes('<h')) {
+    if (rawPageText.includes('<p>') || rawPageText.includes('<div>') || rawPageText.includes('<h') || rawPageText.includes('<table')) {
       return rawPageText;
     }
     const lines = rawPageText.split(/\r?\n/);
@@ -127,20 +138,15 @@ export default function GoogleDocsEditorModal({
       try {
         let textToLoad = '';
 
-        // 1. If File object is provided
         if (initialFile instanceof File) {
           textToLoad = await readFileAsText(initialFile);
           if (initialFile.name) {
             const cleanName = initialFile.name.replace(/\.[^/.]+$/, '');
             setDocumentTitle(cleanName);
           }
-        }
-        // 2. If Direct Text String is provided
-        else if (initialText) {
+        } else if (initialText) {
           textToLoad = initialText;
-        }
-        // 3. If URL is provided (Edit Mode)
-        else if (initialUrl) {
+        } else if (initialUrl) {
           const fullUrl = initialUrl.startsWith('http')
             ? initialUrl
             : `${import.meta.env.VITE_API_BASE_URL || ''}${initialUrl}`;
@@ -168,18 +174,12 @@ export default function GoogleDocsEditorModal({
         }
 
         if (textToLoad && textToLoad.trim().length > 0) {
-          // Exact Comprehensive Delimiters from SmartReader.jsx:
-          // 1. --- or ——— (3 or more dashes / horizontal rule)
-          // 2. ... or . . . or … (3 or more dots / horizontal ellipsis)
-          // 3. *** or ___ (3 or more asterisks or underscores)
-          // 4. ===PAGE===, PAGE_SEPARATOR, [PAGE X]
           const delimiterPattern = /(?:\r?\n|^)\s*(?:[-—_]{3,}|\*{3,}|(?:\.\s*){3,}|…+|===PAGE===|PAGE_SEPARATOR|\[PAGE\s*\d+\])\s*(?:\r?\n|$)/gi;
 
           let rawPages = textToLoad.split(delimiterPattern)
             .map(p => p.trim())
             .filter(p => p.length > 0);
 
-          // Fallback: Smart paragraph chunking ONLY if text file has no explicit delimiters and is 1 continuous block
           if (rawPages.length === 1 && textToLoad.length > 1500) {
             const paragraphs = textToLoad.split(/\n\s*\n/);
             const chunks = [];
@@ -259,13 +259,11 @@ export default function GoogleDocsEditorModal({
     const targetPage = Math.max(1, Math.min(pages.length, pageNum));
     setCurrentPage(targetPage);
 
-    // Scroll Google Docs editor to page
     const el = pageRefs.current[targetPage - 1];
     if (el) {
       el.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
 
-    // Sync PDF Viewer page
     if (pdfIframeRef.current && pdfUrl) {
       try {
         pdfIframeRef.current.src = `${pdfUrl}#page=${targetPage}&toolbar=1&navpanes=0`;
@@ -347,6 +345,132 @@ export default function GoogleDocsEditorModal({
     }
   };
 
+  // Insert HTML into current cursor position
+  const insertHtmlAtCursor = (html) => {
+    const sel = window.getSelection();
+    if (sel && sel.rangeCount > 0) {
+      const range = sel.getRangeAt(0);
+      range.deleteContents();
+      const el = document.createElement('div');
+      el.innerHTML = html;
+      const frag = document.createDocumentFragment();
+      let node;
+      let lastNode;
+      while ((node = el.firstChild)) {
+        lastNode = frag.appendChild(node);
+      }
+      range.insertNode(frag);
+      if (lastNode) {
+        range.setStartAfter(lastNode);
+        range.collapse(true);
+        sel.removeAllRanges();
+        sel.addRange(range);
+      }
+    } else {
+      // Fallback: append to current active page
+      const currIdx = currentPage - 1;
+      setPages(prev => {
+        const next = [...prev];
+        next[currIdx] = (next[currIdx] || '') + html;
+        return next;
+      });
+    }
+    updateStats();
+  };
+
+  // Insert Table
+  const handleInsertTable = (rows, cols, isIndexTable = false) => {
+    let tableHtml = `<table style="width: 100%; border-collapse: collapse; margin: 16px 0; border: 1.5px solid #cbd5e1;" dir="${isRTL ? 'rtl' : 'ltr'}">`;
+    if (isIndexTable) {
+      tableHtml += `
+        <thead>
+          <tr style="background-color: #f1f5f9; border-bottom: 2px solid #94a3b8; font-weight: bold; text-align: center;">
+            <th style="padding: 8px 12px; border: 1px solid #cbd5e1; width: 15%;">نمبر شمار</th>
+            <th style="padding: 8px 12px; border: 1px solid #cbd5e1; width: 70%;">عنوانات و مضامین</th>
+            <th style="padding: 8px 12px; border: 1px solid #cbd5e1; width: 15%;">صفحہ نمبر</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td style="padding: 8px 12px; border: 1px solid #cbd5e1; text-align: center;">۱</td>
+            <td style="padding: 8px 12px; border: 1px solid #cbd5e1;">عنوان یہاں درج کریں</td>
+            <td style="padding: 8px 12px; border: 1px solid #cbd5e1; text-align: center;">۵</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px 12px; border: 1px solid #cbd5e1; text-align: center;">۲</td>
+            <td style="padding: 8px 12px; border: 1px solid #cbd5e1;">دوسرا عنوان</td>
+            <td style="padding: 8px 12px; border: 1px solid #cbd5e1; text-align: center;">۱۰</td>
+          </tr>
+        </tbody>
+      `;
+    } else {
+      tableHtml += '<tbody>';
+      for (let r = 0; r < rows; r++) {
+        tableHtml += '<tr>';
+        for (let c = 0; c < cols; c++) {
+          tableHtml += `<td style="padding: 8px 12px; border: 1px solid #cbd5e1; min-width: 60px;">&nbsp;</td>`;
+        }
+        tableHtml += '</tr>';
+      }
+      tableHtml += '</tbody>';
+    }
+    tableHtml += '</table><p><br></p>';
+    insertHtmlAtCursor(tableHtml);
+    setOpenDropdown(null);
+    toast.success("Table inserted!");
+  };
+
+  // Insert Local Image
+  const handleImageUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        const imgUrl = ev.target.result;
+        const imgHtml = `<p style="text-align: center;"><img src="${imgUrl}" alt="Inserted Graphic" style="max-width: 100%; height: auto; border-radius: 8px; margin: 12px auto; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);" /></p><p><br></p>`;
+        insertHtmlAtCursor(imgHtml);
+        toast.success("Image inserted!");
+      };
+      reader.readAsDataURL(file);
+    }
+    setOpenDropdown(null);
+  };
+
+  // Insert Link
+  const handleInsertLink = () => {
+    if (!linkUrl) {
+      toast.error("Please enter a valid URL");
+      return;
+    }
+    const html = `<a href="${linkUrl}" target="_blank" rel="noopener noreferrer" style="color: #1a73e8; text-decoration: underline;">${linkText || linkUrl}</a>&nbsp;`;
+    insertHtmlAtCursor(html);
+    setShowLinkModal(false);
+    setLinkUrl('');
+    setLinkText('');
+    toast.success("Link inserted!");
+  };
+
+  // Text-To-Speech Listen Voice Audio (Gemini/Tools feature)
+  const handleListenPage = () => {
+    const el = pageRefs.current[currentPage - 1];
+    const textToSpeak = el ? el.innerText.trim() : '';
+    if (!textToSpeak) {
+      toast.error("Page is empty.");
+      return;
+    }
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(textToSpeak);
+      utterance.lang = isRTL ? 'ur-PK' : 'en-US';
+      utterance.rate = 0.95;
+      window.speechSynthesis.speak(utterance);
+      toast.success("🔊 Reading page aloud (Text-to-Speech)...");
+    } else {
+      toast.error("Speech Synthesis is not supported in this browser.");
+    }
+    setOpenDropdown(null);
+  };
+
   // Find & Replace Engine across all pages
   const handleFindReplace = (isReplaceAll = false) => {
     if (!findQuery) return;
@@ -391,9 +515,15 @@ export default function GoogleDocsEditorModal({
         } else if (e.key === 'y' || e.key === 'Y') {
           e.preventDefault();
           execCmd('redo');
-        } else if (e.key === 'f' || e.key === 'F') {
+        } else if (e.key === 'f' || e.key === 'F' || e.key === 'h' || e.key === 'H') {
           e.preventDefault();
           setShowFindReplace(prev => !prev);
+        } else if (e.key === 'k' || e.key === 'K') {
+          e.preventDefault();
+          setShowLinkModal(true);
+        } else if (e.key === 'p' || e.key === 'P') {
+          e.preventDefault();
+          window.print();
         } else if (e.key === 's' || e.key === 'S') {
           e.preventDefault();
           handleSaveAndAttach();
@@ -425,7 +555,7 @@ export default function GoogleDocsEditorModal({
     
     const fileName = `${safeTitle}.txt`;
     const blob = new Blob([combinedPlainText], { type: 'text/plain;charset=utf-8' });
-    const file = new File([blob], fileName, { type: 'text/plain', lastModified: Date.now() });
+    const file = new File([blob], fileName, { type: 'text/plain;charset=utf-8', lastModified: Date.now() });
 
     if (onSave) {
       onSave({
@@ -455,11 +585,55 @@ export default function GoogleDocsEditorModal({
     toast.success("Document downloaded as .txt");
   };
 
+  // Download HTML File
+  const handleDownloadHtml = () => {
+    const combinedHtml = pages.map((p, i) => `<!-- PAGE ${i + 1} -->\n<div class="page-sheet">\n${p}\n</div>`).join('\n\n<hr class="page-separator" />\n\n');
+    const fullDoc = `<!DOCTYPE html>\n<html dir="${isRTL ? 'rtl' : 'ltr'}">\n<head>\n<meta charset="utf-8">\n<title>${documentTitle}</title>\n<style>body{font-family:'Noto Nastaliq Urdu',serif;padding:40px;line-height:2.0;} .page-sheet{margin-bottom:40px;}</style>\n</head>\n<body>\n${combinedHtml}\n</body>\n</html>`;
+    const blob = new Blob([fullDoc], { type: 'text/html;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${documentTitle || 'document'}.html`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success("Document downloaded as .html");
+  };
+
+  // Hidden file inputs
+  const handleOpenFileClick = () => {
+    fileInputRef.current?.click();
+    setOpenDropdown(null);
+  };
+
+  const handleOpenImageClick = () => {
+    imageInputRef.current?.click();
+    setOpenDropdown(null);
+  };
+
+  const handleLocalFileOpened = async (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setIsLoadingContent(true);
+      const text = await readFileAsText(file);
+      if (file.name) setDocumentTitle(file.name.replace(/\.[^/.]+$/, ''));
+      const delimiterPattern = /(?:\r?\n|^)\s*(?:[-—_]{3,}|\*{3,}|(?:\.\s*){3,}|…+|===PAGE===|PAGE_SEPARATOR|\[PAGE\s*\d+\])\s*(?:\r?\n|$)/gi;
+      let rawPages = text.split(delimiterPattern).map(p => p.trim()).filter(p => p.length > 0);
+      if (rawPages.length === 0 && text.trim()) rawPages = [text.trim()];
+      setPages(rawPages.map(p => formatPageTextToHtml(p)));
+      setIsLoadingContent(false);
+      toast.success(`Opened ${rawPages.length} pages from file!`);
+    }
+  };
+
   if (!isOpen) return null;
 
   return (
     <div className={`fixed inset-0 z-50 flex flex-col bg-[#f0f4f9] text-slate-800 antialiased font-sans select-none overflow-hidden ${isFullscreen ? 'p-0' : 'p-2 sm:p-4'}`}>
       
+      {/* Hidden File Inputs */}
+      <input type="file" ref={fileInputRef} onChange={handleLocalFileOpened} accept=".txt,.text" className="hidden" />
+      <input type="file" ref={imageInputRef} onChange={handleImageUpload} accept="image/*" className="hidden" />
+
       {/* Container Card */}
       <div className="flex-1 flex flex-col bg-[#f9fbfd] rounded-2xl shadow-2xl border border-slate-300 overflow-hidden relative">
         
@@ -478,7 +652,7 @@ export default function GoogleDocsEditorModal({
                   type="text"
                   value={documentTitle}
                   onChange={(e) => setDocumentTitle(e.target.value)}
-                  className="text-base font-semibold text-slate-800 bg-transparent hover:bg-slate-100 focus:bg-white focus:ring-2 focus:ring-[#1a73e8] px-2 py-0.5 rounded-lg border-transparent transition-all truncate max-w-[300px] sm:max-w-[420px]"
+                  className="text-base font-semibold text-slate-800 bg-transparent hover:bg-slate-100 focus:bg-white focus:ring-2 focus:ring-[#1a73e8] px-2 py-0.5 rounded-lg border-transparent transition-all truncate max-w-[280px] sm:max-w-[380px]"
                   title="Click to rename document"
                 />
                 <button
@@ -494,42 +668,73 @@ export default function GoogleDocsEditorModal({
                 </div>
               </div>
 
-              {/* Top Menu Bar */}
-              <nav className="flex items-center gap-0.5 text-xs text-slate-600 font-medium -ml-1 mt-0.5">
+              {/* TOP COMPLETE GOOGLE DOCS MENU BAR (File, Edit, View, Insert, Format, Tools, Gemini AI, Extensions, Help) */}
+              <nav className="flex items-center gap-0.5 text-xs text-slate-600 font-medium -ml-1 mt-0.5 flex-wrap">
                 {[
                   { name: 'File', key: 'fileMenu', items: [
-                    { label: 'Download as .TXT', action: handleDownloadTxt },
-                    { label: 'Print Document', action: () => window.print() },
-                    { label: 'Clear All Content', action: () => { setPages(['<p><br></p>']); updateStats(); } },
+                    { label: 'New Blank Page', icon: PlusCircle, action: () => handleAddPageAfter(pages.length - 1) },
+                    { label: 'Open File from Computer (Ctrl+O)', icon: FileText, action: handleOpenFileClick },
+                    { label: 'Download as Plain Text (.txt)', icon: FileDown, action: handleDownloadTxt },
+                    { label: 'Download as Web Page (.html)', icon: FileDown, action: handleDownloadHtml },
+                    { label: 'Print / Save as PDF (Ctrl+P)', icon: Printer, action: () => window.print() },
+                    { label: 'Clear All Content', icon: Trash2, action: () => { setPages(['<p><br></p>']); updateStats(); } },
                   ]},
                   { name: 'Edit', key: 'editMenu', items: [
-                    { label: 'Undo (Ctrl+Z)', action: () => execCmd('undo') },
-                    { label: 'Redo (Ctrl+Y)', action: () => execCmd('redo') },
-                    { label: 'Find & Replace (Ctrl+F)', action: () => setShowFindReplace(true) },
-                    { label: 'Select All (Ctrl+A)', action: () => execCmd('selectAll') },
+                    { label: 'Undo (Ctrl+Z)', icon: RotateCcw, action: () => execCmd('undo') },
+                    { label: 'Redo (Ctrl+Y)', icon: RotateCw, action: () => execCmd('redo') },
+                    { label: 'Find & Replace (Ctrl+F / Ctrl+H)', icon: Search, action: () => setShowFindReplace(true) },
+                    { label: 'Select All (Ctrl+A)', icon: Copy, action: () => execCmd('selectAll') },
+                    { label: 'Paste Clean Text (Ctrl+Shift+V)', icon: Type, action: () => execCmd('insertText', '') },
                   ]},
                   { name: 'View', key: 'viewMenu', items: [
-                    { label: 'Toggle Sidebar Outline', action: () => setIsSidebarOpen(!isSidebarOpen) },
-                    { label: isPdfSplitView ? 'Close PDF Split View' : 'Open PDF Split View', action: () => setIsPdfSplitView(!isPdfSplitView) },
-                    { label: 'Toggle Fullscreen', action: () => setIsFullscreen(!isFullscreen) },
-                    { label: 'Zoom: 100%', action: () => setZoom(100) },
-                    { label: 'Zoom: 125%', action: () => setZoom(125) },
+                    { label: isPdfSplitView ? 'Close PDF Split View' : '🪟 Open PDF Split View', icon: BookOpen, action: () => setIsPdfSplitView(!isPdfSplitView) },
+                    { label: 'Toggle Sidebar Outline (Ctrl+Alt+A)', icon: List, action: () => setIsSidebarOpen(!isSidebarOpen) },
+                    { label: 'Toggle Fullscreen', icon: Maximize2, action: () => setIsFullscreen(!isFullscreen) },
+                    { label: 'Zoom 100% (Normal)', action: () => setZoom(100) },
+                    { label: 'Zoom 125% (Large)', action: () => setZoom(125) },
+                    { label: 'Zoom 150% (Extra Large)', action: () => setZoom(150) },
                   ]},
                   { name: 'Insert', key: 'insertMenu', items: [
-                    { label: 'New Page Break (Ctrl+Enter)', action: () => handleAddPageAfter(currentPage - 1) },
-                    { label: 'Horizontal Line', action: () => execCmd('insertHorizontalRule') },
-                    { label: 'Paragraph Break', action: () => execCmd('insertParagraph') },
+                    { label: '🖼️ Insert Image from Computer...', icon: ImageIcon, action: handleOpenImageClick },
+                    { label: '📋 Insert 3-Column Index Table', icon: Table, action: () => handleInsertTable(3, 3, true) },
+                    { label: '📊 Insert Standard Table (3x3)', icon: Table, action: () => handleInsertTable(3, 3, false) },
+                    { label: '🔗 Insert Link (Ctrl+K)', icon: LinkIcon, action: () => setShowLinkModal(true) },
+                    { label: '✨ Islamic Symbols & Duas Palette', icon: Sparkles, action: () => setShowSymbolsModal(true) },
+                    { label: '✂️ Insert Page Break (Ctrl+Enter)', icon: PlusCircle, action: () => handleAddPageAfter(currentPage - 1) },
+                    { label: '➖ Horizontal Divider Line', action: () => execCmd('insertHorizontalRule') },
+                    { label: `🕒 Insert Current Date & Time`, icon: Clock, action: () => insertHtmlAtCursor(`<p style="font-family:sans-serif;font-size:12px;color:#64748b;">${new Date().toLocaleDateString('en-GB')} | ${new Date().toLocaleTimeString()}</p>`) },
                   ]},
                   { name: 'Format', key: 'formatMenu', items: [
-                    { label: 'Bold (Ctrl+B)', action: () => execCmd('bold') },
-                    { label: 'Italic (Ctrl+I)', action: () => execCmd('italic') },
-                    { label: 'Underline (Ctrl+U)', action: () => execCmd('underline') },
-                    { label: 'Clear Formatting', action: () => execCmd('removeFormat') },
+                    { label: 'Switch to Urdu (Right-to-Left)', action: () => setIsRTL(true) },
+                    { label: 'Switch to English (Left-to-Right)', action: () => setIsRTL(false) },
+                    { label: 'Bold (Ctrl+B)', icon: Bold, action: () => execCmd('bold') },
+                    { label: 'Italic (Ctrl+I)', icon: Italic, action: () => execCmd('italic') },
+                    { label: 'Underline (Ctrl+U)', icon: Underline, action: () => execCmd('underline') },
+                    { label: 'Strikethrough', icon: Strikethrough, action: () => execCmd('strikeThrough') },
+                    { label: 'Align Right (Urdu)', icon: AlignRight, action: () => execCmd('justifyRight') },
+                    { label: 'Align Center', icon: AlignCenter, action: () => execCmd('justifyCenter') },
+                    { label: 'Justify Text (Daayen-Baayen Barabar)', icon: AlignJustify, action: () => execCmd('justifyFull') },
+                    { label: 'Clear Formatting (Ctrl+\\)', icon: Eraser, action: () => execCmd('removeFormat') },
                   ]},
                   { name: 'Tools', key: 'toolsMenu', items: [
-                    { label: `Word Count: ${wordCount} words`, action: () => toast(`Document contains ${wordCount} words, ${charCount} characters, and ${pages.length} pages.`, { icon: '📊' }) },
-                    { label: 'Switch to Urdu RTL', action: () => setIsRTL(true) },
-                    { label: 'Switch to English LTR', action: () => setIsRTL(false) },
+                    { label: `📊 Word Count (${wordCount} words)`, icon: FileText, action: () => setShowWordCountModal(true) },
+                    { label: '🔊 Listen to Page (Voice Audio)', icon: Volume2, action: handleListenPage },
+                    { label: '⌨️ Urdu Phonetic Keyboard Helper', icon: Keyboard, action: () => setShowKeyboardModal(true) },
+                    { label: '🔍 Find & Replace (Ctrl+F)', icon: Search, action: () => setShowFindReplace(true) },
+                  ]},
+                  { name: 'Gemini AI', key: 'geminiMenu', items: [
+                    { label: '🔊 Read Page Aloud (Voice Speech)', icon: Volume2, action: handleListenPage },
+                    { label: '✨ Insert Quranic Ayah Brackets ﴿ ﴾', icon: Sparkles, action: () => insertHtmlAtCursor(' ﴿  ﴾ ') },
+                    { label: '✨ Insert Hadith Quotation « »', icon: Sparkles, action: () => insertHtmlAtCursor(' «  » ') },
+                    { label: '✨ Insert Durood Shareef ﷺ', icon: Sparkles, action: () => insertHtmlAtCursor(' ﷺ ') },
+                  ]},
+                  { name: 'Extensions', key: 'extensionsMenu', items: [
+                    { label: '⌨️ On-Screen Urdu Keymap', icon: Keyboard, action: () => setShowKeyboardModal(true) },
+                    { label: '📑 Multi-Page A4 Grid Exporter', icon: Puzzle, action: handleDownloadHtml },
+                  ]},
+                  { name: 'Help', key: 'helpMenu', items: [
+                    { label: '⌨️ Keyboard Shortcuts Guide', icon: Keyboard, action: () => setShowShortcutsModal(true) },
+                    { label: `ℹ️ About Google Docs Synchronized Editor`, icon: HelpCircle, action: () => toast(`Google Docs Editor v2.5 - Synchronized with Book PDF Viewer.`, { icon: '📘' }) },
                   ]},
                 ].map(menu => (
                   <div key={menu.key} className="relative">
@@ -542,17 +747,23 @@ export default function GoogleDocsEditorModal({
                     </button>
 
                     {openDropdown === menu.key && (
-                      <div className="absolute top-full left-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-xl py-1 min-w-[220px] z-50 animate-in fade-in zoom-in-95 duration-100">
-                        {menu.items.map((item, i) => (
-                          <button
-                            key={i}
-                            type="button"
-                            onClick={() => { item.action(); setOpenDropdown(null); }}
-                            className="w-full text-left px-3 py-1.5 text-xs text-slate-700 hover:bg-blue-50 hover:text-[#1a73e8] flex items-center justify-between"
-                          >
-                            <span>{item.label}</span>
-                          </button>
-                        ))}
+                      <div className="absolute top-full left-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-xl py-1 min-w-[240px] z-50 animate-in fade-in zoom-in-95 duration-100">
+                        {menu.items.map((item, i) => {
+                          const Icon = item.icon;
+                          return (
+                            <button
+                              key={i}
+                              type="button"
+                              onClick={() => { item.action(); setOpenDropdown(null); }}
+                              className="w-full text-left px-3 py-1.5 text-xs text-slate-700 hover:bg-blue-50 hover:text-[#1a73e8] flex items-center justify-between gap-2"
+                            >
+                              <span className="flex items-center gap-2">
+                                {Icon && <Icon className="w-3.5 h-3.5 text-slate-500" />}
+                                <span>{item.label}</span>
+                              </span>
+                            </button>
+                          );
+                        })}
                       </div>
                     )}
                   </div>
@@ -811,6 +1022,26 @@ export default function GoogleDocsEditorModal({
           </button>
           <button type="button" onClick={() => execCmd('strikeThrough')} className="p-1.5 rounded hover:bg-slate-200/80 text-slate-700" title="Strikethrough">
             <Strikethrough className="w-4 h-4" />
+          </button>
+
+          <div className="h-4 w-[1px] bg-slate-300 mx-1" />
+
+          {/* Quick Insert Table & Islamic Symbols in Toolbar */}
+          <button
+            type="button"
+            onClick={() => handleInsertTable(3, 3, true)}
+            className="p-1.5 rounded hover:bg-slate-200/80 text-slate-700 flex items-center gap-1"
+            title="Insert Index Table"
+          >
+            <Table className="w-4 h-4 text-emerald-600" />
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowSymbolsModal(true)}
+            className="p-1.5 rounded hover:bg-slate-200/80 text-slate-700 flex items-center gap-1"
+            title="Islamic Symbols & Duas (ﷺ, ﷻ, ﴿ ﴾)"
+          >
+            <Sparkles className="w-4 h-4 text-amber-500" />
           </button>
 
           <div className="h-4 w-[1px] bg-slate-300 mx-1" />
@@ -1145,12 +1376,23 @@ export default function GoogleDocsEditorModal({
               Page {currentPage} of {pages.length}
             </span>
             <span>•</span>
-            <span className="font-semibold text-slate-700">{wordCount.toLocaleString()} words</span>
+            <button type="button" onClick={() => setShowWordCountModal(true)} className="font-semibold text-slate-700 hover:underline">
+              {wordCount.toLocaleString()} words
+            </button>
             <span>•</span>
             <span>{charCount.toLocaleString()} characters</span>
           </div>
 
           <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setShowShortcutsModal(true)}
+              className="text-slate-400 hover:text-slate-700 flex items-center gap-1 hover:underline"
+            >
+              <Keyboard className="w-3.5 h-3.5" />
+              <span>Shortcuts</span>
+            </button>
+            <span>•</span>
             <span className={`px-2 py-0.5 rounded font-bold ${isRTL ? 'bg-emerald-50 text-emerald-700' : 'bg-blue-50 text-blue-700'}`}>
               {isRTL ? 'اردو Nastaleeq (RTL)' : 'Left-to-Right (English)'}
             </span>
@@ -1160,6 +1402,274 @@ export default function GoogleDocsEditorModal({
         </footer>
 
       </div>
+
+      {/* --- 5. MODALS & POPUPS --- */}
+
+      {/* 📊 WORD COUNT MODAL */}
+      {showWordCountModal && (
+        <div className="fixed inset-0 z-60 bg-black/40 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-sm w-full p-6 animate-in zoom-in-95 duration-150">
+            <div className="flex justify-between items-center pb-3 border-b border-slate-100">
+              <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                <FileText className="w-5 h-5 text-[#1a73e8]" />
+                Word Count Statistics
+              </h3>
+              <button type="button" onClick={() => setShowWordCountModal(false)} className="text-slate-400 hover:text-slate-700">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="py-4 space-y-2.5 text-sm">
+              <div className="flex justify-between py-1 border-b border-slate-50">
+                <span className="text-slate-500">Total Pages:</span>
+                <span className="font-bold text-slate-800 font-mono">{pages.length}</span>
+              </div>
+              <div className="flex justify-between py-1 border-b border-slate-50">
+                <span className="text-slate-500">Total Words:</span>
+                <span className="font-bold text-slate-800 font-mono">{wordCount.toLocaleString()}</span>
+              </div>
+              <div className="flex justify-between py-1 border-b border-slate-50">
+                <span className="text-slate-500">Total Characters:</span>
+                <span className="font-bold text-slate-800 font-mono">{charCount.toLocaleString()}</span>
+              </div>
+              <div className="flex justify-between py-1 border-b border-slate-50">
+                <span className="text-slate-500">Active Page:</span>
+                <span className="font-bold text-[#1a73e8] font-mono">Page {currentPage}</span>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowWordCountModal(false)}
+              className="w-full mt-2 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold rounded-xl text-xs transition"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ✨ ISLAMIC SYMBOLS & CALLIGRAPHY PALETTE MODAL */}
+      {showSymbolsModal && (
+        <div className="fixed inset-0 z-60 bg-black/40 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-lg w-full p-6 animate-in zoom-in-95 duration-150">
+            <div className="flex justify-between items-center pb-3 border-b border-slate-100">
+              <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                <Sparkles className="w-5 h-5 text-amber-500" />
+                Islamic Symbols & Calligraphy Signs
+              </h3>
+              <button type="button" onClick={() => setShowSymbolsModal(false)} className="text-slate-400 hover:text-slate-700">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            
+            <div className="py-4 space-y-4 max-h-[60vh] overflow-y-auto custom-scrollbar">
+              <div>
+                <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">Durood & Salawat</div>
+                <div className="grid grid-cols-3 gap-2">
+                  {[
+                    { sym: 'ﷺ', label: 'Sallallahu Alayhi Wasallam' },
+                    { sym: 'ﷻ', label: 'Jalla Jalaluh' },
+                    { sym: 'رضي الله عنه', label: 'Radiyallahu Anhu' },
+                    { sym: 'رحمه الله', label: 'Rahimahullah' },
+                    { sym: 'عليه السلام', label: 'Alayhis Salam' },
+                    { sym: 'رضي الله عنها', label: 'Radiyallahu Anha' },
+                  ].map((item, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => { insertHtmlAtCursor(`&nbsp;${item.sym}&nbsp;`); toast.success(`Inserted ${item.sym}`); }}
+                      className="p-2 bg-slate-50 hover:bg-amber-50 hover:border-amber-300 border border-slate-200 rounded-xl text-center transition"
+                    >
+                      <div className="text-lg font-bold font-arabic text-amber-700">{item.sym}</div>
+                      <div className="text-[9px] text-slate-500 truncate">{item.label}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">Ayah & Hadees Brackets</div>
+                <div className="grid grid-cols-4 gap-2">
+                  {['﴿ ﴾', '« »', '“ ”', '‘ ’', '•', '◆', '★', '✺'].map((sym, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => { insertHtmlAtCursor(` ${sym} `); toast.success(`Inserted ${sym}`); }}
+                      className="p-2.5 bg-slate-50 hover:bg-blue-50 hover:border-blue-300 border border-slate-200 rounded-xl text-center text-base font-bold text-slate-800 transition"
+                    >
+                      {sym}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">Arabic / Urdu Numbers</div>
+                <div className="grid grid-cols-5 gap-1.5">
+                  {['۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹', '۱۰'].map((num, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => { insertHtmlAtCursor(num); toast.success(`Inserted ${num}`); }}
+                      className="p-2 bg-slate-50 hover:bg-emerald-50 hover:border-emerald-300 border border-slate-200 rounded-lg text-center font-bold text-slate-800"
+                    >
+                      {num}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setShowSymbolsModal(false)}
+              className="w-full mt-2 py-2 bg-[#1a73e8] hover:bg-[#1557b0] text-white font-semibold rounded-xl text-xs transition"
+            >
+              Done
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* 🔗 INSERT LINK MODAL */}
+      {showLinkModal && (
+        <div className="fixed inset-0 z-60 bg-black/40 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-sm w-full p-6 animate-in zoom-in-95 duration-150">
+            <div className="flex justify-between items-center pb-3 border-b border-slate-100">
+              <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                <LinkIcon className="w-5 h-5 text-[#1a73e8]" />
+                Insert Hyperlink
+              </h3>
+              <button type="button" onClick={() => setShowLinkModal(false)} className="text-slate-400 hover:text-slate-700">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="py-4 space-y-3">
+              <div>
+                <label className="text-xs font-semibold text-slate-600 block mb-1">Link Text (Optional):</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Reference Source"
+                  value={linkText}
+                  onChange={(e) => setLinkText(e.target.value)}
+                  className="w-full px-3 py-1.5 border border-slate-300 rounded-lg text-xs outline-none focus:border-[#1a73e8]"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-slate-600 block mb-1">URL / Web Link:</label>
+                <input
+                  type="url"
+                  placeholder="https://example.com"
+                  value={linkUrl}
+                  onChange={(e) => setLinkUrl(e.target.value)}
+                  className="w-full px-3 py-1.5 border border-slate-300 rounded-lg text-xs outline-none focus:border-[#1a73e8]"
+                />
+              </div>
+            </div>
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setShowLinkModal(false)}
+                className="px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-100 rounded-lg"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleInsertLink}
+                className="px-4 py-1.5 text-xs bg-[#1a73e8] hover:bg-[#1557b0] text-white font-semibold rounded-lg shadow-sm"
+              >
+                Apply Link
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ⌨️ KEYBOARD SHORTCUTS MODAL */}
+      {showShortcutsModal && (
+        <div className="fixed inset-0 z-60 bg-black/40 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-md w-full p-6 animate-in zoom-in-95 duration-150">
+            <div className="flex justify-between items-center pb-3 border-b border-slate-100">
+              <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                <Keyboard className="w-5 h-5 text-[#1a73e8]" />
+                Keyboard Shortcuts
+              </h3>
+              <button type="button" onClick={() => setShowShortcutsModal(false)} className="text-slate-400 hover:text-slate-700">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="py-4 space-y-2 text-xs max-h-[60vh] overflow-y-auto custom-scrollbar">
+              {[
+                { key: 'Ctrl + B', label: 'Bold selection' },
+                { key: 'Ctrl + I', label: 'Italic selection' },
+                { key: 'Ctrl + U', label: 'Underline selection' },
+                { key: 'Ctrl + Z', label: 'Undo action' },
+                { key: 'Ctrl + Y', label: 'Redo action' },
+                { key: 'Ctrl + F / Ctrl + H', label: 'Find and Replace' },
+                { key: 'Ctrl + Enter', label: 'Insert New Page Break' },
+                { key: 'Ctrl + K', label: 'Insert Hyperlink' },
+                { key: 'Ctrl + P', label: 'Print or Save as PDF' },
+                { key: 'Ctrl + S', label: 'Save & Attach to Book' },
+              ].map((item, idx) => (
+                <div key={idx} className="flex justify-between items-center py-1.5 border-b border-slate-50">
+                  <span className="text-slate-600">{item.label}</span>
+                  <span className="bg-slate-100 border border-slate-200 px-2 py-0.5 rounded font-mono font-bold text-slate-800">{item.key}</span>
+                </div>
+              ))}
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowShortcutsModal(false)}
+              className="w-full mt-2 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold rounded-xl text-xs transition"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ⌨️ URDU PHONETIC KEYBOARD HELPER MODAL */}
+      {showKeyboardModal && (
+        <div className="fixed inset-0 z-60 bg-black/40 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-lg w-full p-6 animate-in zoom-in-95 duration-150">
+            <div className="flex justify-between items-center pb-3 border-b border-slate-100">
+              <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                <Keyboard className="w-5 h-5 text-indigo-600" />
+                Urdu Phonetic Keymap Reference
+              </h3>
+              <button type="button" onClick={() => setShowKeyboardModal(false)} className="text-slate-400 hover:text-slate-700">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="py-4 space-y-2 text-xs">
+              <p className="text-slate-500 leading-relaxed mb-3">
+                Urdu Phonetic keyboard layout maps standard English keys directly to Urdu alphabets:
+              </p>
+              <div className="grid grid-cols-4 gap-2 font-mono text-center">
+                {[
+                  { en: 'a', ur: 'ا' }, { en: 'b', ur: 'ب' }, { en: 'p', ur: 'پ' }, { en: 't', ur: 'ت' },
+                  { en: 'T', ur: 'ٹ' }, { en: 's', ur: 'س' }, { en: 'j', ur: 'ج' }, { en: 'c', ur: 'چ' },
+                  { en: 'h', ur: 'ح' }, { en: 'x', ur: 'خ' }, { en: 'd', ur: 'د' }, { en: 'D', ur: 'ڈ' },
+                  { en: 'r', ur: 'ر' }, { en: 'R', ur: 'ڑ' }, { en: 'z', ur: 'ز' }, { en: 'k', ur: 'ک' },
+                  { en: 'g', ur: 'گ' }, { en: 'l', ur: 'ل' }, { en: 'm', ur: 'م' }, { en: 'n', ur: 'ن' },
+                ].map((k, i) => (
+                  <div key={i} className="p-2 bg-slate-50 border border-slate-200 rounded-lg">
+                    <span className="text-slate-400 text-[10px]">{k.en}</span> ➔ <span className="font-bold text-sm text-indigo-700 font-arabic">{k.ur}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowKeyboardModal(false)}
+              className="w-full mt-2 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl text-xs transition"
+            >
+              Got it
+            </button>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
