@@ -137,12 +137,11 @@ const StandardFormattedText = ({
     '2':  'text-[1.65rem] sm:text-[1.85rem] md:text-[2.0rem] leading-[3.2] sm:leading-[3.4]',
   };
   const currentSizeClass = fontSizes[zoomLevel] || fontSizes['0'];
+  const uniformNastaleeqFont = "'Jameel Noori Nastaleeq', 'JameelNoori', 'Gulzar', 'Noto Nastaliq Urdu', serif";
 
-  const highlightContent = (content, isArabic = false) => {
+  const highlightContent = (content) => {
     if (!content) return null;
-    const fontStyle = isArabic
-      ? { fontFamily: "'Amiri', 'Traditional Arabic', serif" }
-      : { fontFamily: "'Jameel Noori Nastaleeq', 'JameelNoori', 'Gulzar', 'Noto Nastaliq Urdu', serif" };
+    const fontStyle = { fontFamily: uniformNastaleeqFont };
 
     if (!highlightQuery || !highlightQuery.trim()) {
       return <span style={fontStyle}>{content}</span>;
@@ -176,7 +175,7 @@ const StandardFormattedText = ({
       dir="rtl"
       className={'space-y-6 text-right max-w-4xl mx-auto ' + paperStyles + ' ' + className}
       style={{
-        fontFamily: "'Jameel Noori Nastaleeq', 'JameelNoori', 'Gulzar', 'Noto Nastaliq Urdu', serif",
+        fontFamily: uniformNastaleeqFont,
         color: '#1A1612',
         textAlign: 'right',
         lineHeight: '2.9',
@@ -217,21 +216,15 @@ const StandardFormattedText = ({
       )}
 
       {blocks.map((block, index) => {
-        const isAr = isArabicScript(block.content);
-        const fontFam = isAr ? "'Amiri', serif" : "'Jameel Noori Nastaleeq', 'JameelNoori', 'Gulzar', 'Noto Nastaliq Urdu', serif";
-
         switch (block.type) {
           case 'centered_header':
             return (
               <div key={index} className="my-8 pt-4 pb-4 border-y-2 border-[#E2D4BE] text-center bg-[#F4EEDB]/80 rounded-2xl px-6">
-                <div className="text-xs text-[#8B6E32] font-sans font-bold uppercase tracking-widest mb-1.5">
-                  ✦ فصل / عنوان ✦
-                </div>
                 <h3
                   className="text-2xl sm:text-3xl font-black text-[#002147] tracking-normal leading-[2.6]"
-                  style={{ fontFamily: fontFam }}
+                  style={{ fontFamily: uniformNastaleeqFont }}
                 >
-                  {highlightContent(block.content, isAr)}
+                  {highlightContent(block.content)}
                 </h3>
               </div>
             );
@@ -257,12 +250,12 @@ const StandardFormattedText = ({
                 <div
                   className={'flex-1 ' + currentSizeClass + ' text-[#1A1612] font-medium'}
                   style={{
-                    fontFamily: fontFam,
+                    fontFamily: uniformNastaleeqFont,
                     textAlign: 'right',
                     lineHeight: '2.9',
                   }}
                 >
-                  {highlightContent(block.content, isAr)}
+                  {highlightContent(block.content)}
                 </div>
               </div>
             );
@@ -274,12 +267,12 @@ const StandardFormattedText = ({
                 <div
                   className={'flex-1 ' + currentSizeClass + ' text-[#1A1612]'}
                   style={{
-                    fontFamily: fontFam,
+                    fontFamily: uniformNastaleeqFont,
                     textAlign: 'right',
                     lineHeight: '2.9',
                   }}
                 >
-                  {highlightContent(block.content, isAr)}
+                  {highlightContent(block.content)}
                 </div>
               </div>
             );
@@ -293,12 +286,12 @@ const StandardFormattedText = ({
                 <p
                   className={currentSizeClass + ' font-semibold text-[#1A1612]'}
                   style={{
-                    fontFamily: "'Amiri', serif",
+                    fontFamily: uniformNastaleeqFont,
                     textAlign: 'right',
-                    lineHeight: '2.8',
+                    lineHeight: '2.9',
                   }}
                 >
-                  ”{highlightContent(block.content, true)}“
+                  ”{highlightContent(block.content)}“
                 </p>
               </div>
             );
@@ -310,13 +303,13 @@ const StandardFormattedText = ({
                 key={index}
                 className={currentSizeClass + ' text-[#1A1612] font-normal ' + (dense ? 'mb-3' : 'mb-6')}
                 style={{
-                  fontFamily: fontFam,
+                  fontFamily: uniformNastaleeqFont,
                   textAlign: 'right',
                   lineHeight: '2.9',
                   letterSpacing: '0.01em',
                 }}
               >
-                {highlightContent(block.content, isAr)}
+                {highlightContent(block.content)}
               </p>
             );
         }
