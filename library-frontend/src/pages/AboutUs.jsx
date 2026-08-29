@@ -147,8 +147,8 @@ const ErrorState = ({ onRetry }) => (
 
 // Sub-component: Hero & Introduction Section (Clean Full-Width HD Makhtota without Image)
 const IntroSection = ({ settings }) => (
-  <section className="w-full overflow-hidden rounded-[2.5rem] border-2 border-[#E2D4BE] bg-[#FAF6EE] p-8 sm:p-12 lg:p-16 shadow-[inset_0_0_50px_rgba(180,140,75,0.04),0_10px_30px_rgba(0,0,0,0.03)] ring-1 ring-[#D8C6A5]">
-    <div className="flex flex-col text-right" dir="rtl">
+  <section className="w-full max-w-5xl mx-auto overflow-hidden rounded-[2.5rem] border-2 border-[#E2D4BE] bg-[#FAF6EE] p-8 sm:p-12 lg:p-16 shadow-[inset_0_0_50px_rgba(180,140,75,0.04),0_10px_30px_rgba(0,0,0,0.03)] ring-1 ring-[#D8C6A5]">
+    <div className="flex flex-col text-right max-w-4xl mx-auto" dir="rtl">
       <div className="flex items-center justify-between border-b border-[#E2D4BE] pb-4 mb-6">
         <div className="inline-flex items-center gap-2 rounded-full bg-[#8B6E32]/10 px-4 py-1.5 text-xs font-bold uppercase tracking-[0.2em] text-[#8B6E32] w-fit">
           📜 تعارف و پس منظر
@@ -159,8 +159,8 @@ const IntroSection = ({ settings }) => (
       </div>
 
       <h2
-        className="text-2xl sm:text-3xl lg:text-4xl font-black text-[#002147] mb-6"
-        style={{ fontFamily: "'Noto Nastaliq Urdu', 'JameelNoori', serif" }}
+        className="text-2xl sm:text-3xl lg:text-4xl font-black text-[#002147] mb-6 leading-[2.2]"
+        style={{ fontFamily: "'Jameel Noori Nastaleeq', 'JameelNoori', 'Gulzar', 'Noto Nastaliq Urdu', serif" }}
       >
         {settings.hero?.title || settings.intro?.title || 'مرکز الدعوۃ الاسلامیۃ والخیریہ (سونس، کھیڈ - رتناگری)'}
       </h2>

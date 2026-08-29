@@ -27,10 +27,30 @@ const isArabicScript = (str) => {
   return arabicRegex.test(str);
 };
 
+// Normalizes Urdu and Arabic characters, fixing broken/misplaced Do-Chashmi Heh and Arabic letters
+export const normalizeUrduText = (str) => {
+  if (!str || typeof str !== 'string') return '';
+  let s = str;
+  // Replace Arabic Kaf 'ك' (0643) with Urdu 'ک' (06A9)
+  s = s.replace(/ك/g, 'ک');
+  // Replace Arabic Yeh 'ي' (064A) / 'ى' (0649) with Urdu 'ی' (06CC)
+  s = s.replace(/[يى]/g, 'ی');
+  // Fix Arabic Heh 'ه' (0647) and Te Marbuta 'ة' (0629) with Urdu 'ہ' (06C1) / 'ۃ'
+  s = s.replace(/ه/g, 'ہ').replace(/ة/g, 'ۃ');
+  // Fix misplaced Do-Chashmi Heh 'ھ' with Choti Heh 'ہ' in common standalone Urdu words
+  // e.g. ھوا -> ہوا, ھم -> ہم, ھمارا -> ہمارا, ھمیں -> ہمیں, ھے -> ہے, ھیں -> ہیں, ھوں -> ہوں, ھو -> ہو, ھوتی -> ہوتی, ھوتا -> ہوتا
+  s = s.replace(/\bھ(وا|مارا|ماری|مارے|میں|م|ے|یں|وں|و|وتا|وتی|وتے|ونی|ونا|ونے|اتھ|وئی|وئے)/g, 'ہ$1');
+  s = s.replace(/\bھ(?=[ا-ی])/g, 'ہ');
+  // Fix Hamza on Ye 'لۓ' -> 'لیے'
+  s = s.replace(/لۓ/g, 'لیے');
+  return s;
+};
+
 export const formatRawTextToBlocks = (rawText) => {
   if (!rawText || typeof rawText !== 'string') return [];
 
-  let text = rawText.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+  let text = normalizeUrduText(rawText);
+  text = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
   text = text.replace(/\\+(\n|$)/g, '$1');
   text = text.replace(/([^\n])\s*([❶-❿➊-➓])/g, '$1\n$2');
 
@@ -111,10 +131,10 @@ const StandardFormattedText = ({
   const blocks = formatRawTextToBlocks(text);
 
   const fontSizes = {
-    '-1': 'text-[1rem] sm:text-[1.1rem] leading-[2.2]',
-    '0':  'text-[1.125rem] sm:text-[1.25rem] leading-[2.4]',
-    '1':  'text-[1.25rem] sm:text-[1.38rem] leading-[2.6]',
-    '2':  'text-[1.38rem] sm:text-[1.5rem] leading-[2.8]',
+    '-1': 'text-[1.05rem] sm:text-[1.15rem] leading-[2.4]',
+    '0':  'text-[1.2rem] sm:text-[1.35rem] leading-[2.6]',
+    '1':  'text-[1.35rem] sm:text-[1.5rem] leading-[2.8]',
+    '2':  'text-[1.5rem] sm:text-[1.7rem] leading-[3.0]',
   };
   const currentSizeClass = fontSizes[zoomLevel] || fontSizes['0'];
 
@@ -122,7 +142,7 @@ const StandardFormattedText = ({
     if (!content) return null;
     const fontStyle = isArabic
       ? { fontFamily: "'Amiri', 'Traditional Arabic', serif" }
-      : { fontFamily: "'Noto Nastaliq Urdu', 'JameelNoori', serif" };
+      : { fontFamily: "'Jameel Noori Nastaleeq', 'JameelNoori', 'Gulzar', 'Noto Nastaliq Urdu', serif" };
 
     if (!highlightQuery || !highlightQuery.trim()) {
       return <span style={fontStyle}>{content}</span>;
@@ -154,12 +174,14 @@ const StandardFormattedText = ({
   return (
     <div
       dir="rtl"
-      className={'space-y-4 text-right ' + paperStyles + ' ' + className}
+      className={'space-y-6 text-right max-w-4xl mx-auto ' + paperStyles + ' ' + className}
       style={{
-        fontFamily: "'Noto Nastaliq Urdu', 'JameelNoori', serif",
+        fontFamily: "'Jameel Noori Nastaleeq', 'JameelNoori', 'Gulzar', 'Noto Nastaliq Urdu', serif",
         color: '#2C2416',
-        textAlign: 'justify',
-        textJustify: 'inter-word'
+        textAlign: 'right',
+        lineHeight: '2.6',
+        letterSpacing: '0.01em',
+        wordSpacing: '0.08em',
       }}
     >
       {/* Optional Zoom Controls Header */}

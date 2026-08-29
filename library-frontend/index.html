@@ -5,26 +5,36 @@
     <link rel="icon" type="image/png" href="/logo.png" />
     <link rel="apple-touch-icon" href="/logo.png" />
     
-    <!-- Google Fonts for English, Urdu and Arabic -->
-    <link href="https://fonts.googleapis.com/css2?family=Almarai:wght@300;400;700&family=Amiri:ital,wght@0,400;0,700;1,400&family=Noto+Nastaliq+Urdu:wght@400;700&display=swap" rel="stylesheet"/>
+    <!-- Google Fonts for English, Urdu (Gulzar, Noto Nastaliq) and Arabic (Amiri, Almarai) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Almarai:wght@300;400;700&family=Amiri:ital,wght@0,400;0,700;1,400&family=Gulzar&family=Noto+Nastaliq+Urdu:wght@400;500;600;700&family=Noto+Sans+Arabic:wght@400;600;700&family=Montserrat:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet"/>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Nastaliq+Urdu:wght@400;700&family=Noto+Sans+Arabic:wght@400;700&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
     
     <style>
-      @import url('https://fonts.googleapis.com/css2?family=Almarai:wght@300;400;700&family=Amiri:ital,wght@0,400;0,700;1,400&family=Noto+Nastaliq+Urdu:wght@400;700&display=swap');
-      @import url('https://fonts.googleapis.com/css2?family=Noto+Nastaliq+Urdu:wght@400;700&family=Noto+Sans+Arabic:wght@400;700&display=swap');
-      
       @font-face {
-        font-family: 'JameelNoori';
-        src: url('https://cdn.jsdelivr.net/gh/googlei18n/noto-fonts/unhinted/NotoNastaliqUrdu/NotoNastaliqUrdu-Regular.ttf');
+        font-family: 'Jameel Noori Nastaleeq';
+        src: url('https://cdn.jsdelivr.net/gh/urdu-fonts/jameel-noori-nastaleeq/jameel-noori-nastaleeq.woff2') format('woff2'),
+             url('https://cdn.jsdelivr.net/gh/urdu-fonts/jameel-noori-nastaleeq/jameel-noori-nastaleeq.ttf') format('truetype');
+        font-weight: normal;
+        font-style: normal;
+        font-display: swap;
       }
 
-      .urdu-font, body.font-urdu {
-        font-family: 'Noto Nastaliq Urdu', 'JameelNoori', 'Noto Sans Arabic', serif !important;
-        line-height: 2.2;
+      @font-face {
+        font-family: 'JameelNoori';
+        src: url('https://cdn.jsdelivr.net/gh/urdu-fonts/jameel-noori-nastaleeq/jameel-noori-nastaleeq.woff2') format('woff2'),
+             url('https://cdn.jsdelivr.net/gh/urdu-fonts/jameel-noori-nastaleeq/jameel-noori-nastaleeq.ttf') format('truetype');
+        font-weight: normal;
+        font-style: normal;
+        font-display: swap;
       }
-      body.font-arabic {
+
+      .urdu-font, body.font-urdu, .font-urdu {
+        font-family: 'Jameel Noori Nastaleeq', 'JameelNoori', 'Gulzar', 'Noto Nastaliq Urdu', serif !important;
+        line-height: 2.4;
+      }
+      body.font-arabic, .font-arabic {
         font-family: 'Amiri', 'Noto Sans Arabic', 'Almarai', serif !important;
       }
 
