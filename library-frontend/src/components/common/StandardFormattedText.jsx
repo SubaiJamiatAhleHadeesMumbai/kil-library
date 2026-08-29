@@ -131,10 +131,10 @@ const StandardFormattedText = ({
   const blocks = formatRawTextToBlocks(text);
 
   const fontSizes = {
-    '-1': 'text-[1.05rem] sm:text-[1.15rem] leading-[2.4]',
-    '0':  'text-[1.2rem] sm:text-[1.35rem] leading-[2.6]',
-    '1':  'text-[1.35rem] sm:text-[1.5rem] leading-[2.8]',
-    '2':  'text-[1.5rem] sm:text-[1.7rem] leading-[3.0]',
+    '-1': 'text-[1.15rem] sm:text-[1.25rem] leading-[2.6]',
+    '0':  'text-[1.3rem] sm:text-[1.45rem] md:text-[1.55rem] leading-[2.8] sm:leading-[3.0]',
+    '1':  'text-[1.45rem] sm:text-[1.65rem] md:text-[1.75rem] leading-[3.0] sm:leading-[3.2]',
+    '2':  'text-[1.65rem] sm:text-[1.85rem] md:text-[2.0rem] leading-[3.2] sm:leading-[3.4]',
   };
   const currentSizeClass = fontSizes[zoomLevel] || fontSizes['0'];
 
@@ -177,37 +177,37 @@ const StandardFormattedText = ({
       className={'space-y-6 text-right max-w-4xl mx-auto ' + paperStyles + ' ' + className}
       style={{
         fontFamily: "'Jameel Noori Nastaleeq', 'JameelNoori', 'Gulzar', 'Noto Nastaliq Urdu', serif",
-        color: '#2C2416',
+        color: '#1A1612',
         textAlign: 'right',
-        lineHeight: '2.6',
+        lineHeight: '2.9',
         letterSpacing: '0.01em',
-        wordSpacing: '0.08em',
+        wordSpacing: '0.04em',
       }}
     >
       {/* Optional Zoom Controls Header */}
       {showZoomControls && (
         <div className="flex items-center justify-between border-b border-[#E2D4BE] pb-3 mb-4 no-print">
-          <span className="text-xs font-bold text-[#8B6E32] flex items-center gap-1.5">
+          <span className="text-xs font-bold text-[#8B6E32] flex items-center gap-1.5 font-sans">
             <span>✦</span> خط کی جسامت (Text Size):
           </span>
           <div className="flex items-center gap-1 bg-[#F4EEDB] rounded-lg p-1 border border-[#E0D1B8]">
             <button
               onClick={() => setZoomLevel(prev => Math.max(-1, prev - 1))}
-              className="px-2 py-0.5 text-xs font-bold text-[#2C2416] hover:bg-white rounded transition"
+              className="px-2.5 py-0.5 text-xs font-bold text-[#1A1612] hover:bg-white rounded transition"
               title="چھوٹا خط"
             >
               A-
             </button>
             <button
               onClick={() => setZoomLevel(0)}
-              className="px-2 py-0.5 text-xs font-bold text-[#2C2416] hover:bg-white rounded transition"
+              className="px-2.5 py-0.5 text-xs font-bold text-[#1A1612] hover:bg-white rounded transition"
               title="نارمل خط"
             >
               A
             </button>
             <button
               onClick={() => setZoomLevel(prev => Math.min(2, prev + 1))}
-              className="px-2 py-0.5 text-xs font-bold text-[#2C2416] hover:bg-white rounded transition"
+              className="px-2.5 py-0.5 text-xs font-bold text-[#1A1612] hover:bg-white rounded transition"
               title="بڑا خط"
             >
               A+
@@ -218,17 +218,18 @@ const StandardFormattedText = ({
 
       {blocks.map((block, index) => {
         const isAr = isArabicScript(block.content);
+        const fontFam = isAr ? "'Amiri', serif" : "'Jameel Noori Nastaleeq', 'JameelNoori', 'Gulzar', 'Noto Nastaliq Urdu', serif";
 
         switch (block.type) {
           case 'centered_header':
             return (
-              <div key={index} className="my-6 pt-3 pb-3 border-y border-[#E2D4BE] text-center bg-[#F4EEDB]/60 rounded-2xl px-4">
-                <div className="text-xs text-[#8B6E32] font-sans font-bold uppercase tracking-widest mb-1">
+              <div key={index} className="my-8 pt-4 pb-4 border-y-2 border-[#E2D4BE] text-center bg-[#F4EEDB]/80 rounded-2xl px-6">
+                <div className="text-xs text-[#8B6E32] font-sans font-bold uppercase tracking-widest mb-1.5">
                   ✦ فصل / عنوان ✦
                 </div>
                 <h3
-                  className="text-xl sm:text-2xl font-black text-[#002147] tracking-normal leading-relaxed"
-                  style={{ fontFamily: isAr ? "'Amiri', serif" : "'Noto Nastaliq Urdu', serif" }}
+                  className="text-2xl sm:text-3xl font-black text-[#002147] tracking-normal leading-[2.6]"
+                  style={{ fontFamily: fontFam }}
                 >
                   {highlightContent(block.content, isAr)}
                 </h3>
@@ -237,10 +238,10 @@ const StandardFormattedText = ({
 
           case 'divider':
             return (
-              <div key={index} className="my-6 flex items-center justify-center gap-3">
-                <div className="h-px bg-[#E2D4BE] flex-1" />
-                <span className="text-[#8B6E32] text-sm tracking-widest">❖ ❖ ❖</span>
-                <div className="h-px bg-[#E2D4BE] flex-1" />
+              <div key={index} className="my-8 flex items-center justify-center gap-4">
+                <div className="h-[1.5px] bg-[#E2D4BE] flex-1" />
+                <span className="text-[#8B6E32] text-base tracking-widest">❖ ❖ ❖</span>
+                <div className="h-[1.5px] bg-[#E2D4BE] flex-1" />
               </div>
             );
 
@@ -248,17 +249,17 @@ const StandardFormattedText = ({
             return (
               <div
                 key={index}
-                className="flex items-start gap-4 p-4 sm:p-5 my-3 rounded-2xl bg-[#F4EEDB]/80 border border-[#E0D1B8] shadow-2xs hover:bg-[#EFE7D4] transition-all duration-200"
+                className="flex items-start gap-4 p-5 sm:p-6 my-4 rounded-2xl bg-[#F4EEDB]/90 border border-[#E0D1B8] shadow-xs hover:bg-[#EFE7D4] transition-all duration-200"
               >
-                <div className="flex-shrink-0 w-9 h-9 rounded-xl bg-[#002147] text-white flex items-center justify-center font-bold text-sm shadow-xs mt-0.5 ring-2 ring-[#C9A96E]/40 font-sans">
+                <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-[#002147] text-white flex items-center justify-center font-bold text-base shadow-xs mt-1.5 ring-2 ring-[#C9A96E]/40 font-sans">
                   {block.number}
                 </div>
                 <div
-                  className={'flex-1 ' + currentSizeClass + ' text-[#2C2416] font-medium'}
+                  className={'flex-1 ' + currentSizeClass + ' text-[#1A1612] font-medium'}
                   style={{
-                    fontFamily: isAr ? "'Amiri', serif" : "'Noto Nastaliq Urdu', serif",
-                    textAlign: 'justify',
-                    textJustify: 'inter-word'
+                    fontFamily: fontFam,
+                    textAlign: 'right',
+                    lineHeight: '2.9',
                   }}
                 >
                   {highlightContent(block.content, isAr)}
@@ -268,14 +269,14 @@ const StandardFormattedText = ({
 
           case 'bullet':
             return (
-              <div key={index} className="flex items-start gap-3.5 my-2 pr-2">
-                <span className="flex-shrink-0 w-2.5 h-2.5 rounded-full bg-[#8B6E32] mt-3.5 ring-2 ring-[#FAF6EE]" />
+              <div key={index} className="flex items-start gap-4 my-3 pr-2">
+                <span className="flex-shrink-0 w-3 h-3 rounded-full bg-[#8B6E32] mt-4 ring-2 ring-[#FAF6EE]" />
                 <div
-                  className={'flex-1 ' + currentSizeClass + ' text-[#2C2416]'}
+                  className={'flex-1 ' + currentSizeClass + ' text-[#1A1612]'}
                   style={{
-                    fontFamily: isAr ? "'Amiri', serif" : "'Noto Nastaliq Urdu', serif",
-                    textAlign: 'justify',
-                    textJustify: 'inter-word'
+                    fontFamily: fontFam,
+                    textAlign: 'right',
+                    lineHeight: '2.9',
                   }}
                 >
                   {highlightContent(block.content, isAr)}
@@ -287,14 +288,14 @@ const StandardFormattedText = ({
             return (
               <div
                 key={index}
-                className="my-5 p-5 sm:p-6 rounded-2xl bg-[#F3ECE0] border-r-4 border-[#C9A96E] text-[#2C2416] shadow-2xs"
+                className="my-6 p-6 sm:p-8 rounded-2xl bg-[#F3ECE0] border-r-4 border-[#C9A96E] text-[#1A1612] shadow-xs"
               >
                 <p
-                  className={currentSizeClass + ' font-semibold text-[#1C160C]'}
+                  className={currentSizeClass + ' font-semibold text-[#1A1612]'}
                   style={{
                     fontFamily: "'Amiri', serif",
-                    textAlign: 'justify',
-                    textJustify: 'inter-word'
+                    textAlign: 'right',
+                    lineHeight: '2.8',
                   }}
                 >
                   ”{highlightContent(block.content, true)}“
@@ -307,11 +308,12 @@ const StandardFormattedText = ({
             return (
               <p
                 key={index}
-                className={currentSizeClass + ' text-[#2C2416] font-normal ' + (dense ? 'mb-2' : 'mb-4')}
+                className={currentSizeClass + ' text-[#1A1612] font-normal ' + (dense ? 'mb-3' : 'mb-6')}
                 style={{
-                  fontFamily: isAr ? "'Amiri', serif" : "'Noto Nastaliq Urdu', serif",
-                  textAlign: 'justify',
-                  textJustify: 'inter-word'
+                  fontFamily: fontFam,
+                  textAlign: 'right',
+                  lineHeight: '2.9',
+                  letterSpacing: '0.01em',
                 }}
               >
                 {highlightContent(block.content, isAr)}
