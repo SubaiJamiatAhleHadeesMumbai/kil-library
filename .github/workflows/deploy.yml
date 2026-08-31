@@ -44,21 +44,37 @@ jobs:
           echo -e "Host *\n\tStrictHostKeyChecking no\n\tUserKnownHostsFile=/dev/null\n\tServerAliveInterval 15\n" > ~/.ssh/config
           chmod 600 ~/.ssh/config
 
-          echo "🌐 Testing Connection to $VPS_USER@$VPS_HOST on port $VPS_PORT..."
-          ssh -v -i ~/.ssh/deploy_key -p $VPS_PORT -o ConnectTimeout=15 "$VPS_USER@$VPS_HOST" << 'EOF'
-            echo "🚀 Successfully Connected to VPS!"
-            cd /root/kil-library || cd ~/kil-library || { echo "Directory not found"; exit 1; }
-            echo "📦 Pulling latest changes from main branch..."
-            git fetch origin main
-            git reset --hard origin/main
-            echo "🐳 Building & restarting Docker containers..."
-            docker compose up -d --build --remove-orphans
-            echo "📁 Syncing static assets into backend container volume..."
-            docker compose cp ./library_backend/static/uploads/. backend:/app/static/uploads/ || true
-            echo "🗄️ Checking database schema..."
-            docker compose exec -T backend python create_tables.py || true
-            docker compose exec -T backend python setup_admin.py || true
-            echo "🧹 Cleaning unused docker images..."
-            docker image prune -f
-            echo "✅ Deployment Completed Successfully!"
-          EOF
+          echo "🌐 Connecting to $VPS_USER@$VPS_HOST on port $VPS_PORT (with retry)..."
+          SUCCESS=0
+          for ATTEMPT in 1 2 3; do
+            echo "🔄 Connection Attempt $ATTEMPT of 3..."
+            if ssh -v -i ~/.ssh/deploy_key -p $VPS_PORT -o ConnectTimeout=60 -o ServerAliveInterval=15 -o ServerAliveCountMax=3 "$VPS_USER@$VPS_HOST" << 'EOF'
+              echo "🚀 Successfully Connected to VPS!"
+              cd /root/kil-library || cd ~/kil-library || { echo "Directory not found"; exit 1; }
+              echo "📦 Pulling latest changes from main branch..."
+              git fetch origin main
+              git reset --hard origin/main
+              echo "🐳 Building & restarting Docker containers..."
+              docker compose up -d --build --remove-orphans
+              echo "📁 Syncing static assets into backend container volume..."
+              docker compose cp ./library_backend/static/uploads/. backend:/app/static/uploads/ || true
+              echo "🗄️ Checking database schema..."
+              docker compose exec -T backend python create_tables.py || true
+              docker compose exec -T backend python setup_admin.py || true
+              echo "🧹 Cleaning unused docker images..."
+              docker image prune -f
+              echo "✅ Deployment Completed Successfully!"
+EOF
+            then
+              SUCCESS=1
+              break
+            else
+              echo "⚠️ Attempt $ATTEMPT failed. Waiting 10 seconds before retrying..."
+              sleep 10
+            fi
+          done
+
+          if [ $SUCCESS -ne 1 ]; then
+            echo "❌ All SSH connection attempts failed!"
+            exit 1
+          fi
