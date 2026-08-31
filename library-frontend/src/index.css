@@ -506,7 +506,7 @@ button,
    URDU / RTL SUPPORT
    ============================================================ */
 .font-urdu {
-  font-family: 'Jameel Noori Nastaleeq', 'Noto Nastaliq Urdu', serif;
+  font-family: 'Mehr Nastaliq', 'Mehr', 'Gulzar', 'Jameel Noori Nastaleeq', 'Noto Nastaliq Urdu', serif;
   direction: rtl;
   line-height: 2;
 }

@@ -382,11 +382,12 @@ const BookDetail = () => {
                                                     {activePageContent.length} characters
                                                 </span>
                                             </div>
-                                            <div 
-                                                className={`prose prose-slate max-w-none text-slate-800 whitespace-pre-wrap ${langClass} ${fontSizeClass}`}
-                                                style={{ fontFamily: isRTL ? '"Jameel Noori Nastaleeq", "Noto Naskh Arabic", serif' : 'inherit' }}
-                                            >
-                                                {activePageContent || "No text content available for this page."}
+                                            <div className="pt-2">
+                                                {activePageContent ? (
+                                                    <StandardFormattedText text={activePageContent} makhtotaPaper={false} />
+                                                ) : (
+                                                    <p className="text-slate-400 italic text-center py-6">No text content available for this page.</p>
+                                                )}
                                             </div>
                                         </div>
                                     )}
