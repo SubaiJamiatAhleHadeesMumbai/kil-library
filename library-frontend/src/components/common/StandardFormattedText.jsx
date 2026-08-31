@@ -19,38 +19,18 @@ const CIRCLE_NUM_MAP = {
   '۶': 6, '۷': 7, '۸': 8, '۹': 9, '۱۰': 10
 };
 
-// Fonts configuration
-export const URDU_FONT_STACK = "'Mehr Nastaliq', 'Mehr', 'Gulzar', 'Jameel Noori Nastaleeq', 'JameelNoori', 'Noto Nastaliq Urdu', serif";
-export const ARABIC_FONT_STACK = "'Amiri', 'Noto Sans Arabic', 'Almarai', serif";
-
-// Check if string is predominantly Arabic text (Quran, Hadith, heavy Harkat/Airaab or pure Arabic words)
-export const isArabicScript = (str) => {
-  if (!str || typeof str !== 'string') return false;
-  // Detect Arabic diacritics / Quranic signs: Fatha, Damma, Kasra, Shadda, Sukun, Tanween, etc.
-  const diacritics = (str.match(/[\u064B-\u065F\u0670\u06D6-\u06ED]/g) || []).length;
-  // If text contains substantial diacritics relative to length, it is Quran/Hadith/Arabic
-  if (diacritics >= 2) return true;
-
-  // Detect common Islamic & Quranic Arabic phrases
-  const arabicRegex = /(قال رسول الله|صلى الله عليه وسلم|رضي الله عن|الحمد لله|سبحان الله|تبارك وتعالى|عز وجل|القرآن الكريم|سورة|آية|بسم الله الرحمن الرحيم|حدثنا|أخبرنا|عن أبي|روى|في الحديث)/;
-  if (arabicRegex.test(str)) return true;
-
-  // Detect Arabic definite article followed by Arabic root characteristics
-  if (/(^|\s)(الرحمن|الرحيم|العالمين|المستقيم|الصراط|المؤمنين|الكافرين|المسلمين|الجنة|النار|الصلاة|الزكاة)($|\s)/.test(str)) {
-    return true;
-  }
-
-  return false;
+// Check if string is predominantly Arabic text
+const isArabicScript = (str) => {
+  if (!str) return false;
+  // Arabic specific diacritics / markers / phrases
+  const arabicRegex = /[\u0610-\u061A\u064B-\u065F\u0670\u06D6-\u06ED]|(قال|رسول الله|صلى الله|رضي الله|الحمد لله|سبحان|عز وجل|تعالى|القرآن|سورة|آية)/;
+  return arabicRegex.test(str);
 };
 
 // Normalizes Urdu and Arabic characters, fixing broken/misplaced Do-Chashmi Heh and Arabic letters
 export const normalizeUrduText = (str) => {
   if (!str || typeof str !== 'string') return '';
   let s = str;
-  // If the whole string is clearly Arabic (e.g. Quran ayat), preserve authentic Arabic characters
-  if (isArabicScript(s)) {
-    return s;
-  }
   // Replace Arabic Kaf 'ك' (0643) with Urdu 'ک' (06A9)
   s = s.replace(/ك/g, 'ک');
   // Replace Arabic Yeh 'ي' (064A) / 'ى' (0649) with Urdu 'ی' (06CC)
@@ -58,6 +38,7 @@ export const normalizeUrduText = (str) => {
   // Fix Arabic Heh 'ه' (0647) and Te Marbuta 'ة' (0629) with Urdu 'ہ' (06C1) / 'ۃ'
   s = s.replace(/ه/g, 'ہ').replace(/ة/g, 'ۃ');
   // Fix misplaced Do-Chashmi Heh 'ھ' with Choti Heh 'ہ' in common standalone Urdu words
+  // e.g. ھوا -> ہوا, ھم -> ہم, ھمارا -> ہمارا, ھمیں -> ہمیں, ھے -> ہے, ھیں -> ہیں, ھوں -> ہوں, ھو -> ہو, ھوتی -> ہوتی, ھوتا -> ہوتا
   s = s.replace(/\bھ(وا|مارا|ماری|مارے|میں|م|ے|یں|وں|و|وتا|وتی|وتے|ونی|ونا|ونے|اتھ|وئی|وئے)/g, 'ہ$1');
   s = s.replace(/\bھ(?=[ا-ی])/g, 'ہ');
   // Fix Hamza on Ye 'لۓ' -> 'لیے'
@@ -84,7 +65,7 @@ export const formatRawTextToBlocks = (rawText) => {
     if (/^[•═\-_=—*─]{3,}/.test(trimmed) || /•[═=—\-─]+.*[═=—\-─]+•/.test(trimmed)) {
       const cleanTitle = trimmed.replace(/^[•═\-_=—*─\s]+|[•═\-_=—*─\s]+$/g, '').trim();
       if (cleanTitle) {
-        blocks.push({ type: 'centered_header', content: cleanTitle, isArabic: isArabicScript(cleanTitle) });
+        blocks.push({ type: 'centered_header', content: cleanTitle });
       } else {
         blocks.push({ type: 'divider' });
       }
@@ -94,7 +75,7 @@ export const formatRawTextToBlocks = (rawText) => {
     // 2. Markdown / Symbol Heading (# Heading or ✺ Heading or ✦ Heading)
     if (/^#{1,4}\s+/.test(trimmed) || /^[✺✦❖۞■◆★]\s*/.test(trimmed)) {
       const cleanTitle = trimmed.replace(/^#{1,4}\s+|^[✺✦❖۞■◆★]\s*/, '').trim();
-      blocks.push({ type: 'centered_header', content: cleanTitle, isArabic: isArabicScript(cleanTitle) });
+      blocks.push({ type: 'centered_header', content: cleanTitle });
       continue;
     }
 
@@ -103,8 +84,7 @@ export const formatRawTextToBlocks = (rawText) => {
     if (circleMatch) {
       const symbol = circleMatch[1];
       const num = CIRCLE_NUM_MAP[symbol] || symbol;
-      const content = circleMatch[2].trim();
-      blocks.push({ type: 'numbered_point', number: num, content, isArabic: isArabicScript(content) });
+      blocks.push({ type: 'numbered_point', number: num, content: circleMatch[2].trim() });
       continue;
     }
 
@@ -112,27 +92,25 @@ export const formatRawTextToBlocks = (rawText) => {
     const stdNumMatch = trimmed.match(/^([(]?\d{1,3}[.)\-–]\s*)(.*)/);
     if (stdNumMatch && stdNumMatch[2]) {
       const rawNum = stdNumMatch[1].replace(/\D/g, '');
-      const content = stdNumMatch[2].trim();
-      blocks.push({ type: 'numbered_point', number: rawNum || '•', content, isArabic: isArabicScript(content) });
+      blocks.push({ type: 'numbered_point', number: rawNum || '•', content: stdNumMatch[2].trim() });
       continue;
     }
 
     // 5. Bullet Point (•, -, *, ✓, ✔, ◈, >)
     if (/^[•\-*✓✔◈›»]\s*/.test(trimmed)) {
       const cleanBullet = trimmed.replace(/^[•\-*✓✔◈›»]\s*/, '').trim();
-      blocks.push({ type: 'bullet', content: cleanBullet, isArabic: isArabicScript(cleanBullet) });
+      blocks.push({ type: 'bullet', content: cleanBullet });
       continue;
     }
 
-    // 6. Quotation (Often Arabic Hadith / Ayat e.g. «...» or "...")
+    // 6. Quotation
     if (/^[”"«]/.test(trimmed) && /[”"»]$/.test(trimmed)) {
-      const content = trimmed.replace(/^[”"«]\s*|\s*[”"»]$/g, '');
-      blocks.push({ type: 'quote', content, isArabic: isArabicScript(content) });
+      blocks.push({ type: 'quote', content: trimmed.replace(/^[”"«]\s*|\s*[”"»]$/g, '') });
       continue;
     }
 
     // 7. Regular Paragraph
-    blocks.push({ type: 'paragraph', content: trimmed, isArabic: isArabicScript(trimmed) });
+    blocks.push({ type: 'paragraph', content: trimmed });
   }
 
   return blocks;
@@ -144,8 +122,7 @@ const StandardFormattedText = ({
   highlightQuery = '',
   dense = false,
   makhtotaPaper = true,
-  showZoomControls = false,
-  fontFamily = URDU_FONT_STACK
+  showZoomControls = false
 }) => {
   const [zoomLevel, setZoomLevel] = useState(0); // -1: small, 0: normal, 1: large, 2: xl
 
@@ -160,45 +137,14 @@ const StandardFormattedText = ({
     '2':  'text-[1.65rem] sm:text-[1.85rem] md:text-[2.0rem] leading-[3.2] sm:leading-[3.4]',
   };
   const currentSizeClass = fontSizes[zoomLevel] || fontSizes['0'];
+  const uniformNastaleeqFont = "'Jameel Noori Nastaleeq', 'JameelNoori', 'Gulzar', 'Noto Nastaliq Urdu', serif";
 
-  // Helper to render text with Arabic span detection inside Urdu sentences
-  const renderSmartInlineText = (content, parentIsArabic = false) => {
+  const highlightContent = (content) => {
     if (!content) return null;
-
-    // If whole block is already marked Arabic, render directly with Arabic font
-    if (parentIsArabic) {
-      return <span style={{ fontFamily: ARABIC_FONT_STACK }}>{content}</span>;
-    }
-
-    // Check for inline Arabic quotes or Arabic bracketed phrases: e.g. « ... » or ( ... ) containing Arabic
-    const inlineArabicPattern = /(«[^»]+»|\([^\)]*[\u064B-\u065F\u0670\u06D6-\u06ED][^\)]*\))/g;
-    const parts = content.split(inlineArabicPattern);
-
-    return (
-      <>
-        {parts.map((segment, idx) => {
-          if (isArabicScript(segment)) {
-            return (
-              <span
-                key={idx}
-                className="text-[#002147] font-normal px-1 mx-0.5 inline-block"
-                style={{ fontFamily: ARABIC_FONT_STACK, fontSize: '1.05em' }}
-              >
-                {segment}
-              </span>
-            );
-          }
-          return <span key={idx}>{segment}</span>;
-        })}
-      </>
-    );
-  };
-
-  const highlightContent = (content, isArabic = false) => {
-    if (!content) return null;
+    const fontStyle = { fontFamily: uniformNastaleeqFont };
 
     if (!highlightQuery || !highlightQuery.trim()) {
-      return renderSmartInlineText(content, isArabic);
+      return <span style={fontStyle}>{content}</span>;
     }
 
     const query = highlightQuery.trim();
@@ -206,17 +152,17 @@ const StandardFormattedText = ({
     const parts = content.split(safeRegex);
 
     return (
-      <>
+      <span style={fontStyle}>
         {parts.map((part, i) =>
           part.toLowerCase() === query.toLowerCase() ? (
             <mark key={i} className="bg-amber-300 text-amber-950 font-bold px-1.5 py-0.5 rounded-sm shadow-xs">
-              {renderSmartInlineText(part, isArabic)}
+              {part}
             </mark>
           ) : (
-            <React.Fragment key={i}>{renderSmartInlineText(part, isArabic)}</React.Fragment>
+            part
           )
         )}
-      </>
+      </span>
     );
   };
 
@@ -270,18 +216,15 @@ const StandardFormattedText = ({
       )}
 
       {blocks.map((block, index) => {
-        const blockFont = block.isArabic ? ARABIC_FONT_STACK : uniformNastaleeqFont;
-        const blockLineHeight = block.isArabic ? '2.4' : '2.9';
-
         switch (block.type) {
           case 'centered_header':
             return (
               <div key={index} className="my-8 pt-4 pb-4 border-y-2 border-[#E2D4BE] text-center bg-[#F4EEDB]/80 rounded-2xl px-6">
                 <h3
                   className="text-2xl sm:text-3xl font-black text-[#002147] tracking-normal leading-[2.6]"
-                  style={{ fontFamily: blockFont }}
+                  style={{ fontFamily: uniformNastaleeqFont }}
                 >
-                  {highlightContent(block.content, block.isArabic)}
+                  {highlightContent(block.content)}
                 </h3>
               </div>
             );
@@ -307,12 +250,12 @@ const StandardFormattedText = ({
                 <div
                   className={'flex-1 ' + currentSizeClass + ' text-[#1A1612] font-medium'}
                   style={{
-                    fontFamily: blockFont,
+                    fontFamily: uniformNastaleeqFont,
                     textAlign: 'right',
-                    lineHeight: blockLineHeight,
+                    lineHeight: '2.9',
                   }}
                 >
-                  {highlightContent(block.content, block.isArabic)}
+                  {highlightContent(block.content)}
                 </div>
               </div>
             );
@@ -324,12 +267,12 @@ const StandardFormattedText = ({
                 <div
                   className={'flex-1 ' + currentSizeClass + ' text-[#1A1612]'}
                   style={{
-                    fontFamily: blockFont,
+                    fontFamily: uniformNastaleeqFont,
                     textAlign: 'right',
-                    lineHeight: blockLineHeight,
+                    lineHeight: '2.9',
                   }}
                 >
-                  {highlightContent(block.content, block.isArabic)}
+                  {highlightContent(block.content)}
                 </div>
               </div>
             );
@@ -343,12 +286,12 @@ const StandardFormattedText = ({
                 <p
                   className={currentSizeClass + ' font-semibold text-[#1A1612]'}
                   style={{
-                    fontFamily: blockFont,
+                    fontFamily: uniformNastaleeqFont,
                     textAlign: 'right',
-                    lineHeight: blockLineHeight,
+                    lineHeight: '2.9',
                   }}
                 >
-                  ”{highlightContent(block.content, block.isArabic)}“
+                  ”{highlightContent(block.content)}“
                 </p>
               </div>
             );
@@ -360,13 +303,13 @@ const StandardFormattedText = ({
                 key={index}
                 className={currentSizeClass + ' text-[#1A1612] font-normal ' + (dense ? 'mb-3' : 'mb-6')}
                 style={{
-                  fontFamily: blockFont,
+                  fontFamily: uniformNastaleeqFont,
                   textAlign: 'right',
-                  lineHeight: blockLineHeight,
+                  lineHeight: '2.9',
                   letterSpacing: '0.01em',
                 }}
               >
-                {highlightContent(block.content, block.isArabic)}
+                {highlightContent(block.content)}
               </p>
             );
         }

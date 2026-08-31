@@ -160,7 +160,7 @@ const IntroSection = ({ settings }) => (
 
       <h2
         className="text-2xl sm:text-3xl lg:text-4xl font-black text-[#002147] mb-6 leading-[2.2]"
-        style={{ fontFamily: "'Mehr Nastaliq', 'Mehr', 'Noto Nastaliq Urdu', serif" }}
+        style={{ fontFamily: "'Jameel Noori Nastaleeq', 'JameelNoori', 'Gulzar', 'Noto Nastaliq Urdu', serif" }}
       >
         {settings.hero?.title || settings.intro?.title || 'مرکز الدعوۃ الاسلامیۃ والخیریہ (سونس، کھیڈ - رتناگری)'}
       </h2>
@@ -170,7 +170,6 @@ const IntroSection = ({ settings }) => (
           text={settings.hero?.description || settings.intro?.description}
           makhtotaPaper={false}
           showZoomControls={true}
-          fontFamily="'Mehr Nastaliq', 'Mehr', 'Noto Nastaliq Urdu', serif"
         />
       )}
     </div>

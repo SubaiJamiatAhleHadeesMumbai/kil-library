@@ -397,7 +397,7 @@ const SplitViewer = ({
               className="flex-1 min-h-0 overflow-y-auto px-3 py-4 sm:px-8 sm:py-8 leading-[2.2] sm:leading-[2.5] text-right md:px-12 custom-scrollbar"
               dir="rtl"
               style={{
-                fontFamily: "'Mehr Nastaliq', 'Mehr', 'Gulzar', 'Jameel Noori Nastaleeq', 'Amiri', 'Noto Nastaliq Urdu', serif",
+                fontFamily: "'Jameel Noori Nastaleeq', 'JameelNoori', 'Gulzar', 'Noto Nastaliq Urdu', serif",
                 fontSize: '1.15rem',
               }}
             >
