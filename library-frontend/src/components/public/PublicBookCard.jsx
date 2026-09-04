@@ -157,7 +157,7 @@ const PublicBookCard = ({
       className="group relative mx-auto w-full max-w-[340px] overflow-hidden rounded-3xl border border-slate-200/90 bg-white shadow-xs transition-all duration-300 cursor-pointer hover:shadow-xl sm:max-w-none"
     >
       {/* Badges: Only show if Restricted or Upcoming */}
-      <div className="absolute top-3 left-3 z-20 flex flex-col gap-1">
+      <div className="absolute top-3 start-3 z-20 flex flex-col gap-1">
         {isRestricted ? (
           userHasAccess ? (
             <motion.div
@@ -190,7 +190,7 @@ const PublicBookCard = ({
           onClick={(e) => onToggleFavorite(e, book?.id)}
           whileHover={{ scale: 1.15 }}
           whileTap={{ scale: 0.95 }}
-          className={`absolute bottom-2 right-2 z-20 rounded-full p-2 shadow-md transition-all duration-200 sm:bottom-3 sm:right-3 ${
+          className={`absolute bottom-2 end-2 z-20 rounded-full p-2 shadow-md transition-all duration-200 sm:bottom-3 sm:end-3 ${
             isFavorite
               ? "bg-emerald-50 text-emerald-600 border border-emerald-300 ring-2 ring-emerald-500/20"
               : "bg-white/95 text-slate-500 hover:text-emerald-600 border border-slate-200 hover:bg-white hover:shadow-lg"
@@ -209,7 +209,7 @@ const PublicBookCard = ({
       <div className="relative flex justify-center bg-gradient-to-b from-slate-50 via-white to-blue-50/20 px-3 pb-2 pt-4 transition-all duration-300 group-hover:from-blue-50 sm:px-4 sm:pb-3 sm:pt-5">
         <div className="relative aspect-[2/3] w-[118px] overflow-hidden rounded-2xl bg-gray-100 shadow-md transition-all duration-300 group-hover:shadow-xl group-hover:-translate-y-1 sm:w-[150px] md:w-[175px] lg:w-[185px]">
           {!imgLoaded && (
-            <div className="absolute inset-0 bg-slate-200 animate-pulse" />
+            <div className="absolute inset-0 bg-slate-200 animate-pulse shimmer-placeholder" />
           )}
 
           {imgSrc && (
@@ -241,7 +241,7 @@ const PublicBookCard = ({
       {/* Details */}
       <div className="relative z-10 flex flex-grow flex-col px-3 pb-4 text-center sm:px-4 sm:pb-5">
         <h3
-          className="mb-1.5 line-clamp-2 font-serif text-[0.95rem] font-extrabold leading-snug text-[#002147] transition-colors group-hover:text-emerald-700 sm:text-sm md:text-base"
+          className="mb-1.5 line-clamp-2 font-serif text-[0.95rem] font-extrabold leading-snug text-[var(--primary,#002147)] transition-colors group-hover:text-emerald-700 sm:text-sm md:text-base"
           style={{
             fontFamily: '"Jameel Noori Nastaleeq", "Noto Naskh Arabic", serif',
           }}
@@ -249,8 +249,8 @@ const PublicBookCard = ({
           {title}
         </h3>
 
-        <p className="line-clamp-1 text-[11px] text-gray-500 sm:text-xs">
-          By <span className="text-slate-600 font-semibold">{author}</span>
+        <p className="line-clamp-1 text-[11px] text-slate-500 sm:text-xs">
+          By <span className="text-slate-700 font-semibold">{author}</span>
         </p>
       </div>
     </motion.div>

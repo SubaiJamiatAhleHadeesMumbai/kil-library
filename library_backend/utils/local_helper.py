@@ -43,13 +43,15 @@ def resolve_upload_path(url_path: str | None):
 
     ALLOWED_ROOT = (BASE_DIR / "static").resolve()
 
-    if normalized.startswith("/uploads/"):
-        relative_path = normalized.lstrip("/")
-        resolved = (BASE_DIR / "static" / relative_path).resolve()
-    elif normalized.startswith("uploads/"):
-        resolved = (BASE_DIR / "static" / normalized).resolve()
+    # Strip leading slash so Path / does not reset to filesystem root
+    rel_normalized = normalized.lstrip("/")
+    if rel_normalized.startswith("static/"):
+        rel_path = rel_normalized[len("static/"):]
+        resolved = (ALLOWED_ROOT / rel_path).resolve()
+    elif rel_normalized.startswith("uploads/"):
+        resolved = (ALLOWED_ROOT / rel_normalized).resolve()
     else:
-        resolved = (BASE_DIR / normalized).resolve()
+        resolved = (ALLOWED_ROOT / rel_normalized).resolve()
 
     # Security: ensure resolved path is within the allowed static directory
     try:
@@ -57,7 +59,7 @@ def resolve_upload_path(url_path: str | None):
     except ValueError:
         return None
 
-    return resolved
+    return str(resolved)
 
 
 def _ensure_dir(path):

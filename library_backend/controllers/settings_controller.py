@@ -143,6 +143,26 @@ def get_default_homepage_settings():
             "max_snippets_per_book": 5,
             "snippet_context_chars": 80
         },
+        "ui_settings": {
+            "primary_color": "#002147",
+            "primary_hover": "#003166",
+            "primary_light": "#EEF4FF",
+            "secondary_color": "#064e3b",
+            "accent_color": "#2D89C8",
+            "border_radius": "rounded",
+            "spacing_density": "comfortable",
+            "font_scale": "normal",
+            "arabic_font": "Noto Naskh Arabic",
+            "urdu_font": "Jameel Noori Nastaleeq",
+            "default_language": "en",
+            "enabled_languages": ["en", "ur", "ar"],
+            "theme_mode": "light",
+            "allow_user_theme_override": False,
+            "site_title": "Kokan Islamic Library",
+            "site_subtitle": "Markaz Ahle Hadees Kokan",
+            "logo_url": "/static/images/MarkazLogo.png",
+            "favicon_url": "/favicon.ico",
+        },
     }
 
 
@@ -189,6 +209,10 @@ def _merge_settings(payload: dict):
             merged_downloads = copy.deepcopy(merged.get("paid_downloads", {}))
             merged_downloads.update(value)
             merged["paid_downloads"] = merged_downloads
+        elif key == "ui_settings" and isinstance(value, dict):
+            merged_ui = copy.deepcopy(merged.get("ui_settings", {}))
+            merged_ui.update(value)
+            merged["ui_settings"] = merged_ui
         else:
             merged[key] = value
 
@@ -281,3 +305,41 @@ def update_deep_search_settings(
     settings["deep_search"] = current_ds
     _write_settings_to_disk(settings)
     return {"message": "Deep Search settings updated successfully", "deep_search": current_ds}
+
+
+@router.get("/ui-config")
+def get_ui_settings():
+    """Returns global UI/UX design token and theme settings."""
+    settings = _load_settings_from_disk()
+    default_ui = get_default_homepage_settings()["ui_settings"]
+    current_ui = settings.get("ui_settings", {})
+    return {**default_ui, **current_ui}
+
+
+@router.put("/ui-config")
+def update_ui_settings(
+    payload: dict,
+    current_user: user_model.User = Depends(get_current_user)
+):
+    """Admin Only: Updates global UI/UX design tokens and theme settings."""
+    role_name = (current_user.role.name if hasattr(current_user, 'role') and current_user.role else str(getattr(current_user, 'role', ''))).lower()
+    is_admin = role_name in ["admin", "superadmin", "administrator"]
+    
+    perms = set()
+    if hasattr(current_user, 'permissions') and current_user.permissions:
+        for p in current_user.permissions:
+            if hasattr(p, 'code') and p.code:
+                perms.add(p.code)
+            elif hasattr(p, 'name') and p.name:
+                perms.add(p.name)
+
+    if not is_admin and not (perms & {'HOMEPAGE_BRANDING_MANAGE', 'HOMEPAGE_THEME_MANAGE', 'BOOK_MANAGE', 'ADMIN_ACCESS'}):
+        raise HTTPException(status_code=403, detail="Permission denied to update UI/UX settings.")
+
+    settings = _load_settings_from_disk()
+    default_ui = get_default_homepage_settings()["ui_settings"]
+    current_ui = settings.get("ui_settings", default_ui)
+    current_ui.update(payload)
+    settings["ui_settings"] = current_ui
+    _write_settings_to_disk(settings)
+    return {"message": "UI/UX settings updated successfully", "ui_settings": current_ui}

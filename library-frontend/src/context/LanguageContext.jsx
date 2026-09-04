@@ -1,12 +1,55 @@
 import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
 import { useLocation } from 'react-router-dom';
 import translationService from '../api/translationService';
+import enLocale from '../locales/en.json';
+import urLocale from '../locales/ur.json';
+import arLocale from '../locales/ar.json';
+import { formatLocalizedDate, formatLocalizedNumber } from '../utils/i18nFormatters';
 
 export const LANGUAGES = [
   { code: 'ar', name: 'العربية', nativeName: 'العربية', dir: 'rtl', label: 'العربية', fontClass: 'font-arabic' },
   { code: 'en', name: 'English', nativeName: 'English', dir: 'ltr', label: 'English', fontClass: 'font-sans' },
   { code: 'ur', name: 'اردو', nativeName: 'اردو', dir: 'rtl', label: 'اردو', fontClass: 'font-urdu' },
 ];
+
+// Helper to deeply extract nested values like 'nav.home'
+const getDeepValue = (obj, path) => {
+  if (!obj || !path) return null;
+  const parts = path.split('.');
+  let current = obj;
+  for (const part of parts) {
+    if (current && typeof current === 'object' && part in current) {
+      current = current[part];
+    } else {
+      return null;
+    }
+  }
+  return typeof current === 'string' ? current : null;
+};
+
+// Flatten helper to make nested keys available flatly as well
+const flattenLocale = (obj, prefix = '') => {
+  const result = {};
+  for (const [key, value] of Object.entries(obj || {})) {
+    const fullKey = prefix ? `${prefix}.${key}` : key;
+    if (value && typeof value === 'object' && !Array.isArray(value)) {
+      Object.assign(result, flattenLocale(value, fullKey));
+    } else {
+      result[fullKey] = value;
+      // also populate flat key for backward compatibility
+      if (!result[key]) {
+        result[key] = value;
+      }
+    }
+  }
+  return result;
+};
+
+const JSON_TRANSLATIONS = {
+  en: flattenLocale(enLocale),
+  ur: flattenLocale(urLocale),
+  ar: flattenLocale(arLocale),
+};
 
 export const TRANSLATIONS = {
   en: {
@@ -79,6 +122,7 @@ export const TRANSLATIONS = {
     newspaper_name: "Newspaper",
     edition_date: "Edition Date",
     zoom_clipping: "View High-Res",
+    ...JSON_TRANSLATIONS.en,
   },
   ur: {
     home: "صفحہ اول",
@@ -149,100 +193,130 @@ export const TRANSLATIONS = {
     location: "مقام",
     newspaper_name: "اخبار کا نام",
     edition_date: "اشاعت کی تاریخ",
-    zoom_clipping: "بڑا کر کے پڑھیں",
+    zoom_clipping: "بڑا کر کے دیکھیں",
+    ...JSON_TRANSLATIONS.ur,
   },
   ar: {
     home: "الرئيسية",
     library: "المكتبة",
-    about: "عن المركز",
+    about: "من نحن",
     gallery: "معرض الصور",
     fatawa: "الفتاوى",
     education: "التعليم",
     activities: "الأنشطة",
-    social_work: "العمل الاجتماعي",
-    clippings: "قصاصات الصحف",
+    social_work: "العمل الخيري",
+    clippings: "القصاصات الصحفية",
     authors: "المؤلفون",
     publishers: "دور النشر",
-    updates: "المستجدات",
-    history: "سجل القراءة",
-    donate: "تبرع الآن",
+    updates: "التحديثات",
+    history: "السجل",
+    donate: "تبرع",
     login: "تسجيل الدخول",
     logout: "تسجيل الخروج",
     profile: "الملف الشخصي",
     admin_dashboard: "لوحة الإدارة",
-    search: "ابحث عن الكتب والمؤلفين...",
+    search: "البحث في الكتب والمؤلفين...",
     read_book: "قراءة مباشرة",
     download_pdf: "تحميل PDF",
-    download_offline: "تحميل نسخة أوفلاين",
+    download_offline: "نسخة للقراءة بدون إنترنت",
     save: "حفظ",
     cancel: "إلغاء",
     close: "إغلاق",
     clear: "مسح",
-    categories: "التصنيفات",
+    categories: "الأقسام",
     all_books: "جميع الكتب",
     our_projects: "مشاريعنا",
     database: "قاعدة البيانات",
     markaz_title: "مكتبة المركز",
-    markaz_sub: "أهل الحديث كوكن",
+    markaz_sub: "أهل الحديث كوكان",
     other: "أخرى",
     search_btn: "بحث",
-    search_placeholder: "ابحث عن الكتب، الفتاوى، البرامج التعليمية، العمل الاجتماعي...",
+    search_placeholder: "ابحث في الكتب، الفتاوى، البرامج التعليمية، والأنشطة...",
     search_all: "جميع النتائج",
     search_books: "الكتب",
     search_fatawa: "الفتاوى",
     search_education: "التعليم",
     search_social_work: "العمل الاجتماعي",
     search_activities: "الأنشطة",
-    searching_markaz: "جاري البحث في قاعدة البيانات...",
+    searching_markaz: "جاري البحث في قاعدة بيانات المركز...",
     no_search_results: "لم يتم العثور على نتائج لـ",
-    our_publications: "منشوراتنا (مركز الدعوة)",
+    our_publications: "إصداراتنا (مركز الدعوة)",
     markaz_org_name: "مركز الدعوة الإسلامية والخيرية",
-    folders: "المجلدات والتصنيفات",
-    read_more: "اقرأ المزيد",
-    show_less: "عرض أقل",
-    open_full_about: "فتح الصفحة الكاملة",
+    folders: "المجلدات والمواضيع",
+    read_more: "المزيد",
+    show_less: "أقل",
+    open_full_about: "فتح الصفحة كاملة",
     all_albums: "جميع الألبومات",
     all_photos: "جميع الصور",
     filter_by_year: "تصفية حسب السنة",
     all_years: "جميع السنوات",
     slideshow: "عرض الشرائح",
-    download_photo: "تحميل الصورة",
-    share_whatsapp: "مشاركة عبر واتساب",
-    view_full_gallery: "استعراض معرض الصور بالكامل",
-    photo_count: "صور",
-    no_photos_found: "لا توجد صور في هذا التصنيف حالياً.",
-    view_in_hd: "عرض الصورة بدقة عالية",
-    search_gallery: "ابحث في الصور والفعاليات...",
-    ask_question: "اطرح سؤالك",
+    download_photo: "تحميل",
+    share_whatsapp: "مشاركة واتساب",
+    view_full_gallery: "استعراض المعرض بالكامل",
+    photo_count: "الصور",
+    no_photos_found: "لا توجد صور في هذا القسم حالياً.",
+    view_in_hd: "عرض بجودة عالية",
+    search_gallery: "البحث في الصور والفعاليات...",
+    ask_question: "طرح سؤال",
     verified_fatwa: "فتوى معتمدة",
-    all_drives: "كافة المبادرات الخيرية",
+    all_drives: "كافة المشاريع الإغاثية",
     event_date: "التاريخ",
-    location: "الموقع",
+    location: "المكان",
     newspaper_name: "اسم الصحيفة",
-    edition_date: "تاريخ النشر",
-    zoom_clipping: "تكبير القصاصة",
+    edition_date: "تاريخ الإصدار",
+    zoom_clipping: "عرض القصاصة بدقة عالية",
+    ...JSON_TRANSLATIONS.ar,
   }
 };
 
-const LanguageContext = createContext();
+export const LanguageContext = createContext({
+  currentLang: 'en',
+  currentLanguage: LANGUAGES[1],
+  languages: LANGUAGES,
+  changeLanguage: () => {},
+  resetToEnglish: () => {},
+  isRTL: false,
+  isAdmin: false,
+  t: () => '',
+  formatDate: () => '',
+  formatNumber: () => '',
+  reloadTranslations: () => {}
+});
 
 export const LanguageProvider = ({ children }) => {
   const location = useLocation();
   const isAdmin = location.pathname.startsWith('/admin');
 
+  // Load language preference from cookie or localStorage
   const [currentLang, setCurrentLang] = useState(() => {
     try {
-      const saved = localStorage.getItem('kil_language');
-      if (['ur', 'ar', 'en'].includes(saved)) return saved;
-    } catch {}
-    return 'ur'; // Default to Urdu for public
+      const cookieMatch = document.cookie.match(/(?:^|;\s*)kil_locale=([^;]+)/);
+      if (cookieMatch && ['ur', 'ar', 'en'].includes(cookieMatch[1])) {
+        return cookieMatch[1];
+      }
+      const saved = localStorage.getItem('kil_language') || localStorage.getItem('kil_locale');
+      if (saved && ['ur', 'ar', 'en'].includes(saved)) {
+        return saved;
+      }
+      // Browser language detection
+      const browserLang = navigator.language || navigator.userLanguage || '';
+      if (browserLang.startsWith('ur')) return 'ur';
+      if (browserLang.startsWith('ar')) return 'ar';
+      return 'en';
+    } catch {
+      return 'en';
+    }
   });
 
-  const setGoogleCookies = (lang) => {
+  const setLocaleCookies = (lang) => {
     try {
       const hostname = window.location.hostname;
       const parts = hostname.split('.');
       const rootDomain = parts.length > 2 ? parts.slice(-2).join('.') : hostname;
+
+      // Persist chosen locale
+      document.cookie = `kil_locale=${lang}; path=/; max-age=31536000; SameSite=Lax;`;
 
       const clearCookie = (name) => {
         document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
@@ -286,7 +360,7 @@ export const LanguageProvider = ({ children }) => {
     if (langObj.code === 'ur') document.body.classList.add('font-urdu');
     if (langObj.code === 'ar') document.body.classList.add('font-arabic');
 
-    setGoogleCookies(langObj.code);
+    setLocaleCookies(langObj.code);
   };
 
   // ✅ ZERO-RELOAD INSTANT LANGUAGE SWITCHER
@@ -294,7 +368,8 @@ export const LanguageProvider = ({ children }) => {
     const target = ['ur', 'ar', 'en'].includes(langCode) ? langCode : 'en';
     setCurrentLang(target);
     localStorage.setItem('kil_language', target);
-    setGoogleCookies(target);
+    localStorage.setItem('kil_locale', target);
+    setLocaleCookies(target);
     applyLanguage(target);
 
     // Sync Google Translate combobox if present
@@ -308,7 +383,8 @@ export const LanguageProvider = ({ children }) => {
   const resetToEnglish = () => {
     setCurrentLang('en');
     localStorage.setItem('kil_language', 'en');
-    setGoogleCookies('en');
+    localStorage.setItem('kil_locale', 'en');
+    setLocaleCookies('en');
     applyLanguage('en');
   };
 
@@ -346,7 +422,7 @@ export const LanguageProvider = ({ children }) => {
     return LANGUAGES.find(l => l.code === currentLang) || LANGUAGES.find(l => l.code === 'en') || LANGUAGES[0];
   }, [currentLang]);
 
-  // ✅ ENHANCED SMART TRANSLATION HELPER (Dual Namespaced + Short Key Support)
+  // ✅ ENHANCED SMART TRANSLATION HELPER (Nested Path + Flat Key + Dynamic CMS Fallback)
   const t = (key, fallbackText) => {
     if (!key) return '';
 
@@ -378,6 +454,9 @@ export const LanguageProvider = ({ children }) => {
     return fallbackText || key;
   };
 
+  const formatDate = (date, options) => formatLocalizedDate(date, currentLang, options);
+  const formatNumber = (num, options) => formatLocalizedNumber(num, currentLang, options);
+
   return (
     <LanguageContext.Provider value={{
       currentLang,
@@ -388,6 +467,8 @@ export const LanguageProvider = ({ children }) => {
       isRTL: activeLangObj.dir === 'rtl',
       isAdmin,
       t,
+      formatDate,
+      formatNumber,
       reloadTranslations
     }}>
       {children}

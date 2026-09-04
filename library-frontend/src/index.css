@@ -517,10 +517,61 @@ button,
 }
 
 /* ============================================================
-   URDU / RTL SUPPORT
+   URDU & ARABIC RTL & TYPOGRAPHY ENHANCEMENTS
    ============================================================ */
 .font-urdu {
   font-family: 'Jameel Noori Nastaleeq', 'Noto Nastaliq Urdu', serif;
-  direction: rtl;
-  line-height: 2;
+  line-height: 2.2;
+  font-feature-settings: "kern" 1, "liga" 1;
 }
+
+.font-arabic {
+  font-family: 'Noto Naskh Arabic', 'Amiri', 'Scheherazade New', serif;
+  line-height: 1.85;
+}
+
+[dir="rtl"] .rtl\:rotate-180 {
+  transform: rotate(180deg);
+}
+
+[dir="rtl"] body.lang-ur {
+  font-family: 'Jameel Noori Nastaleeq', 'Noto Nastaliq Urdu', serif;
+  line-height: 2.0;
+}
+
+[dir="rtl"] body.lang-ar {
+  font-family: 'Noto Naskh Arabic', 'Amiri', serif;
+  line-height: 1.85;
+}
+
+/* ============================================================
+   ZERO-CLS BOOK COVER & SHIMMER UTILITIES
+   ============================================================ */
+.book-cover-container {
+  aspect-ratio: 2 / 3;
+  width: 100%;
+  position: relative;
+  overflow: hidden;
+  border-radius: 0.75rem;
+  background-color: #f1f5f9;
+}
+
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+.shimmer-placeholder::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0,
+    rgba(255, 255, 255, 0.4) 50%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  animation: shimmer 1.5s infinite;
+}
+

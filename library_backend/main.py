@@ -77,7 +77,9 @@ from controllers import (
     admin_dashboard_controller,
     book_order_controller,
     translation_controller,
-    gallery_controller
+    gallery_controller,
+    comment_controller,
+    admin_comment_controller,
 )
 
 def sync_database_schema():
@@ -163,6 +165,59 @@ def sync_database_schema():
         "ALTER TABLE users ADD COLUMN IF NOT EXISTS otp_expires_at TIMESTAMP;",
         # newspaper_clippings
         "ALTER TABLE newspaper_clippings ADD COLUMN IF NOT EXISTS images TEXT;",
+        # comments system
+        """
+        CREATE TABLE IF NOT EXISTS comments (
+            id SERIAL PRIMARY KEY,
+            entity_type VARCHAR(50) NOT NULL,
+            entity_id INTEGER NOT NULL,
+            user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+            parent_id INTEGER REFERENCES comments(id) ON DELETE CASCADE,
+            rating SMALLINT,
+            body TEXT NOT NULL,
+            status VARCHAR(20) DEFAULT 'pending' NOT NULL,
+            is_pinned BOOLEAN DEFAULT FALSE NOT NULL,
+            flagged_reason VARCHAR(255),
+            report_count INTEGER DEFAULT 0 NOT NULL,
+            admin_reply TEXT,
+            admin_reply_at TIMESTAMP,
+            helpful_count INTEGER DEFAULT 0 NOT NULL,
+            not_helpful_count INTEGER DEFAULT 0 NOT NULL,
+            is_verified_read BOOLEAN DEFAULT FALSE NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+            deleted_at TIMESTAMP
+        );
+        """,
+        """
+        CREATE TABLE IF NOT EXISTS comment_votes (
+            id SERIAL PRIMARY KEY,
+            comment_id INTEGER NOT NULL REFERENCES comments(id) ON DELETE CASCADE,
+            user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            vote_type VARCHAR(20) NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+            UNIQUE(comment_id, user_id)
+        );
+        """,
+        """
+        CREATE TABLE IF NOT EXISTS comment_settings (
+            id SERIAL PRIMARY KEY,
+            entity_type VARCHAR(50) UNIQUE NOT NULL,
+            feature_comments_enabled BOOLEAN DEFAULT TRUE NOT NULL,
+            feature_login_required BOOLEAN DEFAULT TRUE NOT NULL,
+            feature_admin_approval BOOLEAN DEFAULT TRUE NOT NULL,
+            feature_ratings_enabled BOOLEAN DEFAULT TRUE NOT NULL,
+            feature_helpful_votes BOOLEAN DEFAULT TRUE NOT NULL,
+            feature_verified_badge BOOLEAN DEFAULT TRUE NOT NULL,
+            feature_replies_enabled BOOLEAN DEFAULT TRUE NOT NULL,
+            feature_report_enabled BOOLEAN DEFAULT TRUE NOT NULL,
+            feature_pin_enabled BOOLEAN DEFAULT TRUE NOT NULL,
+            feature_admin_reply BOOLEAN DEFAULT TRUE NOT NULL,
+            auto_flag_threshold INTEGER DEFAULT 3 NOT NULL,
+            max_comment_length INTEGER DEFAULT 1000 NOT NULL,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
+        );
+        """,
     ]
     
     try:
@@ -512,6 +567,10 @@ api_router.include_router(admin_dashboard_controller.router, prefix="/admin", ta
 api_router.include_router(book_order_controller.router, tags=["Book Orders & Paid Downloads"])
 api_router.include_router(translation_controller.router, prefix="/translations", tags=["Translations CMS"])
 api_router.include_router(gallery_controller.router, tags=["Gallery"])
+
+# Comments & Feedback
+api_router.include_router(comment_controller.router, prefix="/comments", tags=["Comments"])
+api_router.include_router(admin_comment_controller.router, prefix="/admin/comments", tags=["Admin Comments"])
 
 # Register Main Router
 app.include_router(api_router)

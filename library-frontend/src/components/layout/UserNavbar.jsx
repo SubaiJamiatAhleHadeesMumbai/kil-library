@@ -296,7 +296,7 @@ const UserNavbar = () => {
               </div>
 
               {/* DESKTOP NAV */}
-              <div className="hidden md:flex items-center space-x-1">
+              <div className="hidden md:flex items-center gap-1">
                 {showHomeLink && <NavItem to="/" label={t("home")} icon={HomeIcon} />}
                 {showLibraryLink && <NavItem to="/books" label={t("library")} icon={BookOpenIcon} />}
                 {showFatawaLink && <NavItem to="/fatawa" label={t("fatawa")} icon={BookOpenIcon} />}
@@ -315,16 +315,16 @@ const UserNavbar = () => {
                       onClick={() => setIsSocialDropdownOpen((prev) => !prev)}
                       className={`relative flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-bold transition-all duration-200 cursor-pointer ${
                         isSocialDropdownOpen
-                          ? "text-[#002147] bg-blue-50/80"
-                          : "text-slate-600 hover:text-[#002147] hover:bg-slate-50"
+                          ? "text-[var(--primary,#002147)] bg-blue-50/80"
+                          : "text-slate-600 hover:text-[var(--primary,#002147)] hover:bg-slate-50"
                       }`}
                       aria-expanded={isSocialDropdownOpen}
                     >
-                      <SparklesIcon className={`h-4 w-4 transition-colors ${isSocialDropdownOpen ? "text-[#002147]" : "text-slate-400"}`} />
+                      <SparklesIcon className={`h-4 w-4 transition-colors ${isSocialDropdownOpen ? "text-[var(--primary,#002147)]" : "text-slate-400"}`} />
                       <span>{t("more") || "More"}</span>
                       <ChevronDownIcon
                         className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 ${
-                          isSocialDropdownOpen ? "rotate-180 text-[#002147]" : ""
+                          isSocialDropdownOpen ? "rotate-180 text-[var(--primary,#002147)]" : ""
                         }`}
                       />
                     </button>
@@ -336,7 +336,7 @@ const UserNavbar = () => {
                           animate={{ opacity: 1, y: 0, scale: 1 }}
                           exit={{ opacity: 0, y: 6, scale: 0.96 }}
                           transition={{ duration: 0.18, ease: "easeOut" }}
-                          className="absolute left-0 mt-1.5 w-64 bg-white/95 backdrop-blur-xl rounded-2xl shadow-xl border border-slate-100/90 p-2 z-50 overflow-hidden ring-1 ring-black/5"
+                          className="absolute start-0 mt-1.5 w-64 bg-white/95 backdrop-blur-xl rounded-2xl shadow-xl border border-slate-100/90 p-2 z-50 overflow-hidden ring-1 ring-black/5"
                         >
                           <div className="space-y-1">
                             {/* 1. About Us */}
@@ -349,7 +349,7 @@ const UserNavbar = () => {
                                 <div className="h-9 w-9 rounded-xl bg-slate-100 text-slate-700 flex items-center justify-center flex-shrink-0 group-hover:scale-105 group-hover:bg-[#002147] group-hover:text-white transition-all shadow-sm">
                                   <InformationCircleIcon className="h-5 w-5" />
                                 </div>
-                                <div className="flex flex-col text-left">
+                                <div className="flex flex-col text-start">
                                   <span className="text-xs font-bold text-slate-800 group-hover:text-slate-950 transition-colors">
                                     {t("about")}
                                   </span>
@@ -369,7 +369,7 @@ const UserNavbar = () => {
                               <div className="h-9 w-9 rounded-xl bg-blue-100/70 text-blue-700 flex items-center justify-center flex-shrink-0 group-hover:scale-105 group-hover:bg-blue-600 group-hover:text-white transition-all shadow-sm">
                                 <AcademicCapIcon className="h-5 w-5" />
                               </div>
-                              <div className="flex flex-col text-left">
+                              <div className="flex flex-col text-start">
                                 <span className="text-xs font-bold text-slate-800 group-hover:text-blue-900 transition-colors">
                                   {t("education_taleem")}
                                 </span>
@@ -407,7 +407,7 @@ const UserNavbar = () => {
                               <div className="h-9 w-9 rounded-xl bg-amber-100/70 text-amber-800 flex items-center justify-center flex-shrink-0 group-hover:scale-105 group-hover:bg-amber-600 group-hover:text-white transition-all shadow-sm">
                                 <NewspaperIcon className="h-5 w-5" />
                               </div>
-                              <div className="flex flex-col text-left">
+                              <div className="flex flex-col text-start">
                                 <span className="text-xs font-bold text-slate-800 group-hover:text-amber-900 transition-colors">
                                   Newspaper Clippings
                                 </span>
@@ -427,7 +427,7 @@ const UserNavbar = () => {
                                 <div className="h-9 w-9 rounded-xl bg-purple-100/70 text-purple-700 flex items-center justify-center flex-shrink-0 group-hover:scale-105 group-hover:bg-purple-600 group-hover:text-white transition-all shadow-sm">
                                   <EllipsisHorizontalCircleIcon className="h-5 w-5" />
                                 </div>
-                                <div className="flex flex-col text-left">
+                                <div className="flex flex-col text-start">
                                   <span className="text-xs font-bold text-slate-800 group-hover:text-purple-900 transition-colors">
                                     {t("activities")}
                                   </span>
@@ -448,7 +448,7 @@ const UserNavbar = () => {
                                 <div className="h-9 w-9 rounded-xl bg-rose-100/70 text-rose-700 flex items-center justify-center flex-shrink-0 group-hover:scale-105 group-hover:bg-rose-600 group-hover:text-white transition-all shadow-sm">
                                   <MegaphoneIcon className="h-5 w-5" />
                                 </div>
-                                <div className="flex flex-col text-left">
+                                <div className="flex flex-col text-start">
                                   <span className="text-xs font-bold text-slate-800 group-hover:text-rose-900 transition-colors">
                                     {t("updates")}
                                   </span>
@@ -817,7 +817,7 @@ const UserNavbar = () => {
         animate={{ opacity: 1, y: 0, scale: 1 }}
         exit={{ opacity: 0, y: 20, scale: 0.9 }}
         transition={{ type: "spring", stiffness: 350, damping: 25 }}
-        className="fixed bottom-20 md:bottom-6 right-4 sm:right-6 z-[60] flex items-center shadow-2xl rounded-full bg-slate-900/95 backdrop-blur-xl text-white border border-slate-700/80 p-1.5 pr-3 hover:scale-102 transition-transform group"
+        className="fixed bottom-20 md:bottom-6 end-4 sm:end-6 z-[60] flex items-center shadow-2xl rounded-full bg-slate-900/95 backdrop-blur-xl text-white border border-slate-700/80 p-1.5 pe-3 hover:scale-102 transition-transform group"
       >
         <Link
           to={`/read/${lastReadBook.bookId}?page=${lastReadBook.page || 1}`}
@@ -827,7 +827,7 @@ const UserNavbar = () => {
           <div className="w-8 h-8 rounded-full bg-gradient-to-r from-emerald-500 to-emerald-600 text-slate-950 flex items-center justify-center font-bold shrink-0 shadow-md">
             <BookOpenIcon className="w-4 h-4 text-white" />
           </div>
-          <div className="flex flex-col text-left min-w-0 max-w-[150px] sm:max-w-[210px]">
+          <div className="flex flex-col text-start min-w-0 max-w-[150px] sm:max-w-[210px]">
             <span className="text-[9.5px] uppercase font-extrabold text-emerald-400 tracking-wider flex items-center gap-1">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" /> Continue Reading
             </span>

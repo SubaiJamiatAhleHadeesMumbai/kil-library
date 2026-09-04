@@ -387,7 +387,7 @@ const SmartReader = ({
             className="inline-flex items-center gap-1 sm:gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-bold text-slate-700 transition hover:bg-slate-100 hover:text-slate-900 cursor-pointer shadow-2xs"
             title="Back to search"
           >
-            <ArrowLeft size={13} />
+            <ArrowLeft size={13} className="rtl:rotate-180" />
             <span className="hidden sm:inline">Back</span>
           </button>
         </div>
@@ -395,7 +395,7 @@ const SmartReader = ({
         {/* CENTER: Clean Search Pill without conflicting outlines */}
         <div className="flex items-center min-w-0 max-w-xs sm:max-w-sm flex-1">
           <div className="relative flex items-center w-full rounded-full border border-slate-200/90 bg-slate-100/80 px-3 py-1 text-xs focus-within:border-emerald-500 focus-within:bg-white focus-within:ring-2 focus-within:ring-emerald-500/15 transition-all shadow-2xs">
-            <Search size={13} className="text-slate-400 shrink-0 mr-1.5" />
+            <Search size={13} className="text-slate-400 shrink-0 me-1.5" />
             <input
               type="text"
               value={searchText}

@@ -14,6 +14,7 @@ import ProtectedRoute from "./components/common/ProtectedRoute";
 import { ADMIN_ALLOWED_ROLES } from "./config/accessControl";
 import AnalyticsTracker from "./components/common/AnalyticsTracker";
 import { LanguageProvider } from "./context/LanguageContext";
+import { ThemeProvider } from "./context/ThemeContext";
 
 // ================= LAYOUTS =================
 import Layout from "./components/layout/Layout";
@@ -72,6 +73,8 @@ const SocialWorkManager = lazy(() => import("./pages/Admin/SocialWorkManager"));
 const NewspaperClippingsPage = lazy(() => import("./pages/NewspaperClippingsPage"));
 const NewspaperClippingsManager = lazy(() => import("./pages/Admin/NewspaperClippingsManager"));
 const SystemHealthPage = lazy(() => import("./pages/Admin/SystemHealthPage"));
+const CommentsModeration = lazy(() => import("./pages/CommentsModeration"));
+const AdminThemeCustomizer = lazy(() => import("./pages/Admin/AdminThemeCustomizer"));
 
 // ✅ TEST / URDU EDITOR
 const UrduEditor = lazy(() => import("./components/UrduEditor/UrduEditor"));
@@ -105,8 +108,9 @@ function App() {
       <AnalyticsTracker />
       <Toaster position="top-center" />
 
-      <LanguageProvider>
-      <Suspense fallback={<PageLoader />}>
+      <ThemeProvider>
+        <LanguageProvider>
+        <Suspense fallback={<PageLoader />}>
         <Routes>
 
           {/* ================= PUBLIC / USER ROUTES ================= */}
@@ -196,6 +200,9 @@ function App() {
             <Route path="system-health" element={<SystemHealthPage />} />
             <Route path="translations" element={<AdminTranslationsPage />} />
             <Route path="profile" element={<Profile />} />
+            <Route path="comments" element={<CommentsModeration />} />
+            <Route path="theme-settings" element={<AdminThemeCustomizer />} />
+            <Route path="theme-customizer" element={<AdminThemeCustomizer />} />
 
             {/* (Optional) Admin-only editor */}
             <Route path="test-editor" element={<UrduEditor />} />
@@ -207,6 +214,7 @@ function App() {
         </Routes>
       </Suspense>
     </LanguageProvider>
+    </ThemeProvider>
     </>
   );
 }

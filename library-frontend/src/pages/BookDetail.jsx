@@ -25,6 +25,7 @@ import { defaultLayoutPlugin } from '@react-pdf-viewer/default-layout';
 import '@react-pdf-viewer/core/lib/styles/index.css';
 import '@react-pdf-viewer/default-layout/lib/styles/index.css';
 import BookPurchaseModal from '../components/book/BookPurchaseModal';
+import CommentSection from '../components/book/CommentSection';
 
 const BookDetail = () => {
     const { id } = useParams();
@@ -158,8 +159,8 @@ const BookDetail = () => {
             <div className="bg-white border-b border-gray-200 py-4 px-4 sticky top-0 z-20 shadow-sm">
                 <div className="max-w-7xl mx-auto flex items-center justify-between">
                     <div className="flex items-center gap-2 text-sm text-slate-500">
-                        <Link to="/" className="hover:text-indigo-600 flex items-center gap-1">
-                            <ArrowLeftIcon className="w-4 h-4" /> Library
+                        <Link to="/books" className="hover:text-emerald-600 flex items-center gap-1.5 transition-colors">
+                            <ArrowLeftIcon className="w-4 h-4 rtl:rotate-180" /> Library
                         </Link>
                         <span className="text-gray-300">/</span>
                         <span className="font-medium text-slate-900 truncate max-w-[200px] sm:max-w-md">{book.title}</span>
@@ -487,6 +488,13 @@ const BookDetail = () => {
 
                     </div>
                 </div>
+
+                {/* Comments & Reviews Section */}
+                {book?.id && (
+                    <div className="mt-12 pt-8 border-t border-slate-200">
+                        <CommentSection entityType="book" entityId={book.id} isRTL={isRTL} />
+                    </div>
+                )}
             </div>
 
             {/* Paid Download & UPI Purchase Modal */}

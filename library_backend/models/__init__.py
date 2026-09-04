@@ -22,3 +22,4 @@ from .library_management_models import BookCopy, IssuedBook, DigitalAccess
 from .social_work_model import SocialWorkItem
 from .book_order_model import BookDownloadOrder
 from .translation_model import Translation
+from .comment_model import Comment, CommentVote, CommentSettings

@@ -129,6 +129,7 @@ const AdminSidebar = ({ mobileClose = () => {} }) => {
                 { name: 'Gallery Management', path: '/admin/gallery', icon: PhotoIcon, requiredPerm: ['HOMEPAGE_CONTENT_MANAGE', 'SOCIAL_WORK_MANAGE'] },
                 { name: 'Posters', path: '/admin/posters', icon: PhotoIcon, requiredPerm: 'HOMEPAGE_CONTENT_MANAGE' },
                 { name: 'Fatawa Management', path: '/admin/fatawa', icon: ChatBubbleLeftRightIcon, requiredPerm: ['FATAWA_MANAGE', 'FATAWA_VIEW'] },
+                { name: 'Comments Moderation', path: '/admin/comments', icon: ChatBubbleLeftRightIcon, requiredPerm: null },
                 { name: 'Roles & Permissions', path: '/admin/roles-permissions', icon: KeyIcon, requiredPerm: ['ROLE_VIEW', 'ROLE_MANAGE', 'ROLE_PERMISSION_ASSIGN'] },
             ]
         },
@@ -160,6 +161,12 @@ const AdminSidebar = ({ mobileClose = () => {} }) => {
                         'HOMEPAGE_CONTENT_MANAGE',
                         'HOMEPAGE_LAYOUT_MANAGE',
                     ]
+                },
+                {
+                    name: 'Theme & Design Tokens',
+                    path: '/admin/theme-settings',
+                    icon: SparklesIcon,
+                    requiredPerm: null,
                 },
             ]
         }
