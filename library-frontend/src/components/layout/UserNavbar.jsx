@@ -27,7 +27,8 @@ import {
   MagnifyingGlassIcon,
   NewspaperIcon,
   ShieldCheckIcon,
-  BookmarkIcon
+  BookmarkIcon,
+  PhotoIcon
 } from "@heroicons/react/24/outline";
 
 // --- COMPONENTS & HOOKS ---
@@ -37,6 +38,8 @@ import LanguageSwitcher from "../common/LanguageSwitcher";
 import { useLanguage } from "../../context/LanguageContext";
 import DonationModal from "../donation/DonationModal";
 import UniversalSearchModal from "../common/UniversalSearchModal";
+import TopAnnouncementBar from "../common/TopAnnouncementBar";
+import MobileBottomNav from "./MobileBottomNav";
 import settingsService from "../../api/settingsService";
 
 // âœ… CONFIG
@@ -82,6 +85,22 @@ const NavItem = ({ to, label, icon: Icon, onClick }) => (
   </NavLink>
 );
 
+// Safe helper to extract role name whether user.role is a string or an object { name, description, id, permissions, created_at }
+const getRoleDisplayName = (u) => {
+  if (!u || !u.role) return "Member";
+  if (typeof u.role === "object") {
+    return u.role.name || u.role.title || "Member";
+  }
+  return String(u.role);
+};
+
+const isUserAdmin = (u) => {
+  if (!u) return false;
+  const roleName = typeof u.role === "object" ? (u.role.name || "") : String(u.role || "");
+  const normalized = roleName.toLowerCase().trim();
+  return ["admin", "superadmin", "super admin", "administrator"].includes(normalized);
+};
+
 // ==========================================
 // 2. MAIN NAVBAR COMPONENT
 // ==========================================
@@ -98,10 +117,43 @@ const UserNavbar = () => {
   const [isMobileSocialOpen, setIsMobileSocialOpen] = useState(false);
   const [isUniversalSearchOpen, setIsUniversalSearchOpen] = useState(false);
   const [homepageSettings, setHomepageSettings] = useState(null);
+  const [lastReadBook, setLastReadBook] = useState(null);
+  const [isContinueReadingDismissed, setIsContinueReadingDismissed] = useState(false);
   
   const profileRef = useRef(null);
   const socialDropdownRef = useRef(null);
   const socialTimeoutRef = useRef(null);
+
+  // Load last read book from localStorage with Live Event Sync
+  useEffect(() => {
+    const syncLastRead = () => {
+      try {
+        const stored = localStorage.getItem('kil_last_read_book');
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (parsed && parsed.bookId && parsed.bookId !== 'null' && parsed.bookId !== 'undefined') {
+            setLastReadBook(parsed);
+          } else {
+            localStorage.removeItem('kil_last_read_book');
+            setLastReadBook(null);
+          }
+        } else {
+          setLastReadBook(null);
+        }
+      } catch (e) {
+        console.warn('Error reading last read book from localStorage:', e);
+      }
+    };
+
+    syncLastRead();
+    window.addEventListener('kil_reading_updated', syncLastRead);
+    window.addEventListener('storage', syncLastRead);
+
+    return () => {
+      window.removeEventListener('kil_reading_updated', syncLastRead);
+      window.removeEventListener('storage', syncLastRead);
+    };
+  }, []);
 
   const handleSocialMouseEnter = () => {
     if (socialTimeoutRef.current) clearTimeout(socialTimeoutRef.current);
@@ -151,8 +203,34 @@ const UserNavbar = () => {
   }, []);
 
   const sectionVisibility = homepageSettings?.sections || {};
-  const showAboutLink = sectionVisibility.about?.enabled !== false;
-  const showFatawaLink = sectionVisibility.fatawa?.enabled !== false;
+  const navbarConfig = homepageSettings?.navbar_config || {};
+  const announcementConfig = homepageSettings?.announcement_bar || null;
+  const mobileNavConfig = homepageSettings?.mobile_nav_config || null;
+
+  const menuItems = navbarConfig.menu_items || {
+    home: true,
+    library: true,
+    about: true,
+    gallery: true,
+    fatawa: true,
+    activities: true,
+    updates: true,
+  };
+
+  const showHomeLink = menuItems.home !== false;
+  const showLibraryLink = menuItems.library !== false;
+  const showAboutLink = menuItems.about !== false && sectionVisibility.about?.enabled !== false;
+  const showGalleryLink = menuItems.gallery !== false && sectionVisibility.gallery?.enabled !== false;
+  const showFatawaLink = menuItems.fatawa !== false && sectionVisibility.fatawa?.enabled !== false;
+  const showActivitiesLink = menuItems.activities !== false;
+  const showUpdatesLink = menuItems.updates !== false;
+
+  const showContinueReading = navbarConfig.show_continue_reading !== false;
+  const showSearchPill = navbarConfig.show_search !== false;
+  const showLanguageSwitcher = navbarConfig.show_language !== false;
+  const showDonateButton = navbarConfig.show_donate !== false;
+  const donateButtonText = navbarConfig.donate_text || t("donate_btn") || "Donate";
+  const logoSizePx = Number(navbarConfig.logo_size) || 42;
 
   const brandLogoUrl = homepageSettings?.site_logo_url
     ? (homepageSettings.site_logo_url.startsWith("http")
@@ -162,268 +240,318 @@ const UserNavbar = () => {
 
   const brandTitle = homepageSettings?.site_title || t("markaz_title");
   const brandSub = homepageSettings?.site_subtitle || t("markaz_sub");
+  const showSiteSubtitle = navbarConfig.show_subtitle !== false && homepageSettings?.show_site_subtitle !== false;
 
   return (
-    <header className="sticky top-0 z-50 flex flex-col w-full font-sans shadow-xs">
-      {/* MAIN NAVBAR */}
-      <nav className="bg-white/95 backdrop-blur-xl border-b border-slate-200/60 shadow-xs transition-all duration-300">
-        <div className="app-shell-container">
-          <div className="flex items-center justify-between min-h-[4.25rem] py-2 gap-2">
-            
-            {/* LOGO */}
-            <div className="flex items-center min-w-0 flex-1 md:flex-none">
-              <Link to="/" className="flex items-center gap-2 sm:gap-3 group min-w-0" onClick={() => setIsMobileMenuOpen(false)}>
-                <div className="relative shrink-0">
-                  <div className="absolute inset-0 rounded-full bg-blue-400/20 blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                  <img
-                    src={brandLogoUrl}
-                    alt="Logo"
-                    className="relative z-10 w-9 h-9 sm:w-11 sm:h-11 object-contain bg-white rounded-full border border-slate-100 shadow-sm group-hover:scale-105 transition-transform duration-300"
-                    onError={(e) => {
-                      e.currentTarget.onerror = null;
-                      e.currentTarget.src = MARKAZ_LOGO_URL;
-                    }}
-                  />
-                </div>
-                <div className="flex flex-col leading-tight min-w-0">
-                  <span className="font-extrabold text-sm sm:text-lg text-[#002147] tracking-tight truncate">
-                    {brandTitle}
-                  </span>
-                  <span className="text-[9px] sm:text-[10px] text-slate-500 font-bold uppercase tracking-wider truncate">
-                    {brandSub}
-                  </span>
-                </div>
-              </Link>
-            </div>
+    <>
+      <header className="sticky top-0 z-50 flex flex-col w-full font-sans shadow-xs">
+        {/* THIN STICKY READING PROGRESS BAR (YouTube Style) */}
+        {lastReadBook && showContinueReading && (
+          <div 
+            className="h-[2.5px] w-full bg-slate-200/60 overflow-hidden relative z-[100]" 
+            title={`Reading progress: ${lastReadBook.title} (Page ${lastReadBook.page})`}
+          >
+            <div 
+              className="h-full bg-gradient-to-r from-emerald-500 via-teal-500 to-blue-600 transition-all duration-500" 
+              style={{ width: `${Math.min(100, Math.max(8, ((lastReadBook.page || 1) / (lastReadBook.total_pages || 50)) * 100))}%` }} 
+            />
+          </div>
+        )}
 
-            {/* DESKTOP NAV */}
-            <div className="hidden md:flex items-center space-x-1">
-              <NavItem to="/" label={t("home")} icon={HomeIcon} />
-              <NavItem to="/books" label={t("library")} icon={BookOpenIcon} />
-              {showAboutLink ? <NavItem to="/about" label={t("about")} icon={InformationCircleIcon} /> : null}
-              {showFatawaLink ? <NavItem to="/fatawa" label={t("fatawa")} icon={BookOpenIcon} /> : null}
+        {/* TOP ANNOUNCEMENT / HADITH TICKER BAR */}
+        <TopAnnouncementBar config={announcementConfig} />
 
-              {/* ACTIVITIES DROPDOWN (Smooth Hover) */}
-              <div
-                ref={socialDropdownRef}
-                className="relative"
-                onMouseEnter={handleSocialMouseEnter}
-                onMouseLeave={handleSocialMouseLeave}
-              >
-                <button
-                  type="button"
-                  onClick={() => setIsSocialDropdownOpen((prev) => !prev)}
-                  className={`relative flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-bold transition-all duration-200 cursor-pointer ${
-                    isSocialDropdownOpen
-                      ? "text-[#002147] bg-blue-50/80"
-                      : "text-slate-600 hover:text-[#002147] hover:bg-slate-50"
-                  }`}
-                  aria-expanded={isSocialDropdownOpen}
-                >
-                  <SparklesIcon className={`h-4 w-4 transition-colors ${isSocialDropdownOpen ? "text-[#002147]" : "text-slate-400"}`} />
-                  <span>{t("activities")}</span>
-                  <ChevronDownIcon
-                    className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 ${
-                      isSocialDropdownOpen ? "rotate-180 text-[#002147]" : ""
-                    }`}
-                  />
-                </button>
-
-                <AnimatePresence>
-                  {isSocialDropdownOpen && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 8, scale: 0.96 }}
-                      animate={{ opacity: 1, y: 0, scale: 1 }}
-                      exit={{ opacity: 0, y: 6, scale: 0.96 }}
-                      transition={{ duration: 0.18, ease: "easeOut" }}
-                      className="absolute left-0 mt-1.5 w-64 bg-white/95 backdrop-blur-xl rounded-2xl shadow-xl border border-slate-100/90 p-2 z-50 overflow-hidden ring-1 ring-black/5"
-                    >
-                      <div className="space-y-1">
-                        {/* 1. Education (taleem) */}
-                        <Link
-                          to="/education"
-                          onClick={() => setIsSocialDropdownOpen(false)}
-                          className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-blue-50/80 transition-all duration-200 group"
-                        >
-                          <div className="h-9 w-9 rounded-xl bg-blue-100/70 text-blue-700 flex items-center justify-center flex-shrink-0 group-hover:scale-105 group-hover:bg-blue-600 group-hover:text-white transition-all shadow-sm">
-                            <AcademicCapIcon className="h-5 w-5" />
-                          </div>
-                          <div className="flex flex-col text-left">
-                            <span className="text-xs font-bold text-slate-800 group-hover:text-blue-900 transition-colors">
-                              {t("education_taleem")}
-                            </span>
-                            <span className="text-[10px] text-slate-400 font-medium">
-                              Taleem & Guidance
-                            </span>
-                          </div>
-                        </Link>
-
-                        {/* 2. Social Work */}
-                        <Link
-                          to="/social-work"
-                          onClick={() => setIsSocialDropdownOpen(false)}
-                          className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-emerald-50/80 transition-all duration-200 group"
-                        >
-                          <div className="h-9 w-9 rounded-xl bg-emerald-100/70 text-emerald-700 flex items-center justify-center flex-shrink-0 group-hover:scale-105 group-hover:bg-emerald-600 transition-all shadow-sm p-1.5">
-                            <img src="/icons/social-work.png" alt="Social Work" className="w-full h-full object-contain group-hover:brightness-0 group-hover:invert transition-all" />
-                          </div>
-                          <div className="flex flex-col text-left">
-                            <span className="text-xs font-bold text-slate-800 group-hover:text-emerald-900 transition-colors">
-                              {t("social_work")}
-                            </span>
-                            <span className="text-[10px] text-slate-400 font-medium">
-                              Welfare & Relief Drives
-                            </span>
-                          </div>
-                        </Link>
-
-                        {/* 3. Newspaper Clippings */}
-                        <Link
-                          to="/clippings"
-                          onClick={() => setIsSocialDropdownOpen(false)}
-                          className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-amber-50/80 transition-all duration-200 group"
-                        >
-                          <div className="h-9 w-9 rounded-xl bg-amber-100/70 text-amber-800 flex items-center justify-center flex-shrink-0 group-hover:scale-105 group-hover:bg-amber-600 group-hover:text-white transition-all shadow-sm">
-                            <NewspaperIcon className="h-5 w-5" />
-                          </div>
-                          <div className="flex flex-col text-left">
-                            <span className="text-xs font-bold text-slate-800 group-hover:text-amber-900 transition-colors">
-                              Newspaper Clippings
-                            </span>
-                            <span className="text-[10px] text-slate-400 font-medium">
-                              اخباری تراشے و پریس کٹنگس
-                            </span>
-                          </div>
-                        </Link>
-
-                        {/* 4. Other */}
-                        <Link
-                          to="/activities"
-                          onClick={() => setIsSocialDropdownOpen(false)}
-                          className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-purple-50/80 transition-all duration-200 group"
-                        >
-                          <div className="h-9 w-9 rounded-xl bg-purple-100/70 text-purple-700 flex items-center justify-center flex-shrink-0 group-hover:scale-105 group-hover:bg-purple-600 group-hover:text-white transition-all shadow-sm">
-                            <EllipsisHorizontalCircleIcon className="h-5 w-5" />
-                          </div>
-                          <div className="flex flex-col text-left">
-                            <span className="text-xs font-bold text-slate-800 group-hover:text-purple-900 transition-colors">
-                              {t("other")}
-                            </span>
-                            <span className="text-[10px] text-slate-400 font-medium">
-                              Other Activities & Events
-                            </span>
-                          </div>
-                        </Link>
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+        {/* MAIN NAVBAR */}
+        <nav className="bg-white/95 backdrop-blur-xl border-b border-slate-200/60 shadow-xs transition-all duration-300">
+          <div className="app-shell-container">
+            <div className="flex items-center justify-between min-h-[4.25rem] py-2 gap-2">
+              
+              {/* LOGO */}
+              <div className="flex items-center min-w-0 flex-1 md:flex-none">
+                <Link to="/" className="flex items-center gap-2 sm:gap-3 group min-w-0" onClick={() => setIsMobileMenuOpen(false)}>
+                  <div className="relative shrink-0">
+                    <div className="absolute inset-0 rounded-full bg-blue-400/20 blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                    <img
+                      src={brandLogoUrl}
+                      alt="Logo"
+                      style={{ height: `${logoSizePx}px`, width: `${logoSizePx}px` }}
+                      className="relative z-10 object-contain bg-white rounded-full border border-slate-100 shadow-sm group-hover:scale-105 transition-transform duration-300"
+                      onError={(e) => {
+                        e.currentTarget.onerror = null;
+                        e.currentTarget.src = MARKAZ_LOGO_URL;
+                      }}
+                    />
+                  </div>
+                  <div className="flex flex-col leading-tight min-w-0">
+                    <span className="font-extrabold text-sm sm:text-lg text-[#002147] tracking-tight truncate">
+                      {brandTitle}
+                    </span>
+                    {showSiteSubtitle && brandSub && (
+                      <span className="text-[9px] sm:text-[10px] text-slate-500 font-bold uppercase tracking-wider truncate">
+                        {brandSub}
+                      </span>
+                    )}
+                  </div>
+                </Link>
               </div>
 
-              <NavItem to="/posts" label={t("updates")} icon={MegaphoneIcon} />
-            </div>
+              {/* DESKTOP NAV */}
+              <div className="hidden md:flex items-center space-x-1">
+                {showHomeLink && <NavItem to="/" label={t("home")} icon={HomeIcon} />}
+                {showLibraryLink && <NavItem to="/books" label={t("library")} icon={BookOpenIcon} />}
+                {showFatawaLink && <NavItem to="/fatawa" label={t("fatawa")} icon={BookOpenIcon} />}
+                {showGalleryLink && <NavItem to="/gallery" label={t("gallery")} icon={PhotoIcon} />}
 
-            {/* RIGHT ACTIONS */}
-            <div className="hidden md:flex items-center justify-end gap-1.5 lg:gap-2 min-w-0 md:flex-1 lg:flex-none">
-              
-              {/* Universal Search Trigger (Desktop: Sleek Search Pill) */}
-              <button
-                type="button"
-                onClick={() => setIsUniversalSearchOpen(true)}
-                className="hidden xl:flex items-center justify-between gap-1.5 px-3 py-1.5 rounded-full bg-slate-100/80 hover:bg-white text-slate-500 hover:text-[#002147] border border-slate-200/80 hover:border-blue-300 text-xs transition-all duration-200 shadow-2xs hover:shadow-xs cursor-pointer group w-36 2xl:w-44"
-                title={t("search_placeholder")}
-              >
-                <div className="flex items-center gap-1.5 min-w-0">
-                  <MagnifyingGlassIcon className="w-3.5 h-3.5 text-blue-600 group-hover:scale-110 transition-transform flex-shrink-0" />
-                  <span className="font-medium text-slate-400 group-hover:text-slate-600 truncate text-[11px]">
-                    {t("search_btn") || "Search"}
-                  </span>
-                </div>
-                <kbd className="hidden 2xl:inline-flex items-center px-1 py-0.2 text-[8.5px] font-bold text-slate-400 bg-white border border-slate-200 rounded shadow-2xs">
-                  Ctrl K
-                </kbd>
-              </button>
-
-              {/* Compact Search Trigger for Tablets / Smaller Desktops */}
-              <button
-                type="button"
-                onClick={() => setIsUniversalSearchOpen(true)}
-                className="xl:hidden flex items-center gap-1 px-2.5 py-1.5 rounded-full bg-blue-50/80 hover:bg-blue-100 text-[#002147] border border-blue-200/80 font-bold text-[11px] transition-all duration-200 shadow-2xs cursor-pointer group"
-                title={t("search_placeholder")}
-              >
-                <MagnifyingGlassIcon className="w-3.5 h-3.5 text-blue-700 group-hover:scale-110 transition-transform" />
-                <span className="font-bold text-[11px]">{t("search_btn")}</span>
-              </button>
-
-              {/* Language Switcher (Urdu, Arabic, English) */}
-              <LanguageSwitcher />
-
-              {/* Donate Button */}
-              <button
-                onClick={() => setIsDonationOpen(true)}
-                className="group flex items-center gap-1 px-2.5 py-1.5 bg-gradient-to-r from-rose-50 to-pink-50 text-rose-700 rounded-full hover:from-rose-600 hover:to-pink-600 hover:text-white transition-all duration-300 border border-rose-200/80 hover:border-transparent shadow-2xs hover:shadow-xs cursor-pointer"
-                title={t("donate")}
-              >
-                <HeartIcon className="w-3 h-3 text-rose-500 group-hover:text-white group-hover:scale-110 transition-transform" />
-                <span className="text-[11px] font-bold">{t("donate")}</span>
-              </button>
-
-              {/* Auth Logic (Logged-in vs Logged-out) */}
-              {isAuth ? (
-                <div className="flex items-center gap-2 ps-1.5 border-s border-slate-200">
-                  <NotificationBell />
-
-                  {/* Profile Dropdown */}
-                  <div ref={profileRef} className="relative">
+                {/* MORE DROPDOWN (Contains About, Activities, Welfare, Clippings, Updates) */}
+                {(showAboutLink || showActivitiesLink || showUpdatesLink) && (
+                  <div
+                    ref={socialDropdownRef}
+                    className="relative"
+                    onMouseEnter={handleSocialMouseEnter}
+                    onMouseLeave={handleSocialMouseLeave}
+                  >
                     <button
-                      onClick={() => setIsProfileOpen((p) => !p)}
-                      className="flex items-center gap-1.5 p-0.5 rounded-full hover:bg-slate-100/80 border border-transparent hover:border-slate-200/80 transition-all group cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-400/30"
-                      aria-expanded={isProfileOpen}
+                      type="button"
+                      onClick={() => setIsSocialDropdownOpen((prev) => !prev)}
+                      className={`relative flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-bold transition-all duration-200 cursor-pointer ${
+                        isSocialDropdownOpen
+                          ? "text-[#002147] bg-blue-50/80"
+                          : "text-slate-600 hover:text-[#002147] hover:bg-slate-50"
+                      }`}
+                      aria-expanded={isSocialDropdownOpen}
                     >
-                      <div className="h-7 w-7 rounded-full bg-gradient-to-br from-[#002147] to-blue-900 text-white flex items-center justify-center border border-white shadow-xs font-extrabold text-[11px]">
-                        {user?.username?.[0]?.toUpperCase() || "U"}
-                      </div>
-                      <div className="hidden lg:flex flex-col items-start leading-none pe-1">
-                        <span className="text-[11px] font-bold text-[#002147] max-w-[80px] truncate">
-                          {user?.username || "User"}
-                        </span>
-                        <span className="text-[8.5px] text-slate-400 font-semibold uppercase tracking-wider mt-0.5">
-                          {user?.role === "Admin" || user?.role === "admin" || user?.role === "superadmin" ? "Admin" : "Member"}
-                        </span>
-                      </div>
-                      <ChevronDownIcon className={`w-3 h-3 text-slate-400 transition-transform duration-200 ${isProfileOpen ? 'rotate-180 text-[#002147]' : ''}`} />
+                      <SparklesIcon className={`h-4 w-4 transition-colors ${isSocialDropdownOpen ? "text-[#002147]" : "text-slate-400"}`} />
+                      <span>{t("more") || "More"}</span>
+                      <ChevronDownIcon
+                        className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 ${
+                          isSocialDropdownOpen ? "rotate-180 text-[#002147]" : ""
+                        }`}
+                      />
                     </button>
 
                     <AnimatePresence>
-                      {isProfileOpen && (
+                      {isSocialDropdownOpen && (
                         <motion.div
                           initial={{ opacity: 0, y: 8, scale: 0.96 }}
                           animate={{ opacity: 1, y: 0, scale: 1 }}
                           exit={{ opacity: 0, y: 6, scale: 0.96 }}
-                          transition={{ duration: 0.15, ease: "easeOut" }}
-                          className="absolute end-0 mt-2 w-60 bg-white/95 backdrop-blur-xl rounded-2xl shadow-xl border border-slate-200/90 p-1.5 z-[100] overflow-hidden ring-1 ring-black/5"
+                          transition={{ duration: 0.18, ease: "easeOut" }}
+                          className="absolute left-0 mt-1.5 w-64 bg-white/95 backdrop-blur-xl rounded-2xl shadow-xl border border-slate-100/90 p-2 z-50 overflow-hidden ring-1 ring-black/5"
                         >
-                          {/* User Header Info Card */}
-                          <div className="px-3.5 py-3 bg-gradient-to-br from-slate-50 to-blue-50/40 rounded-xl border border-slate-100 mb-1">
-                            <div className="flex items-center justify-between gap-2 mb-1">
-                              <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Signed in as</span>
-                              <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${
-                                user?.role === 'Admin' || user?.role === 'admin' || user?.role === 'superadmin'
-                                  ? 'bg-indigo-100 text-indigo-800'
-                                  : 'bg-emerald-100 text-emerald-800'
-                              }`}>
-                                {user?.role || "Member"}
-                              </span>
-                            </div>
-                            <p className="text-sm font-extrabold text-[#002147] truncate">{user?.username}</p>
-                            {user?.email && (
-                              <p className="text-xs text-slate-500 font-medium truncate mt-0.5">{user.email}</p>
+                          <div className="space-y-1">
+                            {/* 1. About Us */}
+                            {showAboutLink && (
+                              <Link
+                                to="/about"
+                                onClick={() => setIsSocialDropdownOpen(false)}
+                                className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-slate-100 transition-all duration-200 group"
+                              >
+                                <div className="h-9 w-9 rounded-xl bg-slate-100 text-slate-700 flex items-center justify-center flex-shrink-0 group-hover:scale-105 group-hover:bg-[#002147] group-hover:text-white transition-all shadow-sm">
+                                  <InformationCircleIcon className="h-5 w-5" />
+                                </div>
+                                <div className="flex flex-col text-left">
+                                  <span className="text-xs font-bold text-slate-800 group-hover:text-slate-950 transition-colors">
+                                    {t("about")}
+                                  </span>
+                                  <span className="text-[10px] text-slate-400 font-medium">
+                                    History & Mission
+                                  </span>
+                                </div>
+                              </Link>
+                            )}
+
+                            {/* 2. Education (taleem) */}
+                            <Link
+                              to="/education"
+                              onClick={() => setIsSocialDropdownOpen(false)}
+                              className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-blue-50/80 transition-all duration-200 group"
+                            >
+                              <div className="h-9 w-9 rounded-xl bg-blue-100/70 text-blue-700 flex items-center justify-center flex-shrink-0 group-hover:scale-105 group-hover:bg-blue-600 group-hover:text-white transition-all shadow-sm">
+                                <AcademicCapIcon className="h-5 w-5" />
+                              </div>
+                              <div className="flex flex-col text-left">
+                                <span className="text-xs font-bold text-slate-800 group-hover:text-blue-900 transition-colors">
+                                  {t("education_taleem")}
+                                </span>
+                                <span className="text-[10px] text-slate-400 font-medium">
+                                  Taleem & Guidance
+                                </span>
+                              </div>
+                            </Link>
+
+                            {/* 3. Social Work */}
+                            <Link
+                              to="/social-work"
+                              onClick={() => setIsSocialDropdownOpen(false)}
+                              className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-emerald-50/80 transition-all duration-200 group"
+                            >
+                              <div className="h-9 w-9 rounded-xl bg-emerald-100/70 text-emerald-700 flex items-center justify-center flex-shrink-0 group-hover:scale-105 group-hover:bg-emerald-600 transition-all shadow-sm p-1.5">
+                                <img src="/icons/social-work.png" alt="Social Work" className="w-full h-full object-contain group-hover:brightness-0 group-hover:invert transition-all" />
+                              </div>
+                              <div className="flex flex-col text-left">
+                                <span className="text-xs font-bold text-slate-800 group-hover:text-emerald-900 transition-colors">
+                                  {t("social_work")}
+                                </span>
+                                <span className="text-[10px] text-slate-400 font-medium">
+                                  Welfare & Relief Drives
+                                </span>
+                              </div>
+                            </Link>
+
+                            {/* 4. Newspaper Clippings */}
+                            <Link
+                              to="/clippings"
+                              onClick={() => setIsSocialDropdownOpen(false)}
+                              className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-amber-50/80 transition-all duration-200 group"
+                            >
+                              <div className="h-9 w-9 rounded-xl bg-amber-100/70 text-amber-800 flex items-center justify-center flex-shrink-0 group-hover:scale-105 group-hover:bg-amber-600 group-hover:text-white transition-all shadow-sm">
+                                <NewspaperIcon className="h-5 w-5" />
+                              </div>
+                              <div className="flex flex-col text-left">
+                                <span className="text-xs font-bold text-slate-800 group-hover:text-amber-900 transition-colors">
+                                  Newspaper Clippings
+                                </span>
+                                <span className="text-[10px] text-slate-400 font-medium">
+                                  اخباری تراشے و پریس کٹنگس
+                                </span>
+                              </div>
+                            </Link>
+
+                            {/* 5. Activities / Other */}
+                            {showActivitiesLink && (
+                              <Link
+                                to="/activities"
+                                onClick={() => setIsSocialDropdownOpen(false)}
+                                className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-purple-50/80 transition-all duration-200 group"
+                              >
+                                <div className="h-9 w-9 rounded-xl bg-purple-100/70 text-purple-700 flex items-center justify-center flex-shrink-0 group-hover:scale-105 group-hover:bg-purple-600 group-hover:text-white transition-all shadow-sm">
+                                  <EllipsisHorizontalCircleIcon className="h-5 w-5" />
+                                </div>
+                                <div className="flex flex-col text-left">
+                                  <span className="text-xs font-bold text-slate-800 group-hover:text-purple-900 transition-colors">
+                                    {t("activities")}
+                                  </span>
+                                  <span className="text-[10px] text-slate-400 font-medium">
+                                    Events & Gatherings
+                                  </span>
+                                </div>
+                              </Link>
+                            )}
+
+                            {/* 6. Updates & Announcements */}
+                            {showUpdatesLink && (
+                              <Link
+                                to="/posts"
+                                onClick={() => setIsSocialDropdownOpen(false)}
+                                className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-rose-50/80 transition-all duration-200 group"
+                              >
+                                <div className="h-9 w-9 rounded-xl bg-rose-100/70 text-rose-700 flex items-center justify-center flex-shrink-0 group-hover:scale-105 group-hover:bg-rose-600 group-hover:text-white transition-all shadow-sm">
+                                  <MegaphoneIcon className="h-5 w-5" />
+                                </div>
+                                <div className="flex flex-col text-left">
+                                  <span className="text-xs font-bold text-slate-800 group-hover:text-rose-900 transition-colors">
+                                    {t("updates")}
+                                  </span>
+                                  <span className="text-[10px] text-slate-400 font-medium">
+                                    News & Circulars
+                                  </span>
+                                </div>
+                              </Link>
                             )}
                           </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                )}
+              </div>
 
-                          {/* Navigation Items in Dropdown */}
-                          <div className="space-y-0.5">
-                            {user && (user.role === 'Admin' || user.role === 'admin' || user.role === 'superadmin') && (
+              {/* RIGHT ACTIONS: CONSOLIDATED CLUSTER */}
+              <div className="hidden md:flex items-center justify-end gap-2 min-w-0 md:flex-1 lg:flex-none">
+                
+                {/* Compact Icon-Only Search Trigger (Expand-on-click via modal) */}
+                {showSearchPill && (
+                  <button
+                    type="button"
+                    onClick={() => setIsUniversalSearchOpen(true)}
+                    className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-slate-100/80 hover:bg-white text-slate-600 hover:text-[#002147] border border-slate-200/80 hover:border-blue-300 text-xs transition-all duration-200 shadow-2xs hover:shadow-xs cursor-pointer group"
+                    title={t("search_placeholder") + " (Ctrl+K)"}
+                  >
+                    <MagnifyingGlassIcon className="w-3.5 h-3.5 text-blue-600 group-hover:scale-110 transition-transform" />
+                    <span className="hidden xl:inline text-[11px] text-slate-400 font-semibold group-hover:text-slate-600">
+                      Search
+                    </span>
+                    <kbd className="hidden xl:inline-flex items-center px-1 py-0.2 text-[8px] font-bold text-slate-400 bg-white border border-slate-200 rounded">
+                      ⌘K
+                    </kbd>
+                  </button>
+                )}
+
+                {/* Donate Button */}
+                {showDonateButton && (
+                  <button
+                    onClick={() => setIsDonationOpen(true)}
+                    className="group flex items-center gap-1 px-2.5 py-1.5 bg-gradient-to-r from-rose-50 to-pink-50 text-rose-700 rounded-full hover:from-rose-600 hover:to-pink-600 hover:text-white transition-all duration-300 border border-rose-200/80 hover:border-transparent shadow-2xs hover:shadow-xs cursor-pointer"
+                    title={donateButtonText}
+                  >
+                    <HeartIcon className="w-3 h-3 text-rose-500 group-hover:text-white group-hover:scale-110 transition-transform" />
+                    <span className="text-[11px] font-bold">{donateButtonText}</span>
+                  </button>
+                )}
+
+                {/* VISUALLY UNIFIED ACCOUNT & CONTROLS CLUSTER */}
+                <div className="flex items-center gap-1.5 p-1 rounded-full bg-slate-100/70 border border-slate-200/80 shadow-2xs">
+                  {/* Language Switcher */}
+                  {showLanguageSwitcher && <LanguageSwitcher />}
+
+                  {/* Auth Logic (Logged-in vs Logged-out) */}
+                  {isAuth ? (
+                    <>
+                      <NotificationBell />
+
+                      {/* Profile Dropdown */}
+                      <div ref={profileRef} className="relative">
+                        <button
+                          onClick={() => setIsProfileOpen((p) => !p)}
+                          className="flex items-center gap-1 p-0.5 rounded-full hover:bg-white transition-all group cursor-pointer focus:outline-none"
+                          aria-expanded={isProfileOpen}
+                        >
+                          <div className="h-7 w-7 rounded-full bg-gradient-to-br from-[#002147] to-blue-900 text-white flex items-center justify-center border border-white shadow-xs font-extrabold text-[11px]">
+                            {user?.username?.[0]?.toUpperCase() || "U"}
+                          </div>
+                          <ChevronDownIcon className={`w-3 h-3 text-slate-400 transition-transform duration-200 ${isProfileOpen ? 'rotate-180 text-[#002147]' : ''}`} />
+                        </button>
+
+                        <AnimatePresence>
+                          {isProfileOpen && (
+                            <motion.div
+                              initial={{ opacity: 0, y: 8, scale: 0.96 }}
+                              animate={{ opacity: 1, y: 0, scale: 1 }}
+                              exit={{ opacity: 0, y: 6, scale: 0.96 }}
+                              transition={{ duration: 0.15, ease: "easeOut" }}
+                              className="absolute end-0 mt-2 w-60 bg-white/95 backdrop-blur-xl rounded-2xl shadow-xl border border-slate-200/90 p-1.5 z-[100] overflow-hidden ring-1 ring-black/5"
+                            >
+                              {/* User Header Info Card */}
+                              <div className="px-3.5 py-3 bg-gradient-to-br from-slate-50 to-blue-50/40 rounded-xl border border-slate-100 mb-1">
+                                <div className="flex items-center justify-between gap-2 mb-1">
+                                  <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Signed in as</span>
+                                  <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${
+                                    isUserAdmin(user)
+                                      ? 'bg-indigo-100 text-indigo-800'
+                                      : 'bg-emerald-100 text-emerald-800'
+                                  }`}>
+                                    {getRoleDisplayName(user)}
+                                  </span>
+                                </div>
+                                <p className="text-sm font-extrabold text-[#002147] truncate">{user?.username}</p>
+                                {user?.email && (
+                                  <p className="text-xs text-slate-500 font-medium truncate mt-0.5">{user.email}</p>
+                                )}
+                              </div>
+
+                              {/* Navigation Items in Dropdown */}
+                              <div className="space-y-0.5">
+                            {user && isUserAdmin(user) && (
                               <Link
                                 to="/admin/dashboard"
                                 onClick={() => setIsProfileOpen(false)}
@@ -442,7 +570,7 @@ const UserNavbar = () => {
                               <span>{t("profile") || "My Profile"}</span>
                             </Link>
                             <Link
-                              to="/user-library"
+                              to="/books"
                               onClick={() => setIsProfileOpen(false)}
                               className="flex items-center gap-2.5 px-3 py-2 text-xs font-bold text-slate-700 rounded-xl hover:bg-blue-50/80 hover:text-blue-900 transition-colors"
                             >
@@ -462,19 +590,18 @@ const UserNavbar = () => {
                       )}
                     </AnimatePresence>
                   </div>
-                </div>
+                </>
               ) : (
-                <div className="flex items-center gap-2 ps-1.5 border-s border-slate-200">
-                  <Link
-                    to="/login"
-                    className="flex items-center gap-1 bg-[#002147] hover:bg-[#003366] text-white px-3 py-1.5 rounded-full text-[11px] font-extrabold shadow-2xs hover:shadow-xs hover:-translate-y-0.5 transition-all duration-200"
-                  >
-                    <ArrowLeftOnRectangleIcon className="w-3.5 h-3.5" />
-                    <span>{t("login")}</span>
-                  </Link>
-                </div>
+                <Link
+                  to="/login"
+                  className="flex items-center gap-1 bg-[#002147] hover:bg-[#003366] text-white px-3 py-1.5 rounded-full text-[11px] font-extrabold shadow-2xs hover:shadow-xs hover:-translate-y-0.5 transition-all duration-200"
+                >
+                  <ArrowLeftOnRectangleIcon className="w-3.5 h-3.5" />
+                  <span>{t("login")}</span>
+                </Link>
               )}
             </div>
+          </div>
 
             {/* MOBILE TOGGLE, SEARCH & LANGUAGE */}
             <div className="flex items-center gap-1.5 sm:gap-2 md:hidden">
@@ -526,9 +653,9 @@ const UserNavbar = () => {
                             </div>
                             <div className="flex-1 min-w-0">
                                 <p className="text-sm font-bold text-slate-800 truncate">{user?.username}</p>
-                                <p className="text-xs text-slate-500">{user?.role || "Active Member"}</p>
+                                <p className="text-xs text-slate-500">{getRoleDisplayName(user)}</p>
                             </div>
-                            {user && (user.role === 'Admin' || user.role === 'admin' || user.role === 'superadmin') && (
+                            {user && isUserAdmin(user) && (
                               <Link
                                 to="/admin/dashboard"
                                 onClick={() => setIsMobileMenuOpen(false)}
@@ -565,6 +692,7 @@ const UserNavbar = () => {
                   <NavItem to="/" label={t("home")} icon={HomeIcon} onClick={() => setIsMobileMenuOpen(false)} />
                   <NavItem to="/books" label={t("library")} icon={BookOpenIcon} onClick={() => setIsMobileMenuOpen(false)} />
                   {showAboutLink ? <NavItem to="/about" label={t("about")} icon={InformationCircleIcon} onClick={() => setIsMobileMenuOpen(false)} /> : null}
+                  <NavItem to="/gallery" label={t("gallery")} icon={PhotoIcon} onClick={() => setIsMobileMenuOpen(false)} />
                   {showFatawaLink ? <NavItem to="/fatawa" label={t("fatawa")} icon={BookOpenIcon} onClick={() => setIsMobileMenuOpen(false)} /> : null}
                   
                   {/* Mobile Activities Accordion */}
@@ -675,6 +803,56 @@ const UserNavbar = () => {
         onClose={() => setIsUniversalSearchOpen(false)}
       />
     </header>
+
+    {/* MOBILE APP-STYLE FLOATING BOTTOM BAR */}
+    <MobileBottomNav 
+      config={mobileNavConfig} 
+      onOpenSearch={() => setIsUniversalSearchOpen(true)} 
+    />
+
+    {/* FLOATING BOTTOM-RIGHT CONTINUE READING WIDGET */}
+    {lastReadBook && showContinueReading && !isContinueReadingDismissed && (
+      <motion.div
+        initial={{ opacity: 0, y: 30, scale: 0.85 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        exit={{ opacity: 0, y: 20, scale: 0.9 }}
+        transition={{ type: "spring", stiffness: 350, damping: 25 }}
+        className="fixed bottom-20 md:bottom-6 right-4 sm:right-6 z-[60] flex items-center shadow-2xl rounded-full bg-slate-900/95 backdrop-blur-xl text-white border border-slate-700/80 p-1.5 pr-3 hover:scale-102 transition-transform group"
+      >
+        <Link
+          to={`/read/${lastReadBook.bookId}?page=${lastReadBook.page || 1}`}
+          className="flex items-center gap-2.5 min-w-0"
+          title={`Resume reading ${lastReadBook.title} on page ${lastReadBook.page}`}
+        >
+          <div className="w-8 h-8 rounded-full bg-gradient-to-r from-emerald-500 to-emerald-600 text-slate-950 flex items-center justify-center font-bold shrink-0 shadow-md">
+            <BookOpenIcon className="w-4 h-4 text-white" />
+          </div>
+          <div className="flex flex-col text-left min-w-0 max-w-[150px] sm:max-w-[210px]">
+            <span className="text-[9.5px] uppercase font-extrabold text-emerald-400 tracking-wider flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" /> Continue Reading
+            </span>
+            <span className="text-xs font-bold text-white truncate">
+              {lastReadBook.title}
+            </span>
+          </div>
+          <span className="text-[10px] bg-slate-800 text-slate-300 font-bold px-2 py-0.5 rounded-full border border-slate-700 shrink-0">
+            p.{lastReadBook.page}
+          </span>
+        </Link>
+        <button
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setIsContinueReadingDismissed(true);
+          }}
+          className="ml-2 p-1 rounded-full text-slate-400 hover:text-white hover:bg-slate-800 transition cursor-pointer"
+          title="Dismiss"
+        >
+          <XMarkIcon className="w-3.5 h-3.5" />
+        </button>
+      </motion.div>
+    )}
+  </>
   );
 };
 

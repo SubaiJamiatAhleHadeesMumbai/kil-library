@@ -15,108 +15,103 @@ ALLOWED_PDF_TYPES = {"application/pdf"}
 ALLOWED_DOCUMENT_TYPES = {"application/pdf", "text/plain", "application/msword", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"}
 
 
+async def _get_file_size_and_header(file: UploadFile, max_size: int, expected_magic: list = None) -> bytes:
+    """Reads header for magic byte verification and measures size in chunks without loading entire file into memory."""
+    header = await file.read(2048)
+    if not header:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Uploaded file is empty."
+        )
+
+    if expected_magic:
+        matched = any(header.startswith(m) for m in expected_magic)
+        if not matched:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="File signature (magic bytes) does not match expected format."
+            )
+
+    total_size = len(header)
+    chunk_size = 64 * 1024
+    while True:
+        chunk = await file.read(chunk_size)
+        if not chunk:
+            break
+        total_size += len(chunk)
+        if total_size > max_size:
+            size_mb = max_size / (1024 * 1024)
+            await file.seek(0)
+            raise HTTPException(
+                status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+                detail=f"File too large. Max size: {size_mb:.1f}MB."
+            )
+
+    await file.seek(0)
+    return header
+
+
 async def validate_image(file: UploadFile, max_size: int = MAX_IMAGE_SIZE) -> bool:
     """
-    ✅ Validates image upload.
-    
-    Checks:
-    - MIME type is image
-    - File size <= max_size
-    
-    Raises HTTPException if invalid
+    ✅ Validates image upload:
+    - Content-Type header check
+    - File size check via streaming (prevents OOM)
+    - Magic bytes check (JPEG, PNG, WEBP)
     """
-    # Check MIME type
     if file.content_type not in ALLOWED_IMAGE_TYPES:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Invalid image type. Allowed: JPEG, PNG, WEBP. Got: {file.content_type}"
         )
-    
-    # Check file size
-    contents = await file.read()
-    file_size = len(contents)
-    
-    if file_size > max_size:
-        size_mb = max_size / (1024 * 1024)
-        raise HTTPException(
-            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
-            detail=f"Image too large. Max size: {size_mb}MB. Your file: {file_size / (1024*1024):.2f}MB"
-        )
-    
-    # Reset file pointer
+
+    # Magic signatures: JPEG (\xff\xd8\xff), PNG (\x89PNG), WEBP (RIFF....WEBP)
+    # For WEBP, header starts with RIFF and has WEBP at offset 8
+    header = await file.read(16)
     await file.seek(0)
+    
+    is_jpeg = header.startswith(b"\xff\xd8\xff")
+    is_png = header.startswith(b"\x89PNG\r\n\x1a\n")
+    is_webp = header.startswith(b"RIFF") and header[8:12] == b"WEBP"
+
+    if not (is_jpeg or is_png or is_webp):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="File content does not match a valid image signature (JPEG/PNG/WEBP)."
+        )
+
+    await _get_file_size_and_header(file, max_size)
     return True
 
 
 async def validate_pdf(file: UploadFile, max_size: int = MAX_PDF_SIZE) -> bool:
     """
-    ✅ Validates PDF upload.
-    
-    Checks:
-    - MIME type is PDF
-    - File size <= max_size
-    
-    Raises HTTPException if invalid
+    ✅ Validates PDF upload:
+    - Content-Type header check
+    - File size check via streaming (prevents OOM)
+    - Magic bytes check (%PDF-)
     """
-    # Check MIME type
     if file.content_type not in ALLOWED_PDF_TYPES:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Invalid file type. Only PDF allowed. Got: {file.content_type}"
         )
-    
-    # Check file size
-    contents = await file.read()
-    file_size = len(contents)
-    
-    if file_size > max_size:
-        size_mb = max_size / (1024 * 1024)
-        raise HTTPException(
-            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
-            detail=f"PDF too large. Max size: {size_mb}MB. Your file: {file_size / (1024*1024):.2f}MB"
-        )
-    
-    # Reset file pointer
-    await file.seek(0)
+
+    # PDF magic signature: %PDF
+    await _get_file_size_and_header(file, max_size, expected_magic=[b"%PDF"])
     return True
 
 
 async def validate_file(file: UploadFile, allowed_types: set, max_size: int = MAX_FILE_SIZE) -> bool:
     """
-    ✅ Generic file validation.
-    
-    Args:
-        file: FastAPI UploadFile
-        allowed_types: Set of MIME types (e.g., {"application/pdf", "text/plain"})
-        max_size: Max file size in bytes
-    
-    Returns:
-        True if valid
-    
-    Raises:
-        HTTPException if invalid
+    ✅ Generic file validation with streaming size check.
     """
-    # Check MIME type
     if file.content_type not in allowed_types:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Invalid file type. Allowed: {', '.join(allowed_types)}. Got: {file.content_type}"
         )
-    
-    # Check file size
-    contents = await file.read()
-    file_size = len(contents)
-    
-    if file_size > max_size:
-        size_mb = max_size / (1024 * 1024)
-        file_mb = file_size / (1024 * 1024)
-        raise HTTPException(
-            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
-            detail=f"File too large. Max: {size_mb}MB. Your file: {file_mb:.2f}MB"
-        )
-    
-    # Reset file pointer
-    await file.seek(0)
+
+    await _get_file_size_and_header(file, max_size)
     return True
 
 

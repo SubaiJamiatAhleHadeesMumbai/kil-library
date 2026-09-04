@@ -12,14 +12,40 @@ from auth import get_current_user
 
 router = APIRouter()
 
-# Helper: Check if user is Admin
+# Helper: Check if user is Admin or has request permission
 def ensure_admin(user: User):
-    if not hasattr(user, 'role') or user.role.name.lower() != "admin":
-        raise HTTPException(status_code=403, detail="Sirf Admin hi is page ko access kar sakte hain.")
+    role_name = (user.role.name if hasattr(user, 'role') and user.role else str(getattr(user, 'role', ''))).lower()
+    if role_name in ["admin", "superadmin", "administrator"]:
+        return
+    perms = getattr(user, 'permissions', []) or []
+    if isinstance(perms, list) and any(p in perms for p in ["REQUEST_VIEW", "REQUEST_MANAGE", "ADMIN_ACCESS"]):
+        return
+    raise HTTPException(status_code=403, detail="Sirf Admin hi is page ko access kar sakte hain.")
 
-# ---------------------------------------------------------
-# 1. POST: Submit Access Request (Re-Apply for Rejected & Approved)
-# ---------------------------------------------------------
+def populate_book_metadata(req: AccessRequest, book: Optional[Book]):
+    """Populates book title, cover, and detailed metadata on AccessRequest instance."""
+    if book:
+        setattr(req, "book_title", book.title)
+        setattr(req, "book_cover", book.cover_image_url)
+        setattr(req, "book_author", book.author or "N/A")
+        setattr(req, "book_publisher", getattr(book, "publisher", None) or "N/A")
+        setattr(req, "book_isbn", getattr(book, "isbn", None) or "N/A")
+        setattr(req, "book_edition", getattr(book, "edition", None) or "N/A")
+        setattr(req, "book_pages", str(book.pages) if getattr(book, "pages", None) else "N/A")
+        setattr(req, "book_price", str(book.price) if getattr(book, "price", None) else "N/A")
+        setattr(req, "book_location", getattr(book, "location", None) or "N/A")
+    else:
+        setattr(req, "book_title", "Unknown Book (Removed)")
+        setattr(req, "book_cover", None)
+        setattr(req, "book_author", "N/A")
+        setattr(req, "book_publisher", "N/A")
+        setattr(req, "book_isbn", "N/A")
+        setattr(req, "book_edition", "N/A")
+        setattr(req, "book_pages", "N/A")
+        setattr(req, "book_price", "N/A")
+        setattr(req, "book_location", "N/A")
+    return req
+
 # ---------------------------------------------------------
 # 1. POST: Submit Access Request
 # ---------------------------------------------------------
@@ -40,8 +66,6 @@ def submit_restricted_access_request(
             detail="Kitab nahi mili jis ke liye request bheji gayi hai."
         )
 
-    # --- Iske niche aapka baki ka logic (existing_request check wagaira) aayega ---
-    
     # 1. Check existing request
     existing_request = db.query(AccessRequest).filter(
         AccessRequest.book_id == request_data.book_id,
@@ -84,7 +108,7 @@ def submit_restricted_access_request(
             try:
                 db.commit()
                 db.refresh(existing_request)
-                return existing_request
+                return populate_book_metadata(existing_request, db_book)
             except Exception as e:
                 db.rollback()
                 raise HTTPException(status_code=500, detail="Database update failed.")
@@ -96,7 +120,6 @@ def submit_restricted_access_request(
         purpose=purpose_str,
         user_id=current_user.id,
         status="pending",
-        # updated_at ko bhi abhi set karein taake sorting mein masla na ho
         updated_at=func.now() 
     )
     
@@ -104,7 +127,7 @@ def submit_restricted_access_request(
         db.add(new_request)
         db.commit()
         db.refresh(new_request)
-        return new_request
+        return populate_book_metadata(new_request, db_book)
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail="Database insert failed.")
@@ -154,14 +177,7 @@ def get_my_requests(
 
     formatted_requests = []
     for req, book in results:
-        obj = req
-        if book:
-            setattr(obj, "book_title", book.title)
-            setattr(obj, "book_cover", book.cover_image_url)
-        else:
-            setattr(obj, "book_title", "Unknown Book (Removed)")
-            setattr(obj, "book_cover", None)
-        formatted_requests.append(obj)
+        formatted_requests.append(populate_book_metadata(req, book))
 
     return formatted_requests
 
@@ -181,14 +197,7 @@ def get_all_access_requests(
     
     formatted_requests = []
     for req, book in results:
-        obj = req 
-        if book:
-            setattr(obj, "book_title", book.title)
-            setattr(obj, "book_cover", book.cover_image_url)
-        else:
-            setattr(obj, "book_title", "Unknown Book (Deleted)")
-            setattr(obj, "book_cover", None)
-        formatted_requests.append(obj)
+        formatted_requests.append(populate_book_metadata(req, book))
     return formatted_requests
 
 
@@ -275,7 +284,8 @@ def update_request_status(
     try:
         db.commit()
         db.refresh(db_request)
-        return db_request
+        book = db.query(Book).filter(Book.id == db_request.book_id).first()
+        return populate_book_metadata(db_request, book)
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail="Status update failed.")

@@ -1,0 +1,143 @@
+{
+  "albums": [
+    {
+      "id": "general",
+      "title": {
+        "en": "General Gallery",
+        "ur": "عمومی تصاویر",
+        "ar": "الصور العامة"
+      },
+      "description": {
+        "en": "Photos and glimpses of Markaz Dawah and Library",
+        "ur": "مرکز الدعوۃ اور کتب خانہ کی اہم جھلکیاں",
+        "ar": "لقطات من مركز الدعوة والمكتبة"
+      },
+      "year": "2026",
+      "cover_image": "https://res.cloudinary.com/dhlfaiijj/image/upload/v1785550965/booknest/covers/ujf92gybxlggjf4lmsoz.png",
+      "sort_order": 0,
+      "is_active": true
+    }
+  ],
+  "items": [
+    {
+      "id": "migrated-1-decd7e",
+      "album_id": "general",
+      "image_url": "https://res.cloudinary.com/dhlfaiijj/image/upload/v1785550965/booknest/covers/ujf92gybxlggjf4lmsoz.png",
+      "video_url": "",
+      "title": {
+        "en": "show this image",
+        "ur": "show this image",
+        "ar": "show this image"
+      },
+      "caption": {
+        "en": "this is best image of my gallary",
+        "ur": "this is best image of my gallary",
+        "ar": "this is best image of my gallary"
+      },
+      "year": "2026",
+      "sort_order": 0,
+      "is_active": true,
+      "created_at": "2026-09-01T00:51:43.285678"
+    },
+    {
+      "id": "migrated-2-459ecd",
+      "album_id": "general",
+      "image_url": "https://res.cloudinary.com/dhlfaiijj/image/upload/v1785551043/booknest/covers/hxodl1j1fyb0l5fukkgt.png",
+      "video_url": "",
+      "title": {
+        "en": "Day3",
+        "ur": "Day3",
+        "ar": "Day3"
+      },
+      "caption": {
+        "en": "",
+        "ur": "",
+        "ar": ""
+      },
+      "year": "2026",
+      "sort_order": 1,
+      "is_active": true,
+      "created_at": "2026-09-01T00:51:43.285878"
+    },
+    {
+      "id": "migrated-3-6bf227",
+      "album_id": "general",
+      "image_url": "https://res.cloudinary.com/dhlfaiijj/image/upload/v1785551048/booknest/covers/sr0qj2skhcmkstxzsbtb.png",
+      "video_url": "",
+      "title": {
+        "en": "Day3",
+        "ur": "Day3",
+        "ar": "Day3"
+      },
+      "caption": {
+        "en": "",
+        "ur": "",
+        "ar": ""
+      },
+      "year": "2026",
+      "sort_order": 2,
+      "is_active": true,
+      "created_at": "2026-09-01T00:51:43.285922"
+    },
+    {
+      "id": "migrated-4-e6a247",
+      "album_id": "general",
+      "image_url": "https://res.cloudinary.com/dhlfaiijj/image/upload/v1785551056/booknest/covers/cgwgwvmozwauae8noivc.png",
+      "video_url": "",
+      "title": {
+        "en": "company",
+        "ur": "company",
+        "ar": "company"
+      },
+      "caption": {
+        "en": "",
+        "ur": "",
+        "ar": ""
+      },
+      "year": "2026",
+      "sort_order": 3,
+      "is_active": true,
+      "created_at": "2026-09-01T00:51:43.285950"
+    },
+    {
+      "id": "migrated-5-2c88ca",
+      "album_id": "general",
+      "image_url": "https://res.cloudinary.com/dhlfaiijj/image/upload/v1785551060/booknest/covers/zxwfsdat69jrldjfijqt.png",
+      "video_url": "",
+      "title": {
+        "en": "Day 2",
+        "ur": "Day 2",
+        "ar": "Day 2"
+      },
+      "caption": {
+        "en": "",
+        "ur": "",
+        "ar": ""
+      },
+      "year": "2026",
+      "sort_order": 4,
+      "is_active": true,
+      "created_at": "2026-09-01T00:51:43.285980"
+    },
+    {
+      "id": "migrated-6-46aae1",
+      "album_id": "general",
+      "image_url": "https://res.cloudinary.com/dhlfaiijj/image/upload/v1785551125/booknest/covers/c2y6ihbim5jws6y6ot13.png",
+      "video_url": "",
+      "title": {
+        "en": "Image 6",
+        "ur": "Image 6",
+        "ar": "Image 6"
+      },
+      "caption": {
+        "en": "",
+        "ur": "",
+        "ar": ""
+      },
+      "year": "2026",
+      "sort_order": 5,
+      "is_active": true,
+      "created_at": "2026-09-01T00:51:43.286000"
+    }
+  ]
+}

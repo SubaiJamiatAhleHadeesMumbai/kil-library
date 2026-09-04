@@ -22,7 +22,7 @@ import UserLayout from "./components/layout/UserLayout";
 // ================= PUBLIC PAGES =================
 import PublicHome from "./pages/PublicHome";
 import AboutUs from "./pages/AboutUs";
-import AboutGallery from "./pages/AboutGallery";
+import GalleryPage from "./pages/GalleryPage";
 import Fatawa from "./pages/Fatawa";
 import ReadBook from "./pages/ReadBook";
 import History from "./pages/History";
@@ -36,6 +36,8 @@ import CreatePost from "./pages/Admin/CreatePost";
 // ================= LAZY PAGES =================
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const BookManagement = lazy(() => import("./pages/BookManagement"));
+const AdminBookOrdersPage = lazy(() => import("./pages/Admin/AdminBookOrdersPage"));
+const AdminTranslationsPage = lazy(() => import("./pages/Admin/AdminTranslationsPage"));
 const UserManagement = lazy(() => import("./pages/UserManagement"));
 const RoleManagement = lazy(() => import("./pages/RoleManagement"));
 const RolePermissionManagement = lazy(() => import("./pages/RolePermissionManagement"));
@@ -57,8 +59,10 @@ const AddBookPage = lazy(() => import("./pages/AddBookPage"));
 const Authors = lazy(() => import("./pages/Authors"));
 const Publishers = lazy(() => import("./pages/Publishers"));
 const HomepageSettingsPage = lazy(() => import("./pages/Admin/HomepageSettingsPage"));
+const AdminNavigationSettingsPage = lazy(() => import("./pages/AdminNavigationSettingsPage"));
 const PosterManagementPage = lazy(() => import("./pages/Admin/PosterManagementPage"));
 const AboutSettingsPage = lazy(() => import("./pages/Admin/AboutSettingsPage"));
+const GalleryManagementPage = lazy(() => import("./pages/Admin/GalleryManagementPage"));
 const FatawaManager = lazy(() => import("./pages/Admin/FatawaManager"));
 const EditBookPage = lazy(() => import("./pages/Admin/EditBookPage"));
 const EducationPage = lazy(() => import("./pages/EducationPage"));
@@ -109,7 +113,8 @@ function App() {
           <Route path="/" element={<UserLayout />}>
             <Route index element={<PublicHome />} />
             <Route path="about" element={<AboutUs />} />
-            <Route path="about/gallery" element={<AboutGallery />} />
+            <Route path="about/gallery" element={<Navigate to="/gallery" replace />} />
+            <Route path="gallery" element={<GalleryPage />} />
             <Route path="fatawa" element={<Fatawa />} />
             <Route path="news" element={<MarkazFeed />} />
             <Route path="posts" element={<LatestPosts />} />
@@ -133,10 +138,11 @@ function App() {
             <Route path="reset-password" element={<ResetPassword />} />
             <Route path="access-denied" element={<AccessDenied />} />
 
+            {/* SECURITY FIX: Profile should be accessible to ALL authenticated users, not just admins */}
             <Route
               path="profile"
               element={
-                <ProtectedRoute allowedRoles={ADMIN_ALLOWED_ROLES}>
+                <ProtectedRoute>
                   <Profile />
                 </ProtectedRoute>
               }
@@ -165,6 +171,7 @@ function App() {
             <Route path="roles" element={<RoleManagement />} />
             <Route path="roles-permissions" element={<RolePermissionManagement />} />
             <Route path="books" element={<BookManagement />} />
+            <Route path="book-orders" element={<AdminBookOrdersPage />} />
             <Route path="books/add" element={<AddBookPage />} />
             <Route path="books/:id/edit" element={<EditBookPage />} />
             <Route path="books/:id" element={<BookDetail />} />
@@ -176,13 +183,19 @@ function App() {
             <Route path="approvals" element={<ApprovalManagement />} />
             <Route path="access-requests" element={<AccessRequests />} />
             <Route path="book-permissions" element={<RestrictedBookPermissions />} />
+            <Route path="restricted-permissions" element={<RestrictedBookPermissions />} />
+            <Route path="digital-access" element={<DigitalAccessHistory />} />
             <Route path="digital-access-history" element={<DigitalAccessHistory />} />
             <Route path="logs" element={<AuditLogPage />} />
             <Route path="homepage-settings" element={<HomepageSettingsPage />} />
+            <Route path="navigation-settings" element={<AdminNavigationSettingsPage />} />
             <Route path="posters" element={<PosterManagementPage />} />
+            <Route path="gallery" element={<GalleryManagementPage />} />
             <Route path="about-settings" element={<AboutSettingsPage />} />
             <Route path="fatawa" element={<FatawaManager />} />
             <Route path="system-health" element={<SystemHealthPage />} />
+            <Route path="translations" element={<AdminTranslationsPage />} />
+            <Route path="profile" element={<Profile />} />
 
             {/* (Optional) Admin-only editor */}
             <Route path="test-editor" element={<UrduEditor />} />

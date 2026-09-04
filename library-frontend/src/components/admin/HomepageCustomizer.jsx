@@ -15,13 +15,18 @@ import {
   AdjustmentsHorizontalIcon,
   ArrowPathIcon,
   Squares2X2Icon,
+  ArrowUpTrayIcon,
+  MagnifyingGlassIcon,
 } from '@heroicons/react/24/outline';
+import toast from 'react-hot-toast';
+import apiClient from '../../api/apiClient';
 import settingsService from '../../api/settingsService';
 import useAuth from '../../hooks/useAuth';
 import GlobalSearchModal from '../book/GlobalSearchModal';
 import { bookService } from '../../api/bookService';
 import { FALLBACK_COVER } from '../../utils/cover';
 import AppPageLoader from '../common/loaders/AppPageLoader';
+import DeepSearchCustomizer from './DeepSearchCustomizer';
 
 const controlPanels = [
   {
@@ -58,6 +63,13 @@ const controlPanels = [
     description: 'Islamic Splash, Skeleton Shimmer, Festive Modes & Live Test.',
     icon: SparklesIcon,
     requiredPermissions: ['HOMEPAGE_BRANDING_MANAGE', 'HOMEPAGE_LAYOUT_MANAGE'],
+  },
+  {
+    key: 'deep_search',
+    title: 'Deep Search Engine',
+    description: 'Trilingual text indexing, caching, citations & search controls.',
+    icon: MagnifyingGlassIcon,
+    requiredPermissions: ['HOMEPAGE_LAYOUT_MANAGE', 'BOOK_MANAGE', 'HOMEPAGE_SEARCH_MANAGE'],
   },
 ];
 
@@ -105,6 +117,7 @@ const HomepageCustomizer = () => {
     hero_badge: '',
     site_title: '',
     site_subtitle: '',
+    show_site_subtitle: true,
     site_logo_url: '',
     sections: {},
     layout: {},
@@ -147,6 +160,89 @@ const HomepageCustomizer = () => {
 
   const [searchOpen, setSearchOpen] = useState(false);
   const [featuredBooksList, setFeaturedBooksList] = useState([]);
+  const [logoUploading, setLogoUploading] = useState(false);
+
+  const handleLogoFileUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please select a valid image file (PNG, JPG, SVG, WebP).');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Image size must be less than 5MB.');
+      return;
+    }
+
+    const toastId = toast.loading('Uploading brand logo...');
+    setLogoUploading(true);
+
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const res = await apiClient.post('/api/upload/image', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      const uploadedUrl = res.data?.url;
+      if (!uploadedUrl) throw new Error('Upload did not return a valid image URL');
+
+      updateContentField('site_logo_url', uploadedUrl);
+      toast.success('Brand logo uploaded successfully!', { id: toastId });
+    } catch (err) {
+      console.error('Logo upload error:', err);
+      toast.error(err.response?.data?.detail || err.message || 'Failed to upload brand logo.', { id: toastId });
+    } finally {
+      setLogoUploading(false);
+      e.target.value = '';
+    }
+  };
+
+  const [bannerUploading, setBannerUploading] = useState(false);
+
+  const handleBannerFileUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please select a valid image file (PNG, JPG, SVG, WebP).');
+      return;
+    }
+    if (file.size > 8 * 1024 * 1024) {
+      toast.error('Image size must be less than 8MB.');
+      return;
+    }
+
+    const toastId = toast.loading('Uploading hero banner image...');
+    setBannerUploading(true);
+
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const res = await apiClient.post('/api/upload/image', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      const uploadedUrl = res.data?.url;
+      if (!uploadedUrl) throw new Error('Upload did not return a valid image URL');
+
+      updateSectionField('hero', 'banner_image_url', uploadedUrl);
+      toast.success('Hero banner uploaded successfully!', { id: toastId });
+    } catch (err) {
+      console.error('Banner upload error:', err);
+      toast.error(err.response?.data?.detail || err.message || 'Failed to upload hero banner.', { id: toastId });
+    } finally {
+      setBannerUploading(false);
+      e.target.value = '';
+    }
+  };
 
   const isAdminRole = useMemo(() => {
     const roleName = user?.role?.name || user?.role || '';
@@ -557,6 +653,116 @@ const HomepageCustomizer = () => {
                     </select>
                   </label>
                 </div>
+
+                {/* ✦ INTERACTIVE LIVE VISUAL THEME PREVIEW BOX ✦ */}
+                <div className="mt-6 rounded-2xl border border-indigo-100 bg-gradient-to-br from-slate-50 to-indigo-50/40 p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="h-2.5 w-2.5 rounded-full bg-emerald-500 animate-ping" />
+                      <span className="text-[11px] font-black uppercase tracking-wider text-indigo-900">Live Visual Theme Preview</span>
+                    </div>
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700 font-bold">
+                      {settings.theme?.toUpperCase() || 'DAY'} • {settings.theme_palette?.toUpperCase() || 'INDIGO'}
+                    </span>
+                  </div>
+
+                  {/* Simulated App Mockup Canvas */}
+                  <div 
+                    className={`rounded-2xl transition-all duration-300 border overflow-hidden shadow-sm ${
+                      settings.theme === 'night'
+                        ? 'bg-[#0B0F19] text-slate-100 border-slate-800'
+                        : settings.theme === 'aurora'
+                        ? 'bg-gradient-to-br from-indigo-950 via-slate-900 to-emerald-950 text-white border-indigo-900/50'
+                        : 'bg-white text-slate-900 border-slate-200'
+                    } ${
+                      settings.spacing_scale === 'compact'
+                        ? 'p-3.5 space-y-3'
+                        : settings.spacing_scale === 'airy'
+                        ? 'p-6 space-y-5'
+                        : 'p-4.5 space-y-4'
+                    }`}
+                  >
+                    {/* Mock Header / Navbar */}
+                    <div className="flex items-center justify-between border-b pb-3 border-current/10">
+                      <div className="flex items-center gap-2">
+                        <div 
+                          className="w-7 h-7 rounded-lg flex items-center justify-center text-white text-xs font-black shadow-xs"
+                          style={{ backgroundColor: settings.accent_color || '#007ACC' }}
+                        >
+                          M
+                        </div>
+                        <div>
+                          <div className="text-xs font-bold leading-none">{settings.site_title || 'Markaz Islamic Library'}</div>
+                          <div className="text-[9px] opacity-60 font-semibold">{settings.site_subtitle || 'AHLE HADEES KOKAN'}</div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-1.5 text-[10px] font-semibold">
+                        <span className="px-2 py-0.5 rounded-md bg-current/10">Books</span>
+                        <span className="px-2 py-0.5 rounded-md bg-current/10">Fatawa</span>
+                        <span 
+                          className="px-2 py-0.5 rounded-md text-white font-bold shadow-2xs"
+                          style={{ backgroundColor: settings.accent_color || '#007ACC' }}
+                        >
+                          Search
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Mock Hero Heading with Selected Font */}
+                    <div className="space-y-1.5">
+                      <span 
+                        className="inline-block text-[10px] font-bold px-2 py-0.5 rounded-full"
+                        style={{ 
+                          backgroundColor: `${settings.accent_color || '#007ACC'}20`,
+                          color: settings.accent_color || '#007ACC',
+                          border: `1px solid ${settings.accent_color || '#007ACC'}40`
+                        }}
+                      >
+                        ✦ Featured Discovery
+                      </span>
+                      <h4 
+                        className={`text-base sm:text-lg font-bold leading-tight ${
+                          settings.heading_style === 'serif'
+                            ? 'font-serif'
+                            : settings.heading_style === 'display'
+                            ? 'font-mono uppercase tracking-wider font-black'
+                            : 'font-sans font-extrabold'
+                        }`}
+                      >
+                        {settings.sections?.hero?.title || 'Islamic Digital Library & Research Hub'}
+                      </h4>
+                      <p className="text-[11px] opacity-70 leading-relaxed max-w-md">
+                        {settings.sections?.hero?.description || 'Browse thousands of authentic Islamic books, fatwas, audio, and historical archives.'}
+                      </p>
+                    </div>
+
+                    {/* Mock Button Variants */}
+                    <div className="flex flex-wrap items-center gap-2 pt-1">
+                      <button
+                        type="button"
+                        className={`text-xs font-bold transition shadow-xs cursor-default ${
+                          settings.button_style === 'solid'
+                            ? 'rounded-full px-4 py-1.5 text-white shadow-md'
+                            : settings.button_style === 'outline'
+                            ? 'rounded-lg px-3.5 py-1.5 border-2 bg-transparent'
+                            : 'rounded-xl px-4 py-1.5 backdrop-blur-md bg-white/20 border border-white/30 text-white shadow-lg'
+                        }`}
+                        style={{
+                          backgroundColor: settings.button_style === 'solid' ? (settings.accent_color || '#007ACC') : undefined,
+                          borderColor: settings.button_style === 'outline' ? (settings.accent_color || '#007ACC') : undefined,
+                          color: settings.button_style === 'outline' ? (settings.accent_color || '#007ACC') : undefined,
+                        }}
+                      >
+                        Explore Catalog
+                      </button>
+
+                      <span className="text-[10px] opacity-60 font-mono">
+                        Style: {settings.button_style || 'solid'} • Backdrop: {settings.background_style || 'aurora'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
               </div>
 
               {/* Language & Identity Box */}
@@ -594,9 +800,11 @@ const HomepageCustomizer = () => {
                       <span className="font-extrabold text-base text-[#002147] truncate">
                         {settings.site_title || 'Markaz Library'}
                       </span>
-                      <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider truncate">
-                        {settings.site_subtitle || 'AHLE HADEES KOKAN'}
-                      </span>
+                      {settings.show_site_subtitle !== false && (
+                        <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider truncate">
+                          {settings.site_subtitle || 'AHLE HADEES KOKAN'}
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -613,41 +821,103 @@ const HomepageCustomizer = () => {
                     />
                   </label>
 
-                  <label className="block">
-                    <span className="mb-1.5 block text-xs font-semibold text-slate-700">Public Site Subtitle (Navbar Tagline)</span>
+                  <div className="block">
+                    <div className="mb-1.5 flex items-center justify-between">
+                      <span className="text-xs font-semibold text-slate-700">Public Site Subtitle (Navbar Tagline)</span>
+                      <button
+                        type="button"
+                        onClick={() => updateContentField('show_site_subtitle', settings.show_site_subtitle === false ? true : false)}
+                        className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-0.5 text-xs font-bold transition cursor-pointer border shadow-2xs ${
+                          settings.show_site_subtitle !== false
+                            ? 'bg-emerald-50 text-emerald-700 border-emerald-300 hover:bg-emerald-100'
+                            : 'bg-slate-100 text-slate-500 border-slate-300 hover:bg-slate-200'
+                        }`}
+                        title="Toggle Subtitle ON/OFF"
+                      >
+                        <span className={`w-2 h-2 rounded-full ${settings.show_site_subtitle !== false ? 'bg-emerald-500' : 'bg-slate-400'}`} />
+                        <span>{settings.show_site_subtitle !== false ? 'ON' : 'OFF'}</span>
+                      </button>
+                    </div>
                     <input
                       type="text"
+                      disabled={settings.show_site_subtitle === false}
                       value={settings.site_subtitle || ''}
                       onChange={(e) => updateContentField('site_subtitle', e.target.value)}
                       placeholder="e.g. AHLE HADEES KOKAN"
-                      className="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-3.5 py-2.5 text-sm text-slate-800 focus:border-indigo-500 focus:bg-white focus:outline-none"
+                      className="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-3.5 py-2.5 text-sm text-slate-800 focus:border-indigo-500 focus:bg-white focus:outline-none disabled:opacity-50 disabled:bg-slate-100 disabled:cursor-not-allowed transition"
                     />
-                  </label>
+                  </div>
                 </div>
 
                 <div className="grid gap-4 sm:grid-cols-2">
-                  <label className="block">
-                    <span className="mb-1.5 block text-xs font-semibold text-slate-700">Brand Logo Image URL / Path</span>
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="text"
-                        value={settings.site_logo_url || ''}
-                        onChange={(e) => updateContentField('site_logo_url', e.target.value)}
-                        placeholder="e.g. /static/images/MarkazLogo.png or https://..."
-                        className="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-3.5 py-2.5 text-sm text-slate-800 focus:border-indigo-500 focus:bg-white focus:outline-none"
-                      />
-                      {settings.site_logo_url && (
-                        <button
-                          type="button"
-                          onClick={() => updateContentField('site_logo_url', '')}
-                          className="text-xs text-slate-500 hover:text-red-600 px-2 py-1 rounded border border-slate-200 whitespace-nowrap"
-                          title="Reset to default Markaz logo"
-                        >
-                          Reset
-                        </button>
-                      )}
+                  <div className="block">
+                    <span className="mb-1.5 block text-xs font-semibold text-slate-700">Brand Logo</span>
+                    <div className="flex flex-col gap-2.5">
+                      {/* Logo Preview & Upload Action */}
+                      <div className="flex items-center gap-3">
+                        <div className="w-14 h-14 rounded-2xl border-2 border-dashed border-slate-300 bg-slate-100/70 flex items-center justify-center overflow-hidden flex-shrink-0 shadow-2xs">
+                          {settings.site_logo_url ? (
+                            <img
+                              src={settings.site_logo_url}
+                              alt="Brand Logo Preview"
+                              className="w-full h-full object-contain p-1"
+                              onError={(e) => {
+                                e.target.onerror = null;
+                                e.target.src = '/static/images/MarkazLogo.png';
+                              }}
+                            />
+                          ) : (
+                            <img
+                              src="/static/images/MarkazLogo.png"
+                              alt="Default Markaz Logo"
+                              className="w-full h-full object-contain p-1 opacity-60"
+                            />
+                          )}
+                        </div>
+
+                        <div className="flex-1 flex flex-wrap items-center gap-2">
+                          <label className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold text-white transition shadow-sm cursor-pointer ${
+                            logoUploading ? 'bg-indigo-400 cursor-not-allowed' : 'bg-[#002147] hover:bg-[#003166] active:scale-95'
+                          }`}>
+                            <ArrowUpTrayIcon className="w-4 h-4" />
+                            <span>{logoUploading ? 'Uploading...' : 'Upload Logo'}</span>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              disabled={logoUploading}
+                              onChange={handleLogoFileUpload}
+                              className="hidden"
+                            />
+                          </label>
+
+                          {settings.site_logo_url && (
+                            <button
+                              type="button"
+                              onClick={() => updateContentField('site_logo_url', '')}
+                              className="text-xs text-rose-600 hover:text-rose-700 hover:bg-rose-50 px-2.5 py-1.5 rounded-xl border border-rose-200 font-semibold transition cursor-pointer"
+                              title="Reset to default Markaz logo"
+                            >
+                              Reset
+                            </button>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Direct URL Input fallback */}
+                      <div className="relative">
+                        <input
+                          type="text"
+                          value={settings.site_logo_url || ''}
+                          onChange={(e) => updateContentField('site_logo_url', e.target.value)}
+                          placeholder="Or enter image URL (e.g. https://... or /static/images/...)"
+                          className="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-2 text-xs text-slate-800 focus:border-indigo-500 focus:bg-white focus:outline-none transition"
+                        />
+                      </div>
+                      <p className="text-[11px] text-slate-400">
+                        PNG or SVG with transparent background recommended. Uploads directly to storage.
+                      </p>
                     </div>
-                  </label>
+                  </div>
 
                   <label className="block">
                     <span className="mb-1.5 block text-xs font-semibold text-slate-700">Default Interface Language</span>
@@ -775,14 +1045,14 @@ const HomepageCustomizer = () => {
                       </div>
 
                       {section.key === 'hero' ? (
-                        <div className="mt-4 space-y-4 rounded-2xl border border-indigo-100 bg-indigo-50/40 p-4">
+                        <div className="mt-4 space-y-5 rounded-2xl border border-indigo-100 bg-indigo-50/40 p-5">
                           <div className="flex flex-wrap items-center justify-between gap-2 border-b border-indigo-100 pb-3">
                             <div>
                               <span className="text-xs font-black uppercase tracking-wider text-indigo-900 block">
-                                ✨ Hero Banner & Quranic Ayah Settings
+                                ✨ Welcome Banner, Intro & Spotlight Area
                               </span>
                               <span className="text-[11px] text-slate-500">
-                                Main landing intro and spotlight area
+                                Configure main landing title, description paragraph, spotlight badge, and CTA buttons.
                               </span>
                             </div>
                             <button
@@ -799,7 +1069,7 @@ const HomepageCustomizer = () => {
                           </div>
 
                           {/* Hero Live Visual Preview */}
-                          <div className="overflow-hidden rounded-2xl bg-[#000814] border border-white/10 p-5 text-center relative shadow-md">
+                          <div className="overflow-hidden rounded-2xl bg-[#000814] border border-white/10 p-6 text-center relative shadow-md">
                             {settings.sections?.hero?.banner_image_url && (
                               <div
                                 className="absolute inset-0 bg-cover bg-center"
@@ -809,58 +1079,142 @@ const HomepageCustomizer = () => {
                                 }}
                               />
                             )}
-                            <div className="relative z-10 space-y-2">
+                            <div className="relative z-10 space-y-3">
+                              {/* Spotlight Glowing Center Accent */}
+                              <div
+                                className="absolute left-1/2 top-0 -translate-x-1/2 h-28 w-28 rounded-full blur-2xl opacity-30 animate-pulse pointer-events-none"
+                                style={{
+                                  background: `radial-gradient(circle, ${settings.sections?.hero?.spotlight_color || '#f5d9a6'}, transparent 70%)`,
+                                }}
+                              />
+
                               {settings.sections?.hero?.show_badge !== false && (
-                                <span className="inline-block px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest bg-white/10 text-cyan-200 border border-white/10">
+                                <span className="inline-block px-3.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest bg-white/10 text-cyan-200 border border-white/10 shadow-xs backdrop-blur-xs">
                                   🏛️ {settings.sections?.hero?.badge || 'MARKAZ AHLE HADEES KOKAN'}
                                 </span>
                               )}
+
                               {settings.sections?.hero?.show_ayah !== false && (
-                                <p dir="rtl" className="text-sm font-serif text-[#F4A261]">
+                                <p dir="rtl" className="text-sm sm:text-base font-serif text-[#F4A261]">
                                   {settings.sections?.hero?.ayah_arabic || 'يَا أَيُّهَا الَّذِينَ آمَنُوا أَطِيعُوا اللَّهَ وَأَطِيعُوا الرَّسُولَ'}
                                 </p>
                               )}
+
                               {settings.sections?.hero?.ayah_translation && (
-                                <p className="text-[11px] text-cyan-200/80 italic font-sans">
+                                <p className="text-[11px] text-cyan-200/80 italic font-sans max-w-lg mx-auto">
                                   "{settings.sections.hero.ayah_translation}"
                                 </p>
                               )}
-                              <h4 className="text-lg font-serif font-black text-white">
-                                {settings.sections?.hero?.title || 'Kokan Islamic Library'}
+
+                              <h4 className="text-xl sm:text-2xl font-serif font-black text-white tracking-tight">
+                                {settings.sections?.hero?.title || 'Welcome to the future of the library'}
                               </h4>
-                              <p className="text-xs text-slate-300 max-w-md mx-auto">
-                                {settings.sections?.hero?.description || 'Explore curated Islamic knowledge with a calm, modern reading experience.'}
+
+                              <p className="text-xs sm:text-sm text-slate-300 max-w-xl mx-auto leading-relaxed">
+                                {settings.sections?.hero?.description || 'Curated digital catalog, authentic fatwas, historical manuscripts, and scholarly resources.'}
                               </p>
+
+                              {settings.sections?.hero?.show_cta && (
+                                <div className="flex flex-wrap items-center justify-center gap-2.5 pt-2">
+                                  <span className="rounded-full bg-emerald-500 text-white text-[11px] font-bold px-4 py-1.5 shadow-sm">
+                                    {settings.sections?.hero?.cta_text || 'Explore Catalog'}
+                                  </span>
+                                  {settings.sections?.hero?.secondary_cta_text && (
+                                    <span className="rounded-full bg-white/10 text-white text-[11px] font-semibold px-4 py-1.5 border border-white/20">
+                                      {settings.sections?.hero?.secondary_cta_text}
+                                    </span>
+                                  )}
+                                </div>
+                              )}
                             </div>
                           </div>
 
-                          {/* Badge Controls */}
-                          <div className="grid gap-3 sm:grid-cols-3 items-end">
-                            <label className="sm:col-span-2 block">
-                              <span className="mb-1 block text-xs font-semibold text-slate-700">Top Badge Text</span>
-                              <input
-                                type="text"
-                                value={settings.sections?.hero?.badge ?? 'MARKAZ AHLE HADEES KOKAN'}
-                                onChange={(e) => updateSectionField('hero', 'badge', e.target.value)}
-                                placeholder="MARKAZ AHLE HADEES KOKAN"
-                                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 focus:border-indigo-500 focus:outline-none"
+                          {/* 1. Main Heading & Intro Description */}
+                          <div className="space-y-3 bg-white p-4 rounded-xl border border-slate-200">
+                            <span className="text-xs font-bold text-slate-800 uppercase tracking-wider block">
+                              1. Main Headline & Intro Paragraph
+                            </span>
+                            <div className="grid gap-3 sm:grid-cols-2">
+                              <label className="block">
+                                <span className="mb-1 block text-xs font-semibold text-slate-700">Hero Main Title</span>
+                                <input
+                                  type="text"
+                                  value={settings.sections?.hero?.title || ''}
+                                  onChange={(e) => updateSectionField('hero', 'title', e.target.value)}
+                                  placeholder="e.g. Welcome to the future of the library"
+                                  className="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-2 text-sm text-slate-800 font-semibold focus:border-indigo-500 focus:bg-white focus:outline-none"
+                                />
+                              </label>
+
+                              <label className="block">
+                                <span className="mb-1 block text-xs font-semibold text-slate-700">Hero Subtitle</span>
+                                <input
+                                  type="text"
+                                  value={settings.sections?.hero?.subtitle || ''}
+                                  onChange={(e) => updateSectionField('hero', 'subtitle', e.target.value)}
+                                  placeholder="e.g. Kokan Digital Islamic Library"
+                                  className="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-2 text-sm text-slate-800 focus:border-indigo-500 focus:bg-white focus:outline-none"
+                                />
+                              </label>
+                            </div>
+
+                            <label className="block">
+                              <span className="mb-1 block text-xs font-semibold text-slate-700">Main Landing Intro / Description Paragraph</span>
+                              <textarea
+                                rows={2}
+                                value={settings.sections?.hero?.description || ''}
+                                onChange={(e) => updateSectionField('hero', 'description', e.target.value)}
+                                placeholder="Explore curated Islamic knowledge with a calm, modern reading experience..."
+                                className="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-2 text-sm text-slate-800 focus:border-indigo-500 focus:bg-white focus:outline-none"
                               />
-                            </label>
-                            <label className="flex items-center gap-2 pb-2.5 cursor-pointer">
-                              <input
-                                type="checkbox"
-                                checked={settings.sections?.hero?.show_badge !== false}
-                                onChange={(e) => updateSectionField('hero', 'show_badge', e.target.checked)}
-                                className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
-                              />
-                              <span className="text-xs font-semibold text-slate-700">Show Badge</span>
                             </label>
                           </div>
 
-                          {/* Quranic Ayah Controls */}
-                          <div className="space-y-3">
+                          {/* 2. Spotlight Badge & Glow Controls */}
+                          <div className="space-y-3 bg-white p-4 rounded-xl border border-slate-200">
+                            <span className="text-xs font-bold text-slate-800 uppercase tracking-wider block">
+                              2. Spotlight Badge & Glow Aura
+                            </span>
+                            <div className="grid gap-3 sm:grid-cols-3 items-end">
+                              <label className="sm:col-span-2 block">
+                                <span className="mb-1 block text-xs font-semibold text-slate-700">Top Spotlight Badge Text</span>
+                                <input
+                                  type="text"
+                                  value={settings.sections?.hero?.badge ?? 'MARKAZ AHLE HADEES KOKAN'}
+                                  onChange={(e) => updateSectionField('hero', 'badge', e.target.value)}
+                                  placeholder="MARKAZ AHLE HADEES KOKAN"
+                                  className="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-2 text-sm text-slate-800 focus:border-indigo-500 focus:bg-white focus:outline-none"
+                                />
+                              </label>
+                              <label className="flex items-center gap-2 pb-2.5 cursor-pointer">
+                                <input
+                                  type="checkbox"
+                                  checked={settings.sections?.hero?.show_badge !== false}
+                                  onChange={(e) => updateSectionField('hero', 'show_badge', e.target.checked)}
+                                  className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                                />
+                                <span className="text-xs font-semibold text-slate-700">Show Spotlight Badge</span>
+                              </label>
+                            </div>
+
+                            <div className="flex items-center gap-3 pt-1">
+                              <span className="text-xs font-semibold text-slate-700">Spotlight Glow Color:</span>
+                              <input
+                                type="color"
+                                value={settings.sections?.hero?.spotlight_color || '#f5d9a6'}
+                                onChange={(e) => updateSectionField('hero', 'spotlight_color', e.target.value)}
+                                className="h-8 w-12 cursor-pointer rounded-lg border border-slate-200 p-0.5"
+                              />
+                              <span className="text-xs font-mono text-slate-500">{settings.sections?.hero?.spotlight_color || '#f5d9a6'}</span>
+                            </div>
+                          </div>
+
+                          {/* 3. Quranic Ayah Controls */}
+                          <div className="space-y-3 bg-white p-4 rounded-xl border border-slate-200">
                             <div className="flex items-center justify-between">
-                              <span className="text-xs font-semibold text-slate-700">Arabic Ayah / Quote</span>
+                              <span className="text-xs font-bold text-slate-800 uppercase tracking-wider">
+                                3. Arabic Quranic Ayah / Quote
+                              </span>
                               <label className="flex items-center gap-2 cursor-pointer">
                                 <input
                                   type="checkbox"
@@ -877,7 +1231,7 @@ const HomepageCustomizer = () => {
                               value={settings.sections?.hero?.ayah_arabic ?? 'يَا أَيُّهَا الَّذِينَ آمَنُوا أَطِيعُوا اللَّهَ وَأَطِيعُوا الرَّسُولَ'}
                               onChange={(e) => updateSectionField('hero', 'ayah_arabic', e.target.value)}
                               placeholder="يَا أَيُّهَا الَّذِينَ آمَنُوا..."
-                              className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-serif text-slate-800 focus:border-indigo-500 focus:outline-none"
+                              className="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-2 text-sm font-serif text-slate-800 focus:border-indigo-500 focus:bg-white focus:outline-none"
                             />
                             <label className="block">
                               <span className="mb-1 block text-xs font-semibold text-slate-700">Ayah Translation (Optional - Urdu / English)</span>
@@ -886,64 +1240,153 @@ const HomepageCustomizer = () => {
                                 value={settings.sections?.hero?.ayah_translation || ''}
                                 onChange={(e) => updateSectionField('hero', 'ayah_translation', e.target.value)}
                                 placeholder="e.g. O you who have believed, obey Allah and obey the Messenger..."
-                                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 focus:border-indigo-500 focus:outline-none"
+                                className="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-2 text-sm text-slate-800 focus:border-indigo-500 focus:bg-white focus:outline-none"
                               />
                             </label>
                           </div>
 
-                          {/* Banner Image & Overlay Controls */}
-                          <div className="grid gap-4 sm:grid-cols-2">
-                            <label className="block">
-                              <span className="mb-1 block text-xs font-semibold text-slate-700">Hero Background Banner Image URL</span>
-                              <div className="flex items-center gap-2">
+                          {/* 4. Action Buttons (CTA) */}
+                          <div className="space-y-3 bg-white p-4 rounded-xl border border-slate-200">
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs font-bold text-slate-800 uppercase tracking-wider">
+                                4. Call To Action Buttons (CTA)
+                              </span>
+                              <label className="flex items-center gap-2 cursor-pointer">
                                 <input
-                                  type="text"
-                                  value={settings.sections?.hero?.banner_image_url || ''}
-                                  onChange={(e) => updateSectionField('hero', 'banner_image_url', e.target.value)}
-                                  placeholder="e.g. https://... or /static/images/..."
-                                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 focus:border-indigo-500 focus:outline-none"
+                                  type="checkbox"
+                                  checked={settings.sections?.hero?.show_cta === true}
+                                  onChange={(e) => updateSectionField('hero', 'show_cta', e.target.checked)}
+                                  className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
                                 />
-                                {settings.sections?.hero?.banner_image_url && (
-                                  <button
-                                    type="button"
-                                    onClick={() => updateSectionField('hero', 'banner_image_url', '')}
-                                    className="text-xs text-slate-500 hover:text-red-600 px-2 py-1 rounded border border-slate-200 whitespace-nowrap"
-                                  >
-                                    Clear
-                                  </button>
-                                )}
-                              </div>
-                            </label>
+                                <span className="text-xs font-semibold text-slate-700">Show CTA Buttons</span>
+                              </label>
+                            </div>
 
-                            <label className="block">
-                              <div className="flex justify-between mb-1">
-                                <span className="text-xs font-semibold text-slate-700">Dark Overlay Opacity</span>
-                                <span className="text-xs font-bold text-indigo-600">
-                                  {settings.sections?.hero?.banner_overlay_opacity || 70}%
-                                </span>
+                            {settings.sections?.hero?.show_cta && (
+                              <div className="grid gap-3 sm:grid-cols-2 pt-1">
+                                <div className="space-y-2">
+                                  <label className="block">
+                                    <span className="mb-1 block text-xs font-semibold text-slate-700">Primary Button Text</span>
+                                    <input
+                                      type="text"
+                                      value={settings.sections?.hero?.cta_text || 'Explore Catalog'}
+                                      onChange={(e) => updateSectionField('hero', 'cta_text', e.target.value)}
+                                      placeholder="Explore Catalog"
+                                      className="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-2 text-sm text-slate-800 focus:border-indigo-500 focus:outline-none"
+                                    />
+                                  </label>
+                                  <label className="block">
+                                    <span className="mb-1 block text-xs font-semibold text-slate-700">Primary Button Link URL</span>
+                                    <input
+                                      type="text"
+                                      value={settings.sections?.hero?.cta_link || '/library'}
+                                      onChange={(e) => updateSectionField('hero', 'cta_link', e.target.value)}
+                                      placeholder="/library"
+                                      className="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-2 text-sm text-slate-800 focus:border-indigo-500 focus:outline-none"
+                                    />
+                                  </label>
+                                </div>
+
+                                <div className="space-y-2">
+                                  <label className="block">
+                                    <span className="mb-1 block text-xs font-semibold text-slate-700">Secondary Button Text (Optional)</span>
+                                    <input
+                                      type="text"
+                                      value={settings.sections?.hero?.secondary_cta_text || 'Ask a Question'}
+                                      onChange={(e) => updateSectionField('hero', 'secondary_cta_text', e.target.value)}
+                                      placeholder="Ask a Question"
+                                      className="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-2 text-sm text-slate-800 focus:border-indigo-500 focus:outline-none"
+                                    />
+                                  </label>
+                                  <label className="block">
+                                    <span className="mb-1 block text-xs font-semibold text-slate-700">Secondary Button Link URL</span>
+                                    <input
+                                      type="text"
+                                      value={settings.sections?.hero?.secondary_cta_link || '/fatawa'}
+                                      onChange={(e) => updateSectionField('hero', 'secondary_cta_link', e.target.value)}
+                                      placeholder="/fatawa"
+                                      className="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-2 text-sm text-slate-800 focus:border-indigo-500 focus:outline-none"
+                                    />
+                                  </label>
+                                </div>
                               </div>
-                              <input
-                                type="range"
-                                min="20"
-                                max="95"
-                                step="5"
-                                value={settings.sections?.hero?.banner_overlay_opacity || 70}
-                                onChange={(e) => updateSectionField('hero', 'banner_overlay_opacity', Number(e.target.value))}
-                                className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
-                              />
-                            </label>
+                            )}
                           </div>
 
-                          {/* Star Animation Toggle */}
-                          <label className="flex items-center gap-2 cursor-pointer pt-1">
-                            <input
-                              type="checkbox"
-                              checked={settings.sections?.hero?.show_stars !== false}
-                              onChange={(e) => updateSectionField('hero', 'show_stars', e.target.checked)}
-                              className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
-                            />
-                            <span className="text-xs font-semibold text-slate-700">Enable Ambient Star / Particle Animation</span>
-                          </label>
+                          {/* 5. Banner Image Upload & Overlay Controls */}
+                          <div className="space-y-3 bg-white p-4 rounded-xl border border-slate-200">
+                            <span className="text-xs font-bold text-slate-800 uppercase tracking-wider block">
+                              5. Background Banner & Particle Ambience
+                            </span>
+                            <div className="grid gap-4 sm:grid-cols-2">
+                              <label className="block">
+                                <span className="mb-1.5 block text-xs font-semibold text-slate-700">Hero Background Banner</span>
+                                <div className="flex flex-col gap-2">
+                                  <div className="flex items-center gap-2">
+                                    <label className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-white transition shadow-sm cursor-pointer ${
+                                      bannerUploading ? 'bg-indigo-400 cursor-not-allowed' : 'bg-[#002147] hover:bg-[#003166]'
+                                    }`}>
+                                      <ArrowUpTrayIcon className="w-3.5 h-3.5" />
+                                      <span>{bannerUploading ? 'Uploading...' : 'Upload Banner'}</span>
+                                      <input
+                                        type="file"
+                                        accept="image/*"
+                                        disabled={bannerUploading}
+                                        onChange={handleBannerFileUpload}
+                                        className="hidden"
+                                      />
+                                    </label>
+                                    {settings.sections?.hero?.banner_image_url && (
+                                      <button
+                                        type="button"
+                                        onClick={() => updateSectionField('hero', 'banner_image_url', '')}
+                                        className="text-xs text-rose-600 hover:text-rose-700 hover:bg-rose-50 px-2.5 py-1.5 rounded-xl border border-rose-200 font-semibold transition cursor-pointer"
+                                      >
+                                        Clear
+                                      </button>
+                                    )}
+                                  </div>
+                                  <input
+                                    type="text"
+                                    value={settings.sections?.hero?.banner_image_url || ''}
+                                    onChange={(e) => updateSectionField('hero', 'banner_image_url', e.target.value)}
+                                    placeholder="or paste URL https://..."
+                                    className="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-2 text-xs text-slate-800 focus:border-indigo-500 focus:outline-none"
+                                  />
+                                </div>
+                              </label>
+
+                              <label className="block">
+                                <div className="flex justify-between mb-1">
+                                  <span className="text-xs font-semibold text-slate-700">Dark Overlay Opacity</span>
+                                  <span className="text-xs font-bold text-indigo-600">
+                                    {settings.sections?.hero?.banner_overlay_opacity || 70}%
+                                  </span>
+                                </div>
+                                <input
+                                  type="range"
+                                  min="20"
+                                  max="95"
+                                  step="5"
+                                  value={settings.sections?.hero?.banner_overlay_opacity || 70}
+                                  onChange={(e) => updateSectionField('hero', 'banner_overlay_opacity', Number(e.target.value))}
+                                  className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
+                                />
+                                <p className="text-[10px] text-slate-400 mt-1">Higher opacity makes text easier to read over bright images.</p>
+                              </label>
+                            </div>
+
+                            {/* Star Animation Toggle */}
+                            <label className="flex items-center gap-2 cursor-pointer pt-1">
+                              <input
+                                type="checkbox"
+                                checked={settings.sections?.hero?.show_stars !== false}
+                                onChange={(e) => updateSectionField('hero', 'show_stars', e.target.checked)}
+                                className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                              />
+                              <span className="text-xs font-semibold text-slate-700">Enable Ambient Star / Particle Animation</span>
+                            </label>
+                          </div>
                         </div>
                       ) : (
                         <label className="mt-3 block">
@@ -1243,46 +1686,103 @@ const HomepageCustomizer = () => {
               </div>
             </div>
           )}
+
+          {activePanel === 'deep_search' && (
+            <DeepSearchCustomizer />
+          )}
         </div>
 
         {/* Right Column: Sticky Interactive Live Preview Card */}
         <div className="relative">
-          <div className="sticky top-6 overflow-hidden rounded-3xl border border-slate-800 bg-slate-900 p-6 text-white shadow-xl">
+          <div 
+            className={`sticky top-6 overflow-hidden rounded-3xl border p-6 transition-all duration-300 shadow-xl ${
+              settings.theme === 'night'
+                ? 'bg-[#0B0F19] text-white border-slate-800'
+                : settings.theme === 'aurora'
+                ? 'bg-gradient-to-br from-indigo-950 via-slate-900 to-emerald-950 text-white border-indigo-900/50'
+                : 'bg-slate-900 text-white border-slate-800'
+            }`}
+          >
             {/* Live Indicator Pill */}
-            <div className="flex items-center justify-between border-b border-slate-800 pb-4">
+            <div className="flex items-center justify-between border-b border-white/10 pb-4">
               <div className="flex items-center gap-2">
                 <span className="h-2.5 w-2.5 rounded-full bg-emerald-400 animate-pulse" />
                 <span className="text-xs font-bold uppercase tracking-widest text-slate-300">Live Config Preview</span>
               </div>
-              <span className="rounded-full bg-slate-800 px-3 py-1 text-[11px] font-mono text-slate-400">
-                {settings.theme.toUpperCase()} MODE
-              </span>
+              <div className="flex items-center gap-1.5">
+                <span className="rounded-full bg-white/10 px-2.5 py-0.5 text-[10px] font-mono text-slate-300">
+                  {settings.theme?.toUpperCase() || 'DAY'}
+                </span>
+                <span 
+                  className="rounded-full px-2 py-0.5 text-[10px] font-mono font-bold text-white shadow-2xs"
+                  style={{ backgroundColor: settings.accent_color || '#007ACC' }}
+                >
+                  {settings.theme_palette?.toUpperCase() || 'INDIGO'}
+                </span>
+              </div>
             </div>
 
             {/* Simulated Hero Header */}
-            <div className="mt-6 space-y-3">
+            <div className="mt-5 space-y-2.5">
               {settings.hero_badge && (
-                <span className="inline-block rounded-full bg-indigo-500/20 px-3 py-1 text-[11px] font-semibold text-indigo-300 border border-indigo-500/30">
+                <span 
+                  className="inline-block rounded-full px-3 py-0.5 text-[10px] font-semibold"
+                  style={{ 
+                    backgroundColor: `${settings.accent_color || '#007ACC'}25`,
+                    color: settings.accent_color || '#38BDF8',
+                    border: `1px solid ${settings.accent_color || '#007ACC'}50`
+                  }}
+                >
                   {settings.hero_badge}
                 </span>
               )}
-              <h3 className="text-xl font-extrabold tracking-tight text-white leading-snug">
+              <h3 
+                className={`text-lg font-bold tracking-tight text-white leading-snug ${
+                  settings.heading_style === 'serif'
+                    ? 'font-serif'
+                    : settings.heading_style === 'display'
+                    ? 'font-mono uppercase tracking-wider font-black'
+                    : 'font-sans font-extrabold'
+                }`}
+              >
                 {settings.sections?.hero?.title || 'Welcome to the Library Hub'}
               </h3>
               <p className="text-xs text-slate-400 leading-relaxed">
                 {settings.sections?.hero?.description || 'Curated digital catalog and research library.'}
               </p>
+
+              {/* Sample Interactive Button Preview */}
+              <div className="pt-1 flex items-center gap-2">
+                <button
+                  type="button"
+                  className={`text-xs font-bold transition shadow-xs ${
+                    settings.button_style === 'solid'
+                      ? 'rounded-full px-4 py-1.5 text-white shadow-md'
+                      : settings.button_style === 'outline'
+                      ? 'rounded-lg px-3.5 py-1.5 border-2 bg-transparent'
+                      : 'rounded-xl px-4 py-1.5 backdrop-blur-md bg-white/20 border border-white/30 text-white shadow-lg'
+                  }`}
+                  style={{
+                    backgroundColor: settings.button_style === 'solid' ? (settings.accent_color || '#007ACC') : undefined,
+                    borderColor: settings.button_style === 'outline' ? (settings.accent_color || '#007ACC') : undefined,
+                    color: settings.button_style === 'outline' ? (settings.accent_color || '#007ACC') : undefined,
+                  }}
+                >
+                  Action Button
+                </button>
+              </div>
             </div>
 
             {/* Live Accent Swatch Bar */}
-            <div className="mt-6 flex items-center justify-between rounded-2xl bg-slate-800/80 p-3 text-xs">
-              <span className="text-slate-400">Accent Color:</span>
+            <div className="mt-5 flex items-center justify-between rounded-2xl bg-white/5 p-3 text-xs border border-white/10">
+              <span className="text-slate-400">Accent & Backdrop:</span>
               <div className="flex items-center gap-2 font-mono font-semibold text-slate-200">
                 <span
-                  className="h-3.5 w-3.5 rounded-full border border-white/20"
+                  className="h-3.5 w-3.5 rounded-full border border-white/20 shadow-xs"
                   style={{ backgroundColor: settings.accent_color || '#007ACC' }}
                 />
                 <span>{settings.accent_color || '#007ACC'}</span>
+                <span className="text-slate-500 font-sans">({settings.background_style || 'aurora'})</span>
               </div>
             </div>
 

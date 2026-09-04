@@ -165,12 +165,19 @@ const SubcategorySelect = ({ subcategories: propSubcategories = [], selectedIds 
         )}
       </div>
       
-      {/* Dropdown Trigger Button */}
-      <button
-        type="button"
-        onClick={handleButtonClick}
-        disabled={loading}
-        className={`${baseInputStyle} flex items-center justify-between gap-2 text-left min-h-[50px] cursor-pointer hover:border-slate-300`}
+      {/* Dropdown Trigger Box (Div to avoid invalid HTML nested button inside button) */}
+      <div
+        role="button"
+        tabIndex={loading ? -1 : 0}
+        onClick={!loading ? handleButtonClick : undefined}
+        onKeyDown={(e) => {
+          if (loading) return;
+          if (e.key === 'Enter' || e.key === ' ' || e.key === 'ArrowDown') {
+            e.preventDefault();
+            setOpen(prev => !prev);
+          }
+        }}
+        className={`${baseInputStyle} flex items-center justify-between gap-2 text-left min-h-[50px] cursor-pointer hover:border-slate-300 ${loading ? 'opacity-60 pointer-events-none' : ''}`}
         aria-haspopup="listbox"
         aria-expanded={open}
       >
@@ -192,7 +199,7 @@ const SubcategorySelect = ({ subcategories: propSubcategories = [], selectedIds 
                     e.stopPropagation(); 
                     toggle(s.id); 
                   }}
-                  className="hover:text-rose-600 transition-colors flex-shrink-0 ml-0.5"
+                  className="hover:text-rose-600 transition-colors flex-shrink-0 ml-0.5 cursor-pointer"
                   aria-label={`Remove ${s.name}`}
                 >
                   <XCircleIcon className="w-4 h-4" />
@@ -204,7 +211,7 @@ const SubcategorySelect = ({ subcategories: propSubcategories = [], selectedIds 
         <ChevronDownIcon 
           className={`w-5 h-5 flex-shrink-0 text-slate-400 transition-transform duration-200 ${open ? 'rotate-180 text-[#002147]' : ''}`} 
         />
-      </button>
+      </div>
 
       {/* Dropdown Panel */}
       <AnimatePresence mode="wait">

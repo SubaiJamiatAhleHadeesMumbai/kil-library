@@ -16,11 +16,13 @@ import {
   ShareIcon,
   UserIcon,
   LinkIcon,
-  CheckIcon
+  CheckIcon,
+  ArrowDownTrayIcon
 } from "@heroicons/react/24/outline";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-hot-toast";
 import { motion, AnimatePresence } from "framer-motion";
+import BookPurchaseModal from "./BookPurchaseModal";
 
 // Services
 import authService from "../../api/authService";
@@ -91,6 +93,7 @@ const BookDetailsModal = ({
 
   // âœ… Initialize SmartReader state based on Deep Search prop
   const [showSmartReader, setShowSmartReader] = useState(autoOpenReader);
+  const [showPurchaseModal, setShowPurchaseModal] = useState(false);
   
   const [textContent, setTextContent] = useState("");
   const [isLoadingText, setIsLoadingText] = useState(false);
@@ -239,6 +242,9 @@ const BookDetailsModal = ({
     return (
       <SmartReader 
         key={`${book?.id || 'book'}-${initialPage}-${initialSearchQuery}`}
+        book={book}
+        bookId={book?.id}
+        bookTitle={book?.title}
         pdfUrl={pdfUrl} 
         txtUrl={txtUrl} 
         onClose={() => setShowSmartReader(false)} 
@@ -253,16 +259,18 @@ const BookDetailsModal = ({
     );
   }
 
-  // âœ… DEFAULT MODAL VIEW
+  // ✅ DEFAULT MODAL VIEW
   return (
-    <AnimatePresence>
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        onClick={handleClose}
-        className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md"
-      >
+    <>
+      <AnimatePresence>
+        <motion.div
+          key="book-details-backdrop"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          onClick={handleClose}
+          className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md"
+        >
         <motion.div
           initial={{ scale: 0.9, opacity: 0, y: 20 }}
           animate={{ scale: 1, opacity: 1, y: 0 }}
@@ -273,52 +281,50 @@ const BookDetailsModal = ({
         >
           {/* âœ… PREMIUM STICKY HEADER */}
           <motion.div 
-            className="sticky top-0 z-[120] bg-gradient-to-r from-white via-white to-blue-50/50 backdrop-blur border-b border-slate-200 shrink-0"
+            className="sticky top-0 z-[120] bg-white/95 backdrop-blur-md border-b border-slate-100 shrink-0"
             initial={{ y: -10, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
           >
-            <div className="px-5 md:px-7 py-4 flex items-center justify-between gap-3">
-              <div className="min-w-0 flex items-center gap-4">
-                {/* Back Button */}
+            <div className="px-4 sm:px-6 py-3.5 flex items-center justify-between gap-3">
+              <div className="min-w-0 flex items-center gap-3">
+                {/* Back Button for read text view */}
                 {view === "read_text" && (
                   <motion.button 
                     onClick={() => setView("details")}
                     whileHover={{ scale: 1.1, backgroundColor: "#e2e8f0" }}
-                    className="p-2 rounded-full bg-slate-100 text-slate-700 transition"
+                    className="p-1.5 rounded-full bg-slate-100 text-slate-700 transition cursor-pointer"
                     title="Back to Details"
                   >
-                    <ArrowLeftIcon className="w-5 h-5" />
+                    <ArrowLeftIcon className="w-4 h-4" />
                   </motion.button>
                 )}
-                <div>
-                  <motion.p 
-                    className="text-[11px] text-slate-500 font-bold uppercase tracking-widest"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                  >
-                    {view === "read_text" ? "📖 Reading Mode" : "✨ Book Details"}
-                  </motion.p>
-                  <motion.h2 
-                    className="text-lg md:text-xl font-black text-slate-900 truncate"
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                  >
-                    {title}
-                  </motion.h2>
+                <div className="flex items-center gap-2">
+                  <div className="p-1.5 rounded-lg bg-blue-50 text-blue-700 font-bold">
+                    <BookOpenIcon className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <span className="text-[11px] text-slate-400 font-extrabold uppercase tracking-wider">
+                      {view === "read_text" ? "Reading Mode" : "Book Details"}
+                    </span>
+                    <span className="hidden sm:inline-block text-slate-300 mx-1.5">•</span>
+                    <span className="hidden sm:inline-block text-xs font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100">
+                      {category}
+                    </span>
+                  </div>
                 </div>
               </div>
 
               {/* Header Actions */}
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5 sm:gap-2">
                 {/* Share Button */}
                 <motion.button
                   onClick={handleShare}
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold text-xs transition border border-blue-200 shadow-xs cursor-pointer"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-100 hover:bg-blue-50 hover:text-blue-700 text-slate-700 font-bold text-xs transition border border-slate-200/80 cursor-pointer shadow-2xs"
                   title="Share this book"
                 >
-                  <ShareIcon className="w-4 h-4" />
+                  <ShareIcon className="w-3.5 h-3.5" />
                   <span className="hidden sm:inline">Share</span>
                 </motion.button>
 
@@ -327,20 +333,20 @@ const BookDetailsModal = ({
                   onClick={handleCopyLink}
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  className="p-2 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 transition"
-                  title="Copy link to clipboard"
+                  className="p-1.5 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 transition cursor-pointer shadow-2xs"
+                  title="Copy link"
                 >
-                  <LinkIcon className="w-4 h-4" />
+                  <LinkIcon className="w-3.5 h-3.5" />
                 </motion.button>
 
                 {/* Close Button */}
                 <motion.button
                   onClick={handleClose}
-                  whileHover={{ scale: 1.1, rotate: 90 }}
-                  className="p-2 rounded-full bg-slate-100 hover:bg-red-100 transition text-slate-700 hover:text-red-600"
+                  whileHover={{ scale: 1.08, rotate: 90 }}
+                  className="p-1.5 rounded-full bg-slate-100 hover:bg-rose-100 transition text-slate-600 hover:text-rose-600 cursor-pointer shadow-2xs"
                   title="Close (ESC)"
                 >
-                  <XMarkIcon className="w-5 h-5" />
+                  <XMarkIcon className="w-4 h-4" />
                 </motion.button>
               </div>
             </div>
@@ -356,23 +362,25 @@ const BookDetailsModal = ({
                 exit={{ opacity: 0 }}
                 className="flex-1 overflow-y-auto"
               >
-                <div className="grid grid-cols-1 md:grid-cols-12 h-full">
+                <div className="grid grid-cols-1 md:grid-cols-12 min-h-full">
                   {/* LEFT: PREMIUM COVER SECTION */}
                   <motion.div 
-                    className="md:col-span-5 bg-gradient-to-b from-slate-50 via-blue-50/30 to-purple-50/20 border-r border-slate-100 p-6 md:p-8 flex items-center justify-center"
+                    className="md:col-span-5 bg-gradient-to-b from-slate-50 via-slate-100/50 to-blue-50/20 border-b md:border-b-0 md:border-r border-slate-100 p-5 sm:p-7 flex flex-col items-center justify-start md:justify-center"
                     initial={{ x: -20, opacity: 0 }}
                     animate={{ x: 0, opacity: 1 }}
                   >
-                    <div className="w-full flex justify-center">
+                    {/* Cover Wrapper */}
+                    <div className="relative group my-auto flex flex-col items-center">
+                      <div className="absolute -inset-2 bg-gradient-to-r from-blue-500/20 to-emerald-500/20 rounded-3xl blur-xl opacity-60 group-hover:opacity-100 transition duration-500" />
                       <motion.div 
-                        className="w-[210px] sm:w-[240px] md:w-[260px] lg:w-[280px] aspect-[2/3] rounded-3xl overflow-hidden shadow-2xl bg-white border-2 border-gradient-to-br from-blue-100 to-purple-100"
-                        whileHover={{ scale: 1.05, rotateY: 5 }}
-                        transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                        className="relative w-[180px] sm:w-[210px] md:w-[230px] lg:w-[260px] aspect-[2/3] rounded-2xl overflow-hidden shadow-xl bg-white border border-slate-200/80"
+                        whileHover={{ scale: 1.03 }}
+                        transition={{ type: "spring", stiffness: 350, damping: 25 }}
                       >
                         <img
                           src={coverUrl}
                           alt={title}
-                          className="w-full h-full object-contain bg-gradient-to-br from-slate-100 to-slate-200"
+                          className="w-full h-full object-contain bg-slate-50"
                           onError={(e) => {
                             e.currentTarget.onerror = null;
                             e.currentTarget.src = FALLBACK_COVER;
@@ -380,152 +388,174 @@ const BookDetailsModal = ({
                         />
                       </motion.div>
                     </div>
+
+                    {/* MOBILE QUICK ACTION STRIP (Right below cover for instant 1-tap read) */}
+                    <div className="w-full mt-5 md:hidden space-y-2">
+                      {isRestricted && !userHasAccess ? (
+                        <button
+                          type="button"
+                          onClick={handleRequestClick}
+                          className="w-full py-3 px-4 rounded-xl font-extrabold text-xs transition-all flex items-center justify-center gap-2 bg-[#002147] text-white shadow-md cursor-pointer"
+                        >
+                          <LockClosedIcon className="w-4 h-4" /> Request Digital Access
+                        </button>
+                      ) : (
+                        <>
+                          {pdfUrl && (
+                            <button
+                              type="button"
+                              onClick={handleReadPdfClick}
+                              className="w-full py-3.5 px-4 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2 bg-gradient-to-r from-emerald-600 to-[#002147] text-white shadow-lg shadow-emerald-600/25 active:scale-98 cursor-pointer"
+                            >
+                              <BookOpenIcon className="w-5 h-5" />
+                              <span>Read Free Online / سمارٹ ریڈر</span>
+                            </button>
+                          )}
+                          <div className="grid grid-cols-2 gap-2">
+                            {pdfUrl && (
+                              <button
+                                type="button"
+                                onClick={() => setShowPurchaseModal(true)}
+                                className="py-2.5 px-3 rounded-xl font-bold text-xs bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-200 flex items-center justify-center gap-1.5 transition cursor-pointer"
+                              >
+                                <ArrowDownTrayIcon className="w-3.5 h-3.5 text-slate-600" />
+                                <span>{book.is_download_paid ? `Download (₹${book.download_price || 49})` : 'Download PDF'}</span>
+                              </button>
+                            )}
+                            {txtUrl && (
+                              <button
+                                type="button"
+                                onClick={handleReadTextClick}
+                                className="py-2.5 px-3 rounded-xl font-bold text-xs bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-200 flex items-center justify-center gap-1.5 transition cursor-pointer"
+                              >
+                                <DocumentTextIcon className="w-3.5 h-3.5 text-slate-600" />
+                                <span>Text Mode</span>
+                              </button>
+                            )}
+                          </div>
+                        </>
+                      )}
+                    </div>
                   </motion.div>
 
-                  {/* RIGHT: PREMIUM CONTENT SECTION */}
+                  {/* RIGHT: CONTENT SECTION */}
                   <div className="md:col-span-7 flex flex-col relative h-full">
                     {/* Scrollable content */}
-                    <motion.div 
-                      className="flex-1 px-6 md:px-8 py-6 pb-24 overflow-y-auto"
-                      initial={{ x: 20, opacity: 0 }}
-                      animate={{ x: 0, opacity: 1 }}
-                    >
-                      {/* Animated Badges */}
-                      <motion.div 
-                        className="flex gap-2 flex-wrap mb-6"
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        transition={{ staggerChildren: 0.1 }}
-                      >
-                        {[
-                          { label: category, icon: "🏷️", color: "emerald" },
-                          { label: language, icon: "🌐", color: "blue" },
-                        ].map((badge, idx) => (
-                          <motion.span
-                            key={idx}
-                            initial={{ scale: 0, opacity: 0 }}
-                            animate={{ scale: 1, opacity: 1 }}
-                            className={`bg-${badge.color}-50 text-${badge.color}-700 text-[11px] font-extrabold px-3 py-1.5 rounded-full uppercase flex items-center gap-1.5 border border-${badge.color}-100`}
-                          >
-                            <span>{badge.icon}</span>
-                            {badge.label}
-                          </motion.span>
-                        ))}
-                        
-                        {isRestricted && (
-                          <motion.span
-                            initial={{ scale: 0, rotate: -180 }}
-                            animate={{ scale: 1, rotate: 0 }}
-                            className={`text-[11px] font-extrabold px-3 py-1.5 rounded-full uppercase flex items-center gap-1.5 ${
+                    <div className="flex-1 px-5 sm:px-8 py-6 pb-28 overflow-y-auto space-y-6">
+                      
+                      {/* Title & Author Header */}
+                      <div>
+                        {/* Badges */}
+                        <div className="flex gap-1.5 flex-wrap mb-3">
+                          <span className="bg-emerald-50 text-emerald-800 text-[11px] font-extrabold px-3 py-1 rounded-full uppercase border border-emerald-100 flex items-center gap-1">
+                            <span>🏷️</span> {category}
+                          </span>
+                          <span className="bg-blue-50 text-blue-800 text-[11px] font-extrabold px-3 py-1 rounded-full uppercase border border-blue-100 flex items-center gap-1">
+                            <span>🌐</span> {language}
+                          </span>
+                          {isRestricted && (
+                            <span className={`text-[11px] font-extrabold px-3 py-1 rounded-full uppercase flex items-center gap-1 ${
                               userHasAccess
                                 ? "bg-indigo-50 text-indigo-700 border border-indigo-100"
                                 : "bg-red-50 text-red-700 border border-red-100"
-                            }`}
-                          >
-                            {userHasAccess ? (
-                              <>
-                                <LockOpenIcon className="w-4 h-4" /> UNLOCKED
-                              </>
-                            ) : (
-                              <>
-                                <LockClosedIcon className="w-4 h-4" /> RESTRICTED
-                              </>
-                            )}
-                          </motion.span>
-                        )}
-                      </motion.div>
+                            }`}>
+                              {userHasAccess ? <LockOpenIcon className="w-3.5 h-3.5" /> : <LockClosedIcon className="w-3.5 h-3.5" />}
+                              {userHasAccess ? "UNLOCKED" : "RESTRICTED"}
+                            </span>
+                          )}
+                        </div>
 
-                      {/* Title + Author with Premium Typography */}
-                      <motion.div 
-                        className="mb-6"
-                        initial={{ y: 10, opacity: 0 }}
-                        animate={{ y: 0, opacity: 1 }}
-                      >
-                        <h3 className="text-2xl md:text-4xl font-black text-[#002147] leading-tight mb-2">
+                        {/* Title */}
+                        <h2 className="text-xl sm:text-2xl lg:text-3xl font-black text-[#002147] leading-tight tracking-tight">
                           {title}
-                        </h3>
-                        <div className="flex flex-wrap items-center gap-3">
-                          <motion.p 
-                            className="text-base md:text-lg text-blue-700 font-bold flex items-center gap-1.5 bg-blue-50/70 px-3 py-1 rounded-xl border border-blue-100/80"
-                            whileHover={{ x: 3 }}
-                          >
-                            <UserIcon className="w-4 h-4 text-blue-600 shrink-0" />
-                            <span>By</span>
-                            <span className="text-slate-800 font-extrabold">{author}</span>
-                          </motion.p>
+                        </h2>
 
-                          {/* Quick Share Link Pill */}
-                          <button
-                            type="button"
-                            onClick={handleShare}
-                            className="text-xs font-semibold text-slate-500 hover:text-blue-700 flex items-center gap-1 hover:bg-slate-100 px-2.5 py-1 rounded-lg transition"
-                            title="Share Book"
-                          >
-                            <ShareIcon className="w-3.5 h-3.5" /> Share
-                          </button>
+                        {/* Author */}
+                        <div className="mt-3 flex items-center gap-2">
+                          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-slate-100 text-slate-700 text-xs font-bold border border-slate-200">
+                            <UserIcon className="w-3.5 h-3.5 text-blue-600" />
+                            <span className="text-slate-400 font-semibold">Author:</span>
+                            <span className="text-slate-900">{author}</span>
+                          </div>
+                          {book?.publisher && (
+                            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-slate-100 text-slate-700 text-xs font-bold border border-slate-200">
+                              <span className="text-slate-400 font-semibold">Pub:</span>
+                              <span className="text-slate-900">{getSafeName(book.publisher)}</span>
+                            </div>
+                          )}
                         </div>
-                      </motion.div>
+                      </div>
 
-                      {/* Premium Description Box */}
-                      <motion.div 
-                        className="rounded-2xl border-2 border-gradient-to-br from-blue-100 to-purple-100 bg-gradient-to-br from-blue-50 to-purple-50/30 p-5 md:p-6 mb-6"
-                        whileHover={{ borderColor: "#3b82f6", boxShadow: "0 0 20px rgba(59, 130, 246, 0.2)" }}
-                        initial={{ y: 10, opacity: 0 }}
-                        animate={{ y: 0, opacity: 1 }}
-                      >
-                        <div className="flex items-center gap-2 mb-3 text-slate-700 font-extrabold text-lg">
-                          <SparklesIcon className="w-5 h-5 text-blue-600" />
-                          About this Book
+                      {/* 4 Quick Spec Cards Grid */}
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                        <div className="bg-slate-50 border border-slate-200/70 p-3 rounded-2xl flex flex-col text-center justify-center">
+                          <span className="text-[10px] uppercase font-extrabold text-slate-400 tracking-wider">Format</span>
+                          <span className="text-xs font-black text-[#002147] mt-0.5">{pdfUrl ? 'Digital PDF' : 'E-Book'}</span>
                         </div>
-                        <p className="text-slate-700 text-base leading-relaxed whitespace-pre-line">
+                        <div className="bg-slate-50 border border-slate-200/70 p-3 rounded-2xl flex flex-col text-center justify-center">
+                          <span className="text-[10px] uppercase font-extrabold text-slate-400 tracking-wider">Language</span>
+                          <span className="text-xs font-black text-[#002147] mt-0.5">{language}</span>
+                        </div>
+                        <div className="bg-slate-50 border border-slate-200/70 p-3 rounded-2xl flex flex-col text-center justify-center">
+                          <span className="text-[10px] uppercase font-extrabold text-slate-400 tracking-wider">Access</span>
+                          <span className="text-xs font-black text-emerald-700 mt-0.5">{isRestricted ? 'Restricted' : 'Free Public'}</span>
+                        </div>
+                        <div className="bg-slate-50 border border-slate-200/70 p-3 rounded-2xl flex flex-col text-center justify-center">
+                          <span className="text-[10px] uppercase font-extrabold text-slate-400 tracking-wider">Reader</span>
+                          <span className="text-xs font-black text-blue-700 mt-0.5">Smart Reader</span>
+                        </div>
+                      </div>
+
+                      {/* Description Box */}
+                      <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4 sm:p-5">
+                        <div className="flex items-center gap-2 mb-2 text-slate-800 font-extrabold text-sm">
+                          <SparklesIcon className="w-4 h-4 text-emerald-600" />
+                          <span>About this Book</span>
+                        </div>
+                        <p className="text-slate-700 text-xs sm:text-sm leading-relaxed whitespace-pre-line">
                           {description}
                         </p>
-                      </motion.div>
-
-                      {/* Star Rating */}
-                      <div className="flex justify-center gap-1.5 mb-6">
-                        {[...Array(5)].map((_, i) => (
-                          <motion.div
-                            key={i}
-                            initial={{ scale: 0 }}
-                            animate={{ scale: 1 }}
-                            transition={{ delay: i * 0.1 }}
-                            whileHover={{ scale: 1.2, rotate: 15 }}
-                          >
-                            <StarIcon className={`w-5 h-5 ${i < 4 ? "text-yellow-400" : "text-gray-300"}`} />
-                          </motion.div>
-                        ))}
                       </div>
-                    </motion.div>
+                    </div>
 
-                    {/* âœ… PREMIUM STICKY FOOTER ACTIONS */}
-                    <motion.div 
-                      className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-white via-white to-transparent border-t border-slate-100 px-6 md:px-8 py-4"
-                      initial={{ y: 20, opacity: 0 }}
-                      animate={{ y: 0, opacity: 1 }}
-                    >
+                    {/* âœ… DESKTOP STICKY BOTTOM ACTION BAR */}
+                    <div className="hidden md:block absolute bottom-0 left-0 right-0 bg-gradient-to-t from-white via-white to-white/80 border-t border-slate-200 px-6 sm:px-8 py-4 z-20">
                       {isRestricted && !userHasAccess ? (
                         <motion.button
                           onClick={handleRequestClick}
-                          whileHover={{ scale: 1.02, boxShadow: "0 10px 30px rgba(0,33,71,0.3)" }}
+                          whileHover={{ scale: 1.01 }}
                           whileTap={{ scale: 0.98 }}
-                          className="w-full bg-gradient-to-r from-[#002147] to-blue-900 text-white py-3.5 px-6 rounded-2xl font-extrabold hover:shadow-lg transition-all flex items-center justify-center gap-3 shadow-md"
+                          className="w-full bg-[#002147] text-white py-3.5 px-6 rounded-2xl font-extrabold hover:shadow-lg transition-all flex items-center justify-center gap-3 shadow-md cursor-pointer"
                         >
                           <LockClosedIcon className="w-5 h-5" />
                           Request Digital Access
                         </motion.button>
                       ) : (
-                        <div className="flex flex-col sm:flex-row gap-3">
-                          {/* Read PDF Button */}
+                        <div className="flex items-center gap-3">
+                          {/* Read PDF Button (Free Online) */}
                           {pdfUrl && (
                             <motion.button
                               onClick={handleReadPdfClick}
-                              whileHover={{ scale: 1.02, y: -2 }}
+                              whileHover={{ scale: 1.02 }}
                               whileTap={{ scale: 0.98 }}
-                              className="flex-1 py-3.5 px-6 rounded-2xl font-extrabold transition-all flex items-center justify-center gap-2 shadow-md bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:shadow-lg"
+                              className="flex-[2] py-3.5 px-5 rounded-2xl font-bold text-sm transition-all flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/20 bg-gradient-to-r from-emerald-600 to-[#002147] text-white cursor-pointer"
                             >
                               <BookOpenIcon className="w-5 h-5" />
-                              Read PDF
+                              <span>Read Free Online / سمارٹ ریڈر</span>
+                            </motion.button>
+                          )}
+
+                          {/* Download PDF Button */}
+                          {pdfUrl && (
+                            <motion.button
+                              type="button"
+                              onClick={() => setShowPurchaseModal(true)}
+                              whileHover={{ scale: 1.01 }}
+                              whileTap={{ scale: 0.98 }}
+                              className="flex-1 py-3.5 px-4 rounded-2xl font-bold text-xs transition-all flex items-center justify-center gap-1.5 border border-slate-200 bg-slate-100 hover:bg-slate-200 text-slate-800 cursor-pointer shadow-xs"
+                            >
+                              <ArrowDownTrayIcon className="w-4 h-4 text-slate-600" />
+                              <span>{book.is_download_paid ? `Download (₹${book.download_price || 49})` : 'Download PDF'}</span>
                             </motion.button>
                           )}
 
@@ -533,24 +563,24 @@ const BookDetailsModal = ({
                           {txtUrl && (
                             <motion.button
                               onClick={handleReadTextClick}
-                              whileHover={{ scale: 1.02, y: -2 }}
+                              whileHover={{ scale: 1.01 }}
                               whileTap={{ scale: 0.98 }}
-                              className="flex-1 py-3.5 px-6 rounded-2xl font-extrabold transition-all flex items-center justify-center gap-2 shadow-md bg-gradient-to-r from-emerald-600 to-teal-600 text-white hover:shadow-lg"
+                              className="py-3.5 px-4 rounded-2xl font-bold text-xs transition-all flex items-center justify-center gap-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 cursor-pointer"
                             >
-                              <DocumentTextIcon className="w-5 h-5" />
-                              Read Text
+                              <DocumentTextIcon className="w-4 h-4" />
+                              <span>Text</span>
                             </motion.button>
                           )}
 
-                          {/* Fallback if no files */}
+                          {/* Fallback */}
                           {!pdfUrl && !txtUrl && (
-                            <div className="w-full py-3.5 px-6 rounded-2xl font-extrabold bg-slate-100 text-slate-400 border border-slate-200 text-center cursor-not-allowed">
+                            <div className="w-full py-3.5 px-4 rounded-2xl font-semibold text-xs bg-slate-100 text-slate-400 border border-slate-200 text-center cursor-not-allowed">
                               No Digital Formats Available
                             </div>
                           )}
                         </div>
                       )}
-                    </motion.div>
+                    </div>
                   </div>
                 </div>
               </motion.div>
@@ -623,6 +653,16 @@ const BookDetailsModal = ({
         </motion.div>
       </motion.div>
     </AnimatePresence>
+
+    {/* Paid Download & UPI Purchase Modal */}
+    <BookPurchaseModal
+      key="book-purchase-modal"
+      book={book}
+      pdfUrl={pdfUrl}
+      isOpen={showPurchaseModal}
+      onClose={() => setShowPurchaseModal(false)}
+    />
+  </>
   );
 };
 

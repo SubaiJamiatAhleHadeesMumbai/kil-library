@@ -1,6 +1,90 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { Search, X, Loader2, BookOpen, ChevronRight, FileText, AlertCircle } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Search, X, Loader2, BookOpen, ChevronRight, FileText, AlertCircle, Copy, Download, Lock } from 'lucide-react';
+import toast from 'react-hot-toast';
+import { useLanguage } from '../../context/LanguageContext';
+
+const SEARCH_I18N = {
+  en: {
+    placeholder: "Search book text, topics, or phrases...",
+    foundMatches: (count) => `Found ${count} match${count === 1 ? '' : 'es'}`,
+    page: "Page",
+    copyCitation: "Copy Citation",
+    citationCopied: "Citation copied to clipboard!",
+    exportReport: "Export Research Report",
+    recentSearches: "Recent Searches",
+    clear: "Clear",
+    initialPrompt: "Type at least 1 character to search",
+    initialDesc: "Deep search scans book text and returns matching pages fast.",
+    noResults: "No matching text found.",
+    noResultsDesc: "Try a different keyword or check spelling.",
+    searchFailed: "Search Failed",
+    networkError: "Network error occurred while searching.",
+    unknownAuthor: "Unknown Author",
+    bookCitation: "Book",
+    authorCitation: "Author",
+    pageCitation: "Page",
+    linkCitation: "Library Link",
+    printReport: "Print / Save PDF",
+    close: "Close",
+    reportTitle: "Research Report",
+    libraryBrand: "Markaz Islamic Library",
+    restrictedBadge: "Restricted",
+  },
+  ur: {
+    placeholder: "کتاب کے متن میں تلاش کریں...",
+    foundMatches: (count) => `کل ${count} نتائج موصول ہوئے`,
+    page: "صفحہ",
+    copyCitation: "اقتباس بمع حوالہ",
+    citationCopied: "اقتباس بمع حوالہ کاپی ہو گیا!",
+    exportReport: "تحقیقی رپورٹ ایکسپورٹ",
+    recentSearches: "حالیہ تلاش",
+    clear: "صاف کریں",
+    initialPrompt: "تلاش کے لیے کم از کم 1 حرف لکھیں",
+    initialDesc: "یہ انجن کتب کے صفحات کو اسکین کر کے الفاظ تلاش کرتا ہے۔",
+    noResults: "متن میں کوئی نتیجہ نہیں ملا۔",
+    noResultsDesc: "کوئی دوسرا لفظ لکھیں یا ہجے (Spelling) چیک کریں۔",
+    searchFailed: "تلاش میں رکاوٹ آئی",
+    networkError: "سرور سے رابطہ نہیں ہو سکا۔",
+    unknownAuthor: "معلوم نہیں",
+    bookCitation: "کتاب",
+    authorCitation: "مصنف",
+    pageCitation: "صفحہ",
+    linkCitation: "مرکز لائبریری لنک",
+    printReport: "پرنٹ / پی ڈی ایف محفوظ کریں",
+    close: "بند کریں",
+    reportTitle: "تحقیقی رپورٹ",
+    libraryBrand: "مرکز اسلامی لائبریری",
+    restrictedBadge: "مخصوص کتاب",
+  },
+  ar: {
+    placeholder: "ابحث في محتوى الكتب...",
+    foundMatches: (count) => `تم العثور على ${count} نتيجة`,
+    page: "صفحة",
+    copyCitation: "نسخ الاقتباس مع المرجع",
+    citationCopied: "تم نسخ الاقتباس مع المرجع بنجاح!",
+    exportReport: "تصدير التقرير البحثي",
+    recentSearches: "عمليات البحث الأخيرة",
+    clear: "مسح",
+    initialPrompt: "اكتب حرفًا واحدًا على الأقل للبحث",
+    initialDesc: "يبحث هذا المحرك في صفحات الكتب ويعرض النصوص المطابقة بسرعة.",
+    noResults: "لم يتم العثور على نص مطابق.",
+    noResultsDesc: "يرجى تجربة كلمة أخرى أو التحقق من صحة الكتابة.",
+    searchFailed: "فشل البحث",
+    networkError: "حدث خطأ أثناء الاتصال بالخادم.",
+    unknownAuthor: "مؤلف غير معروف",
+    bookCitation: "الكتاب",
+    authorCitation: "المؤلف",
+    pageCitation: "الصفحة",
+    linkCitation: "رابط المكتبة",
+    printReport: "طباعة / حفظ كملف PDF",
+    close: "إغلاق",
+    reportTitle: "تقرير بحثي",
+    libraryBrand: "المكتبة الإسلامية",
+    restrictedBadge: "كتاب مقيد",
+  }
+};
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || (import.meta.env.PROD ? "" : "http://127.0.0.1:8000");
 
@@ -62,19 +146,98 @@ const highlightQueryText = (text, query) => {
 };
 
 const GlobalSearchModal = ({ isOpen, onClose, onResultClick, initialQuery = '' }) => {
+  const { currentLang = 'ur', isRTL = true } = useLanguage();
+  const loc = SEARCH_I18N[currentLang] || SEARCH_I18N.ur;
+
   const [query, setQuery] = useState(initialQuery);
   const [results, setResults] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
   const [error, setError] = useState(null);
   const [recentSearches, setRecentSearches] = useState([]);
+  const [searchSettings, setSearchSettings] = useState({ citation_enabled: true, export_enabled: true });
   const [isMobile, setIsMobile] = useState(() => 
     typeof window !== 'undefined' ? window.matchMedia('(max-width: 639px)').matches : false
   );
 
+  const navigate = useNavigate();
   const inputRef = useRef(null);
   const searchCacheRef = useRef(new Map());
   const activeRequestRef = useRef(null);
+
+  const handleCardClick = (result) => {
+    if (onResultClick) {
+      onResultClick(result.book_id, result.page_number, query, result);
+    } else {
+      navigate(`/read/${result.book_id}?page=${result.page_number}&q=${encodeURIComponent(query)}`);
+      onClose?.();
+    }
+  };
+
+  const copyCitation = (result, e) => {
+    e.stopPropagation();
+    e.preventDefault();
+    const cleanSnippet = (result.snippet || '')
+      .replace(/<[^>]*>/g, '')
+      .replace(/\.{3,}/g, '')
+      .trim();
+    const origin = typeof window !== 'undefined' ? window.location.origin : '';
+    const citationText = `"${cleanSnippet}"\n\n📖 ${loc.bookCitation}: ${result.title}\n✍️ ${loc.authorCitation}: ${result.author || loc.unknownAuthor}\n📄 ${loc.pageCitation}: ${result.page_number}\n🔗 ${loc.linkCitation}: ${origin}/read/${result.book_id}?page=${result.page_number}`;
+    
+    if (navigator?.clipboard) {
+      navigator.clipboard.writeText(citationText);
+      toast.success(loc.citationCopied);
+    } else {
+      toast.error('Clipboard access not available.');
+    }
+  };
+
+  const exportResearchReport = () => {
+    if (results.length === 0) return;
+    const origin = typeof window !== 'undefined' ? window.location.origin : '';
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      toast.error('Please allow popups to export report');
+      return;
+    }
+
+    const rowsHtml = results.map((r, i) => `
+      <div style="margin-bottom: 20px; padding: 14px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px;">
+        <div style="font-size: 15px; color: #1e293b; line-height: 1.8;">${r.snippet}</div>
+        <div style="margin-top: 10px; font-size: 12px; color: #64748b; border-top: 1px dashed #cbd5e1; padding-top: 8px;">
+          <strong>${loc.bookCitation}:</strong> ${r.title} | <strong>${loc.authorCitation}:</strong> ${r.author || 'N/A'} | <strong>${loc.pageCitation}:</strong> ${r.page_number}
+          | <a href="${origin}/read/${r.book_id}?page=${r.page_number}" target="_blank" style="color: #0284c7;">${loc.readPage}</a>
+        </div>
+      </div>
+    `).join('');
+
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html dir="${isRTL ? 'rtl' : 'ltr'}" lang="${currentLang}">
+      <head>
+        <meta charset="utf-8">
+        <title>${loc.reportTitle} - ${query}</title>
+        <style>
+          body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 30px; max-width: 800px; margin: auto; }
+          h1 { color: #002147; border-bottom: 2px solid #002147; padding-bottom: 10px; font-size: 22px; }
+          mark { background: #fde047; padding: 2px 4px; border-radius: 4px; font-weight: bold; }
+          .meta { font-size: 13px; color: #64748b; margin-bottom: 24px; }
+          @media print { .no-print { display: none; } }
+        </style>
+      </head>
+      <body>
+        <div class="no-print" style="margin-bottom: 20px; display: flex; justify-content: space-between;">
+          <button onclick="window.print()" style="padding: 10px 20px; background: #002147; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer;">🖨️ ${loc.printReport}</button>
+          <button onclick="window.close()" style="padding: 10px 20px; background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; border-radius: 8px; cursor: pointer;">${loc.close}</button>
+        </div>
+        <h1>${loc.reportTitle}: ${query}</h1>
+        <div class="meta">${loc.libraryBrand} • ${loc.foundMatches(results.length)}</div>
+        ${rowsHtml}
+      </body>
+      </html>
+    `);
+    printWindow.document.close();
+  };
 
   const addRecentSearch = useCallback((value) => {
     const term = String(value || '').trim();
@@ -183,7 +346,15 @@ const GlobalSearchModal = ({ isOpen, onClose, onResultClick, initialQuery = '' }
 
         if (response.ok) {
           const data = await response.json();
+          if (data.disabled) {
+            setError(data.message || 'Deep search is disabled by administrator.');
+            setResults([]);
+            return;
+          }
           const nextResults = data.results || [];
+          if (data.settings) {
+            setSearchSettings(data.settings);
+          }
           searchCacheRef.current.set(normalizedQuery, nextResults);
           setResults(nextResults);
           addRecentSearch(query.trim());
@@ -246,8 +417,8 @@ const GlobalSearchModal = ({ isOpen, onClose, onResultClick, initialQuery = '' }
           <input
             ref={inputRef}
             type="text"
-            placeholder={isMobile ? "Search book text..." : "Search any topic, word, or phrase across all books..."}
-            className="flex-1 bg-transparent text-base sm:text-lg text-gray-800 placeholder-gray-400 outline-none"
+            placeholder={loc.placeholder}
+            className={`flex-1 bg-transparent text-base sm:text-lg text-gray-800 placeholder-gray-400 outline-none ${isRTL ? 'text-right' : 'text-left'}`}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             aria-label="Search input"
@@ -256,7 +427,7 @@ const GlobalSearchModal = ({ isOpen, onClose, onResultClick, initialQuery = '' }
           
           <button 
             onClick={onClose} 
-            className="rounded-full p-2 text-gray-400 transition-colors hover:bg-red-50 hover:text-red-500"
+            className="rounded-full p-2 text-gray-400 transition-colors hover:bg-red-50 hover:text-red-500 cursor-pointer"
             aria-label="Close search modal"
           >
             <X size={20} />
@@ -264,15 +435,15 @@ const GlobalSearchModal = ({ isOpen, onClose, onResultClick, initialQuery = '' }
         </div>
 
         {/* Search Results Area */}
-        <div className="flex-1 overflow-y-auto bg-slate-50 p-2 sm:bg-white sm:p-2 custom-scrollbar">
+        <div className="flex-1 overflow-y-auto bg-slate-50 p-2 sm:bg-white sm:p-2 custom-scrollbar" dir={isRTL ? "rtl" : "ltr"}>
           {/* Initial State */}
-          {!hasSearched && query.trim().length < 3 && (
+          {!hasSearched && query.trim().length < 1 && (
             <div className="flex flex-col items-center justify-center px-4 py-14 text-center text-gray-400">
               <div className="mb-4 rounded-3xl bg-white p-4 shadow-sm ring-1 ring-slate-100">
                 <BookOpen size={36} className="text-indigo-200" strokeWidth={1.5} />
               </div>
-              <p className="text-base font-semibold text-slate-700 sm:text-lg">Type at least 1 character</p>
-              <p className="mt-1 text-sm text-slate-500">Deep search scans book text and returns matching pages fast.</p>
+              <p className="text-base font-semibold text-slate-700 sm:text-lg">{loc.initialPrompt}</p>
+              <p className="mt-1 text-sm text-slate-500">{loc.initialDesc}</p>
             </div>
           )}
 
@@ -282,7 +453,7 @@ const GlobalSearchModal = ({ isOpen, onClose, onResultClick, initialQuery = '' }
               <div className="mb-4 rounded-3xl bg-red-50 p-4">
                 <AlertCircle size={36} className="text-red-400" strokeWidth={1.5} />
               </div>
-              <p className="text-base font-semibold text-slate-700 sm:text-lg">Search Failed</p>
+              <p className="text-base font-semibold text-slate-700 sm:text-lg">{loc.searchFailed}</p>
               <p className="mt-1 text-sm text-slate-500">{error}</p>
             </div>
           )}
@@ -293,23 +464,38 @@ const GlobalSearchModal = ({ isOpen, onClose, onResultClick, initialQuery = '' }
               <div className="mb-4 rounded-3xl bg-white p-4 shadow-sm ring-1 ring-slate-100">
                 <FileText size={36} className="text-slate-300" strokeWidth={1.5} />
               </div>
-              <p className="text-base font-semibold text-slate-700 sm:text-lg">No matching text found.</p>
-              <p className="mt-1 text-sm text-slate-500">Try a different keyword or check spelling.</p>
+              <p className="text-base font-semibold text-slate-700 sm:text-lg">{loc.noResults}</p>
+              <p className="mt-1 text-sm text-slate-500">{loc.noResultsDesc}</p>
             </div>
           )}
 
           {/* Results List */}
           {results.length > 0 && (
             <div className="space-y-2 p-2 sm:p-3">
-              <div className="px-2 pb-1 text-[11px] font-bold uppercase tracking-[0.22em] text-slate-400 sm:px-3">
-                Found {results.length} matches
+              <div className="flex items-center justify-between px-2 pb-1 text-[11px] font-bold uppercase tracking-[0.22em] text-slate-400 sm:px-3">
+                <span>{loc.foundMatches(results.length)}</span>
+                {searchSettings.export_enabled && (
+                  <button
+                    type="button"
+                    onClick={exportResearchReport}
+                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700 hover:bg-indigo-100 transition shadow-2xs cursor-pointer"
+                  >
+                    <Download size={13} />
+                    <span>{loc.exportReport}</span>
+                  </button>
+                )}
               </div>
               
               {results.map((result, index) => (
-                <button
+                <div
                   key={`${result.book_id}-${result.page_number}-${index}`}
-                  onClick={() => onResultClick(result.book_id, result.page_number, query)}
-                  className="group flex w-full text-left gap-3 rounded-2xl border border-transparent bg-white p-3 shadow-sm transition-all hover:border-indigo-100 hover:bg-indigo-50/60 focus:outline-none focus:ring-2 focus:ring-indigo-500 sm:gap-4"
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => handleCardClick(result)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleCardClick(result);
+                  }}
+                  className="group flex w-full text-left gap-3 rounded-2xl border border-transparent bg-white p-3 shadow-sm transition-all hover:border-indigo-100 hover:bg-indigo-50/60 focus:outline-none focus:ring-2 focus:ring-indigo-500 sm:gap-4 cursor-pointer"
                 >
                   {/* Book Cover Thumbnail */}
                   <img 
@@ -325,13 +511,21 @@ const GlobalSearchModal = ({ isOpen, onClose, onResultClick, initialQuery = '' }
                       <h4 className="truncate text-sm font-bold text-slate-800 transition-colors group-hover:text-indigo-700">
                         {highlightQueryText(result.title, query)}
                       </h4>
-                      <span className="whitespace-nowrap rounded-full bg-indigo-100 px-2 py-0.5 text-[11px] font-bold text-indigo-700">
-                        Page {result.page_number}
-                      </span>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <span className="whitespace-nowrap rounded-full bg-indigo-100 px-2 py-0.5 text-[11px] font-bold text-indigo-700">
+                          {loc.page} {result.page_number}
+                        </span>
+                        {result.is_restricted && (
+                          <span className="whitespace-nowrap rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-800 flex items-center gap-1">
+                            <Lock size={10} />
+                            <span>{loc.restrictedBadge}</span>
+                          </span>
+                        )}
+                      </div>
                     </div>
                     
                     <p className="mb-1 truncate text-xs text-slate-500">
-                      {highlightQueryText(result.author || "Unknown Author", query)}
+                      {highlightQueryText(result.author || loc.unknownAuthor, query)}
                     </p>
                     
                     {/* Matching text snippet with highlight tags (<mark>) */}
@@ -339,13 +533,28 @@ const GlobalSearchModal = ({ isOpen, onClose, onResultClick, initialQuery = '' }
                       className="line-clamp-2 rounded-xl border border-gray-100 bg-slate-50 p-2 text-sm italic text-slate-600 group-hover:border-transparent group-hover:bg-white [&>mark]:bg-amber-200 [&>mark]:font-semibold [&>mark]:text-slate-900 [&>mark]:px-0.5 [&>mark]:rounded"
                       dangerouslySetInnerHTML={{ __html: result.snippet }}
                     />
+
+                    {/* 1-Click Citation Tool */}
+                    {searchSettings.citation_enabled && (
+                      <div className="mt-2 flex items-center justify-end">
+                        <button
+                          type="button"
+                          onClick={(e) => copyCitation(result, e)}
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-bold text-slate-600 hover:text-indigo-700 hover:bg-white border border-slate-200 bg-slate-50/80 transition shadow-2xs cursor-pointer"
+                          title={loc.copyCitation}
+                        >
+                          <Copy size={12} />
+                          <span>{loc.copyCitation}</span>
+                        </button>
+                      </div>
+                    )}
                   </div>
                   
                   {/* Navigation Arrow */}
-                  <div className="flex shrink-0 items-center justify-center pl-1 text-gray-300 transition-colors group-hover:text-indigo-500">
+                  <div className={`flex shrink-0 items-center justify-center pl-1 text-gray-300 transition-colors group-hover:text-indigo-500 ${isRTL ? 'rotate-180' : ''}`}>
                     <ChevronRight size={20} />
                   </div>
-                </button>
+                </div>
               ))}
             </div>
           )}
@@ -355,14 +564,14 @@ const GlobalSearchModal = ({ isOpen, onClose, onResultClick, initialQuery = '' }
             <div className="space-y-3 border-t border-slate-100 px-3 py-4 sm:px-4">
               <div className="flex items-center justify-between gap-3">
                 <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-slate-400">
-                  Recent Searches
+                  {loc.recentSearches}
                 </p>
                 <button
                   type="button"
                   onClick={clearRecentSearches}
-                  className="text-[11px] font-semibold text-slate-400 transition hover:text-rose-600"
+                  className="text-[11px] font-semibold text-slate-400 transition hover:text-rose-600 cursor-pointer"
                 >
-                  Clear
+                  {loc.clear}
                 </button>
               </div>
 
@@ -372,7 +581,7 @@ const GlobalSearchModal = ({ isOpen, onClose, onResultClick, initialQuery = '' }
                     key={term}
                     type="button"
                     onClick={() => runRecentSearch(term)}
-                    className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700"
+                    className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700 cursor-pointer"
                   >
                     {term}
                   </button>
@@ -384,7 +593,13 @@ const GlobalSearchModal = ({ isOpen, onClose, onResultClick, initialQuery = '' }
         
         {/* Footer */}
         <div className="border-t border-gray-100 bg-white px-3 py-2 text-center text-[11px] text-gray-400 sm:bg-gray-50 sm:p-3 sm:text-xs">
-          Press <kbd className="bg-white border border-gray-200 px-1.5 py-0.5 rounded font-mono text-gray-500 shadow-2xs">ESC</kbd> to close
+          {currentLang === 'en' ? (
+            <>Press <kbd className="bg-white border border-gray-200 px-1.5 py-0.5 rounded font-mono text-gray-500 shadow-2xs">ESC</kbd> to close</>
+          ) : currentLang === 'ar' ? (
+            <>للإغلاق اضغط على <kbd className="bg-white border border-gray-200 px-1.5 py-0.5 rounded font-mono text-gray-500 shadow-2xs">ESC</kbd></>
+          ) : (
+            <>بند کرنے کے لیے <kbd className="bg-white border border-gray-200 px-1.5 py-0.5 rounded font-mono text-gray-500 shadow-2xs">ESC</kbd> دبائیں</>
+          )}
         </div>
       </div>
     </div>

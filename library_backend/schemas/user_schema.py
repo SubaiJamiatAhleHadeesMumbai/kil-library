@@ -109,3 +109,11 @@ class UserProfile(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class PaginatedUserResponse(BaseModel):
+    items: List[UserResponse]
+    total: int
+    page: int
+    limit: int
+    total_pages: int

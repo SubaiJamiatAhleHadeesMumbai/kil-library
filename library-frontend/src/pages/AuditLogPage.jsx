@@ -30,7 +30,9 @@ const AuditLogPage = () => {
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 25;
-  const [hasNextPage, setHasNextPage] = useState(true);
+  const [totalCount, setTotalCount] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+  const [hasNextPage, setHasNextPage] = useState(false);
 
   // ----------------------------
   // Helpers
@@ -86,22 +88,26 @@ const AuditLogPage = () => {
     setIsLoading(true);
     setError("");
 
-    const skip = (page - 1) * itemsPerPage;
-
     try {
       const payload = {
+        paginated: true,
+        page,
         limit: itemsPerPage,
-        skip,
         userId: filters.userId ? parseInt(filters.userId, 10) : undefined,
         actionType: filters.actionType || undefined,
         targetType: filters.targetType || undefined,
+        search: searchText.trim() || undefined,
       };
 
-      const data = await logService.getLogs(payload);
+      const res = await logService.getLogs(payload);
+      const list = res.items || (Array.isArray(res) ? res : []);
+      const total = res.total !== undefined ? res.total : list.length;
+      const pages = res.total_pages !== undefined ? res.total_pages : (Math.ceil(total / itemsPerPage) || 1);
 
-      const list = Array.isArray(data) ? data : [];
       setLogs(list);
-      setHasNextPage(list.length === itemsPerPage);
+      setTotalCount(total);
+      setTotalPages(pages);
+      setHasNextPage(page < pages);
       setCurrentPage(page);
     } catch (err) {
       console.error("❌ Fetch Logs Error:", err);
@@ -301,12 +307,7 @@ const AuditLogPage = () => {
             </button>
 
             <div className="ml-auto text-sm text-slate-500 flex items-center">
-              Showing{" "}
-              <span className="mx-1 font-bold text-slate-700">
-                {filteredLogs.length}
-              </span>
-              logs • Page{" "}
-              <span className="ml-1 font-bold text-slate-700">{currentPage}</span>
+              Total <span className="mx-1 font-bold text-slate-700">{totalCount}</span> logs • Page <span className="mx-1 font-bold text-slate-700">{currentPage}</span> of <span className="ml-1 font-bold text-slate-700">{totalPages}</span>
             </div>
           </div>
         </form>
@@ -322,9 +323,9 @@ const AuditLogPage = () => {
 
       {/* TABLE */}
       <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto max-h-[650px]">
           <table className="w-full text-left text-sm text-slate-600">
-            <thead className="bg-slate-50 text-xs uppercase font-bold text-slate-500">
+            <thead className="sticky top-0 bg-slate-100 z-10 text-xs uppercase font-bold text-slate-600 shadow-xs">
               <tr>
                 <th className="px-6 py-4">Time</th>
                 <th className="px-6 py-4">User</th>
@@ -338,7 +339,7 @@ const AuditLogPage = () => {
               {isLoading ? (
                 <tr>
                   <td colSpan="5" className="px-6 py-12 text-center text-slate-400">
-                    Loading data...
+                    Loading audit logs...
                   </td>
                 </tr>
               ) : filteredLogs.length === 0 ? (
@@ -397,19 +398,19 @@ const AuditLogPage = () => {
           <button
             onClick={goPrev}
             disabled={currentPage === 1 || isLoading}
-            className="px-4 py-2 bg-white border border-slate-300 rounded-lg text-slate-600 disabled:opacity-50 text-sm font-medium hover:bg-slate-50"
+            className="px-4 py-2 bg-white border border-slate-300 rounded-lg text-slate-600 disabled:opacity-50 text-sm font-medium hover:bg-slate-50 shadow-xs cursor-pointer"
           >
             Previous
           </button>
 
           <span className="text-sm font-bold text-slate-600">
-            Page {currentPage}
+            Page {currentPage} of {totalPages}
           </span>
 
           <button
             onClick={goNext}
             disabled={!hasNextPage || isLoading}
-            className="px-4 py-2 bg-white border border-slate-300 rounded-lg text-slate-600 disabled:opacity-50 text-sm font-medium hover:bg-slate-50"
+            className="px-4 py-2 bg-white border border-slate-300 rounded-lg text-slate-600 disabled:opacity-50 text-sm font-medium hover:bg-slate-50 shadow-xs cursor-pointer"
           >
             Next
           </button>

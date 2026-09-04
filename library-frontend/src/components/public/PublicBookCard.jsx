@@ -216,6 +216,8 @@ const PublicBookCard = ({
             <img
               src={imgSrc}
               alt={title}
+              loading="lazy"
+              decoding="async"
               onError={handleImageError}
               onLoad={() => setImgLoaded(true)}
               className={`w-full h-full transition-all duration-300 ${
@@ -225,7 +227,6 @@ const PublicBookCard = ({
                 objectFit: "contain",
                 background: "#e5e7eb",
               }}
-              loading="lazy"
             />
           )}
 

@@ -1,9 +1,17 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.orm import Session
 from pydantic import BaseModel, EmailStr, Field, model_validator
 from datetime import datetime, timedelta
 import random
 import secrets
+
+# Rate limiting
+try:
+    from slowapi import Limiter
+    from slowapi.util import get_remote_address
+    limiter = Limiter(key_func=get_remote_address)
+except ImportError:
+    limiter = None
 
 # --- Imports ---
 from database import get_db
@@ -37,16 +45,17 @@ import os
 # 1. SEND OTP ENDPOINT
 # ==========================================
 @router.post("/forgot-password")
-def forgot_password(request: ForgotPasswordRequest, db: Session = Depends(get_db)):
+@limiter.limit("5/minute") if limiter else lambda f: f
+def forgot_password(request: Request, body: ForgotPasswordRequest, db: Session = Depends(get_db)):
     # 1. User check karein (case-insensitive)
-    email_clean = request.email.strip().lower()
+    email_clean = body.email.strip().lower()
     user = db.query(user_model.User).filter(func.lower(user_model.User.email) == email_clean).first()
     
     if not user:
         raise HTTPException(status_code=404, detail="User with this email not found")
 
-    # 2. OTP Generate karein (6 Digit)
-    otp = str(random.randint(100000, 999999))
+    # 2. OTP Generate karein (6 Digit) — SECURITY: use cryptographically secure PRNG
+    otp = f"{secrets.randbelow(900000) + 100000}"
     
     # 3. Database me Save karein
     user.otp_code = otp
@@ -57,12 +66,12 @@ def forgot_password(request: ForgotPasswordRequest, db: Session = Depends(get_db
     email_sent = send_otp_email(user.email, otp)
     
     if not email_sent:
+        # SECURITY FIX: Never expose OTP in API responses, even in dev mode.
+        # Log it server-side instead for debugging.
         is_dev = os.getenv("ENV", "development").lower() == "development"
         if is_dev:
-            return {
-                "message": f"OTP generated. (SMTP unavailable in dev mode). OTP: {otp}",
-                "dev_otp": otp
-            }
+            print(f"[DEV] OTP for {user.email}: {otp}")
+            return {"message": "OTP generated. Check server console for dev OTP (SMTP unavailable)."}
         raise HTTPException(status_code=500, detail="Failed to send email. Please check SMTP settings.")
 
     return {"message": "OTP sent successfully to your email"}
@@ -71,14 +80,15 @@ def forgot_password(request: ForgotPasswordRequest, db: Session = Depends(get_db
 # 2. VERIFY OTP & RESET PASSWORD ENDPOINT
 # ==========================================
 @router.post("/reset-password")
-def reset_password(request: ResetPasswordRequest, db: Session = Depends(get_db)):
+@limiter.limit("5/minute") if limiter else lambda f: f
+def reset_password(request: Request, body: ResetPasswordRequest, db: Session = Depends(get_db)):
     # 1. User Dhoondhein
-    user = db.query(user_model.User).filter(user_model.User.email == request.email).first()
+    user = db.query(user_model.User).filter(user_model.User.email == body.email).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
     # 2. OTP Check Karein
-    if not user.otp_code or user.otp_code != request.otp:
+    if not user.otp_code or user.otp_code != body.otp:
         raise HTTPException(status_code=400, detail="Invalid OTP")
 
     # 3. Expiry Check Karein
@@ -86,7 +96,7 @@ def reset_password(request: ResetPasswordRequest, db: Session = Depends(get_db))
         raise HTTPException(status_code=400, detail="OTP has expired. Please request a new one.")
 
     # 4. Password Update Karein
-    user.password_hash = get_password_hash(request.new_password)
+    user.password_hash = get_password_hash(body.new_password)
     
     # 5. OTP Clean karein (Taake dobara use na ho sake)
     user.otp_code = None

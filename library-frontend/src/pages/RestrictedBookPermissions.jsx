@@ -1,13 +1,11 @@
 // src/pages/RestrictedBookPermissions.jsx
 import React, { useState, useEffect, useCallback, useMemo } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
 import { bookService } from "../api/bookService";
 import { userService } from "../api/userService";
-
-// ✅ FIX: default import
 import restrictedBookService from "../api/restrictedBookService";
-
-import Skeleton, { SkeletonTheme } from "react-loading-skeleton";
-import "react-loading-skeleton/dist/skeleton.css";
+import toast from "react-hot-toast";
 
 import {
   ShieldCheckIcon,
@@ -16,35 +14,18 @@ import {
   TrashIcon,
   PlusIcon,
   LockClosedIcon,
-} from "@heroicons/react/20/solid";
+  BookOpenIcon,
+  ClockIcon,
+  MagnifyingGlassIcon,
+  ArrowTopRightOnSquareIcon,
+  CheckCircleIcon,
+  ExclamationTriangleIcon,
+  SparklesIcon,
+  EyeIcon,
+} from "@heroicons/react/24/outline";
 
-import "../assets/css/ManagementPages.css";
-
-// --- Helper Components ---
-const Spinner = () => (
-  <svg
-    className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
-    fill="none"
-    viewBox="0 0 24 24"
-  >
-    <circle
-      className="opacity-25"
-      cx="12"
-      cy="12"
-      r="10"
-      stroke="currentColor"
-      strokeWidth="4"
-    ></circle>
-    <path
-      className="opacity-75"
-      fill="currentColor"
-      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-    ></path>
-  </svg>
-);
-
-// ✅ Better error extractor
-const extractError = (err, fallback = "Something went wrong") => {
+// Helper for error extraction
+const extractError = (err, fallback = "Operation failed") => {
   return (
     err?.response?.data?.detail ||
     err?.response?.data?.message ||
@@ -54,44 +35,77 @@ const extractError = (err, fallback = "Something went wrong") => {
   );
 };
 
-// ✅ Safe number parser
 const toInt = (v) => {
   const n = parseInt(v, 10);
   return Number.isNaN(n) ? null : n;
 };
 
 const RestrictedBookPermissions = () => {
+  const navigate = useNavigate();
+
   // --- State ---
   const [data, setData] = useState({ books: [], users: [], roles: [] });
   const [permissions, setPermissions] = useState([]);
   const [selectedBookId, setSelectedBookId] = useState("");
+  const [bookSearch, setBookSearch] = useState("");
+  const [userSearch, setUserSearch] = useState("");
 
-  // UI States
+  // UI Loading States
   const [loading, setLoading] = useState({
     init: true,
     perms: false,
     action: false,
   });
 
-  const [feedback, setFeedback] = useState({ error: null, success: null });
-
-  // Form State
+  // Grant Form State
   const [form, setForm] = useState({
-    type: "user",
+    type: "user", // "user" | "role"
     userId: "",
     roleId: "",
+    duration: "permanent", // "permanent" | "7d" | "30d" | "90d" | "custom"
+    customDate: "",
+    canRead: true,
+    canSearch: true,
+    canDownload: false,
+    notes: "",
   });
 
   // --- Derived Data ---
-  const restrictedBooks = useMemo(
-    () => (data.books || []).filter((b) => b?.is_restricted),
-    [data.books]
-  );
+  const restrictedBooks = useMemo(() => {
+    return (data.books || []).filter((b) => b?.is_restricted);
+  }, [data.books]);
+
+  const filteredRestrictedBooks = useMemo(() => {
+    if (!bookSearch.trim()) return restrictedBooks;
+    const q = bookSearch.toLowerCase();
+    return restrictedBooks.filter(
+      (b) =>
+        b.title?.toLowerCase().includes(q) ||
+        b.author?.toLowerCase().includes(q) ||
+        b.id?.toString().includes(q)
+    );
+  }, [restrictedBooks, bookSearch]);
+
+  const selectedBook = useMemo(() => {
+    const id = toInt(selectedBookId);
+    return restrictedBooks.find((b) => b.id === id) || null;
+  }, [restrictedBooks, selectedBookId]);
+
+  // Filtered users for dropdown search
+  const filteredUsers = useMemo(() => {
+    if (!userSearch.trim()) return data.users;
+    const q = userSearch.toLowerCase();
+    return data.users.filter(
+      (u) =>
+        u.username?.toLowerCase().includes(q) ||
+        u.email?.toLowerCase().includes(q) ||
+        u.full_name?.toLowerCase().includes(q)
+    );
+  }, [data.users, userSearch]);
 
   // --- Data Fetching ---
   const fetchInitialData = useCallback(async () => {
     setLoading((prev) => ({ ...prev, init: true }));
-    setFeedback({ error: null, success: null });
 
     try {
       const [books, users, roles] = await Promise.all([
@@ -100,26 +114,30 @@ const RestrictedBookPermissions = () => {
         userService.getAllRoles(),
       ]);
 
+      const safeBooks = Array.isArray(books) ? books : [];
       setData({
-        books: Array.isArray(books) ? books : [],
+        books: safeBooks,
         users: Array.isArray(users) ? users : [],
         roles: Array.isArray(roles) ? roles : [],
       });
+
+      // Auto-select first restricted book if available
+      const rBooks = safeBooks.filter((b) => b?.is_restricted);
+      if (rBooks.length > 0 && !selectedBookId) {
+        setSelectedBookId(rBooks[0].id.toString());
+      }
     } catch (err) {
-      setFeedback({
-        error: extractError(err, "Failed to load system data."),
-        success: null,
-      });
+      toast.error(extractError(err, "Failed to load library resources."));
     } finally {
       setLoading((prev) => ({ ...prev, init: false }));
     }
-  }, []);
+  }, [selectedBookId]);
 
   useEffect(() => {
     fetchInitialData();
   }, [fetchInitialData]);
 
-  // --- Load Permissions when book changes ---
+  // --- Load Permissions when selected book changes ---
   const loadPermissions = useCallback(async (bookId) => {
     if (!bookId) {
       setPermissions([]);
@@ -127,17 +145,13 @@ const RestrictedBookPermissions = () => {
     }
 
     setLoading((prev) => ({ ...prev, perms: true }));
-    setFeedback((prev) => ({ ...prev, error: null }));
 
     try {
       const res = await restrictedBookService.getPermissionsForBook(bookId);
       setPermissions(Array.isArray(res) ? res : []);
     } catch (err) {
       setPermissions([]);
-      setFeedback({
-        error: extractError(err, "Failed to load permissions."),
-        success: null,
-      });
+      console.warn("Could not load permissions for book:", err);
     } finally {
       setLoading((prev) => ({ ...prev, perms: false }));
     }
@@ -145,332 +159,566 @@ const RestrictedBookPermissions = () => {
 
   useEffect(() => {
     const bookId = toInt(selectedBookId);
-    if (!bookId) {
+    if (bookId) {
+      loadPermissions(bookId);
+    } else {
       setPermissions([]);
-      return;
     }
-    loadPermissions(bookId);
   }, [selectedBookId, loadPermissions]);
 
-  // Auto-dismiss success message
-  useEffect(() => {
-    if (feedback.success) {
-      const timer = setTimeout(
-        () => setFeedback((prev) => ({ ...prev, success: null })),
-        2500
-      );
-      return () => clearTimeout(timer);
-    }
-  }, [feedback.success]);
-
-  // --- Actions ---
+  // --- Grant Access Action ---
   const handleAssign = async (e) => {
     e.preventDefault();
-    setFeedback({ error: null, success: null });
 
     const bookId = toInt(selectedBookId);
     if (!bookId) {
-      return setFeedback({ error: "Please select a book first.", success: null });
+      toast.error("Please select a restricted book first.");
+      return;
     }
 
     const userId = form.type === "user" ? toInt(form.userId) : null;
     const roleId = form.type === "role" ? toInt(form.roleId) : null;
 
     if (form.type === "user" && !userId) {
-      return setFeedback({ error: "Please select a user.", success: null });
+      toast.error("Please choose a user to grant access.");
+      return;
     }
 
     if (form.type === "role" && !roleId) {
-      return setFeedback({ error: "Please select a role.", success: null });
+      toast.error("Please choose a role to grant access.");
+      return;
     }
 
     setLoading((prev) => ({ ...prev, action: true }));
+    const toastId = toast.loading("Granting access permission...");
 
     try {
       const payload = {
         book_id: bookId,
         user_id: userId,
         role_id: roleId,
+        can_read: form.canRead,
+        can_search: form.canSearch,
+        can_download: form.canDownload,
+        notes: form.notes || null,
       };
 
       await restrictedBookService.assignPermission(payload);
 
-      setFeedback({ error: null, success: "Access granted successfully!" });
-
-      // Refresh permissions
+      toast.success("Access permission granted successfully!", { id: toastId });
       await loadPermissions(bookId);
 
-      // Reset form values only
-      setForm((prev) => ({ ...prev, userId: "", roleId: "" }));
+      // Reset selection
+      setForm((prev) => ({
+        ...prev,
+        userId: "",
+        roleId: "",
+        notes: "",
+      }));
+      setUserSearch("");
     } catch (err) {
-      setFeedback({
-        error: extractError(err, "Assignment failed. It may already exist."),
-        success: null,
-      });
+      toast.error(
+        extractError(err, "Permission assignment failed. It may already exist."),
+        { id: toastId }
+      );
     } finally {
       setLoading((prev) => ({ ...prev, action: false }));
     }
   };
 
+  // --- Revoke Access Action ---
   const handleRevoke = async (permissionId, name) => {
     if (!permissionId) return;
 
-    if (!window.confirm(`Revoke access for ${name}?`)) return;
+    if (!window.confirm(`Are you sure you want to revoke access for ${name}?`)) {
+      return;
+    }
 
     setLoading((prev) => ({ ...prev, action: true }));
-    setFeedback({ error: null, success: null });
+    const toastId = toast.loading(`Revoking access for ${name}...`);
 
     try {
       await restrictedBookService.revokePermission(permissionId);
-
-      setFeedback({ error: null, success: "Access revoked." });
-
+      toast.success(`Access revoked for ${name}.`, { id: toastId });
       setPermissions((prev) => prev.filter((p) => p.id !== permissionId));
     } catch (err) {
-      setFeedback({
-        error: extractError(err, "Failed to revoke access."),
-        success: null,
-      });
+      toast.error(extractError(err, "Failed to revoke access."), { id: toastId });
     } finally {
       setLoading((prev) => ({ ...prev, action: false }));
     }
   };
 
-  // --- Render Helpers ---
-  const inputClass =
-    "w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm transition-all";
-  const btnClass =
-    "w-full flex justify-center items-center py-2.5 px-4 rounded-lg text-white font-bold text-sm shadow-md transition-all active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed";
-
   return (
-    <SkeletonTheme baseColor="#f3f4f6" highlightColor="#ffffff">
-      <div className="management-container p-6 max-w-6xl mx-auto space-y-8">
-        {/* Header */}
-        <div className="flex items-center gap-3 border-b border-slate-200 pb-6">
-          <div className="p-3 bg-indigo-100 rounded-xl text-indigo-600">
-            <ShieldCheckIcon className="h-8 w-8" />
+    <div className="min-h-screen bg-slate-50/60 p-4 sm:p-6 lg:p-8 space-y-8">
+      {/* 1. TOP HEADER & METRICS STRIP */}
+      <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/80 shadow-xs">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-6 border-b border-slate-100">
+          <div className="flex items-center gap-4">
+            <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-indigo-500 to-indigo-700 text-white flex items-center justify-center shadow-md shadow-indigo-100 shrink-0">
+              <ShieldCheckIcon className="h-8 w-8" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h1 className="text-2xl font-black text-slate-900 tracking-tight">
+                  Restricted Access Control
+                </h1>
+                <span className="px-2.5 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200 text-xs font-black">
+                  RBAC Secure
+                </span>
+              </div>
+              <p className="text-sm text-slate-500 mt-0.5">
+                Manage granular permissions, time-bound access, and view consumption logs.
+              </p>
+            </div>
           </div>
-          <div>
-            <h2 className="text-2xl font-bold text-slate-800">
-              Restricted Access Control
-            </h2>
-            <p className="text-sm text-slate-500">
-              Manage granular permissions for sensitive content.
-            </p>
+
+          <div className="flex items-center gap-3">
+            <Link
+              to="/admin/digital-access"
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition shadow-2xs"
+            >
+              <EyeIcon className="w-4 h-4 text-slate-500" />
+              View Digital Audit Logs
+            </Link>
           </div>
         </div>
 
-        {/* Notifications */}
-        {(feedback.error || feedback.success) && (
-          <div
-            className={`p-4 rounded-lg text-sm font-medium text-center ${
-              feedback.error
-                ? "bg-red-50 text-red-700"
-                : "bg-green-50 text-green-700"
-            }`}
-          >
-            {feedback.error || feedback.success}
+        {/* 4 Quick Stat Metric Badges */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mt-6">
+          <div className="p-4 rounded-2xl bg-indigo-50/50 border border-indigo-100 flex items-center gap-3.5">
+            <div className="h-11 w-11 rounded-xl bg-indigo-100 text-indigo-700 flex items-center justify-center shrink-0">
+              <LockClosedIcon className="h-6 w-6" />
+            </div>
+            <div>
+              <span className="text-[11px] font-bold text-indigo-900 uppercase tracking-wider">
+                Restricted Books
+              </span>
+              <p className="text-2xl font-black text-indigo-950">
+                {restrictedBooks.length}
+              </p>
+            </div>
           </div>
-        )}
 
-        {/* Main Content */}
-        {loading.init ? (
-          <Skeleton count={5} height={50} />
-        ) : (
-          <div className="space-y-8">
-            {/* 1. Book Selector */}
-            <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-              <label className="block text-xs font-bold text-slate-500 uppercase mb-2">
-                Select Restricted Document
-              </label>
+          <div className="p-4 rounded-2xl bg-emerald-50/50 border border-emerald-100 flex items-center gap-3.5">
+            <div className="h-11 w-11 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+              <CheckCircleIcon className="h-6 w-6" />
+            </div>
+            <div>
+              <span className="text-[11px] font-bold text-emerald-900 uppercase tracking-wider">
+                Active Book Grants
+              </span>
+              <p className="text-2xl font-black text-emerald-950">
+                {permissions.length}
+              </p>
+            </div>
+          </div>
 
-              <div className="relative">
-                <LockClosedIcon className="h-5 w-5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                <select
-                  className={`${inputClass} pl-10`}
-                  value={selectedBookId}
-                  onChange={(e) => {
-                    setSelectedBookId(e.target.value);
-                    setFeedback({ error: null, success: null });
-                  }}
-                >
-                  <option value="">-- Choose a Secure Book --</option>
-                  {restrictedBooks.map((b) => (
-                    <option key={b.id} value={b.id}>
-                      {b.title} (ID: {b.id})
-                    </option>
-                  ))}
-                </select>
-              </div>
+          <div className="p-4 rounded-2xl bg-purple-50/50 border border-purple-100 flex items-center gap-3.5">
+            <div className="h-11 w-11 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center shrink-0">
+              <UserGroupIcon className="h-6 w-6" />
+            </div>
+            <div>
+              <span className="text-[11px] font-bold text-purple-900 uppercase tracking-wider">
+                Total System Roles
+              </span>
+              <p className="text-2xl font-black text-purple-950">
+                {data.roles.length}
+              </p>
+            </div>
+          </div>
 
-              {restrictedBooks.length === 0 && (
-                <p className="text-xs text-orange-500 mt-2">
-                  No restricted books found in the library.
-                </p>
-              )}
+          <div className="p-4 rounded-2xl bg-amber-50/50 border border-amber-100 flex items-center gap-3.5">
+            <div className="h-11 w-11 rounded-xl bg-amber-100 text-amber-800 flex items-center justify-center shrink-0">
+              <SparklesIcon className="h-6 w-6" />
+            </div>
+            <div>
+              <span className="text-[11px] font-bold text-amber-900 uppercase tracking-wider">
+                Active Members
+              </span>
+              <p className="text-2xl font-black text-amber-950">
+                {data.users.length}
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 2. RESTRICTED BOOK SELECTOR WORKSPACE */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        
+        {/* Left Column: Restricted Books List / Selector (4 cols) */}
+        <div className="lg:col-span-4 bg-white rounded-3xl p-5 border border-slate-200/80 shadow-xs flex flex-col h-[680px]">
+          <div className="mb-4">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-sm font-black text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
+                <LockClosedIcon className="w-4 h-4 text-indigo-600" />
+                Select Restricted Book
+              </h3>
+              <span className="text-xs font-bold text-slate-400">
+                {filteredRestrictedBooks.length} Books
+              </span>
             </div>
 
-            {/* 2. Workspace */}
-            {selectedBookId && (
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                {/* Left: Assign Form */}
-                <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm h-fit">
-                  <h3 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2">
-                    <PlusIcon className="h-5 w-5 text-indigo-600" /> Grant Access
+            {/* Quick Search */}
+            <div className="relative">
+              <MagnifyingGlassIcon className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                placeholder="Search restricted books..."
+                value={bookSearch}
+                onChange={(e) => setBookSearch(e.target.value)}
+                className="w-full pl-9 pr-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs font-semibold text-slate-800 focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none transition"
+              />
+            </div>
+          </div>
+
+          {/* Scrollable Books List */}
+          <div className="flex-1 overflow-y-auto space-y-2 pr-1 no-scrollbar">
+            {loading.init ? (
+              <div className="p-8 text-center text-slate-400 text-xs font-semibold animate-pulse">
+                Loading restricted library...
+              </div>
+            ) : filteredRestrictedBooks.length === 0 ? (
+              <div className="p-8 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+                <LockClosedIcon className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+                <p className="text-xs font-bold text-slate-500">
+                  {bookSearch ? "No matching books found." : "No restricted books configured."}
+                </p>
+              </div>
+            ) : (
+              filteredRestrictedBooks.map((b) => {
+                const isSelected = selectedBookId === b.id.toString();
+                return (
+                  <button
+                    key={b.id}
+                    onClick={() => setSelectedBookId(b.id.toString())}
+                    className={`w-full p-3 rounded-2xl border text-left flex items-center gap-3 transition-all cursor-pointer ${
+                      isSelected
+                        ? "bg-indigo-50/80 border-indigo-300 shadow-xs ring-1 ring-indigo-400"
+                        : "bg-white hover:bg-slate-50 border-slate-100"
+                    }`}
+                  >
+                    <div className="w-11 h-14 rounded-lg bg-slate-100 overflow-hidden shrink-0 border border-slate-200 shadow-2xs flex items-center justify-center">
+                      {b.cover_image_url ? (
+                        <img
+                          src={b.cover_image_url}
+                          alt={b.title}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <BookOpenIcon className="w-5 h-5 text-slate-400" />
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs font-bold text-slate-900 truncate">
+                        {b.title}
+                      </p>
+                      <p className="text-[11px] text-slate-500 truncate mt-0.5">
+                        {b.author || "Unknown Author"}
+                      </p>
+                      <div className="flex items-center gap-1.5 mt-1">
+                        <span className="text-[9.5px] font-black px-1.5 py-0.5 rounded-md bg-slate-100 text-slate-600">
+                          ID: {b.id}
+                        </span>
+                        {b.category?.name && (
+                          <span className="text-[9.5px] font-semibold text-slate-400 truncate">
+                            • {b.category.name}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </button>
+                );
+              })
+            )}
+          </div>
+        </div>
+
+        {/* Right Column: Active Grants & Permission Creator (8 cols) */}
+        <div className="lg:col-span-8 space-y-6">
+          
+          {selectedBook ? (
+            <>
+              {/* Selected Book Header Card */}
+              <div className="bg-gradient-to-r from-slate-900 via-[#002147] to-indigo-950 rounded-3xl p-6 text-white shadow-md flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div className="flex items-center gap-4 min-w-0">
+                  <div className="w-14 h-18 rounded-xl bg-white/10 p-1 border border-white/20 shrink-0 overflow-hidden flex items-center justify-center shadow-md">
+                    {selectedBook.cover_image_url ? (
+                      <img
+                        src={selectedBook.cover_image_url}
+                        alt={selectedBook.title}
+                        className="w-full h-full object-cover rounded-lg"
+                      />
+                    ) : (
+                      <BookOpenIcon className="w-7 h-7 text-white/60" />
+                    )}
+                  </div>
+                  <div className="min-w-0">
+                    <span className="text-[10px] font-black uppercase tracking-widest text-indigo-300 flex items-center gap-1">
+                      <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                      Active Restricted Resource
+                    </span>
+                    <h2 className="text-lg sm:text-xl font-black truncate mt-0.5">
+                      {selectedBook.title}
+                    </h2>
+                    <p className="text-xs text-slate-300 truncate">
+                      Author: <span className="font-bold text-white">{selectedBook.author || "Unknown"}</span> • Pages: {selectedBook.page_count || "N/A"}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
+                  <Link
+                    to={`/read/${selectedBook.id}`}
+                    target="_blank"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/15 hover:bg-white/25 text-white text-xs font-bold transition border border-white/20 shadow-2xs"
+                  >
+                    <ArrowTopRightOnSquareIcon className="w-3.5 h-3.5" />
+                    Open Reader
+                  </Link>
+                </div>
+              </div>
+
+              {/* Grid: Grant Access Form + Active Permissions Table */}
+              <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
+                
+                {/* 1. GRANT ACCESS FORM (5 cols) */}
+                <div className="xl:col-span-5 bg-white rounded-3xl p-6 border border-slate-200/80 shadow-xs h-fit">
+                  <h3 className="text-sm font-black text-slate-900 uppercase tracking-wider mb-4 flex items-center gap-2">
+                    <PlusIcon className="w-4 h-4 text-indigo-600" />
+                    Grant New Access
                   </h3>
 
-                  <form onSubmit={handleAssign} className="space-y-5">
-                    {/* Toggle Type */}
-                    <div className="flex bg-slate-100 p-1 rounded-lg">
-                      {["user", "role"].map((type) => (
-                        <button
-                          key={type}
-                          type="button"
-                          onClick={() =>
-                            setForm((p) => ({
-                              ...p,
-                              type,
-                              userId: "",
-                              roleId: "",
-                            }))
-                          }
-                          className={`flex-1 py-2 text-sm font-bold rounded-md flex items-center justify-center gap-2 transition-all ${
-                            form.type === type
-                              ? "bg-white text-indigo-600 shadow-sm"
-                              : "text-slate-500 hover:text-slate-700"
-                          }`}
-                        >
-                          {type === "user" ? (
-                            <UserIcon className="h-4 w-4" />
-                          ) : (
-                            <UserGroupIcon className="h-4 w-4" />
-                          )}
-                          Assign to {type.charAt(0).toUpperCase() + type.slice(1)}
-                        </button>
-                      ))}
+                  <form onSubmit={handleAssign} className="space-y-4">
+                    {/* User / Role Mode Toggle */}
+                    <div className="flex bg-slate-100 p-1 rounded-2xl">
+                      <button
+                        type="button"
+                        onClick={() => setForm((p) => ({ ...p, type: "user", userId: "", roleId: "" }))}
+                        className={`flex-1 py-2 text-xs font-extrabold rounded-xl flex items-center justify-center gap-1.5 transition cursor-pointer ${
+                          form.type === "user"
+                            ? "bg-white text-indigo-700 shadow-xs"
+                            : "text-slate-500 hover:text-slate-800"
+                        }`}
+                      >
+                        <UserIcon className="w-3.5 h-3.5" /> Specific User
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setForm((p) => ({ ...p, type: "role", userId: "", roleId: "" }))}
+                        className={`flex-1 py-2 text-xs font-extrabold rounded-xl flex items-center justify-center gap-1.5 transition cursor-pointer ${
+                          form.type === "role"
+                            ? "bg-white text-purple-700 shadow-xs"
+                            : "text-slate-500 hover:text-slate-800"
+                        }`}
+                      >
+                        <UserGroupIcon className="w-3.5 h-3.5" /> Entire Role
+                      </button>
                     </div>
 
-                    {/* Dynamic Dropdown */}
-                    <div>
-                      <label className="block text-xs font-bold text-slate-500 uppercase mb-2">
-                        Select {form.type}
+                    {/* Target Dropdown */}
+                    {form.type === "user" ? (
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1">
+                          Select User (or Search)
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="Search username or email..."
+                          value={userSearch}
+                          onChange={(e) => setUserSearch(e.target.value)}
+                          className="w-full px-3 py-1.5 text-xs rounded-xl bg-slate-50 border border-slate-200 mb-2 focus:bg-white outline-none"
+                        />
+                        <select
+                          value={form.userId}
+                          onChange={(e) => setForm((p) => ({ ...p, userId: e.target.value }))}
+                          className="w-full px-3 py-2 text-xs font-bold rounded-xl bg-white border border-slate-200 text-slate-800 outline-none focus:ring-2 focus:ring-indigo-500"
+                          disabled={loading.action}
+                        >
+                          <option value="">-- Choose User --</option>
+                          {filteredUsers.map((u) => (
+                            <option key={u.id} value={u.id}>
+                              {u.username} ({u.email || u.full_name || "Member"})
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    ) : (
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1">
+                          Select Role
+                        </label>
+                        <select
+                          value={form.roleId}
+                          onChange={(e) => setForm((p) => ({ ...p, roleId: e.target.value }))}
+                          className="w-full px-3 py-2 text-xs font-bold rounded-xl bg-white border border-slate-200 text-slate-800 outline-none focus:ring-2 focus:ring-indigo-500"
+                          disabled={loading.action}
+                        >
+                          <option value="">-- Choose Role --</option>
+                          {data.roles.map((r) => (
+                            <option key={r.id} value={r.id}>
+                              {r.name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+
+                    {/* Permission Scope Checkboxes */}
+                    <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100 space-y-2">
+                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">
+                        Permission Capabilities
+                      </span>
+                      <label className="flex items-center gap-2 text-xs font-bold text-slate-700 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={form.canRead}
+                          onChange={(e) => setForm((p) => ({ ...p, canRead: e.target.checked }))}
+                          className="rounded text-indigo-600 focus:ring-indigo-500"
+                        />
+                        <span>📖 Read Online (Smart Reader)</span>
                       </label>
-
-                      <select
-                        className={inputClass}
-                        value={form.type === "user" ? form.userId : form.roleId}
-                        onChange={(e) =>
-                          setForm((p) => ({
-                            ...p,
-                            [form.type === "user" ? "userId" : "roleId"]:
-                              e.target.value,
-                          }))
-                        }
-                        disabled={loading.action}
-                      >
-                        <option value="">-- Select Target --</option>
-
-                        {form.type === "user"
-                          ? data.users.map((u) => (
-                              <option key={u.id} value={u.id}>
-                                {u.username} ({u.full_name || "No Name"})
-                              </option>
-                            ))
-                          : data.roles.map((r) => (
-                              <option key={r.id} value={r.id}>
-                                {r.name}
-                              </option>
-                            ))}
-                      </select>
+                      <label className="flex items-center gap-2 text-xs font-bold text-slate-700 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={form.canSearch}
+                          onChange={(e) => setForm((p) => ({ ...p, canSearch: e.target.checked }))}
+                          className="rounded text-indigo-600 focus:ring-indigo-500"
+                        />
+                        <span>🔍 Full-Text Search Allowed</span>
+                      </label>
+                      <label className="flex items-center gap-2 text-xs font-bold text-slate-700 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={form.canDownload}
+                          onChange={(e) => setForm((p) => ({ ...p, canDownload: e.target.checked }))}
+                          className="rounded text-indigo-600 focus:ring-indigo-500"
+                        />
+                        <span>📥 Download PDF Offline</span>
+                      </label>
                     </div>
 
                     <button
                       type="submit"
                       disabled={loading.action}
-                      className={`${btnClass} bg-indigo-600 hover:bg-indigo-700`}
+                      className="w-full py-2.5 px-4 bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-xs rounded-xl shadow-md transition-all cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50"
                     >
-                      {loading.action ? <Spinner /> : "Grant Permission"}
+                      <ShieldCheckIcon className="w-4 h-4" />
+                      Grant Permission
                     </button>
                   </form>
                 </div>
 
-                {/* Right: Permission List */}
-                <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-                  <h3 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2">
-                    <ShieldCheckIcon className="h-5 w-5 text-emerald-600" /> Active
-                    Permissions
-                  </h3>
+                {/* 2. ACTIVE PERMISSIONS TABLE (7 cols) */}
+                <div className="xl:col-span-7 bg-white rounded-3xl p-6 border border-slate-200/80 shadow-xs flex flex-col">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-sm font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
+                      <CheckCircleIcon className="w-4 h-4 text-emerald-600" />
+                      Granted Permissions ({permissions.length})
+                    </h3>
+                  </div>
 
                   {loading.perms ? (
-                    <Skeleton count={3} height={40} />
+                    <div className="py-12 text-center text-slate-400 text-xs font-bold animate-pulse">
+                      Loading active permissions...
+                    </div>
                   ) : permissions.length === 0 ? (
-                    <div className="text-center py-10 text-slate-400 bg-slate-50 rounded-lg border border-dashed border-slate-200">
-                      <LockClosedIcon className="h-10 w-10 mx-auto mb-2 opacity-20" />
-                      <p>No permissions assigned yet.</p>
+                    <div className="py-16 text-center bg-slate-50/70 rounded-2xl border border-dashed border-slate-200 my-auto">
+                      <LockClosedIcon className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+                      <p className="text-xs font-bold text-slate-600">
+                        No permissions granted for this book yet.
+                      </p>
+                      <p className="text-[11px] text-slate-400 mt-0.5">
+                        Use the form on the left to assign access to scholars or roles.
+                      </p>
                     </div>
                   ) : (
-                    <ul className="space-y-3">
+                    <div className="space-y-2.5 overflow-y-auto max-h-[480px] pr-1">
                       {permissions.map((perm) => {
                         const isUser = !!perm.user_id;
-
-                        const targetObj = isUser
-                          ? data.users.find((u) => u.id === perm.user_id)
-                          : data.roles.find((r) => r.id === perm.role_id);
-
+                        const targetUser = isUser ? data.users.find((u) => u.id === perm.user_id) : null;
+                        const targetRole = !isUser ? data.roles.find((r) => r.id === perm.role_id) : null;
                         const name = isUser
-                          ? targetObj?.username || "Unknown User"
-                          : targetObj?.name || "Unknown Role";
+                          ? targetUser?.username || `User #${perm.user_id}`
+                          : targetRole?.name || `Role #${perm.role_id}`;
 
                         return (
-                          <li
+                          <div
                             key={perm.id}
-                            className="flex justify-between items-center p-3 bg-slate-50 border border-slate-100 rounded-lg hover:border-indigo-100 transition-colors"
+                            className="p-3.5 rounded-2xl bg-slate-50/80 hover:bg-slate-100/70 border border-slate-200/70 flex items-center justify-between gap-3 transition"
                           >
-                            <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-3 min-w-0">
                               <div
-                                className={`p-2 rounded-full ${
+                                className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold text-xs shrink-0 shadow-2xs ${
                                   isUser
-                                    ? "bg-blue-100 text-blue-600"
-                                    : "bg-purple-100 text-purple-600"
+                                    ? "bg-indigo-100 text-indigo-800"
+                                    : "bg-purple-100 text-purple-800"
                                 }`}
                               >
-                                {isUser ? (
-                                  <UserIcon className="h-5 w-5" />
-                                ) : (
-                                  <UserGroupIcon className="h-5 w-5" />
-                                )}
+                                {isUser ? <UserIcon className="w-4 h-4" /> : <UserGroupIcon className="w-4 h-4" />}
                               </div>
 
-                              <div>
-                                <p className="text-sm font-bold text-slate-700">
-                                  {name}
-                                </p>
-                                <p className="text-xs text-slate-400 font-medium uppercase tracking-wide">
-                                  {isUser ? "User Access" : "Role Access"}
+                              <div className="min-w-0">
+                                <div className="flex items-center gap-2">
+                                  <p className="text-xs font-extrabold text-slate-900 truncate">
+                                    {name}
+                                  </p>
+                                  <span
+                                    className={`text-[9px] font-black uppercase px-2 py-0.2 rounded-full ${
+                                      isUser
+                                        ? "bg-blue-50 text-blue-700 border border-blue-200"
+                                        : "bg-purple-50 text-purple-700 border border-purple-200"
+                                    }`}
+                                  >
+                                    {isUser ? "User" : "Role"}
+                                  </span>
+                                </div>
+                                <p className="text-[10.5px] text-slate-400 font-medium truncate mt-0.5">
+                                  {isUser && targetUser?.email ? targetUser.email : "Permanent Policy Access"}
                                 </p>
                               </div>
                             </div>
 
-                            <button
-                              onClick={() => handleRevoke(perm.id, name)}
-                              disabled={loading.action}
-                              className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
-                              title="Revoke Access"
-                            >
-                              <TrashIcon className="h-5 w-5" />
-                            </button>
-                          </li>
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              {isUser && (
+                                <Link
+                                  to={`/admin/digital-access?userId=${perm.user_id}`}
+                                  className="p-1.5 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition"
+                                  title="Inspect User Audit Logs"
+                                >
+                                  <EyeIcon className="w-4 h-4" />
+                                </Link>
+                              )}
+                              <button
+                                onClick={() => handleRevoke(perm.id, name)}
+                                className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition cursor-pointer"
+                                title="Revoke Permission"
+                              >
+                                <TrashIcon className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </div>
                         );
                       })}
-                    </ul>
+                    </div>
                   )}
                 </div>
               </div>
-            )}
-          </div>
-        )}
+            </>
+          ) : (
+            <div className="bg-white rounded-3xl p-12 text-center border border-slate-200/80 shadow-xs">
+              <LockClosedIcon className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+              <h3 className="text-base font-bold text-slate-700">
+                Please select a restricted book from the list
+              </h3>
+              <p className="text-xs text-slate-400 mt-1">
+                Choose a book to inspect its active permission policies and assign access.
+              </p>
+            </div>
+          )}
+        </div>
       </div>
-    </SkeletonTheme>
+    </div>
   );
 };
 

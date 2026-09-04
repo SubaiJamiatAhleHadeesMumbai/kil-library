@@ -81,6 +81,7 @@ const BookManagement = () => {
     const [statusFilter, setStatusFilter] = useState('ALL'); // 'ALL' | 'PUBLIC' | 'RESTRICTED' | 'DIGITAL'
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage, setItemsPerPage] = useState(25);
+    const [pageJumpInput, setPageJumpInput] = useState('');
     const [serverStats, setServerStats] = useState(null);
 
     // ── Search Debounce (300ms) ──
@@ -504,9 +505,9 @@ const BookManagement = () => {
                         <TableSkeleton />
                     </div>
                 ) : filteredBooks.length > 0 ? (
-                    <div className="overflow-x-auto">
+                    <div className="overflow-x-auto max-h-[700px]">
                         <table className="w-full text-left border-collapse">
-                            <thead>
+                            <thead className="sticky top-0 bg-slate-50/95 z-10 backdrop-blur-xs shadow-2xs">
                                 <tr className="bg-slate-50/50 border-b border-slate-200/80 text-[11px] font-black text-slate-500 uppercase tracking-widest">
                                     <th className="px-6 py-4 w-12 text-center">
                                         <input 
@@ -725,7 +726,7 @@ const BookManagement = () => {
                                 <button
                                     onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                                     disabled={currentPage === 1}
-                                    className="inline-flex items-center gap-1 px-3 py-1.5 border border-slate-200 rounded-xl bg-white text-xs font-bold text-slate-700 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-2xs"
+                                    className="inline-flex items-center gap-1 px-3 py-1.5 border border-slate-200 rounded-xl bg-white text-xs font-bold text-slate-700 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-2xs cursor-pointer"
                                 >
                                     <ChevronLeftIcon className="w-4 h-4" /> Previous
                                 </button>
@@ -737,10 +738,34 @@ const BookManagement = () => {
                                 <button
                                     onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                                     disabled={currentPage === totalPages}
-                                    className="inline-flex items-center gap-1 px-3 py-1.5 border border-slate-200 rounded-xl bg-white text-xs font-bold text-slate-700 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-2xs"
+                                    className="inline-flex items-center gap-1 px-3 py-1.5 border border-slate-200 rounded-xl bg-white text-xs font-bold text-slate-700 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-2xs cursor-pointer"
                                 >
                                     Next <ChevronRightIcon className="w-4 h-4" />
                                 </button>
+
+                                {totalPages > 2 && (
+                                    <div className="hidden sm:flex items-center gap-1.5 pl-2 border-l border-slate-200 ml-1">
+                                        <span className="text-[11px] text-slate-400 font-semibold">Jump:</span>
+                                        <input
+                                            type="number"
+                                            min="1"
+                                            max={totalPages}
+                                            value={pageJumpInput}
+                                            onChange={(e) => setPageJumpInput(e.target.value)}
+                                            onKeyDown={(e) => {
+                                                if (e.key === 'Enter') {
+                                                    const p = Number(pageJumpInput);
+                                                    if (p >= 1 && p <= totalPages) {
+                                                        setCurrentPage(p);
+                                                        setPageJumpInput('');
+                                                    }
+                                                }
+                                            }}
+                                            placeholder={String(currentPage)}
+                                            className="w-12 text-center text-xs font-bold py-1 px-1 border border-slate-200 rounded-lg outline-none focus:border-emerald-500 bg-white"
+                                        />
+                                    </div>
+                                )}
                             </div>
                         )}
                     </div>

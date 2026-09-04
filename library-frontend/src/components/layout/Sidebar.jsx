@@ -17,7 +17,8 @@ import {
     ArrowLeftOnRectangleIcon,
     CheckBadgeIcon,
     UserGroupIcon,
-    NewspaperIcon
+    NewspaperIcon,
+    BanknotesIcon
 } from '@heroicons/react/24/outline';
 
 const Sidebar = () => {
@@ -51,6 +52,7 @@ const Sidebar = () => {
             title: "Library Management",
             items: [
                 { name: "All Books", path: "/admin/books", icon: BookOpenIcon, requiredPerm: "BOOK_VIEW" },
+                { name: "Book Orders & Payments", path: "/admin/book-orders", icon: BanknotesIcon, requiredPerm: "BOOK_VIEW" },
                 { name: "Newspaper Clippings", path: "/admin/newspaper-clippings", icon: NewspaperIcon, requiredPerm: "BOOK_MANAGE" },
                 { name: "Copies & Issuing", path: "/admin/copies", icon: DocumentDuplicateIcon, requiredPerm: "BOOK_ISSUE" },
                 { name: "Categories", path: "/admin/categories", icon: TagIcon, requiredPerm: "BOOK_MANAGE" },
@@ -63,6 +65,7 @@ const Sidebar = () => {
                 { name: "Users Management", path: "/admin/users", icon: UsersIcon, requiredPerm: "USER_VIEW" },
                 { name: "Social Work & Activities", path: "/admin/social-work", icon: UserGroupIcon, requiredPerm: "USER_MANAGE" },
                 { name: "Languages", path: "/admin/languages", icon: LanguageIcon, requiredPerm: "BOOK_MANAGE" },
+                { name: "Translations CMS", path: "/admin/translations", icon: LanguageIcon, requiredPerm: "BOOK_MANAGE" },
                 { name: "Locations", path: "/admin/locations", icon: MapPinIcon, requiredPerm: "BOOK_MANAGE" },
                 { name: "Roles & Permissions", path: "/admin/roles-permissions", icon: ShieldCheckIcon, requiredPerm: "ROLE_VIEW" },
             ]

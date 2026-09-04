@@ -53,6 +53,9 @@ async def create_book(
     book_number: Optional[str] = Form(None),
     price: Optional[float] = Form(None),
     is_restricted: bool = Form(False),
+    is_download_paid: bool = Form(False),
+    download_price: Optional[float] = Form(0.0),
+    download_upi_id: Optional[str] = Form(None),
     is_digital: bool = Form(False),
     date_of_purchase: Optional[str] = Form(None),
     description: Optional[str] = Form(None),
@@ -176,6 +179,9 @@ async def create_book(
             available_copies=clean_copies,
             extra_data=extra_data,
             is_restricted=bool(is_restricted),
+            is_download_paid=bool(is_download_paid),
+            download_price=float(download_price) if download_price is not None else 0.0,
+            download_upi_id=download_upi_id.strip() if download_upi_id else None,
             is_digital=bool(is_digital) or bool(pdf_url or txt_file_url),
             is_approved=True, 
             
@@ -491,6 +497,9 @@ async def update_book(
     total_copies: Optional[int] = Form(None),
     extra_data: Optional[str] = Form(None),
     is_restricted: Optional[bool] = Form(None),
+    is_download_paid: Optional[bool] = Form(None),
+    download_price: Optional[float] = Form(None),
+    download_upi_id: Optional[str] = Form(None),
     subcategory_ids: List[int] = Form(None),
     
     # 📂 FILES UPDATE & PRE-UPLOADED CHUNK URLS
@@ -534,6 +543,9 @@ async def update_book(
     if book_number is not None: db_book.book_number = book_number
     if description is not None: db_book.description = description
     if is_restricted is not None: db_book.is_restricted = is_restricted
+    if is_download_paid is not None: db_book.is_download_paid = is_download_paid
+    if download_price is not None: db_book.download_price = download_price
+    if download_upi_id is not None: db_book.download_upi_id = download_upi_id.strip() if download_upi_id else None
 
     if publication_year is not None:
         db_book.published_date = date(publication_year, 1, 1)
@@ -654,3 +666,40 @@ def delete_book(
     )
     db.commit()
     return None
+
+
+@router.post("/bulk-paid-download-update")
+async def bulk_update_paid_download(
+    payload: dict,
+    db: Session = Depends(get_db),
+    current_user: user_model.User = Depends(require_permission("BOOK_MANAGE"))
+):
+    """
+    Bulk enable or disable paid download and set custom download price across books.
+    Payload: { "book_ids": [1, 2], "all_books": bool, "is_download_paid": bool, "download_price": float }
+    """
+    all_books = bool(payload.get("all_books", False))
+    is_paid = bool(payload.get("is_download_paid", False))
+    price = float(payload.get("download_price", 0.0) or 0.0)
+    book_ids = payload.get("book_ids", [])
+
+    query = db.query(book_model.Book).filter(book_model.Book.deleted_at.is_(None))
+    if not all_books:
+        if not book_ids:
+            raise HTTPException(status_code=400, detail="No book IDs provided for update.")
+        query = query.filter(book_model.Book.id.in_(book_ids))
+
+    updated_count = query.update(
+        {
+            book_model.Book.is_download_paid: is_paid,
+            book_model.Book.download_price: price,
+        },
+        synchronize_session=False
+    )
+    create_log(
+        db=db, user=current_user, action_type="BOOK_UPDATED",
+        description=f"Bulk updated {updated_count} books: Paid Download = {is_paid}, Price = ₹{price}",
+        target_type="Book"
+    )
+    db.commit()
+    return {"message": f"Successfully updated {updated_count} books.", "updated_count": updated_count}

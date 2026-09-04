@@ -6,11 +6,11 @@ import apiClient from './apiClient';
 // ==========================================
 
 /**
- * Fetches all registered users.
+ * Fetches registered users with optional search/pagination.
  */
-const getAllUsers = async () => {
+const getAllUsers = async (params = {}) => {
     try {
-        const response = await apiClient.get('/api/users/');
+        const response = await apiClient.get('/api/users/', { params });
         return response.data;
     } catch (error) {
         console.error("Error fetching users:", error.response?.data || error.message);
@@ -55,6 +55,19 @@ const deleteUser = async (userId) => {
     } catch (error) {
         console.error(`Error deleting user ${userId}:`, error.response?.data || error.message);
         throw error.response?.data || new Error('Failed to delete user');
+    }
+};
+
+/**
+ * Admin directly resets any user's password.
+ */
+const adminResetPassword = async (userId, newPassword) => {
+    try {
+        const response = await apiClient.put(`/api/users/${userId}/reset-password`, { new_password: newPassword });
+        return response.data;
+    } catch (error) {
+        console.error(`Error resetting password for user ${userId}:`, error.response?.data || error.message);
+        throw error.response?.data || new Error('Failed to reset password');
     }
 };
 
@@ -178,6 +191,7 @@ export const userService = {
     createUser,
     updateUser,
     deleteUser,
+    adminResetPassword,
 
     // Admin - Roles
     getAllRoles,

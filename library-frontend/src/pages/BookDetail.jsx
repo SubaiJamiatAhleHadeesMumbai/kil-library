@@ -1,6 +1,6 @@
 import StandardFormattedText from "../components/common/StandardFormattedText";
 import React, { useState, useEffect, useMemo } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { bookService } from '../api/bookService';
 import { getBookCover } from '../utils/cover';
 import { Toaster, toast } from 'react-hot-toast';
@@ -24,11 +24,14 @@ import { Viewer, Worker } from '@react-pdf-viewer/core';
 import { defaultLayoutPlugin } from '@react-pdf-viewer/default-layout';
 import '@react-pdf-viewer/core/lib/styles/index.css';
 import '@react-pdf-viewer/default-layout/lib/styles/index.css';
+import BookPurchaseModal from '../components/book/BookPurchaseModal';
 
 const BookDetail = () => {
     const { id } = useParams();
+    const navigate = useNavigate();
     const [book, setBook] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [showPurchaseModal, setShowPurchaseModal] = useState(false);
     
     // --- Reader States ---
     const [viewMode, setViewMode] = useState("pdf"); // 'pdf' or 'text'
@@ -42,14 +45,19 @@ const BookDetail = () => {
     const defaultLayoutPluginInstance = defaultLayoutPlugin();
 
     useEffect(() => {
+        if (!id || id === 'null' || id === 'undefined') {
+            navigate('/books', { replace: true });
+            return;
+        }
         const fetchDetails = async () => {
             try {
                 const data = await bookService.getBookById(id);
-                setBook(data);
-                
-                // Smart Default: If no PDF but Text exists, switch to Text mode
-                if (!data.pdf_url && data.txt_file_url) {
-                    setViewMode("text");
+                if (data) {
+                    setBook(data);
+                    // Smart Default: If no PDF but Text exists, switch to Text mode
+                    if (!data.pdf_url && data.txt_file_url) {
+                        setViewMode("text");
+                    }
                 }
             } catch (err) {
                 console.error("Error:", err);
@@ -198,26 +206,25 @@ const BookDetail = () => {
                             </div>
 
                             {/* Download / Read Actions */}
-                            <div className="space-y-3">
+                            <div className="space-y-2.5">
                                 {(book.pdf_url || book.txt_file_url) && (
                                     <Link
                                         to={`/read/${book.id}`}
-                                        className="w-full bg-emerald-600 text-white py-3.5 rounded-xl font-bold hover:bg-emerald-700 transition-all flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/30 text-sm"
+                                        className="w-full bg-emerald-600 text-white py-3 rounded-xl font-bold hover:bg-emerald-700 transition-all flex items-center justify-center gap-2 shadow-md text-xs sm:text-sm"
                                     >
-                                        <BookOpenIcon className="w-5 h-5" /> Open Split Reader (PDF + Text)
+                                        <BookOpenIcon className="w-4 h-4 sm:w-5 sm:h-5" /> Read Free Online (Split Reader)
                                     </Link>
                                 )}
 
                                 {book.pdf_url && (
-                                    <a 
-                                        href={book.pdf_url} 
-                                        download 
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="w-full bg-slate-900 text-white py-3 rounded-xl font-bold hover:bg-slate-800 transition-all flex items-center justify-center gap-2 shadow-md text-sm"
+                                    <button 
+                                        type="button"
+                                        onClick={() => setShowPurchaseModal(true)}
+                                        className="w-full bg-[#002147] text-white py-3 rounded-xl font-bold hover:bg-[#003166] transition-all flex items-center justify-center gap-2 shadow-md text-xs sm:text-sm cursor-pointer"
                                     >
-                                        <ArrowDownTrayIcon className="w-5 h-5" /> {book.pdf_url?.toLowerCase().includes('.doc') ? 'Download Document' : 'Download PDF'}
-                                    </a>
+                                        <ArrowDownTrayIcon className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-400" />
+                                        {book.is_download_paid ? `Download Offline PDF (₹${book.download_price || 49})` : 'Download PDF'}
+                                    </button>
                                 )}
                             </div>
 
@@ -259,11 +266,11 @@ const BookDetail = () => {
                                 )}
                             </div>
                             
-                            <h1 className={`text-2xl sm:text-4xl font-black text-slate-900 leading-tight mb-3 ${langClass}`} style={{ fontFamily: isRTL ? '"Jameel Noori Nastaleeq", "Noto Naskh Arabic", serif' : 'inherit' }}>
+                            <h1 className={`text-xl sm:text-2xl font-bold text-slate-900 leading-snug mb-2 ${langClass}`} style={{ fontFamily: isRTL ? '"Jameel Noori Nastaleeq", "Noto Naskh Arabic", serif' : 'inherit' }}>
                                 {book.title}
                             </h1>
-                            <p className="text-base sm:text-lg text-slate-500 font-medium">
-                                تالیف / Author: <span className="text-slate-900 font-bold underline decoration-slate-300 decoration-2 underline-offset-4">{book.author || "فضیلۃ الشیخ"}</span>
+                            <p className="text-xs sm:text-sm text-slate-600 font-normal">
+                                تالیف / Author: <span className="text-slate-900 font-bold underline decoration-slate-300 decoration-1 underline-offset-4">{book.author || "فضیلۃ الشیخ"}</span>
                             </p>
                             {book.translator && (
                                 <p className="text-sm text-slate-500 font-medium mt-1">
@@ -459,7 +466,7 @@ const BookDetail = () => {
                                 </div>
                             ) : (
                                 <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden" style={{height: 'calc(100vh - 240px)'}}>
-                                    <Worker workerUrl="/pdf.worker.min.mjs">
+                                    <Worker workerUrl="https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.worker.min.js">
                                         <Viewer fileUrl={book.pdf_url} plugins={[defaultLayoutPluginInstance]} />
                                     </Worker>
                                 </div>
@@ -481,6 +488,15 @@ const BookDetail = () => {
                     </div>
                 </div>
             </div>
+
+            {/* Paid Download & UPI Purchase Modal */}
+            <BookPurchaseModal
+                key="book-detail-purchase-modal"
+                book={book}
+                pdfUrl={book?.pdf_url || book?.pdf_file}
+                isOpen={showPurchaseModal}
+                onClose={() => setShowPurchaseModal(false)}
+            />
         </div>
     );
 };

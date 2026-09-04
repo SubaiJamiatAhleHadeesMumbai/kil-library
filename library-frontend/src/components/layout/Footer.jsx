@@ -68,7 +68,7 @@ const Footer = () => {
             <div className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center border border-[#F4A261]/50">
               <BuildingLibraryIcon className="w-6 h-6 text-[#F4A261]" />
             </div>
-            <span className="text-xl font-serif font-bold text-white tracking-wide">Kokan Library</span>
+            <span className="text-xl font-serif font-bold text-white tracking-wide">AHLE HADEES KOKAN</span>
           </div>
 
           <p className="text-gray-400 text-sm leading-relaxed mb-6">

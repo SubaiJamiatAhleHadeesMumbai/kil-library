@@ -3,6 +3,8 @@ from sqlalchemy.orm import Session
 from database import get_db
 from models import DonationInfo
 from schemas import DonationInfoResponse
+from auth import require_permission
+from models import user_model
 
 from utils.storage_helper import smart_upload
 
@@ -42,7 +44,8 @@ def update_donation_details(
     appeal_mobile: UploadFile = File(None),
     bank_mobile: UploadFile = File(None),
     
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: user_model.User = Depends(require_permission("HOMEPAGE_CONTENT_MANAGE"))
 ):
     # 1. Database se record nikalein
     info = db.query(DonationInfo).first()

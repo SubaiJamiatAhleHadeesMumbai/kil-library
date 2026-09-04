@@ -1,16 +1,17 @@
 import os
 import json
 import urllib.request
+import requests as http_requests
 from fastapi import APIRouter, HTTPException, Depends, status
 from pydantic import BaseModel
 from google.oauth2 import id_token
-from google.auth.transport import requests
+from google.auth.transport import requests as google_transport_requests
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 
 from database import get_db
 from models import user_model
-from auth import create_access_token
+from auth import create_tokens
 
 router = APIRouter()
 
@@ -37,27 +38,41 @@ def google_login(payload: GoogleLoginRequest, db: Session = Depends(get_db)):
         try:
             info = id_token.verify_oauth2_token(
                 payload.token,
-                requests.Request(),
+                google_transport_requests.Request(),
                 GOOGLE_CLIENT_ID
             )
-        except Exception:
+        except Exception as e:
+            pass
+
+        # If not verified as ID token, fetch from Google userinfo endpoint using access token
+        if not info or not info.get("email"):
+            try:
+                resp = http_requests.get(
+                    "https://www.googleapis.com/oauth2/v3/userinfo",
+                    headers={"Authorization": f"Bearer {payload.token}", "User-Agent": "Mozilla/5.0"},
+                    timeout=10
+                )
+                if resp.status_code == 200:
+                    info = resp.json()
+            except Exception as req_err:
+                print(f"[Google userinfo request error]: {req_err}")
+
+        # Fallback to urllib if requests failed
+        if not info or not info.get("email"):
             try:
                 req = urllib.request.Request(
                     "https://www.googleapis.com/oauth2/v3/userinfo",
-                    headers={"Authorization": f"Bearer {payload.token}"}
+                    headers={"Authorization": f"Bearer {payload.token}", "User-Agent": "Mozilla/5.0"}
                 )
                 with urllib.request.urlopen(req, timeout=10) as resp:
                     info = json.loads(resp.read().decode("utf-8"))
-            except Exception:
-                raise HTTPException(
-                    status_code=status.HTTP_401_UNAUTHORIZED,
-                    detail="Invalid or expired Google authentication token"
-                )
+            except Exception as url_err:
+                print(f"[Google urllib error]: {url_err}")
 
         if not info or not info.get("email"):
             raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Google account email not found"
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid or expired Google authentication token. Please try again."
             )
 
         email = info.get("email").strip().lower()
@@ -66,7 +81,14 @@ def google_login(payload: GoogleLoginRequest, db: Session = Depends(get_db)):
         # 2. Check if user already exists
         user = db.query(user_model.User).filter(func.lower(user_model.User.email) == email).first()
 
-        if not user:
+        if user:
+            # ✅ If user was previously soft-deleted or inactive, reactivate upon verified Google OAuth
+            if user.status != "Active" or user.deleted_at is not None:
+                user.status = "Active"
+                user.deleted_at = None
+                db.commit()
+                db.refresh(user)
+        else:
             # ─── SECURE ROLE ASSIGNMENT ─────────────────────────────────────
             # Only assign Admin role if email is explicitly listed in ADMIN_EMAILS
             if email in ADMIN_EMAILS:
@@ -116,23 +138,27 @@ def google_login(payload: GoogleLoginRequest, db: Session = Depends(get_db)):
             db.commit()
             db.refresh(user)
 
-        # 3. Build Access Token & Permissions Payload
+        # 3. Build Access Token & Refresh Token (Standard format with type=access)
         role_name = user.role.name if user.role else "user"
-        access_token = create_access_token(
-            data={"sub": str(user.id), "email": user.email, "role": role_name}
-        )
+        tokens = create_tokens(user.id, user.username)
+        access_token = tokens["access_token"]
+        refresh_token = tokens["refresh_token"]
 
         permissions_list = [p.name for p in user.role.permissions] if (user.role and user.role.permissions) else []
 
         return {
             "access_token": access_token,
+            "refresh_token": refresh_token,
             "token_type": "bearer",
             "user": {
                 "id": user.id,
                 "username": user.username,
                 "email": user.email,
                 "full_name": user.full_name,
-                "role": {"name": role_name},
+                "role": {
+                    "name": role_name,
+                    "permissions": [{"name": p} for p in permissions_list]
+                },
                 "permissions": permissions_list
             }
         }

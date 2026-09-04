@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useMemo, useCallback } from 'react';
 import { Document, Page, pdfjs } from 'react-pdf';
 import { InView } from 'react-intersection-observer';
 import { 
@@ -6,8 +6,8 @@ import {
   ChevronRight, Maximize2, LayoutGrid, Type 
 } from 'lucide-react';
 
-// Always match worker version with the runtime PDF.js API bundled by react-pdf.
-pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
+// Local bundled worker matching exact pdfjs version 5.4.296 (zero SyntaxError, zero QUIC error)
+pdfjs.GlobalWorkerOptions.workerSrc = '/pdf.worker.classic.js';
 
 import 'react-pdf/dist/Page/AnnotationLayer.css';
 import 'react-pdf/dist/Page/TextLayer.css';
@@ -15,25 +15,32 @@ import 'react-pdf/dist/Page/TextLayer.css';
 const PdfViewer = ({ 
   pdfUrl, 
   viewMode = 'scroll', 
-  scale, 
-  setScale, 
-  setTotalPages, 
-  setCurrentPage, 
-  onAutoPageChange = setCurrentPage,
+  scale = 1.0, 
+  setScale = () => {}, 
+  setTotalPages = () => {}, 
+  setCurrentPage = () => {}, 
+  onAutoPageChange = () => {},
   suppressAutoPageTracking = false,
   onDocumentReady,
   onDocumentError,
   onLandingResolved,
-  totalPages,
-  currentPage,
+  totalPages = 1,
+  currentPage = 1,
   searchText = ''
 }) => {
   const containerRef = useRef(null);
   const scrollAreaRef = useRef(null);
   const pageRefs = useRef({});
   const isProgrammaticScrollRef = useRef(false);
+  const scrolledPageRef = useRef(null);
   const [containerWidth, setContainerWidth] = useState(0);
   const [loadError, setLoadError] = useState(null); // ✅ optional: surfaces real errors instead of silent infinite spinner
+
+  // Stable memoized file source so <Document> does NOT reload on every re-render (e.g. on scroll/page change)
+  const fileSource = useMemo(() => {
+    if (!pdfUrl) return null;
+    return typeof pdfUrl === 'string' ? { url: pdfUrl, withCredentials: false } : pdfUrl;
+  }, [pdfUrl]);
 
   // Handle responsive width for mobile
   useEffect(() => {
@@ -52,7 +59,7 @@ const PdfViewer = ({
   // Automatic scaling for mobile devices based on standard A4 PDF width (595.28 pt)
   const dynamicScale = containerWidth < 768 ? Math.max(0.45, (containerWidth / 595.28) * scale) : scale;
 
-  const renderHighlightedText = (textItem) => {
+  const renderHighlightedText = useCallback((textItem) => {
     if (!searchText || !textItem?.str) return textItem.str;
 
     const safeSearchText = searchText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -71,13 +78,20 @@ const PdfViewer = ({
         </mark>
       );
     });
-  };
+  }, [searchText]);
 
   const handlePrev = () => setCurrentPage(prev => Math.max(1, prev - 1));
   const handleNext = () => setCurrentPage(prev => Math.min(totalPages, prev + 1));
 
   useEffect(() => {
     if (viewMode !== 'scroll' || !currentPage) return;
+
+    // If currentPage change was triggered by user's natural scrolling, DO NOT snap/jump!
+    if (scrolledPageRef.current === currentPage) {
+      scrolledPageRef.current = null;
+      return;
+    }
+    scrolledPageRef.current = null;
 
     let rafId = null;
     let releaseTimer = null;
@@ -119,55 +133,55 @@ const PdfViewer = ({
       ref={containerRef}
       className="flex-1 min-h-0 bg-[#F8FAFC] relative flex flex-col items-stretch overflow-hidden h-full"
     >
-      {/* --- SLEEK FLOATING CONTROLS (Bottom on Mobile, Top on Desktop) --- */}
+      {/* --- ULTRA-COMPACT SLEEK FLOATING CONTROLS (DOCKED AT BOTTOM) --- */}
       {pdfUrl && (
-        <div className="fixed md:absolute bottom-4 md:bottom-auto md:top-4 left-1/2 -translate-x-1/2 z-40 flex items-center gap-1.5 sm:gap-2 bg-slate-900/90 md:bg-white/90 text-white md:text-slate-800 backdrop-blur-xl shadow-2xl md:shadow-lg border border-slate-700/60 md:border-slate-200/90 rounded-full px-3 py-1.5 sm:px-4 sm:py-2 transition-all">
+        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-40 flex items-center gap-1 bg-slate-900/90 text-white backdrop-blur-xl shadow-xl border border-slate-700/60 rounded-full px-2.5 py-1 text-xs transition-all hover:scale-102">
           {/* Prev page button */}
           <button
             onClick={handlePrev}
             disabled={currentPage <= 1}
-            className="p-1 sm:p-1.5 hover:bg-white/20 md:hover:bg-slate-100 rounded-full disabled:opacity-30 transition"
+            className="p-1 hover:bg-white/20 rounded-full disabled:opacity-25 transition cursor-pointer"
             title="Previous Page"
           >
-            <ChevronLeft size={16} />
+            <ChevronLeft size={13} />
           </button>
 
-          {/* Zoom controls */}
-          <div className="flex items-center gap-0.5 sm:gap-1 border-x border-slate-700 md:border-slate-200 px-1 sm:px-2 mx-0.5">
+          {/* Ultra-compact Zoom controls */}
+          <div className="flex items-center gap-0.5 border-x border-slate-700 px-1.5 mx-0.5">
             <button
               onClick={() => setScale(s => Math.max(0.4, s - 0.1))}
-              className="p-1 hover:bg-white/20 md:hover:bg-slate-100 rounded-full text-slate-300 md:text-slate-600 transition"
-              title="Zoom Out"
+              className="w-5 h-5 flex items-center justify-center hover:bg-white/20 rounded-full text-slate-300 font-mono text-xs font-bold leading-none transition cursor-pointer"
+              title="Zoom Out (−)"
             >
-              <ZoomOut size={15} />
+              −
             </button>
-            <span className="text-[11px] sm:text-xs font-bold min-w-[36px] sm:min-w-[42px] text-center font-mono">
+            <span className="text-[10px] font-bold min-w-[32px] text-center font-mono text-slate-200 tracking-tight">
               {Math.round(scale * 100)}%
             </span>
             <button
               onClick={() => setScale(s => Math.min(2.5, s + 0.1))}
-              className="p-1 hover:bg-white/20 md:hover:bg-slate-100 rounded-full text-slate-300 md:text-slate-600 transition"
-              title="Zoom In"
+              className="w-5 h-5 flex items-center justify-center hover:bg-white/20 rounded-full text-slate-300 font-mono text-xs font-bold leading-none transition cursor-pointer"
+              title="Zoom In (+)"
             >
-              <ZoomIn size={15} />
+              +
             </button>
           </div>
 
-          {/* Page Jump indicator */}
-          <div className="flex items-center gap-1 text-[11px] sm:text-xs font-semibold px-1 font-mono">
-            <span className="bg-sky-500/20 md:bg-indigo-50 text-sky-300 md:text-indigo-600 px-1.5 py-0.5 rounded font-bold">{currentPage}</span>
-            <span className="opacity-40">/</span>
-            <span>{totalPages}</span>
+          {/* Page indicator */}
+          <div className="flex items-center gap-1 text-[10px] font-semibold px-1 font-mono">
+            <span className="bg-sky-500/25 text-sky-300 px-1.5 py-0.2 rounded font-bold">{currentPage}</span>
+            <span className="opacity-35">/</span>
+            <span className="text-slate-300">{totalPages}</span>
           </div>
 
           {/* Next page button */}
           <button
             onClick={handleNext}
             disabled={currentPage >= totalPages}
-            className="p-1 sm:p-1.5 hover:bg-white/20 md:hover:bg-slate-100 rounded-full disabled:opacity-30 transition"
+            className="p-1 hover:bg-white/20 rounded-full disabled:opacity-25 transition cursor-pointer"
             title="Next Page"
           >
-            <ChevronRight size={16} />
+            <ChevronRight size={13} />
           </button>
         </div>
       )}
@@ -213,7 +227,7 @@ const PdfViewer = ({
           </div>
         ) : (
           <Document 
-            file={pdfUrl} 
+            file={fileSource} 
             className={`flex ${viewMode === 'grid' ? 'flex-wrap justify-center gap-8' : 'flex-col gap-10 items-center'} w-full`}
             onLoadSuccess={({numPages}) => {
               setTotalPages(numPages);
@@ -244,6 +258,7 @@ const PdfViewer = ({
                   }
 
                   if (inView && !isProgrammaticScrollRef.current && !suppressAutoPageTracking) {
+                    scrolledPageRef.current = index + 1;
                     onAutoPageChange(index + 1);
                   }
                 }}

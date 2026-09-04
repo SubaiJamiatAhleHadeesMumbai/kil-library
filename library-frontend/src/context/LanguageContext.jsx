@@ -1,5 +1,6 @@
-import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
 import { useLocation } from 'react-router-dom';
+import translationService from '../api/translationService';
 
 export const LANGUAGES = [
   { code: 'ar', name: 'العربية', nativeName: 'العربية', dir: 'rtl', label: 'العربية', fontClass: 'font-arabic' },
@@ -12,28 +13,35 @@ export const TRANSLATIONS = {
     home: "Home",
     library: "Library",
     about: "About",
+    gallery: "Gallery",
     fatawa: "Fatawa",
+    education: "Education",
+    activities: "Activities",
+    social_work: "Social Work",
+    clippings: "Newspaper Clippings",
     authors: "Authors",
     publishers: "Publishers",
     updates: "Updates",
     history: "History",
     donate: "Donate",
-    login: "Log in",
+    login: "Log In",
     logout: "Log Out",
     profile: "My Profile",
+    admin_dashboard: "Admin Dashboard",
     search: "Search books, authors...",
     read_book: "Read Online",
     download_pdf: "Download PDF",
+    download_offline: "Download Offline PDF",
     save: "Save",
+    cancel: "Cancel",
+    close: "Close",
+    clear: "Clear",
     categories: "Categories",
     all_books: "All Books",
     our_projects: "Our Projects",
     database: "Database",
     markaz_title: "Markaz Library",
     markaz_sub: "Ahle Hadees Kokan",
-    social_work: "Social Work",
-    education_taleem: "Education (Taleem)",
-    activities: "Activities",
     other: "Other",
     search_btn: "Search",
     search_placeholder: "Search books, fatawa, education, welfare drives, authors...",
@@ -45,17 +53,43 @@ export const TRANSLATIONS = {
     search_activities: "Activities",
     searching_markaz: "Searching Markaz database...",
     no_search_results: "No results found for",
-    clear: "Clear",
-    close: "Close",
     our_publications: "Our Publications (Markaz Dawah)",
     markaz_org_name: "Markaz Dawah Al-Islamiyyah wal-Khayriyyah",
     folders: "Folders & Topics",
+    read_more: "Read More",
+    show_less: "Show Less",
+    open_full_about: "Open Full Page",
+    all_albums: "All Albums",
+    all_photos: "All Photos",
+    filter_by_year: "Filter by Year",
+    all_years: "All Years",
+    slideshow: "Slideshow",
+    download_photo: "Download",
+    share_whatsapp: "Share on WhatsApp",
+    view_full_gallery: "Explore Full Gallery",
+    photo_count: "Photos",
+    no_photos_found: "No photos found in this category.",
+    view_in_hd: "View HD",
+    search_gallery: "Search photos or events...",
+    ask_question: "Ask a Question",
+    verified_fatwa: "Verified Fatwa",
+    all_drives: "All Welfare Initiatives",
+    event_date: "Date",
+    location: "Location / Venue",
+    newspaper_name: "Newspaper",
+    edition_date: "Edition Date",
+    zoom_clipping: "View High-Res",
   },
   ur: {
     home: "صفحہ اول",
     library: "کتب خانہ",
     about: "ہمارے متعلق",
+    gallery: "نگارخانہ",
     fatawa: "فتاویٰ",
+    education: "تعلیم",
+    activities: "سرگرمیاں",
+    social_work: "سماجی خدمات",
+    clippings: "اخبارات کے تراشے",
     authors: "مصنفین",
     publishers: "ناشرین",
     updates: "تازہ ترین",
@@ -64,19 +98,21 @@ export const TRANSLATIONS = {
     login: "لاگ ان",
     logout: "لاگ آؤٹ",
     profile: "میری پروفائل",
+    admin_dashboard: "ایڈمن ڈیش بورڈ",
     search: "کتابیں یا مصنفین تلاش کریں...",
     read_book: "آن لائن پڑھیں",
     download_pdf: "پی ڈی ایف ڈاؤن لوڈ",
+    download_offline: "آف لائن کاپی حاصل کریں",
     save: "محفوظ کریں",
+    cancel: "منسوخ",
+    close: "بند کریں",
+    clear: "صاف کریں",
     categories: "زمرہ جات",
     all_books: "تمام کتب",
     our_projects: "ہمارے منصوبے",
     database: "ڈیٹا بیس",
     markaz_title: "مرکز لائبریری",
     markaz_sub: "اہل حدیث کوکن",
-    social_work: "سماجی خدمات",
-    education_taleem: "تعلیم (Taleem)",
-    activities: "سرگرمیاں",
     other: "دیگر",
     search_btn: "تلاش کریں",
     search_placeholder: "کتب، فتاویٰ، تعلیمی پروگرام، سماجی خدمات تلاش کریں...",
@@ -88,19 +124,43 @@ export const TRANSLATIONS = {
     search_activities: "سرگرمیاں",
     searching_markaz: "مرکز ڈیٹا بیس میں تلاش جاری ہے...",
     no_search_results: "کوئی نتیجہ نہیں ملا برائے",
-    search_popular_topics: "اہم عنوانات",
-    recent_searches: "حالیہ تلاش",
-    clear: "صاف کریں",
-    close: "بند کریں",
     our_publications: "ہماری مطبوعات (مرکز الدعوۃ)",
     markaz_org_name: "مرکز الدعوۃ الاسلامیہ والخیریہ",
     folders: "فولڈرز اور موضوعات",
+    read_more: "مزید پڑھیں",
+    show_less: "مختصر کریں",
+    open_full_about: "مکمل صفحہ کھولیں",
+    all_albums: "تمام البم",
+    all_photos: "تمام تصاویر",
+    filter_by_year: "سال کے لحاظ سے",
+    all_years: "تمام سال",
+    slideshow: "سلائیڈ شو",
+    download_photo: "ڈاؤن لوڈ",
+    share_whatsapp: "واٹس ایپ شیئر",
+    view_full_gallery: "مکمل نگارخانہ دیکھیں",
+    photo_count: "تصاویر",
+    no_photos_found: "اس زمرے میں فی الحال کوئی تصویر موجود نہیں ہے۔",
+    view_in_hd: "بڑی تصویر دیکھیں",
+    search_gallery: "تصاویر یا ایونٹ تلاش کریں...",
+    ask_question: "سوال پوچھیں",
+    verified_fatwa: "مستند فتویٰ",
+    all_drives: "تمام رفاہی سرگرمیاں",
+    event_date: "تاریخ",
+    location: "مقام",
+    newspaper_name: "اخبار کا نام",
+    edition_date: "اشاعت کی تاریخ",
+    zoom_clipping: "بڑا کر کے پڑھیں",
   },
   ar: {
     home: "الرئيسية",
     library: "المكتبة",
     about: "عن المركز",
+    gallery: "معرض الصور",
     fatawa: "الفتاوى",
+    education: "التعليم",
+    activities: "الأنشطة",
+    social_work: "العمل الاجتماعي",
+    clippings: "قصاصات الصحف",
     authors: "المؤلفون",
     publishers: "دور النشر",
     updates: "المستجدات",
@@ -109,19 +169,21 @@ export const TRANSLATIONS = {
     login: "تسجيل الدخول",
     logout: "تسجيل الخروج",
     profile: "الملف الشخصي",
+    admin_dashboard: "لوحة الإدارة",
     search: "ابحث عن الكتب والمؤلفين...",
     read_book: "قراءة مباشرة",
     download_pdf: "تحميل PDF",
+    download_offline: "تحميل نسخة أوفلاين",
     save: "حفظ",
+    cancel: "إلغاء",
+    close: "إغلاق",
+    clear: "مسح",
     categories: "التصنيفات",
     all_books: "جميع الكتب",
     our_projects: "مشاريعنا",
     database: "قاعدة البيانات",
     markaz_title: "مكتبة المركز",
     markaz_sub: "أهل الحديث كوكن",
-    social_work: "العمل الاجتماعي",
-    education_taleem: "التعليم (Taleem)",
-    activities: "الأنشطة",
     other: "أخرى",
     search_btn: "بحث",
     search_placeholder: "ابحث عن الكتب، الفتاوى، البرامج التعليمية، العمل الاجتماعي...",
@@ -133,25 +195,48 @@ export const TRANSLATIONS = {
     search_activities: "الأنشطة",
     searching_markaz: "جاري البحث في قاعدة البيانات...",
     no_search_results: "لم يتم العثور على نتائج لـ",
-    search_popular_topics: "المواضيع الشائعة",
-    recent_searches: "عمليات البحث الأخيرة",
-    clear: "مسح",
-    close: "إغلاق",
     our_publications: "منشوراتنا (مركز الدعوة)",
     markaz_org_name: "مركز الدعوة الإسلامية والخيرية",
     folders: "المجلدات والتصنيفات",
+    read_more: "اقرأ المزيد",
+    show_less: "عرض أقل",
+    open_full_about: "فتح الصفحة الكاملة",
+    all_albums: "جميع الألبومات",
+    all_photos: "جميع الصور",
+    filter_by_year: "تصفية حسب السنة",
+    all_years: "جميع السنوات",
+    slideshow: "عرض الشرائح",
+    download_photo: "تحميل الصورة",
+    share_whatsapp: "مشاركة عبر واتساب",
+    view_full_gallery: "استعراض معرض الصور بالكامل",
+    photo_count: "صور",
+    no_photos_found: "لا توجد صور في هذا التصنيف حالياً.",
+    view_in_hd: "عرض الصورة بدقة عالية",
+    search_gallery: "ابحث في الصور والفعاليات...",
+    ask_question: "اطرح سؤالك",
+    verified_fatwa: "فتوى معتمدة",
+    all_drives: "كافة المبادرات الخيرية",
+    event_date: "التاريخ",
+    location: "الموقع",
+    newspaper_name: "اسم الصحيفة",
+    edition_date: "تاريخ النشر",
+    zoom_clipping: "تكبير القصاصة",
   }
 };
 
 const LanguageContext = createContext();
 
 export const LanguageProvider = ({ children }) => {
-  const [currentLang, setCurrentLang] = useState(() => {
-    return localStorage.getItem('kil_language') || 'en';
-  });
-
   const location = useLocation();
   const isAdmin = location.pathname.startsWith('/admin');
+
+  const [currentLang, setCurrentLang] = useState(() => {
+    try {
+      const saved = localStorage.getItem('kil_language');
+      if (['ur', 'ar', 'en'].includes(saved)) return saved;
+    } catch {}
+    return 'ur'; // Default to Urdu for public
+  });
 
   const setGoogleCookies = (lang) => {
     try {
@@ -159,14 +244,17 @@ export const LanguageProvider = ({ children }) => {
       const parts = hostname.split('.');
       const rootDomain = parts.length > 2 ? parts.slice(-2).join('.') : hostname;
 
-      // Clear previous cookies
       const clearCookie = (name) => {
         document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
         document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=${hostname};`;
         document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=.${rootDomain};`;
+        document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=localhost;`;
       };
 
       clearCookie('googtrans');
+      clearCookie('googtrans_en');
+      clearCookie('googtrans_ur');
+      clearCookie('googtrans_ar');
 
       if (lang && lang !== 'en') {
         const val = `/en/${lang}`;
@@ -201,6 +289,7 @@ export const LanguageProvider = ({ children }) => {
     setGoogleCookies(langObj.code);
   };
 
+  // ✅ ZERO-RELOAD INSTANT LANGUAGE SWITCHER
   const changeLanguage = (langCode) => {
     const target = ['ur', 'ar', 'en'].includes(langCode) ? langCode : 'en';
     setCurrentLang(target);
@@ -208,15 +297,12 @@ export const LanguageProvider = ({ children }) => {
     setGoogleCookies(target);
     applyLanguage(target);
 
-    // Trigger Google Translate combo if active
+    // Sync Google Translate combobox if present
     const select = document.querySelector('.goog-te-combo');
     if (select) {
       select.value = target;
       select.dispatchEvent(new Event('change', { bubbles: true }));
     }
-
-    // Quick reload ensures all DOM text nodes across React app are 100% translated
-    window.location.reload();
   };
 
   const resetToEnglish = () => {
@@ -226,6 +312,32 @@ export const LanguageProvider = ({ children }) => {
     applyLanguage('en');
   };
 
+  // Dynamic translations loaded from backend CMS
+  const [dynamicTranslations, setDynamicTranslations] = useState(() => {
+    try {
+      const cached = localStorage.getItem('kil_dynamic_translations');
+      return cached ? JSON.parse(cached) : null;
+    } catch {
+      return null;
+    }
+  });
+
+  const reloadTranslations = useCallback(async () => {
+    try {
+      const data = await translationService.getDictionary();
+      if (data && (data.en || data.ur || data.ar)) {
+        setDynamicTranslations(data);
+        localStorage.setItem('kil_dynamic_translations', JSON.stringify(data));
+      }
+    } catch (err) {
+      console.warn("Dynamic translations fetch notice:", err);
+    }
+  }, []);
+
+  useEffect(() => {
+    reloadTranslations();
+  }, [reloadTranslations]);
+
   useEffect(() => {
     applyLanguage(currentLang);
   }, [currentLang, location.pathname]);
@@ -234,10 +346,36 @@ export const LanguageProvider = ({ children }) => {
     return LANGUAGES.find(l => l.code === currentLang) || LANGUAGES.find(l => l.code === 'en') || LANGUAGES[0];
   }, [currentLang]);
 
-  // Translation helper function
-  const t = (key) => {
+  // ✅ ENHANCED SMART TRANSLATION HELPER (Dual Namespaced + Short Key Support)
+  const t = (key, fallbackText) => {
+    if (!key) return '';
+
+    // 1. Direct dynamic lookup in current language
+    if (dynamicTranslations?.[currentLang]?.[key]) {
+      return dynamicTranslations[currentLang][key];
+    }
+
+    // 2. Short key lookup if key has namespace (e.g. 'navbar.home' -> 'home')
+    const shortKey = key.includes('.') ? key.split('.').pop() : null;
+    if (shortKey && dynamicTranslations?.[currentLang]?.[shortKey]) {
+      return dynamicTranslations[currentLang][shortKey];
+    }
+
+    // 3. Static dictionary lookup for current language
     const dict = TRANSLATIONS[currentLang] || TRANSLATIONS.en;
-    return dict[key] || TRANSLATIONS.en[key] || key;
+    if (dict?.[key]) return dict[key];
+    if (shortKey && dict?.[shortKey]) return dict[shortKey];
+
+    // 4. Fallback to English dynamic
+    if (dynamicTranslations?.en?.[key]) return dynamicTranslations.en[key];
+    if (shortKey && dynamicTranslations?.en?.[shortKey]) return dynamicTranslations.en[shortKey];
+
+    // 5. Fallback to English static
+    if (TRANSLATIONS.en?.[key]) return TRANSLATIONS.en[key];
+    if (shortKey && TRANSLATIONS.en?.[shortKey]) return TRANSLATIONS.en[shortKey];
+
+    // 6. Return fallbackText or key
+    return fallbackText || key;
   };
 
   return (
@@ -249,7 +387,8 @@ export const LanguageProvider = ({ children }) => {
       resetToEnglish,
       isRTL: activeLangObj.dir === 'rtl',
       isAdmin,
-      t
+      t,
+      reloadTranslations
     }}>
       {children}
     </LanguageContext.Provider>

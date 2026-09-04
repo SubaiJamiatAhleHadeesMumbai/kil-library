@@ -75,6 +75,8 @@ def get_dashboard_stats(db: Session = Depends(get_db)):
         recent_logs.append({
             "id": log.id,
             "action": log.action_type,
+            "action_type": log.action_type,
+            "description": log.description or log.action_type,
             "timestamp": log.timestamp,
             "user": user_name
         })

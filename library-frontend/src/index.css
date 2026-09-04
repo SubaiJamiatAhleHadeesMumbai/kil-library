@@ -58,24 +58,38 @@ body {
   overflow-x: hidden;
 }
 
-h1 {
-  font-size: clamp(1.35rem, 1.15rem + 1vw, 2.25rem);
-  line-height: 1.12;
-  letter-spacing: -0.035em;
-  font-weight: 700;
+/* ============================================================
+   HIDE SCROLLBAR UTILITIES (Cross-Browser)
+   ============================================================ */
+.no-scrollbar::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
 }
 
-h2 {
-  font-size: clamp(1.15rem, 1rem + 0.65vw, 1.5rem);
+.no-scrollbar {
+  -ms-overflow-style: none !important;  /* IE and Edge */
+  scrollbar-width: none !important;  /* Firefox */
+}
+
+h1 {
+  font-size: clamp(1.25rem, 1.1rem + 0.6vw, 1.75rem);
   line-height: 1.2;
   letter-spacing: -0.025em;
   font-weight: 700;
 }
 
-h3 {
-  font-size: clamp(1rem, 0.95rem + 0.35vw, 1.125rem);
+h2 {
+  font-size: clamp(1.1rem, 1rem + 0.4vw, 1.35rem);
   line-height: 1.25;
-  letter-spacing: -0.015em;
+  letter-spacing: -0.02em;
+  font-weight: 700;
+}
+
+h3 {
+  font-size: clamp(0.95rem, 0.9rem + 0.25vw, 1.1rem);
+  line-height: 1.3;
+  letter-spacing: -0.01em;
   font-weight: 600;
 }
 
@@ -86,20 +100,20 @@ input,
 textarea,
 button,
 select {
-  font-size: clamp(0.875rem, 0.84rem + 0.16vw, 0.94rem);
+  font-size: clamp(0.8125rem, 0.8rem + 0.12vw, 0.875rem);
 }
 
 .page-title {
-  font-size: clamp(1.4rem, 1.1rem + 1vw, 2.25rem);
-  line-height: 1.1;
-  letter-spacing: -0.04em;
+  font-size: clamp(1.25rem, 1.1rem + 0.6vw, 1.75rem);
+  line-height: 1.2;
+  letter-spacing: -0.03em;
   font-weight: 700;
 }
 
 .section-title {
-  font-size: clamp(1.05rem, 0.95rem + 0.45vw, 1.35rem);
-  line-height: 1.2;
-  letter-spacing: -0.02em;
+  font-size: clamp(1rem, 0.95rem + 0.3vw, 1.2rem);
+  line-height: 1.25;
+  letter-spacing: -0.015em;
   font-weight: 700;
 }
 

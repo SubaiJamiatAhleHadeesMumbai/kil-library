@@ -290,15 +290,23 @@ const Login = () => {
     setGoogleLoading(true);
     const toastId = toast.loading("Authenticating via Google...");
     try {
+      const googleToken = tokenResponse?.access_token || tokenResponse?.credential || tokenResponse?.id_token;
+      if (!googleToken) {
+        throw new Error("No authentication token received from Google.");
+      }
       const res = await apiClient.post("/api/auth/google", {
-        token: tokenResponse.access_token,
+        token: googleToken,
       });
-      const { access_token, user } = res.data ?? {};
+      const { access_token, refresh_token, user } = res.data ?? {};
       if (!access_token || !user) throw new Error("Invalid authentication payload.");
+      if (refresh_token) {
+        authService.setRefreshToken?.(refresh_token, rememberMe);
+      }
       toast.success("Google Sign-In successful!", { id: toastId });
       handleAuthSuccess(user, access_token);
     } catch (err) {
-      const msg = err?.response?.data?.detail || "Google login failed. Please try again.";
+      console.error("Google Auth Error:", err);
+      const msg = err?.response?.data?.detail || err?.message || "Google login failed. Please try again.";
       toast.error(msg, { id: toastId });
       triggerShake();
     } finally {
@@ -306,8 +314,9 @@ const Login = () => {
     }
   };
 
-  const handleGoogleError = () => {
-    toast.error("Google Sign-In popup closed or interrupted.");
+  const handleGoogleError = (error) => {
+    console.warn("Google Sign-In Popup Error:", error);
+    toast.error("Google Sign-In was closed or cancelled. Please try again.");
     triggerShake();
   };
 

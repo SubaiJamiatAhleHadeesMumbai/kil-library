@@ -50,6 +50,9 @@ export const bookService = {
     },
 
     async getBookById(bookId) {
+        if (!bookId || bookId === 'null' || bookId === 'undefined') {
+            return null;
+        }
         try {
             const response = await apiClient.get(`/api/books/${bookId}`);
             return response.data;

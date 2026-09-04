@@ -194,10 +194,10 @@ const GalleryPreviewSection = ({ galleryVisible, gallery, galleryPreview, galler
         </button>
       ) : (
         <Link
-          to="/about/gallery"
+          to="/gallery"
           className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-[#002147] to-[#0f4c81] px-6 py-2.5 text-sm font-bold text-white shadow-sm transition-all hover:opacity-95 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-[#002147] focus:ring-offset-2"
         >
-          Open Markaz Gallery <ArrowRightIcon className="h-4 w-4" />
+          Explore Full Gallery <ArrowRightIcon className="h-4 w-4" />
         </Link>
       )}
     </div>

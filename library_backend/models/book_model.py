@@ -82,6 +82,9 @@ class Book(Base):
     # 4. Access Control
     is_approved = Column(Boolean, default=False)   
     is_restricted = Column(Boolean, default=False) 
+    is_download_paid = Column(Boolean, default=False, nullable=False)
+    download_price = Column(Float, default=0.0, nullable=True)
+    download_upi_id = Column(String(100), nullable=True)
 
     # 5. Physical Inventory
     total_copies = Column(Integer, default=1, nullable=False)
@@ -123,6 +126,7 @@ class Book(Base):
         Index('idx_book_search', 'title', 'author', 'isbn'),  # Composite: title + author + isbn
         Index('idx_book_approved_deleted', 'is_approved', 'deleted_at'),  # Approved books
         Index('idx_book_restricted', 'is_restricted', 'deleted_at'),  # Restricted books
+        Index('ix_books_status_access', 'deleted_at', 'is_approved', 'is_restricted'),  # Status + Access filter
         Index('idx_book_location', 'location_id', 'deleted_at'),  # Location filter
         Index('idx_book_language', 'language_id', 'deleted_at'),  # Language filter
         Index('idx_book_fatawa_category', 'fatawa_category_id', 'deleted_at'),  # Fatawa category filter

@@ -1,6 +1,8 @@
+import math
 from datetime import datetime
-from typing import List, Optional
+from typing import List, Optional, Union
 from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy import or_
 from sqlalchemy.orm import Session, joinedload
 
 # --- Imports ---
@@ -29,7 +31,7 @@ def create_user(
     """
     # 0. Validate Password Length (Bcrypt limitation fix)
     if len(user.password.encode('utf-8')) > 72:
-         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Password must be less than 72 bytes.")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Password must be less than 72 bytes.")
 
     # 1. Check for Duplicates (Email)
     if db.query(user_model.User).filter(
@@ -48,21 +50,19 @@ def create_user(
     # 3. Check Role Existence
     if user.role_id:
         if not db.query(user_model.Role).filter(user_model.Role.id == user.role_id).first():
-             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Role with ID {user.role_id} not found.")
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Role with ID {user.role_id} not found.")
     else:
         # Default to 'Member' if no role provided
         member_role = db.query(user_model.Role).filter(user_model.Role.name == "Member").first()
         if member_role:
             user.role_id = member_role.id
         else:
-             # Fallback if even Member role doesn't exist (edge case)
-             raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Default 'Member' role not found. Please contact admin.")
+            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Default 'Member' role not found. Please contact admin.")
 
     # 4. Create User
     try:
         hashed_password = get_password_hash(user.password)
     except ValueError as e:
-        # Catch specific bcrypt errors
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
     new_user_data = user.model_dump(exclude={"password"})
@@ -75,7 +75,7 @@ def create_user(
     )
     
     db.add(new_user)
-    db.flush() # ID generate karne ke liye
+    db.flush()
 
     # 5. Log Action
     create_log(
@@ -94,23 +94,65 @@ def create_user(
 
 
 # --- READ ALL USERS (Dropdowns & Lists) ---
-@router.get("/", response_model=List[user_schema.User])
+@router.get("/", response_model=Union[user_schema.PaginatedUserResponse, List[user_schema.User]])
 def read_users(
     skip: int = 0,
-    limit: int = 100,
+    limit: int = 20,
+    page: Optional[int] = None,
+    paginated: bool = False,
+    search: Optional[str] = None,
+    role_id: Optional[int] = None,
+    status: Optional[str] = None,
     db: Session = Depends(get_db),
     # ✅ FIX: 'BOOK_ISSUE' allow kiya taake Issuer User select kar sake
     current_user: user_model.User = Depends(require_permission("BOOK_ISSUE"))
 ):
     """
-    Fetches a list of all active users.
+    Fetches a list of all active users with search, role filter, and pagination support.
     Allowed for Book Issuers (to select client) and Admins.
     """
-    return db.query(user_model.User).options(
+    is_paginated = paginated or (page is not None)
+    active_page = max(1, page or 1)
+    page_limit = max(1, min(limit or 20, 1000))
+    offset = (active_page - 1) * page_limit if is_paginated else skip
+
+    query = db.query(user_model.User).options(
         joinedload(user_model.User.role)
     ).filter(
         user_model.User.deleted_at.is_(None)
-    ).order_by(user_model.User.id.desc()).offset(skip).limit(limit).all()
+    )
+
+    if search and search.strip():
+        search_term = f"%{search.strip()}%"
+        query = query.filter(
+            or_(
+                user_model.User.username.ilike(search_term),
+                user_model.User.email.ilike(search_term),
+                user_model.User.full_name.ilike(search_term)
+            )
+        )
+
+    if role_id:
+        query = query.filter(user_model.User.role_id == role_id)
+
+    if status and status.strip():
+        query = query.filter(user_model.User.status.ilike(status.strip()))
+
+    total_count = query.count()
+
+    users = query.order_by(user_model.User.id.desc()).offset(offset).limit(page_limit).all()
+
+    if is_paginated:
+        total_pages = math.ceil(total_count / page_limit) if total_count > 0 else 1
+        return {
+            "items": users,
+            "total": total_count,
+            "page": active_page,
+            "limit": page_limit,
+            "total_pages": total_pages
+        }
+
+    return users
 
 
 # --- UPDATE USER (Admin Only) ---
@@ -222,6 +264,37 @@ def update_user(
     return db.query(user_model.User).options(
         joinedload(user_model.User.role)
     ).filter(user_model.User.id == user_id).first()
+
+
+# --- ADMIN DIRECT RESET PASSWORD (Admin can reset any user/staff password) ---
+@router.put("/{user_id}/reset-password", status_code=status.HTTP_200_OK)
+def admin_reset_password(
+    user_id: int,
+    payload: dict,
+    db: Session = Depends(get_db),
+    current_user: user_model.User = Depends(require_permission("USER_MANAGE"))
+):
+    new_password = payload.get("new_password", "").strip()
+    if not new_password:
+        raise HTTPException(status_code=400, detail="New password is required.")
+    if len(new_password) < 4:
+        raise HTTPException(status_code=400, detail="Password must be at least 4 characters.")
+    if len(new_password.encode('utf-8')) > 72:
+        raise HTTPException(status_code=400, detail="Password must be less than 72 bytes.")
+
+    db_user = db.query(user_model.User).filter(user_model.User.id == user_id).first()
+    if not db_user:
+        raise HTTPException(status_code=404, detail="User not found.")
+
+    db_user.password_hash = get_password_hash(new_password)
+    create_log(
+        db=db, user=current_user,
+        action_type="USER_PASSWORD_RESET",
+        description=f"Admin '{current_user.username}' reset password for user '{db_user.username}'.",
+        target_type="User", target_id=user_id
+    )
+    db.commit()
+    return {"message": f"Password for '{db_user.username}' updated successfully."}
 
 
 # --- DELETE USER (Admin Only) ---

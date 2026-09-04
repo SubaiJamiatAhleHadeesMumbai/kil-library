@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "react-hot-toast";
 import { useNavigate, useLocation, useSearchParams } from "react-router-dom";
@@ -160,7 +160,16 @@ const PublicBookCard = ({
   return (
     <div
       onClick={handleCardClick}
-      className={`group relative mx-auto w-full max-w-[340px] overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-xs transition-all duration-300 cursor-pointer hover:shadow-xl hover:border-slate-300 sm:max-w-none ${className}`}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          handleCardClick();
+        }
+      }}
+      tabIndex={0}
+      role="button"
+      aria-label={`View details for ${title}`}
+      className={`group relative mx-auto w-full max-w-[340px] overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-xs transition-all duration-300 cursor-pointer hover:shadow-xl hover:border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 sm:max-w-none ${className}`}
     >
       {/* Badges - Restricted / Markaz / Upcoming */}
       <div className="absolute top-2 left-2 z-20 flex flex-col gap-1 sm:top-3 sm:left-3">
@@ -195,6 +204,7 @@ const PublicBookCard = ({
               : "bg-white/95 text-slate-500 hover:text-emerald-600 border border-slate-200 hover:bg-white hover:shadow-lg"
           }`}
           title={isFavorite ? "Saved in Favorites" : "Save to Favorites"}
+          aria-label={isFavorite ? "Remove from Favorites" : "Save to Favorites"}
         >
           {isFavorite ? (
             <BookmarkSolid className="h-4 w-4 text-emerald-600" />
@@ -254,6 +264,13 @@ const PublicBookCard = ({
   );
 };
 
+const getPageNumbers = (current, total) => {
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
+  if (current <= 4) return [1, 2, 3, 4, 5, '...', total];
+  if (current >= total - 3) return [1, '...', total - 4, total - 3, total - 2, total - 1, total];
+  return [1, '...', current - 1, current, current + 1, '...', total];
+};
+
 // ==========================================
 // 2. MAIN USER LIBRARY COMPONENT
 // ==========================================
@@ -279,9 +296,14 @@ const UserLibrary = () => {
   const [folderSearch, setFolderSearch] = useState("");
   const activeRequestRef = useRef(0);
 
-  // Pagination
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(25);
+  // Server-Backed Pagination
+  const [currentPage, setCurrentPage] = useState(() => {
+    const p = Number(searchParams.get("page"));
+    return p && p > 0 ? p : 1;
+  });
+  const [itemsPerPage, setItemsPerPage] = useState(24);
+  const [totalBooks, setTotalBooks] = useState(0);
+  const [serverTotalPages, setServerTotalPages] = useState(1);
 
   // Modals
   const [selectedBook, setSelectedBook] = useState(null);
@@ -391,24 +413,49 @@ const UserLibrary = () => {
     loadTaxonomy();
   }, []);
 
-  const fetchBooks = async (searchText = "") => {
+  const fetchBooks = useCallback(async (pageToFetch = 1) => {
     const requestId = ++activeRequestRef.current;
     setLoading(true);
 
     try {
-      const trimmed = searchText?.trim() || "";
+      const trimmed = searchTerm?.trim() || "";
+      const isOurPub = activeLibraryTab === "our_publications" || selectedCategory === "our_publications";
+      const catId = (selectedCategory && selectedCategory !== "all" && selectedCategory !== "our_publications" && !isNaN(Number(selectedCategory))) 
+        ? Number(selectedCategory) 
+        : undefined;
+      const subcatId = (selectedSubcategory && selectedSubcategory !== "all" && !isNaN(Number(selectedSubcategory))) 
+        ? Number(selectedSubcategory) 
+        : undefined;
+      const langParam = (selectedLanguage && selectedLanguage !== "all") 
+        ? selectedLanguage 
+        : undefined;
+
       const data = await bookService.getAllBooks({
         approved_only: true,
-        sort_order: 'asc',
-        search: trimmed,
-        limit: 5000,
+        sort_order: sortBy === "oldest" ? "asc" : "desc",
+        search: trimmed || undefined,
+        category_id: catId,
+        subcategory_id: subcatId,
+        language: langParam,
+        our_publications: isOurPub ? true : undefined,
+        paginated: true,
+        page: pageToFetch,
+        limit: itemsPerPage,
       });
 
       if (requestId === activeRequestRef.current) {
-        setBooks(Array.isArray(data) ? data : data?.books || []);
+        if (data && data.items) {
+          setBooks(data.items);
+          setTotalBooks(data.total);
+          setServerTotalPages(data.total_pages);
+        } else if (Array.isArray(data)) {
+          setBooks(data);
+          setTotalBooks(data.length);
+          setServerTotalPages(Math.ceil(data.length / itemsPerPage) || 1);
+        }
       }
     } catch (error) {
-      console.error(error);
+      console.error("Error loading library books:", error);
       if (requestId === activeRequestRef.current) {
         toast.error("Failed to load library.");
       }
@@ -417,25 +464,38 @@ const UserLibrary = () => {
         setLoading(false);
       }
     }
-  };
+  }, [searchTerm, selectedLanguage, selectedCategory, selectedSubcategory, sortBy, activeLibraryTab, itemsPerPage]);
 
+  // When filters change: reset to page 1 and fetch
   useEffect(() => {
+    setCurrentPage(1);
     const handler = window.setTimeout(() => {
-      fetchBooks(searchTerm);
-    }, 300);
+      fetchBooks(1);
+    }, 250);
 
     return () => window.clearTimeout(handler);
-  }, [searchTerm]);
+  }, [searchTerm, selectedLanguage, selectedCategory, selectedSubcategory, sortBy, activeLibraryTab, itemsPerPage, fetchBooks]);
+
+  const handlePageChange = (newPage) => {
+    setCurrentPage(newPage);
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      if (newPage > 1) {
+        next.set("page", String(newPage));
+      } else {
+        next.delete("page");
+      }
+      return next;
+    }, { replace: true });
+    fetchBooks(newPage);
+    scrollToTop();
+  };
 
   useEffect(() => {
     const handleScroll = () => setShowScrollTop(window.scrollY > 400);
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
-
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [searchTerm, selectedLanguage, selectedCategory, selectedSubcategory, sortBy, activeLibraryTab]);
 
   // Our Publications strict filter
   const isOurPublication = (book) => {
@@ -611,42 +671,17 @@ const UserLibrary = () => {
     else window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  // Final Display Books
+  // Server-Backed Pagination & Display
   const finalDisplayBooks = useMemo(() => {
-    let list = Array.isArray(filteredBooks) ? filteredBooks : [];
-
-    if (activeLibraryTab === "our_publications" || selectedCategory === "our_publications") {
-      list = list.filter(isOurPublication);
+    let list = Array.isArray(books) ? books : [];
+    if (sortBy === "favorites") {
+      return list.filter((b) => favorites.includes(b.id));
     }
+    return list;
+  }, [books, sortBy, favorites]);
 
-    const sorted = [...list];
-    const safeDate = (b) => new Date(b?.created_at || b?.published_date || 0).getTime();
-    const safeSerial = (b) => Number(b?.serial_number) || Number(b?.id) || 0;
-    const safeId = (b) => Number(b?.id) || 0;
-
-    if (sortBy === "newest") {
-      sorted.sort((a, b) => {
-        const dDiff = safeDate(b) - safeDate(a);
-        if (dDiff !== 0) return dDiff;
-        return safeId(b) - safeId(a);
-      });
-    } else if (sortBy === "oldest") {
-      sorted.sort((a, b) => safeSerial(a) - safeSerial(b));
-    } else if (sortBy === "az") {
-      sorted.sort((a, b) => (a?.title || "").localeCompare(b?.title || ""));
-    } else if (sortBy === "favorites") {
-      return sorted.filter((b) => favorites.includes(b.id));
-    }
-
-    return deduplicateBooks(sorted);
-  }, [filteredBooks, activeLibraryTab, selectedCategory, sortBy, favorites]);
-
-  // Pagination
-  const totalPages = Math.ceil(finalDisplayBooks.length / itemsPerPage) || 1;
-  const paginatedBooks = useMemo(() => {
-    const start = (currentPage - 1) * itemsPerPage;
-    return finalDisplayBooks.slice(start, start + itemsPerPage);
-  }, [finalDisplayBooks, currentPage, itemsPerPage]);
+  const totalPages = serverTotalPages || 1;
+  const paginatedBooks = finalDisplayBooks;
 
   const activeCategoryLabel = useMemo(() => {
     if (activeLibraryTab === "our_publications" || selectedCategory === "our_publications") {
@@ -709,7 +744,7 @@ const UserLibrary = () => {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.25, duration: 0.4 }}
-            className="flex items-center justify-start sm:justify-center overflow-x-auto no-scrollbar gap-2 mt-5 pt-1 px-2 max-w-full"
+            className="flex items-center justify-start sm:justify-center overflow-x-auto no-scrollbar [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] gap-2.5 mt-5 py-2 px-2 max-w-full"
           >
             <button
               onClick={() => {
@@ -1355,13 +1390,55 @@ const UserLibrary = () => {
                   }}
                   className="bg-white border border-slate-200 rounded-lg px-2.5 py-1 text-xs font-bold text-slate-700 outline-none cursor-pointer hover:border-emerald-500"
                 >
-                  <option value={10}>10</option>
-                  <option value={25}>25</option>
-                  <option value={50}>50</option>
-                  <option value={100}>100</option>
+                  <option value={12}>12</option>
+                  <option value={24}>24</option>
+                  <option value={48}>48</option>
+                  <option value={96}>96</option>
                 </select>
               </div>
             </div>
+
+            {/* Active Filter Pills */}
+            {(selectedCategory !== "all" || selectedSubcategory !== "all" || selectedLanguage !== "all" || searchTerm) && (
+              <div className="flex flex-wrap items-center gap-2 mb-5 p-3 bg-white/70 backdrop-blur-xs rounded-2xl border border-slate-200/80">
+                <span className="text-xs font-bold text-slate-400">Active Filters:</span>
+                {searchTerm && (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                    🔍 "{searchTerm}"
+                    <button onClick={() => setSearchTerm("")} className="hover:text-red-500 cursor-pointer text-slate-400 font-bold ml-1">✕</button>
+                  </span>
+                )}
+                {selectedCategory !== "all" && (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-blue-50 text-blue-800 border border-blue-200">
+                    📂 {activeCategoryLabel}
+                    <button onClick={() => setSelectedCategory("all")} className="hover:text-red-500 cursor-pointer text-slate-400 font-bold ml-1">✕</button>
+                  </span>
+                )}
+                {selectedSubcategory !== "all" && activeSubcategoryLabel && (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-indigo-50 text-indigo-800 border border-indigo-200">
+                    🏷️ {activeSubcategoryLabel}
+                    <button onClick={() => setSelectedSubcategory("all")} className="hover:text-red-500 cursor-pointer text-slate-400 font-bold ml-1">✕</button>
+                  </span>
+                )}
+                {selectedLanguage !== "all" && (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-purple-50 text-purple-800 border border-purple-200">
+                    🌐 {selectedLanguage.toUpperCase()}
+                    <button onClick={() => setSelectedLanguage("all")} className="hover:text-red-500 cursor-pointer text-slate-400 font-bold ml-1">✕</button>
+                  </span>
+                )}
+                <button
+                  onClick={() => {
+                    setSearchTerm("");
+                    setSelectedCategory("all");
+                    setSelectedSubcategory("all");
+                    setSelectedLanguage("all");
+                  }}
+                  className="text-xs font-bold text-rose-600 hover:text-rose-700 hover:underline ml-auto cursor-pointer"
+                >
+                  Clear All
+                </button>
+              </div>
+            )}
 
             {/* Books Loading / Empty / Grid / List */}
             {loading ? (
@@ -1443,51 +1520,51 @@ const UserLibrary = () => {
 
             {/* Pagination */}
             {totalPages > 1 && (
-              <div className="flex items-center justify-center gap-2 pt-8">
-                <button
-                  onClick={() => {
-                    setCurrentPage((p) => Math.max(1, p - 1));
-                    scrollToTop();
-                  }}
-                  disabled={currentPage === 1}
-                  className="p-2 rounded-xl bg-white border border-slate-200 text-slate-600 disabled:opacity-40 hover:bg-slate-50 transition shadow-xs cursor-pointer"
-                >
-                  <ChevronLeftIcon className="w-5 h-5" />
-                </button>
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-8 border-t border-slate-200/80 mt-6">
+                <p className="text-xs font-semibold text-slate-500">
+                  Showing Page <span className="font-bold text-slate-800">{currentPage}</span> of <span className="font-bold text-slate-800">{totalPages}</span> ({totalBooks} total books)
+                </p>
 
-                <div className="flex items-center gap-1.5">
-                  {[...Array(Math.min(5, totalPages))].map((_, i) => {
-                    const pageNum = i + 1;
-                    return (
-                      <button
-                        key={pageNum}
-                        onClick={() => {
-                          setCurrentPage(pageNum);
-                          scrollToTop();
-                        }}
-                        className={`w-9 h-9 rounded-xl text-xs font-bold transition shadow-xs cursor-pointer ${
-                          currentPage === pageNum
-                            ? "bg-emerald-600 text-white"
-                            : "bg-white border border-slate-200 text-slate-700 hover:bg-slate-50"
-                        }`}
-                      >
-                        {pageNum}
-                      </button>
-                    );
-                  })}
-                  {totalPages > 5 && <span className="px-1 text-slate-400 font-bold">...</span>}
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => handlePageChange(Math.max(1, currentPage - 1))}
+                    disabled={currentPage === 1}
+                    className="p-2 rounded-xl bg-white border border-slate-200 text-slate-600 disabled:opacity-40 hover:bg-slate-50 transition shadow-xs cursor-pointer"
+                    title="Previous Page"
+                  >
+                    <ChevronLeftIcon className="w-5 h-5" />
+                  </button>
+
+                  <div className="flex items-center gap-1.5">
+                    {getPageNumbers(currentPage, totalPages).map((item, i) => {
+                      if (item === '...') {
+                        return <span key={`ellipsis-${i}`} className="px-1 text-slate-400 font-bold">...</span>;
+                      }
+                      return (
+                        <button
+                          key={item}
+                          onClick={() => handlePageChange(item)}
+                          className={`w-9 h-9 rounded-xl text-xs font-bold transition shadow-xs cursor-pointer ${
+                            currentPage === item
+                              ? "bg-emerald-600 text-white shadow-emerald-500/20"
+                              : "bg-white border border-slate-200 text-slate-700 hover:bg-slate-50"
+                          }`}
+                        >
+                          {item}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  <button
+                    onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))}
+                    disabled={currentPage === totalPages}
+                    className="p-2 rounded-xl bg-white border border-slate-200 text-slate-600 disabled:opacity-40 hover:bg-slate-50 transition shadow-xs cursor-pointer"
+                    title="Next Page"
+                  >
+                    <ChevronRightIcon className="w-5 h-5" />
+                  </button>
                 </div>
-
-                <button
-                  onClick={() => {
-                    setCurrentPage((p) => Math.min(totalPages, p + 1));
-                    scrollToTop();
-                  }}
-                  disabled={currentPage === totalPages}
-                  className="p-2 rounded-xl bg-white border border-slate-200 text-slate-600 disabled:opacity-40 hover:bg-slate-50 transition shadow-xs cursor-pointer"
-                >
-                  <ChevronRightIcon className="w-5 h-5" />
-                </button>
               </div>
             )}
           </div>

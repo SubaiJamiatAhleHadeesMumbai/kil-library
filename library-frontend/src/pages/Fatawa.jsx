@@ -71,11 +71,21 @@ const QuestionRow = ({ question, open, onToggle, currentLang }) => {
       window.print();
       return;
     }
-    const qText = question.question_text || '';
-    const vText = cleanTextByLanguage(question.verdict_summary, currentLang) || '';
-    const aText = question.answer_text ? question.answer_text.replace(/\n/g, '<br/>') : '';
-    const refNo = question.darul_ifta_reference_no || `FATWA-${question.id}`;
-    const mufti = cleanTextByLanguage(question.mufti_name, currentLang) || 'Dar-ul-Ifta & Board of Islamic Scholars, Markaz Ahle Hadees Kokan';
+    // SECURITY: Escape HTML to prevent stored XSS via user-submitted content
+    const escapeHtml = (str) => {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    };
+    const qText = escapeHtml(question.question_text || '');
+    const vText = escapeHtml(cleanTextByLanguage(question.verdict_summary, currentLang) || '');
+    const aText = question.answer_text ? escapeHtml(question.answer_text).replace(/\n/g, '<br/>') : '';
+    const refNo = escapeHtml(question.darul_ifta_reference_no || `FATWA-${question.id}`);
+    const mufti = escapeHtml(cleanTextByLanguage(question.mufti_name, currentLang) || 'Dar-ul-Ifta & Board of Islamic Scholars, Markaz Ahle Hadees Kokan');
     const dateStr = new Date(question.created_at).toLocaleDateString('en-IN', {
       day: 'numeric',
       month: 'long',
@@ -429,10 +439,12 @@ const Fatawa = () => {
   });
 
   const questionsQuery = useQuery({
-    queryKey: ['fatawa-questions', deferredSearch, selectedCategory],
+    queryKey: ['fatawa-questions', deferredSearch, selectedCategory, currentPage],
     queryFn: () => fatawaService.getQuestions({
-      limit: 100,
-      search: deferredSearch,
+      paginated: true,
+      page: currentPage,
+      limit: ITEMS_PER_PAGE,
+      search: deferredSearch || undefined,
       category_id: selectedCategory || undefined,
     }),
   });
@@ -464,23 +476,19 @@ const Fatawa = () => {
   });
 
   const categories = categoriesQuery.data || [];
-  const rawQuestions = questionsQuery.data || [];
+  const responseData = questionsQuery.data;
+  const rawQuestions = Array.isArray(responseData) ? responseData : responseData?.items || [];
+  const totalQuestions = responseData?.total !== undefined ? responseData.total : rawQuestions.length;
+  const totalPages = responseData?.total_pages !== undefined ? responseData.total_pages : (Math.ceil(totalQuestions / ITEMS_PER_PAGE) || 1);
+  const paginatedQuestions = rawQuestions;
 
   // Reset pagination on filter/search change
   React.useEffect(() => {
     setCurrentPage(1);
   }, [deferredSearch, selectedCategory]);
 
-  // Pagination Math
-  const totalQuestions = rawQuestions.length;
-  const totalPages = Math.ceil(totalQuestions / ITEMS_PER_PAGE) || 1;
-  const paginatedQuestions = useMemo(() => {
-    const start = (currentPage - 1) * ITEMS_PER_PAGE;
-    return rawQuestions.slice(start, start + ITEMS_PER_PAGE);
-  }, [rawQuestions, currentPage]);
-
   const heroStats = [
-    { label: currentLang === 'ur' ? 'جواب شدہ' : 'Answered', value: rawQuestions.filter((item) => item.status === 'answered').length },
+    { label: currentLang === 'ur' ? 'جواب شدہ' : 'Answered', value: totalQuestions },
     { label: currentLang === 'ur' ? 'نجی سوالات' : 'Private', value: rawQuestions.filter((item) => item.visibility === 'private').length },
     { label: currentLang === 'ur' ? 'زمرہ جات' : 'Categories', value: categories.length },
   ];

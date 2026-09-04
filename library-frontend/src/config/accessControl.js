@@ -83,8 +83,14 @@ export function getUserRole(user) {
 }
 
 export function getUserPermissions(user) {
-  if (!user || !Array.isArray(user.permissions)) return [];
-  return user.permissions;
+  if (!user) return [];
+  if (Array.isArray(user.permissions) && user.permissions.length > 0) {
+    return user.permissions.map((p) => (typeof p === 'string' ? p : p.name || p.code)).filter(Boolean);
+  }
+  if (user.role && Array.isArray(user.role.permissions)) {
+    return user.role.permissions.map((p) => (typeof p === 'string' ? p : p.name || p.code)).filter(Boolean);
+  }
+  return [];
 }
 
 export function isSuperAdmin(user) {

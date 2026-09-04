@@ -20,13 +20,25 @@ from utils.cloudinary_helper import upload_to_cloudinary
 router = APIRouter()
 
 def _is_admin(user: Optional[user_model.User]) -> bool:
-    return bool(
-        user
-        and hasattr(user, "role")
-        and user.role
-        and user.role.name
-        and user.role.name.lower() in ["admin", "superadmin", "librarian"]
-    )
+    if not user or not getattr(user, "role", None) or not getattr(user.role, "name", None):
+        return False
+    role_name = user.role.name.strip().lower()
+    if role_name in [
+        "admin", "superadmin", "super admin", "administrator",
+        "librarian", "head librarian", "social & welfare officer", "editor"
+    ]:
+        return True
+
+    # Also check permissions
+    user_perms = set()
+    if user.role.permissions:
+        for p in user.role.permissions:
+            if hasattr(p, "code") and p.code:
+                user_perms.add(p.code)
+            elif hasattr(p, "name") and p.name:
+                user_perms.add(p.name)
+
+    return bool(user_perms & {"BOOK_VIEW", "BOOK_MANAGE", "HOMEPAGE_CONTENT_MANAGE", "SOCIAL_WORK_MANAGE", "USER_MANAGE"})
 
 # ==========================================
 # 🌐 PUBLIC ENDPOINTS (Strictly is_active == True)

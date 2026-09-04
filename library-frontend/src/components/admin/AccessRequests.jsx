@@ -485,27 +485,34 @@ const AccessRequests = () => {
                           <div className="p-4 bg-slate-50 rounded-xl text-sm leading-relaxed text-slate-700 border border-slate-100">
                              {safeText(viewModal.data.purpose)}
                           </div>
-                            {/* Detailed Book Metadata for Admin */}
-                             <div>
-                              <h3 className="text-xs font-black text-slate-400 uppercase tracking-wider mb-2">Book Metadata</h3>
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 text-sm">
-                                  <div><strong>Publisher:</strong> {viewModal.data.book_publisher || 'N/A'}</div>
-                                  <div><strong>ISBN:</strong> {viewModal.data.book_isbn || 'N/A'}</div>
-                                  <div><strong>Edition:</strong> {viewModal.data.book_edition || 'N/A'}</div>
-                                </div>
-                                <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 text-sm">
-                                  <div><strong>Pages:</strong> {viewModal.data.book_pages || 'N/A'}</div>
-                                  <div><strong>Price:</strong> {viewModal.data.book_price || 'N/A'}</div>
-                                  <div><strong>Location:</strong> {viewModal.data.book_location || 'N/A'}</div>
-                                </div>
-                              </div>
-                             </div>
                        </div>
+
+                       {/* Detailed Book Metadata for Admin */}
                        <div>
-                          <h3 className="text-xs font-black text-slate-400 uppercase tracking-wider mb-2">Previous Work</h3>
+                          <h3 className="text-xs font-black text-slate-400 uppercase tracking-wider mb-2">Book Metadata</h3>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                             <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-100 text-sm space-y-1.5">
+                                <div><strong className="text-slate-600">Author:</strong> <span className="font-semibold text-slate-800 ml-1">{viewModal.data.book_author || 'N/A'}</span></div>
+                                <div><strong className="text-slate-600">Publisher:</strong> <span className="font-semibold text-slate-800 ml-1">{viewModal.data.book_publisher || 'N/A'}</span></div>
+                                <div><strong className="text-slate-600">ISBN:</strong> <span className="font-semibold text-slate-800 ml-1">{viewModal.data.book_isbn || 'N/A'}</span></div>
+                                <div><strong className="text-slate-600">Edition:</strong> <span className="font-semibold text-slate-800 ml-1">{viewModal.data.book_edition || 'N/A'}</span></div>
+                             </div>
+                             <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-100 text-sm space-y-1.5">
+                                <div><strong className="text-slate-600">Pages:</strong> <span className="font-semibold text-slate-800 ml-1">{viewModal.data.book_pages || 'N/A'}</span></div>
+                                <div><strong className="text-slate-600">Price:</strong> <span className="font-semibold text-slate-800 ml-1">{viewModal.data.book_price || 'N/A'}</span></div>
+                                <div><strong className="text-slate-600">Location:</strong> <span className="font-semibold text-slate-800 ml-1">{viewModal.data.book_location || 'N/A'}</span></div>
+                             </div>
+                          </div>
+                       </div>
+
+                       <div>
+                          <h3 className="text-xs font-black text-slate-400 uppercase tracking-wider mb-2">Previous Work / Background</h3>
                           <div className="p-4 bg-slate-50 rounded-xl text-sm leading-relaxed text-slate-700 border border-slate-100">
-                             {safeText(viewModal.data.previous_work)}
+                             {viewModal.data.previous_work && viewModal.data.previous_work.trim() && viewModal.data.previous_work.trim().toLowerCase() !== "n/a" ? (
+                               viewModal.data.previous_work
+                             ) : (
+                               <span className="text-slate-400 italic">No previous work submitted</span>
+                             )}
                           </div>
                        </div>
                        {viewModal.data.status === 'rejected' && viewModal.data.rejection_reason && (

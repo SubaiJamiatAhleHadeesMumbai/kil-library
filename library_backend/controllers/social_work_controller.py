@@ -93,7 +93,7 @@ def get_admin_items(
     limit: int = Query(100, ge=1, le=200),
     skip: int = Query(0, ge=0),
     db: Session = Depends(get_db),
-    current_user: user_model.User = Depends(require_permission("USER_MANAGE"))
+    current_user: user_model.User = Depends(require_permission("SOCIAL_WORK_MANAGE", "USER_MANAGE"))
 ):
     query = db.query(social_work_model.SocialWorkItem)
 
@@ -119,7 +119,7 @@ def get_admin_items(
 def create_item(
     payload: SocialWorkCreate,
     db: Session = Depends(get_db),
-    current_user: user_model.User = Depends(require_permission("USER_MANAGE"))
+    current_user: user_model.User = Depends(require_permission("SOCIAL_WORK_MANAGE", "USER_MANAGE"))
 ):
     if payload.category not in ALLOWED_CATEGORIES:
         raise HTTPException(status_code=400, detail=f"Category must be one of: {ALLOWED_CATEGORIES}")
@@ -159,7 +159,7 @@ def update_item(
     item_id: int,
     payload: SocialWorkUpdate,
     db: Session = Depends(get_db),
-    current_user: user_model.User = Depends(require_permission("USER_MANAGE"))
+    current_user: user_model.User = Depends(require_permission("SOCIAL_WORK_MANAGE", "USER_MANAGE"))
 ):
     item = db.query(social_work_model.SocialWorkItem).filter(
         social_work_model.SocialWorkItem.id == item_id
@@ -195,7 +195,7 @@ def update_item(
 def delete_item(
     item_id: int,
     db: Session = Depends(get_db),
-    current_user: user_model.User = Depends(require_permission("USER_MANAGE"))
+    current_user: user_model.User = Depends(require_permission("SOCIAL_WORK_MANAGE", "USER_MANAGE"))
 ):
     item = db.query(social_work_model.SocialWorkItem).filter(
         social_work_model.SocialWorkItem.id == item_id

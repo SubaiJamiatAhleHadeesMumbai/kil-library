@@ -1,6 +1,7 @@
+import math
 from datetime import datetime, timedelta
 from uuid import uuid4
-from typing import List, Optional
+from typing import List, Optional, Union
 
 from fastapi import APIRouter, Depends, HTTPException, status, File, UploadFile, Form
 from sqlalchemy import desc, func, or_, and_
@@ -192,16 +193,24 @@ def list_related_books(category_id: int, db: Session = Depends(get_db)):
     ).order_by(desc(book_model.Book.id)).all()
 
 
-@router.get("/questions", response_model=List[schemas.FatawaQuestion])
+@router.get("/questions", response_model=Union[schemas.PaginatedFatawaResponse, List[schemas.FatawaQuestion]])
 def list_questions(
     skip: int = 0,
     limit: int = 20,
+    page: Optional[int] = None,
+    paginated: bool = False,
     before_id: Optional[int] = None,
     search: Optional[str] = None,
     category_id: Optional[int] = None,
+    status: Optional[str] = None,
     db: Session = Depends(get_db),
     current_user: Optional[user_model.User] = Depends(get_current_user_optional),
 ):
+    is_paginated = paginated or (page is not None)
+    active_page = max(1, page or 1)
+    page_limit = max(1, min(limit or 20, 500))
+    offset = (active_page - 1) * page_limit if is_paginated else skip
+
     query = db.query(FatawaQuestion).options(joinedload(FatawaQuestion.category)).filter(
         FatawaQuestion.deleted_at.is_(None)
     )
@@ -227,6 +236,9 @@ def list_questions(
     if category_id is not None:
         query = query.filter(FatawaQuestion.category_id == category_id)
 
+    if status and status.strip() and status.strip().lower() != "all":
+        query = query.filter(FatawaQuestion.status.ilike(status.strip()))
+
     if search:
         term = f"%{search.strip()}%"
         query = query.filter(or_(
@@ -235,7 +247,21 @@ def list_questions(
             FatawaQuestion.display_name.ilike(term),
         ))
 
-    return query.order_by(desc(FatawaQuestion.created_at)).offset(skip).limit(limit).all()
+    total_count = query.count()
+
+    questions = query.order_by(desc(FatawaQuestion.created_at)).offset(offset).limit(page_limit).all()
+
+    if is_paginated:
+        total_pages = math.ceil(total_count / page_limit) if total_count > 0 else 1
+        return {
+            "items": questions,
+            "total": total_count,
+            "page": active_page,
+            "limit": page_limit,
+            "total_pages": total_pages
+        }
+
+    return questions
 
 
 @router.get("/questions/my-questions", response_model=List[schemas.FatawaQuestion])

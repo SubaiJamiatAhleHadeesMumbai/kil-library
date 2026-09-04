@@ -1,11 +1,13 @@
 # file: controllers/interaction_controller.py
+from datetime import datetime
+from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from models.interaction_model import UserBookInteraction
 from models.book_model import Book
 from schemas import interaction_schema
 from database import get_db
-from auth import get_current_user
+from auth import get_current_user, get_current_user_optional
 from models.user_model import User
 
 router = APIRouter()
@@ -66,8 +68,17 @@ def toggle_bookmark(
 def get_book_status(
     book_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: Optional[User] = Depends(get_current_user_optional)
 ):
+    if not current_user:
+        return {
+            "book_id": book_id,
+            "last_page_read": 1,
+            "total_pages": 0,
+            "is_bookmarked": False,
+            "updated_at": datetime.now()
+        }
+
     interaction = db.query(UserBookInteraction).filter(
         UserBookInteraction.user_id == current_user.id,
         UserBookInteraction.book_id == book_id

@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   MagnifyingGlassIcon,
   XMarkIcon,
@@ -38,6 +39,7 @@ const LibrarySearchStrip = ({
   enableDeepSearch = true,
   enableSuggestions = true,
 }) => {
+  const navigate = useNavigate();
   const [localValue, setLocalValue] = useState(searchTerm);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [listening, setListening] = useState(false);
@@ -111,31 +113,20 @@ const LibrarySearchStrip = ({
   };
 
   /* -------- Deep Search Result Click Handlers -------- */
-  const handleDeepResultClick = async (item) => {
+  const handleDeepResultClick = (bookIdOrItem, pageNumber, queryText) => {
     setIsDeepSearchOpen(false);
 
+    const bookId = typeof bookIdOrItem === 'object' ? bookIdOrItem.book_id : bookIdOrItem;
+    const page = typeof bookIdOrItem === 'object' ? (bookIdOrItem.page_number || 1) : (pageNumber || 1);
+    const q = typeof bookIdOrItem === 'object' ? (bookIdOrItem.query || "") : (queryText || "");
+
     if (onDeepSearchResultClick) {
-      onDeepSearchResultClick(item);
+      onDeepSearchResultClick({ book_id: bookId, page_number: page, query: q });
       return;
     }
 
-    if (item.book_id) {
-      try {
-        setIsFetchingBook(true);
-        const res = await fetch(`${API_BASE_URL}/api/books/${item.book_id}`);
-        if (res.ok) {
-          const fullBook = await res.json();
-          setDeepSearchConfig({
-            page: item.page_number || 1,
-            query: item.snippet || ""
-          });
-          setDeepSearchBook(fullBook);
-        }
-      } catch (err) {
-        console.error("Failed to load deep search book details:", err);
-      } finally {
-        setIsFetchingBook(false);
-      }
+    if (bookId) {
+      navigate(`/read/${bookId}?page=${page}&q=${encodeURIComponent(q)}`);
     }
   };
 

@@ -59,6 +59,15 @@ class IssuedBook(IssuedBookBase):
     class Config:
         from_attributes = True
 
+
+class PaginatedIssuedBookResponse(BaseModel):
+    items: list[IssuedBook]
+    total: int
+    page: int
+    limit: int
+    total_pages: int
+
+
 # --- DigitalAccess Schemas ---
 class DigitalAccessBase(BaseModel):
     client_id: int

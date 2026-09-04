@@ -24,6 +24,8 @@ class DashboardCharts(BaseModel):
 class RecentLog(BaseModel):
     id: int
     action: str
+    action_type: Optional[str] = None
+    description: Optional[str] = None
     timestamp: datetime
     user: Optional[str] = None
 

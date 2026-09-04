@@ -5,13 +5,14 @@ import useAuth from '../hooks/useAuth'; // Ensure this hook provides permissions
 import toast from 'react-hot-toast';
 
 import adminDashboardService from '../api/adminDashboardService';
+import logService from '../api/logService';
 
 // --- Icons ---
 import {
     BookOpenIcon, UsersIcon, ClockIcon, ArrowUpOnSquareIcon,
     ListBulletIcon, PresentationChartLineIcon, ChartPieIcon, ArrowPathIcon,
     ShieldCheckIcon, PlusCircleIcon, QueueListIcon, CheckCircleIcon,
-    ExclamationCircleIcon
+    ExclamationCircleIcon, ChevronLeftIcon, ChevronRightIcon
 } from '@heroicons/react/24/outline';
 
 // --- Charts ---
@@ -115,6 +116,11 @@ const Dashboard = () => {
     
     const [chartData, setChartData] = useState({ added: [], status: [] });
     const [recentLogs, setRecentLogs] = useState([]);
+    const [logPage, setLogPage] = useState(1);
+    const [isLogsLoading, setIsLogsLoading] = useState(false);
+    const [hasNextLogPage, setHasNextLogPage] = useState(false);
+    const LOGS_PER_PAGE = 5;
+
     const [analytics, setAnalytics] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
     const [lastUpdated, setLastUpdated] = useState(null);
@@ -144,7 +150,10 @@ const Dashboard = () => {
                 status: data.charts.request_breakdown
             });
             
-            setRecentLogs(data.recent_logs);
+            const rawLogs = data.recent_logs || [];
+            setRecentLogs(rawLogs);
+            setHasNextLogPage(rawLogs.length >= LOGS_PER_PAGE);
+            setLogPage(1);
             setLastUpdated(new Date(data.generated_at));
         } catch (err) {
             console.error("Dashboard Load Error:", err);
@@ -153,6 +162,31 @@ const Dashboard = () => {
             setIsLoading(false);
         }
     }, []); // Dependency on role/perms removed since backend handles it
+
+    // --- Paginated Logs Fetch Logic ---
+    const fetchLogsPage = useCallback(async (page) => {
+        if (!hasPermission('LOG_VIEW')) return;
+        setIsLogsLoading(true);
+        try {
+            const skip = (page - 1) * LOGS_PER_PAGE;
+            // Fetch limit + 1 to reliably detect next page existence
+            const data = await logService.getLogs({ limit: LOGS_PER_PAGE + 1, skip });
+            const list = Array.isArray(data) ? data : [];
+            if (list.length > LOGS_PER_PAGE) {
+                setHasNextLogPage(true);
+                setRecentLogs(list.slice(0, LOGS_PER_PAGE));
+            } else {
+                setHasNextLogPage(false);
+                setRecentLogs(list);
+            }
+            setLogPage(page);
+        } catch (err) {
+            console.error("Dashboard Logs Pagination Error:", err);
+            toast.error("Failed to load activity page.");
+        } finally {
+            setIsLogsLoading(false);
+        }
+    }, [hasPermission]);
 
     useEffect(() => {
         fetchDashboardData();
@@ -388,23 +422,27 @@ const Dashboard = () => {
                             <Link to="/admin/logs" className="text-xs font-bold text-indigo-600 hover:text-indigo-800">View All</Link>
                         </div>
                         <div className="p-0">
-                            {isLoading ? (
-                                <div className="p-6"><Skeleton count={3} height={50} /></div>
+                            {isLoading || isLogsLoading ? (
+                                <div className="p-6 space-y-3">
+                                    <Skeleton count={5} height={46} className="rounded-xl" />
+                                </div>
                             ) : recentLogs.length > 0 ? (
                                 <div className="divide-y divide-slate-100">
                                     {recentLogs.map((log) => (
                                         <div key={log.id} className="p-4 hover:bg-slate-50 transition-colors flex items-start gap-4">
-                                            <div className="mt-1 w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center text-slate-500 font-bold text-[10px] tracking-wide border border-slate-200 uppercase">
-                                                {log.action_type ? log.action_type.substring(0, 2) : 'SY'}
+                                            <div className="mt-1 w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center text-slate-500 font-bold text-[10px] tracking-wide border border-slate-200 uppercase shrink-0">
+                                                {(log.action_type || log.action || 'SY').substring(0, 2)}
                                             </div>
-                                            <div className="flex-1">
-                                                <p className="text-sm font-semibold text-slate-700">{log.description}</p>
-                                                <div className="flex items-center gap-2 mt-1">
+                                            <div className="flex-1 min-w-0">
+                                                <p className="text-sm font-semibold text-slate-700 break-words">
+                                                    {log.description || log.action_type || log.action || "System Activity"}
+                                                </p>
+                                                <div className="flex items-center gap-2 mt-1 flex-wrap">
                                                     <span className="text-xs text-slate-500 font-medium bg-slate-100 px-2 py-0.5 rounded-full">
-                                                        {log.action_by?.username || 'System'}
+                                                        {log.action_by?.username || log.action_by?.full_name || log.user || 'System'}
                                                     </span>
                                                     <span className="text-[10px] text-slate-400">
-                                                        {new Date(log.timestamp).toLocaleString()}
+                                                        {log.timestamp ? new Date(log.timestamp).toLocaleString() : ''}
                                                     </span>
                                                 </div>
                                             </div>
@@ -415,6 +453,44 @@ const Dashboard = () => {
                                 <div className="p-12 text-center flex flex-col items-center">
                                     <ClockIcon className="w-12 h-12 text-slate-200 mb-2" />
                                     <p className="text-slate-400 font-medium">No recent activity found.</p>
+                                </div>
+                            )}
+
+                            {/* Pagination Controls */}
+                            {!isLoading && (recentLogs.length > 0 || logPage > 1) && (
+                                <div className="px-6 py-3.5 border-t border-slate-100 bg-slate-50/70 flex items-center justify-between">
+                                    <button
+                                        type="button"
+                                        onClick={() => fetchLogsPage(logPage - 1)}
+                                        disabled={logPage <= 1 || isLogsLoading}
+                                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-900 disabled:opacity-40 disabled:cursor-not-allowed transition shadow-2xs cursor-pointer"
+                                    >
+                                        <ChevronLeftIcon className="w-3.5 h-3.5" />
+                                        <span>Previous</span>
+                                    </button>
+
+                                    <div className="flex items-center gap-2 text-xs font-medium text-slate-500">
+                                        {isLogsLoading ? (
+                                            <span className="inline-flex items-center gap-1.5 text-slate-400">
+                                                <span className="w-3 h-3 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></span>
+                                                Loading...
+                                            </span>
+                                        ) : (
+                                            <span>
+                                                Page <span className="font-bold text-indigo-600">{logPage}</span>
+                                            </span>
+                                        )}
+                                    </div>
+
+                                    <button
+                                        type="button"
+                                        onClick={() => fetchLogsPage(logPage + 1)}
+                                        disabled={!hasNextLogPage || isLogsLoading}
+                                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-900 disabled:opacity-40 disabled:cursor-not-allowed transition shadow-2xs cursor-pointer"
+                                    >
+                                        <span>Next</span>
+                                        <ChevronRightIcon className="w-3.5 h-3.5" />
+                                    </button>
                                 </div>
                             )}
                         </div>

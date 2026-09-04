@@ -128,3 +128,11 @@ class FatawaQuestion(FatawaQuestionBase):
 
     class Config:
         from_attributes = True
+
+
+class PaginatedFatawaResponse(BaseModel):
+    items: List[FatawaQuestion]
+    total: int
+    page: int
+    limit: int
+    total_pages: int

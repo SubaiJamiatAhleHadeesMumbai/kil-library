@@ -82,6 +82,12 @@ const LibraryHero = ({ config }) => {
   const ayahTranslation = heroSettings?.ayah_translation || "";
   const title = heroSettings?.title || "Kokan Islamic Library";
   const description = heroSettings?.description || "Explore curated Islamic knowledge with a calm, modern reading experience.";
+  const showCta = heroSettings?.show_cta === true;
+  const ctaText = heroSettings?.cta_text || "Explore Catalog";
+  const ctaLink = heroSettings?.cta_link || "/library";
+  const secondaryCtaText = heroSettings?.secondary_cta_text || "Ask a Question";
+  const secondaryCtaLink = heroSettings?.secondary_cta_link || "/fatawa";
+  const spotlightColor = heroSettings?.spotlight_color || "#f5d9a6";
 
   return (
     <motion.div
@@ -103,26 +109,29 @@ const LibraryHero = ({ config }) => {
               className="absolute inset-0 bg-cover bg-center transition-all duration-700"
               style={{ backgroundImage: `url(${bannerUrl})` }}
             />
-            {/* Configurable Darkness Overlay */}
+            {/* Dark Overlay with Configurable Opacity */}
             <div
-              className="absolute inset-0 bg-gradient-to-b from-[#000814] via-[#001D3D] to-[#000814]"
+              className="absolute inset-0 bg-[#000814] transition-opacity duration-300"
               style={{ opacity: overlayOpacity }}
             />
           </>
         ) : (
-          /* Default Deep Space Gradient */
+          /* Default Deep Aurora Mesh */
           <div
-            className="absolute inset-0"
+            className="absolute inset-0 opacity-70"
             style={{
-              background: "linear-gradient(135deg,#000814,#001D3D,#003566)",
-              backgroundSize: "300% 300%",
-              animation: "gradientMove 30s ease infinite",
-              opacity: 1,
+              background: `
+                radial-gradient(ellipse 90% 70% at 50% -20%, rgba(245,217,166,0.18), transparent 70%),
+                radial-gradient(ellipse 70% 50% at 10% 30%, rgba(6,182,212,0.14), transparent 60%),
+                radial-gradient(ellipse 60% 50% at 90% 40%, rgba(139,92,246,0.12), transparent 60%),
+                radial-gradient(ellipse 80% 60% at 50% 100%, rgba(15,23,42,0.9), transparent 80%),
+                linear-gradient(180deg, #000814 0%, #031329 50%, #000814 100%)
+              `,
             }}
           />
         )}
 
-        {/* ===== STAR & SPACE EFFECTS (WHEN ENABLED) ===== */}
+        {/* Ambient Stars & Particle Effects */}
         {showStars && (
           <>
             {/* AI SCANNING LINES */}
@@ -146,7 +155,7 @@ const LibraryHero = ({ config }) => {
             ))}
 
             {/* STARS */}
-            {[...Array(24)].map((_, i) => (
+            {[...Array(26)].map((_, i) => (
               <span
                 key={i}
                 className="absolute rounded-full animate-star"
@@ -223,7 +232,7 @@ const LibraryHero = ({ config }) => {
               <div
                 className="absolute left-1/2 top-1 -translate-x-1/2 h-32 w-32 rounded-full blur-3xl opacity-25 animate-pulse sm:h-44 sm:w-44 md:-top-6 md:h-56 md:w-56"
                 style={{
-                  background: "radial-gradient(circle,#f5d9a6,transparent 70%)",
+                  background: `radial-gradient(circle,${spotlightColor},transparent 70%)`,
                 }}
               />
 
@@ -235,7 +244,7 @@ const LibraryHero = ({ config }) => {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.7 }}
                     dir="rtl"
-                    className="relative mx-auto max-w-2xl text-lg sm:text-2xl md:text-3xl leading-relaxed text-[#F4A261] font-serif font-medium tracking-wide drop-shadow-md"
+                    className="relative mx-auto max-w-2xl text-base sm:text-lg md:text-xl leading-relaxed text-[#F4A261] font-serif font-medium tracking-wide drop-shadow-sm"
                   >
                     {ayahArabic}
                   </motion.h2>
@@ -261,7 +270,7 @@ const LibraryHero = ({ config }) => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.15, duration: 0.8 }}
-                className="mx-auto mt-2 max-w-3xl text-[clamp(1.75rem,1.2rem+4vw,3.5rem)] font-serif font-black leading-[1.1] text-white drop-shadow-[0_10px_28px_rgba(0,0,0,0.5)] tracking-tight"
+                className="mx-auto mt-2 max-w-2xl text-xl sm:text-2xl md:text-3xl font-bold leading-tight text-white drop-shadow-md tracking-tight"
               >
                 {title}
               </motion.h1>
@@ -272,13 +281,38 @@ const LibraryHero = ({ config }) => {
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.25, duration: 0.8 }}
-                  className="mx-auto mt-3 max-w-2xl text-xs sm:text-base md:text-lg leading-relaxed text-slate-200/90 font-normal"
+                  className="mx-auto mt-2.5 max-w-xl text-xs sm:text-sm leading-relaxed text-slate-200/90 font-normal"
                 >
                   {description}
                 </motion.p>
               )}
 
-              {/* (Buttons permanently removed as requested) */}
+              {/* ACTION BUTTONS (CTA) */}
+              {showCta && (
+                <motion.div
+                  initial={{ opacity: 0, y: 15 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.35, duration: 0.8 }}
+                  className="mt-6 flex flex-wrap items-center justify-center gap-3"
+                >
+                  {ctaText && (
+                    <a
+                      href={ctaLink}
+                      className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-emerald-500 to-teal-500 px-6 py-2.5 text-xs sm:text-sm font-bold text-white shadow-lg shadow-emerald-950/40 hover:from-emerald-400 hover:to-teal-400 transition-all active:scale-95"
+                    >
+                      <span>{ctaText}</span>
+                    </a>
+                  )}
+                  {secondaryCtaText && (
+                    <a
+                      href={secondaryCtaLink}
+                      className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 backdrop-blur-md px-5 py-2.5 text-xs sm:text-sm font-semibold text-white hover:bg-white/20 transition-all active:scale-95"
+                    >
+                      <span>{secondaryCtaText}</span>
+                    </a>
+                  )}
+                </motion.div>
+              )}
             </div>
           </div>
         </div>

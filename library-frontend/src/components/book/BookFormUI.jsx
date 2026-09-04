@@ -6,7 +6,7 @@ import {
   DocumentTextIcon, PhotoIcon, DocumentIcon,
   BookOpenIcon, AdjustmentsHorizontalIcon, TagIcon,
   CloudArrowUpIcon, ShieldCheckIcon, LockClosedIcon,
-  ComputerDesktopIcon, CheckIcon, ChevronDownIcon,
+  ComputerDesktopIcon, BanknotesIcon, CheckIcon, ChevronDownIcon,
 } from '@heroicons/react/24/outline';
 import SubcategorySelect from './SubcategorySelect';
 
@@ -360,7 +360,7 @@ const BookFormUI = ({
                 value={formData.page_count || ''} onChange={onChange} disabled={isLoading} min="1" placeholder="e.g. 450" />
               <InputField id="parts_or_volumes" name="parts_or_volumes" label="Parts / Volumes"
                 value={formData.parts_or_volumes || ''} onChange={onChange} disabled={isLoading} placeholder="e.g. Vol. 1-3" />
-              <InputField id="price" name="price" label="Price (PKR)" type="number"
+              <InputField id="price" name="price" label="Price (₹ INR)" type="number"
                 value={formData.price || ''} onChange={onChange} disabled={isLoading} min="0" placeholder="0.00" />
             </div>
           </section>
@@ -419,19 +419,54 @@ const BookFormUI = ({
             </div>
           </section>
 
-          {/* 5. ACCESS CONTROL */}
+          {/* 5. ACCESS CONTROL & PAID DOWNLOAD */}
           <section>
-            <SectionHeader step="5" icon={ShieldCheckIcon} title="Access Control" subtitle="Set borrowing and visibility permissions" color="rose" />
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <SectionHeader step="5" icon={ShieldCheckIcon} title="Access Control & Download Pricing" subtitle="Configure reading permissions and paid download fees" color="rose" />
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <ToggleCard id="is_restricted" checked={formData.is_restricted || false}
                 onChange={onChange} disabled={isLoading}
                 icon={LockClosedIcon} title="Restricted Access"
-                desc="Users must request approval to view or download." />
+                desc="Users must request approval to view or read." />
               <ToggleCard id="is_digital" checked={formData.is_digital || false}
                 onChange={onChange} disabled={isLoading}
                 icon={ComputerDesktopIcon} title="Digital Only"
-                desc="No physical copy - online access only." />
+                desc="No physical copy - online reading only." />
+              <ToggleCard id="is_download_paid" checked={formData.is_download_paid || false}
+                onChange={onChange} disabled={isLoading}
+                icon={BanknotesIcon} title="Paid Download"
+                desc="Free to read online, fee required to download PDF." />
             </div>
+
+            {formData.is_download_paid && (
+              <div className="mt-4 p-4.5 bg-gradient-to-r from-amber-50/80 to-orange-50/60 border-2 border-amber-200/80 rounded-2xl grid grid-cols-1 sm:grid-cols-2 gap-4 animate-in fade-in duration-200">
+                <InputField
+                  label="Download Price (₹ INR)"
+                  id="download_price"
+                  name="download_price"
+                  type="number"
+                  min="0"
+                  step="1"
+                  value={formData.download_price ?? 49}
+                  onChange={onChange}
+                  disabled={isLoading}
+                  placeholder="e.g. 50"
+                  required
+                />
+                <InputField
+                  label="Custom UPI ID (Optional)"
+                  id="download_upi_id"
+                  name="download_upi_id"
+                  type="text"
+                  value={formData.download_upi_id || ''}
+                  onChange={onChange}
+                  disabled={isLoading}
+                  placeholder="Leave blank to use library default UPI"
+                />
+                <p className="col-span-full text-xs text-amber-700 font-medium">
+                  💡 <strong>Free-to-Read, Paid-to-Download:</strong> Readers can freely explore and read this book in their browser with casual copy protections. Only readers who want a permanent offline copy will be charged ₹{formData.download_price || 0}.
+                </p>
+              </div>
+            )}
           </section>
 
           {/* 6. LIVE UPLOAD & COMPRESSION PROGRESS PANEL (1% to 100%) */}

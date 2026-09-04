@@ -28,6 +28,7 @@ def get_default_homepage_settings():
         "hero_badge": "Adaptive Knowledge Grid",
         "site_title": "Markaz Library",
         "site_subtitle": "Ahle Hadees Kokan",
+        "show_site_subtitle": True,
         "site_logo_url": "/static/images/MarkazLogo.png",
         "sections": {
             "hero": {
@@ -124,6 +125,24 @@ def get_default_homepage_settings():
             "show_donation_panel": True,
             "show_posters": True,
         },
+        "paid_downloads": {
+            "global_enabled": False,
+            "default_price": 49.0,
+            "upi_id": "kokanislamiclibrary@upi",
+            "instructions": "Scan QR code or use UPI ID to pay. Enter UTR reference to verify and download.",
+            "qr_image_url": "",
+        },
+        "deep_search": {
+            "enabled": True,
+            "enable_cloud_caching": True,
+            "enable_aerab_normalization": True,
+            "enable_boolean_operators": True,
+            "enable_scope_filters": True,
+            "enable_citation_tool": True,
+            "enable_research_export": True,
+            "max_snippets_per_book": 5,
+            "snippet_context_chars": 80
+        },
     }
 
 
@@ -166,6 +185,10 @@ def _merge_settings(payload: dict):
             merged_layout = copy.deepcopy(merged.get("layout", {}))
             merged_layout.update(value)
             merged["layout"] = merged_layout
+        elif key == "paid_downloads" and isinstance(value, dict):
+            merged_downloads = copy.deepcopy(merged.get("paid_downloads", {}))
+            merged_downloads.update(value)
+            merged["paid_downloads"] = merged_downloads
         else:
             merged[key] = value
 
@@ -218,3 +241,43 @@ def update_homepage_settings(payload: dict, db: Session = Depends(get_db), curre
     merged = _merge_settings(payload)
     _write_settings_to_disk(merged)
     return {"message": "Homepage settings updated", "settings": merged}
+
+
+@router.get("/deep-search")
+def get_deep_search_settings():
+    """Returns deep search configuration."""
+    settings = _load_settings_from_disk()
+    default_ds = get_default_homepage_settings()["deep_search"]
+    current_ds = settings.get("deep_search", {})
+    # Merge defaults so any newly added keys exist
+    merged = {**default_ds, **current_ds}
+    return merged
+
+
+@router.put("/deep-search")
+def update_deep_search_settings(
+    payload: dict,
+    current_user: user_model.User = Depends(get_current_user)
+):
+    """Admin Only: Updates deep search configuration."""
+    role_name = (current_user.role.name if hasattr(current_user, 'role') and current_user.role else str(getattr(current_user, 'role', ''))).lower()
+    is_admin = role_name in ["admin", "superadmin", "administrator"]
+    
+    perms = set()
+    if hasattr(current_user, 'permissions') and current_user.permissions:
+        for p in current_user.permissions:
+            if hasattr(p, 'code') and p.code:
+                perms.add(p.code)
+            elif hasattr(p, 'name') and p.name:
+                perms.add(p.name)
+
+    if not is_admin and not (perms & {'HOMEPAGE_LAYOUT_MANAGE', 'BOOK_MANAGE', 'HOMEPAGE_SEARCH_MANAGE', 'ADMIN_ACCESS'}):
+        raise HTTPException(status_code=403, detail="Permission denied to update Deep Search settings.")
+
+    settings = _load_settings_from_disk()
+    default_ds = get_default_homepage_settings()["deep_search"]
+    current_ds = settings.get("deep_search", default_ds)
+    current_ds.update(payload)
+    settings["deep_search"] = current_ds
+    _write_settings_to_disk(settings)
+    return {"message": "Deep Search settings updated successfully", "deep_search": current_ds}
