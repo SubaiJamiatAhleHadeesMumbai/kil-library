@@ -520,7 +520,8 @@ button,
    URDU & ARABIC RTL & TYPOGRAPHY ENHANCEMENTS
    ============================================================ */
 .font-urdu {
-  font-family: 'Jameel Noori Nastaleeq', 'Noto Nastaliq Urdu', serif;
+  font-family: 'Jameel Noori Nastaleeq', 'JameelNoori', 'Gulzar', 'Noto Nastaliq Urdu', serif;
+  direction: rtl;
   line-height: 2.2;
   font-feature-settings: "kern" 1, "liga" 1;
 }

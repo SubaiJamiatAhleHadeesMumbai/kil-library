@@ -9,6 +9,7 @@ import {
   ComputerDesktopIcon, BanknotesIcon, CheckIcon, ChevronDownIcon,
 } from '@heroicons/react/24/outline';
 import SubcategorySelect from './SubcategorySelect';
+import GoogleDocsEditorModal from './GoogleDocsEditorModal';
 
 const API_URL = import.meta.env.VITE_API_BASE_URL || (import.meta.env.PROD ? '' : 'http://127.0.0.1:8000');
 
@@ -138,6 +139,7 @@ const FileDropZone = ({
   id,
   accept,
   onChange,
+  onOpenGoogleDocs,
   currentUrl,
   newFileName,
   fileSizeMb,
@@ -157,6 +159,10 @@ const FileDropZone = ({
     setLocalName(file.name);
     const syntheticEvent = { target: { files: [file], name: id } };
     if (onChange) onChange(syntheticEvent);
+    // If it's a text file, automatically open Google Docs Editor!
+    if (id === 'txtFile' && onOpenGoogleDocs) {
+      onOpenGoogleDocs(file);
+    }
   };
 
   const accentMap = {
@@ -170,7 +176,15 @@ const FileDropZone = ({
 
   return (
     <div className="flex flex-col gap-2">
-      <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-widest">{label}</label>
+      <div className="flex items-center justify-between">
+        <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-widest">{label}</label>
+        {id === 'txtFile' && (
+          <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-200">
+            Google Docs Mode
+          </span>
+        )}
+      </div>
+
       <div
         onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
         onDragLeave={() => setDragging(false)}
@@ -185,7 +199,7 @@ const FileDropZone = ({
           }`}
       >
         <input ref={inputRef} id={id} name={id} type="file" accept={accept} className="sr-only" disabled={isLoading}
-          onChange={(e) => { const f = e.target.files[0]; if (f) { setLocalName(f.name); if (onChange) onChange(e); } }}
+          onChange={(e) => { const f = e.target.files[0]; if (f) { handleFile(f); } }}
         />
 
         {isCurrentUploading ? (
@@ -193,7 +207,6 @@ const FileDropZone = ({
           <div className="flex flex-col items-center justify-center py-2 animate-in zoom-in-90 duration-300">
             <div className="relative w-20 h-20 flex items-center justify-center">
               <svg className="w-full h-full -rotate-90 transform" viewBox="0 0 36 36">
-                {/* Background Track Circle */}
                 <path
                   className="text-slate-200"
                   strokeWidth="3.5"
@@ -201,7 +214,6 @@ const FileDropZone = ({
                   fill="none"
                   d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
                 />
-                {/* Progress Circle Fill */}
                 <path
                   className="text-[#002147] transition-all duration-300 ease-out"
                   strokeDasharray={`${uploadProgress}, 100`}
@@ -272,6 +284,22 @@ const FileDropZone = ({
           </>
         )}
       </div>
+
+      {/* ✍️ Google Docs Open / Edit Button for Research Text */}
+      {id === 'txtFile' && (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (onOpenGoogleDocs) onOpenGoogleDocs(null);
+          }}
+          className="mt-1 w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 via-sky-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white text-xs font-bold shadow-md shadow-blue-500/20 hover:shadow-lg transition-all active:scale-98"
+        >
+          <DocumentTextIcon className="w-4 h-4" />
+          <span>{localName || currentUrl ? "✏️ Edit in Google Docs" : "✍️ Open Google Docs Editor"}</span>
+        </button>
+      )}
     </div>
   );
 };
@@ -297,9 +325,18 @@ const BookFormUI = ({
   onChange,
   onSubcategoryChange,
   onFileChange,
+  onGoogleDocsSave,
   onSubmit,
   onCancel,
 }) => {
+  // Google Docs Editor Modal State
+  const [isGoogleDocsOpen, setIsGoogleDocsOpen] = useState(false);
+  const [googleDocsFile, setGoogleDocsFile] = useState(null);
+
+  const handleOpenGoogleDocs = (file = null) => {
+    setGoogleDocsFile(file);
+    setIsGoogleDocsOpen(true);
+  };
 
   return (
     <form onSubmit={onSubmit} className="flex flex-col h-full bg-white">
@@ -414,7 +451,7 @@ const BookFormUI = ({
                 newFileName={pdfFileName} fileSizeMb={pdfFileSizeMb}
                 uploadProgress={uploadProgress} isLoading={isLoading} icon={DocumentIcon} accent="blue" />
               <FileDropZone id="txtFile" label="Research Text" accept=".txt,.text,.md,.docx,.doc,.rtf,text/plain,text/*"
-                onChange={onFileChange} currentUrl={initialData?.txt_file_url}
+                onChange={onFileChange} onOpenGoogleDocs={handleOpenGoogleDocs} currentUrl={initialData?.txt_file_url}
                 newFileName={txtFileName} isLoading={isLoading} icon={DocumentTextIcon} accent="teal" />
             </div>
           </section>
@@ -559,6 +596,18 @@ const BookFormUI = ({
           </motion.button>
         </div>
       </div>
+      {/* 📝 GOOGLE DOCS STYLE URDU & ENGLISH TEXT EDITOR MODAL */}
+      <GoogleDocsEditorModal
+        isOpen={isGoogleDocsOpen}
+        onClose={() => setIsGoogleDocsOpen(false)}
+        onSave={(data) => {
+          if (onGoogleDocsSave) onGoogleDocsSave(data);
+        }}
+        bookTitle={formData.title}
+        initialFile={googleDocsFile}
+        initialUrl={initialData?.txt_file_url}
+        pdfUrl={formData.pdf_file ? URL.createObjectURL(formData.pdf_file) : (initialData?.pdf_url ? (initialData.pdf_url.startsWith('http') ? initialData.pdf_url : `${API_URL}${initialData.pdf_url.startsWith('/') ? initialData.pdf_url : `/${initialData.pdf_url}`}`) : null)}
+      />
     </form>
   );
 };

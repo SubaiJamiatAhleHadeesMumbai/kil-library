@@ -5,19 +5,36 @@
     <link rel="icon" type="image/png" href="/logo.png" />
     <link rel="apple-touch-icon" href="/logo.png" />
     
-    <!-- Fast Preconnect for Google Fonts -->
+    <!-- Google Fonts for English, Urdu (Gulzar, Noto Nastaliq) and Arabic (Amiri, Almarai) -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Almarai:wght@300;400;700&family=Amiri:ital,wght@0,400;0,700;1,400&family=Montserrat:ital,wght@0,100..900;1,100..900&family=Noto+Nastaliq+Urdu:wght@400;700&family=Noto+Sans+Arabic:wght@400;700&display=swap" rel="stylesheet"/>
-    <meta name="description" content="Kokan Islamic Library - Digital Islamic Library, Books, Research, and Fatawa." />
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link href="https://fonts.googleapis.com/css2?family=Almarai:wght@300;400;700&family=Amiri:ital,wght@0,400;0,700;1,400&family=Gulzar&family=Noto+Nastaliq+Urdu:wght@400;500;600;700&family=Noto+Sans+Arabic:wght@400;600;700&family=Montserrat:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet"/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <style>
-      .urdu-font, body.font-urdu {
-        font-family: 'Noto Nastaliq Urdu', 'Noto Sans Arabic', 'Jameel Noori Nastaleeq', serif !important;
-        line-height: 2.2;
+      @font-face {
+        font-family: 'Jameel Noori Nastaleeq';
+        src: url('/fonts/jameel-noori-nastaleeq.woff2') format('woff2'),
+             url('https://cdn.jsdelivr.net/npm/jameel-noori/fonts/jameel-noori-nastaleeq4.woff2') format('woff2');
+        font-weight: normal;
+        font-style: normal;
+        font-display: swap;
       }
-      body.font-arabic {
+
+      @font-face {
+        font-family: 'JameelNoori';
+        src: url('/fonts/jameel-noori-nastaleeq.woff2') format('woff2'),
+             url('https://cdn.jsdelivr.net/npm/jameel-noori/fonts/jameel-noori-nastaleeq4.woff2') format('woff2');
+        font-weight: normal;
+        font-style: normal;
+        font-display: swap;
+      }
+
+      .urdu-font, body.font-urdu, .font-urdu {
+        font-family: 'Jameel Noori Nastaleeq', 'JameelNoori', 'Gulzar', 'Noto Nastaliq Urdu', serif !important;
+        line-height: 2.4;
+      }
+      body.font-arabic, .font-arabic {
         font-family: 'Amiri', 'Noto Sans Arabic', 'Almarai', serif !important;
       }
 
@@ -64,31 +81,16 @@
             document.documentElement.lang = 'en';
             return;
           }
-          var saved = localStorage.getItem('kil_language') || 'en';
-          var hostname = window.location.hostname;
-          var parts = hostname.split('.');
-          var rootDomain = parts.length > 2 ? parts.slice(-2).join('.') : hostname;
-
+          var saved = localStorage.getItem('kil_language') || 'ur';
           if (saved === 'ur' || saved === 'ar') {
             document.documentElement.dir = 'rtl';
             document.documentElement.lang = saved;
             var val = '/en/' + saved;
             document.cookie = 'googtrans=' + val + '; path=/;';
-            document.cookie = 'googtrans=' + val + '; path=/; domain=' + hostname + ';';
-            document.cookie = 'googtrans=' + val + '; path=/; domain=.' + rootDomain + ';';
+            document.cookie = 'googtrans=' + val + '; path=/; domain=' + window.location.hostname + ';';
           } else {
             document.documentElement.dir = 'ltr';
             document.documentElement.lang = 'en';
-            // Aggressively clear translation cookies when in English
-            var clearCookies = function(name) {
-              document.cookie = name + '=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-              document.cookie = name + '=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=' + hostname + ';';
-              document.cookie = name + '=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=.' + rootDomain + ';';
-            };
-            clearCookies('googtrans');
-            clearCookies('googtrans_en');
-            clearCookies('googtrans_ur');
-            clearCookies('googtrans_ar');
           }
         } catch (e) {}
       })();
@@ -109,20 +111,12 @@
 
         // Auto-select language if saved
         setTimeout(function() {
-          var saved = localStorage.getItem('kil_language') || 'en';
-          var select = document.querySelector('.goog-te-combo');
-          if (select) {
-            if (saved && saved !== 'en') {
-              if (select.value !== saved) {
-                select.value = saved;
-                select.dispatchEvent(new Event('change', { bubbles: true }));
-              }
-            } else {
-              // Ensure English resets translation
-              if (select.value && select.value !== 'en') {
-                select.value = 'en';
-                select.dispatchEvent(new Event('change', { bubbles: true }));
-              }
+          var saved = localStorage.getItem('kil_language') || 'ur';
+          if (saved && saved !== 'en') {
+            var select = document.querySelector('.goog-te-combo');
+            if (select && select.value !== saved) {
+              select.value = saved;
+              select.dispatchEvent(new Event('change', { bubbles: true }));
             }
           }
         }, 300);

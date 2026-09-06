@@ -219,6 +219,15 @@ const BookForm = ({ initialData, isEditing, onBookAdded, onBookUpdated, onCancel
         }
     };
 
+    // 📝 Google Docs Editor Save Handler
+    const handleGoogleDocsSave = ({ file, fileName, wordCount }) => {
+        if (file) {
+            console.log("📝 Google Docs Saved:", fileName, `(${wordCount} words)`);
+            setFormData(prev => ({ ...prev, txt_file: file }));
+            setTxtFileName(`${fileName} (${wordCount} words)`);
+        }
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         
@@ -341,6 +350,7 @@ const BookForm = ({ initialData, isEditing, onBookAdded, onBookUpdated, onCancel
                 onChange={handleChange}
                 onSubcategoryChange={handleSubcategoryChange}
                 onFileChange={handleFileChange}
+                onGoogleDocsSave={handleGoogleDocsSave}
                 onSubmit={handleSubmit}
                 onCancel={onCancel}
             />

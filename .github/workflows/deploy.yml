@@ -45,7 +45,7 @@ jobs:
           chmod 600 ~/.ssh/config
 
           echo "🌐 Testing Connection to $VPS_USER@$VPS_HOST on port $VPS_PORT..."
-          ssh -v -i ~/.ssh/deploy_key -p $VPS_PORT -o ConnectTimeout=15 "$VPS_USER@$VPS_HOST" << 'EOF'
+          ssh -v -i ~/.ssh/deploy_key -p $VPS_PORT -o ConnectTimeout=60 "$VPS_USER@$VPS_HOST" << 'EOF'
             echo "🚀 Successfully Connected to VPS!"
             cd /root/kil-library || cd ~/kil-library || { echo "Directory not found"; exit 1; }
             echo "📦 Pulling latest changes from main branch..."

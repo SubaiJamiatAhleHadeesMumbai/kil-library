@@ -202,5 +202,6 @@ export const deduplicateBooks = (list) => {
       seen.set(key, { score, book });
     }
   }
-  return Array.from(seen.values()).map(item => item.book);
+  const result = Array.from(seen.values()).map(item => item.book);
+  return result.sort((a, b) => (Number(b?.id) || 0) - (Number(a?.id) || 0));
 };
