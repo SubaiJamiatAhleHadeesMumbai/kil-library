@@ -51,10 +51,13 @@ jobs:
             echo "📦 Pulling latest changes from main branch..."
             git fetch origin main
             git reset --hard origin/main
-            echo "🐳 Building & restarting Docker containers..."
-            docker compose up -d --build --remove-orphans
-            echo "📁 Syncing static assets into backend container volume..."
+            echo "🐳 Building frontend with --no-cache to force 100% fresh React build..."
+            docker compose build --no-cache frontend
+            echo "🐳 Restarting containers with forced recreate..."
+            docker compose up -d --build --force-recreate --remove-orphans
+            echo "📁 Syncing static assets and homepage settings into backend..."
             docker compose cp ./library_backend/static/uploads/. backend:/app/static/uploads/ || true
+            docker compose cp ./library_backend/static/homepage_settings.json backend:/app/static/homepage_settings.json || true
             echo "🗄️ Checking database schema..."
             docker compose exec -T backend python create_tables.py || true
             docker compose exec -T backend python setup_admin.py || true
