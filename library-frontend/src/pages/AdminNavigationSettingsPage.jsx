@@ -166,6 +166,9 @@ const AdminNavigationSettingsPage = () => {
     const toastId = toast.loading('Saving header & navigation settings...');
     try {
       await settingsService.updateHomepageSettings(settings);
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('homepage-settings-updated', { detail: settings }));
+      }
       toast.success('Header & navigation settings updated successfully!', { id: toastId });
     } catch (err) {
       console.error('Save error:', err);
@@ -538,7 +541,9 @@ const AdminNavigationSettingsPage = () => {
                     M
                   </div>
                   <div className="leading-tight truncate">
-                    <div className="text-xs font-extrabold text-[#002147] truncate">{settings.site_title || 'AHLE HADEES KOKAN'}</div>
+                    <div className="text-xs font-extrabold text-[#002147] truncate">
+                      {(typeof settings.site_title === 'object' && settings.site_title !== null ? (settings.site_title.en || settings.site_title.ur || settings.site_title.ar) : settings.site_title) || 'AHLE HADEES KOKAN'}
+                    </div>
                     {nav.show_subtitle !== false && (
                       <div className="text-[9px] text-slate-500 font-bold uppercase truncate">{settings.site_subtitle || 'MARKAZ'}</div>
                     )}

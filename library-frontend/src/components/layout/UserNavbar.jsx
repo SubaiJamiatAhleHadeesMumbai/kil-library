@@ -107,7 +107,7 @@ const isUserAdmin = (u) => {
 
 const UserNavbar = () => {
   const { user, isAuth, logout } = useAuth();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const navigate = useNavigate();
 
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -192,13 +192,28 @@ const UserNavbar = () => {
 
   useEffect(() => {
     let mounted = true;
-    settingsService.getHomepageSettings().then((data) => {
-      if (mounted) setHomepageSettings(data || {});
-    }).catch(() => {
-      if (mounted) setHomepageSettings({});
-    });
+    const fetchSettings = () => {
+      settingsService.getHomepageSettings().then((data) => {
+        if (mounted) setHomepageSettings(data || {});
+      }).catch(() => {
+        if (mounted) setHomepageSettings({});
+      });
+    };
+
+    fetchSettings();
+
+    const handleSettingsUpdated = (e) => {
+      if (e?.detail) {
+        setHomepageSettings(e.detail);
+      } else {
+        fetchSettings();
+      }
+    };
+
+    window.addEventListener('homepage-settings-updated', handleSettingsUpdated);
     return () => {
       mounted = false;
+      window.removeEventListener('homepage-settings-updated', handleSettingsUpdated);
     };
   }, []);
 
@@ -238,7 +253,16 @@ const UserNavbar = () => {
         : `${API_BASE_URL}${homepageSettings.site_logo_url.startsWith("/") ? "" : "/"}${homepageSettings.site_logo_url}`)
     : MARKAZ_LOGO_URL;
 
-  const brandTitle = homepageSettings?.site_title || t("markaz_title");
+  const brandTitle = (() => {
+    const raw = homepageSettings?.site_title;
+    if (raw && typeof raw === "object") {
+      return raw[language] || raw.en || raw.ur || raw.ar || t("markaz_title") || "Markaz Ahle Hadees Kokan";
+    }
+    if (typeof raw === "string" && raw.trim()) {
+      return raw;
+    }
+    return t("markaz_title") || "Markaz Ahle Hadees Kokan";
+  })();
   const brandSub = homepageSettings?.site_subtitle || t("markaz_sub");
   const showSiteSubtitle = navbarConfig.show_subtitle !== false && homepageSettings?.show_site_subtitle !== false;
 
@@ -266,28 +290,35 @@ const UserNavbar = () => {
           <div className="app-shell-container">
             <div className="flex items-center justify-between min-h-[4.25rem] py-2 gap-2">
               
-              {/* LOGO */}
+              {/* LOGO & BRAND */}
               <div className="flex items-center min-w-0 flex-1 md:flex-none">
-                <Link to="/" className="flex items-center gap-2 sm:gap-3 group min-w-0" onClick={() => setIsMobileMenuOpen(false)}>
-                  <div className="relative shrink-0">
+                <Link to="/" className="flex items-center gap-2 sm:gap-3 group min-w-0 flex-1 md:flex-none" onClick={() => setIsMobileMenuOpen(false)}>
+                  <div className="relative shrink-0 flex-shrink-0">
                     <div className="absolute inset-0 rounded-full bg-blue-400/20 blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                     <img
                       src={brandLogoUrl}
                       alt="Logo"
-                      style={{ height: `${logoSizePx}px`, width: `${logoSizePx}px` }}
-                      className="relative z-10 object-contain bg-white rounded-full border border-slate-100 shadow-sm group-hover:scale-105 transition-transform duration-300"
+                      style={{
+                        height: `clamp(32px, 8vw, ${logoSizePx}px)`,
+                        width: `clamp(32px, 8vw, ${logoSizePx}px)`,
+                      }}
+                      className="relative z-10 object-contain bg-white rounded-full border border-slate-100 shadow-xs group-hover:scale-105 transition-transform duration-300 shrink-0"
                       onError={(e) => {
                         e.currentTarget.onerror = null;
                         e.currentTarget.src = MARKAZ_LOGO_URL;
                       }}
                     />
                   </div>
-                  <div className="flex flex-col leading-tight min-w-0">
-                    <span className="font-extrabold text-sm sm:text-lg text-[#002147] tracking-tight truncate">
+                  <div className="flex flex-col justify-center leading-tight min-w-0 flex-1">
+                    <span
+                      style={{ fontSize: "clamp(0.72rem, 3.2vw, 1.125rem)" }}
+                      className="font-extrabold text-[#002147] tracking-tight leading-tight line-clamp-2 break-words"
+                      title={brandTitle}
+                    >
                       {brandTitle}
                     </span>
                     {showSiteSubtitle && brandSub && (
-                      <span className="text-[9px] sm:text-[10px] text-slate-500 font-bold uppercase tracking-wider truncate">
+                      <span className="text-[9px] sm:text-[10px] text-slate-500 font-bold uppercase tracking-wider line-clamp-1 break-words">
                         {brandSub}
                       </span>
                     )}
@@ -604,12 +635,12 @@ const UserNavbar = () => {
           </div>
 
             {/* MOBILE TOGGLE, SEARCH & LANGUAGE */}
-            <div className="flex items-center gap-1.5 sm:gap-2 md:hidden">
+            <div className="flex items-center gap-1 sm:gap-1.5 md:hidden shrink-0">
               <LanguageSwitcher />
               <button
                 type="button"
                 onClick={() => setIsUniversalSearchOpen(true)}
-                className="p-2 rounded-xl text-slate-600 hover:bg-slate-100 active:bg-slate-200 transition-colors cursor-pointer"
+                className="p-1.5 sm:p-2 rounded-xl text-slate-600 hover:bg-slate-100 active:bg-slate-200 transition-colors cursor-pointer"
                 title="Universal Search"
               >
                 <MagnifyingGlassIcon className="h-5 w-5" />
@@ -618,7 +649,7 @@ const UserNavbar = () => {
               
               <button
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                className="p-2 rounded-xl text-slate-600 hover:bg-slate-100 active:bg-slate-200 transition-colors"
+                className="p-1.5 sm:p-2 rounded-xl text-slate-600 hover:bg-slate-100 active:bg-slate-200 transition-colors cursor-pointer"
                 aria-label="Toggle navigation menu"
               >
                 {isMobileMenuOpen ? (

@@ -23,6 +23,7 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "react-hot-toast";
 import { motion, AnimatePresence } from "framer-motion";
 import BookPurchaseModal from "./BookPurchaseModal";
+import CommentSection from "./CommentSection";
 
 // Services
 import authService from "../../api/authService";
@@ -127,6 +128,7 @@ const BookDetailsModal = ({
   const author = getSafeName(book?.author, "Unknown");
   const category = getSafeName(book?.category, "General");
   const language = getSafeName(book?.language, "Urdu");
+  const isRTL = ['arabic', 'urdu', 'persian'].includes(String(language).toLowerCase());
   const description = book?.description || "No description available.";
   
   const isRestricted = !!book?.is_restricted;
@@ -516,6 +518,13 @@ const BookDetailsModal = ({
                           {description}
                         </p>
                       </div>
+
+                      {/* Comments & Reviews Section */}
+                      {book?.id && (
+                        <div className="border-t border-slate-200 pt-6">
+                          <CommentSection entityType="book" entityId={book.id} isRTL={isRTL} />
+                        </div>
+                      )}
                     </div>
 
                     {/* âœ… DESKTOP STICKY BOTTOM ACTION BAR */}

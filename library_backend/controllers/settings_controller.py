@@ -26,7 +26,11 @@ def get_default_homepage_settings():
         "ui_feel": "premium",
         "language": "en",
         "hero_badge": "Adaptive Knowledge Grid",
-        "site_title": "Markaz Library",
+        "site_title": {
+            "en": "Markaz Ahle Hadees Kokan",
+            "ur": "مرکز اہل حدیث کوکن",
+            "ar": "مركز أهل الحديث كوكان",
+        },
         "site_subtitle": "Ahle Hadees Kokan",
         "show_site_subtitle": True,
         "site_logo_url": "/static/images/MarkazLogo.png",
@@ -44,6 +48,13 @@ def get_default_homepage_settings():
                 "banner_image_url": "",
                 "banner_overlay_opacity": 70,
                 "show_stars": True,
+                "subtitle": "A modern, intelligent reading experience",
+                "cta_label": "Explore the catalog",
+                "primary_cta_label": "Explore the catalog",
+                "primary_cta_url": "/books",
+                "secondary_cta_label": "Request access",
+                "secondary_cta_url": "/contact",
+                "spotlight_color": "#2227bf",
             },
             "posters": {
                 "enabled": True,
@@ -213,6 +224,20 @@ def _merge_settings(payload: dict):
             merged_ui = copy.deepcopy(merged.get("ui_settings", {}))
             merged_ui.update(value)
             merged["ui_settings"] = merged_ui
+        elif key == "site_title":
+            if isinstance(value, dict):
+                merged_title = copy.deepcopy(merged.get("site_title", {}))
+                if isinstance(merged_title, str):
+                    merged_title = {"en": merged_title, "ur": "", "ar": ""}
+                merged_title.update(value)
+                merged["site_title"] = merged_title
+            elif isinstance(value, str):
+                default_title = merged.get("site_title", {})
+                merged["site_title"] = {
+                    "en": value,
+                    "ur": default_title.get("ur", "") if isinstance(default_title, dict) else "",
+                    "ar": default_title.get("ar", "") if isinstance(default_title, dict) else "",
+                }
         else:
             merged[key] = value
 

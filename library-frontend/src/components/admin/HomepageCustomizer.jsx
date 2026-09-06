@@ -136,6 +136,7 @@ const HomepageCustomizer = () => {
   const [activePanel, setActivePanel] = useState('branding');
   const [previewLoaderModalOpen, setPreviewLoaderModalOpen] = useState(false);
   const [previewLoaderStyle, setPreviewLoaderStyle] = useState('islamic_splash');
+  const [previewLang, setPreviewLang] = useState('en');
 
   const updateLoaderConfig = (key, value) => {
     setSettings((prev) => ({
@@ -317,6 +318,29 @@ const HomepageCustomizer = () => {
   const updateAccentColor = (accent_color) => setSettings((prev) => ({ ...prev, accent_color }));
   const updateLanguage = (language) => setSettings((prev) => ({ ...prev, language }));
   const updateContentField = (field, value) => setSettings((prev) => ({ ...prev, [field]: value }));
+
+  const getSiteTitleValue = (lang) => {
+    if (!settings.site_title) return '';
+    if (typeof settings.site_title === 'object') {
+      return settings.site_title[lang] || '';
+    }
+    return lang === 'en' ? String(settings.site_title) : '';
+  };
+
+  const updateSiteTitleField = (lang, value) => {
+    setSettings((prev) => {
+      const current = typeof prev.site_title === 'object' && prev.site_title !== null
+        ? { ...prev.site_title }
+        : { en: typeof prev.site_title === 'string' ? prev.site_title : '', ur: '', ar: '' };
+      return {
+        ...prev,
+        site_title: {
+          ...current,
+          [lang]: value,
+        },
+      };
+    });
+  };
   
   const updateLayoutField = (field, value) => {
     setSettings((prev) => ({
@@ -408,6 +432,26 @@ const HomepageCustomizer = () => {
     setIsError(false);
     try {
       const payload = JSON.parse(JSON.stringify(settings));
+
+      // Validation for site title
+      const titleObj = typeof payload.site_title === 'object' && payload.site_title !== null
+        ? payload.site_title
+        : { en: payload.site_title || '' };
+      
+      if (!titleObj.en || !titleObj.en.trim()) {
+        setMessage('English Site Title is required.');
+        setIsError(true);
+        setSaving(false);
+        return;
+      }
+
+      if ((titleObj.en && titleObj.en.length > 50) || (titleObj.ur && titleObj.ur.length > 50) || (titleObj.ar && titleObj.ar.length > 50)) {
+        setMessage('Site Title for any language cannot exceed 50 characters.');
+        setIsError(true);
+        setSaving(false);
+        return;
+      }
+
       if (!hasPermission('HOMEPAGE_SEARCH_MANAGE')) {
         if (origSettings && origSettings.sections && origSettings.sections.search) {
           payload.sections = payload.sections || {};
@@ -418,6 +462,9 @@ const HomepageCustomizer = () => {
       }
 
       await settingsService.updateHomepageSettings(payload);
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('homepage-settings-updated', { detail: payload }));
+      }
       setMessage('Homepage configuration saved successfully!');
       setIsError(false);
     } catch (error) {
@@ -692,7 +739,7 @@ const HomepageCustomizer = () => {
                           M
                         </div>
                         <div>
-                          <div className="text-xs font-bold leading-none">{settings.site_title || 'Markaz Islamic Library'}</div>
+                          <div className="text-xs font-bold leading-none">{getSiteTitleValue('en') || 'Markaz Islamic Library'}</div>
                           <div className="text-[9px] opacity-60 font-semibold">{settings.site_subtitle || 'AHLE HADEES KOKAN'}</div>
                         </div>
                       </div>
@@ -779,7 +826,33 @@ const HomepageCustomizer = () => {
 
                 {/* Live Brand Header Preview Box */}
                 <div className="rounded-2xl border border-blue-100 bg-gradient-to-r from-blue-50/50 to-indigo-50/30 p-4">
-                  <span className="text-[10px] font-black uppercase tracking-widest text-blue-600 block mb-2">Live Navbar Header Preview</span>
+                  <div className="flex items-center justify-between gap-2 mb-2">
+                    <span className="text-[10px] font-black uppercase tracking-widest text-blue-600 block">
+                      Live Navbar Header Preview
+                    </span>
+                    {/* Language Switcher for Preview */}
+                    <div className="flex items-center gap-1 bg-white/80 p-0.5 rounded-lg border border-blue-100 shadow-2xs">
+                      {[
+                        { code: 'en', label: 'English' },
+                        { code: 'ur', label: 'اردو' },
+                        { code: 'ar', label: 'العربية' },
+                      ].map((lang) => (
+                        <button
+                          key={lang.code}
+                          type="button"
+                          onClick={() => setPreviewLang(lang.code)}
+                          className={`px-2 py-0.5 text-[10px] font-bold rounded-md transition cursor-pointer ${
+                            previewLang === lang.code
+                              ? 'bg-blue-600 text-white shadow-2xs'
+                              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                          }`}
+                        >
+                          {lang.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
                   <div className="flex items-center gap-3 bg-white p-3 rounded-xl border border-slate-200/80 shadow-xs max-w-md">
                     <img
                       src={
@@ -790,18 +863,21 @@ const HomepageCustomizer = () => {
                           : `${import.meta.env.VITE_API_BASE_URL || ''}/static/images/MarkazLogo.png`
                       }
                       alt="Logo Preview"
-                      className="w-10 h-10 object-contain rounded-full border border-slate-100 bg-white p-0.5 shadow-xs"
+                      className="w-10 h-10 object-contain rounded-full border border-slate-100 bg-white p-0.5 shadow-xs shrink-0"
                       onError={(e) => {
                         e.currentTarget.onerror = null;
                         e.currentTarget.src = `${import.meta.env.VITE_API_BASE_URL || ''}/static/images/MarkazLogo.png`;
                       }}
                     />
-                    <div className="flex flex-col leading-tight min-w-0">
-                      <span className="font-extrabold text-base text-[#002147] truncate">
-                        {settings.site_title || 'Markaz Library'}
+                    <div className="flex flex-col justify-center leading-tight min-w-0 flex-1">
+                      <span
+                        style={{ fontSize: 'clamp(0.85rem, 2.5vw, 1.05rem)' }}
+                        className="font-extrabold text-[#002147] tracking-tight leading-tight line-clamp-2 break-words"
+                      >
+                        {getSiteTitleValue(previewLang) || getSiteTitleValue('en') || 'MARKAZ AHLE HADEES KOKAN'}
                       </span>
                       {settings.show_site_subtitle !== false && (
-                        <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider truncate">
+                        <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider line-clamp-1 break-words">
                           {settings.site_subtitle || 'AHLE HADEES KOKAN'}
                         </span>
                       )}
@@ -809,18 +885,92 @@ const HomepageCustomizer = () => {
                   </div>
                 </div>
 
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <label className="block">
-                    <span className="mb-1.5 block text-xs font-semibold text-slate-700">Public Site Title</span>
-                    <input
-                      type="text"
-                      value={settings.site_title || ''}
-                      onChange={(e) => updateContentField('site_title', e.target.value)}
-                      placeholder="e.g. Markaz Library"
-                      className="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-3.5 py-2.5 text-sm text-slate-800 focus:border-indigo-500 focus:bg-white focus:outline-none"
-                    />
-                  </label>
+                {/* Multilingual Site Title Inputs */}
+                <div className="space-y-3 rounded-2xl border border-slate-200/80 bg-slate-50/40 p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <span className="text-xs font-bold text-slate-800 block">Public Site Title (Multilingual)</span>
+                      <span className="text-[11px] text-slate-500">Provide the title for each supported language. Maximum 50 characters each.</span>
+                    </div>
+                    <span className="rounded-full bg-indigo-50 px-2.5 py-0.5 text-[10px] font-bold text-indigo-700 border border-indigo-100">
+                      Multi-Language
+                    </span>
+                  </div>
 
+                  <div className="grid gap-3 sm:grid-cols-3">
+                    {/* English */}
+                    <div className="block">
+                      <div className="mb-1 flex items-center justify-between">
+                        <span className="text-xs font-semibold text-slate-700 flex items-center gap-1">
+                          <span>English Title</span>
+                          <span className="text-rose-500 font-bold">*</span>
+                        </span>
+                        <span className={`text-[10px] font-mono font-medium ${
+                          (getSiteTitleValue('en')?.length || 0) > 45 ? 'text-amber-600' : 'text-slate-400'
+                        }`}>
+                          {getSiteTitleValue('en')?.length || 0}/50
+                        </span>
+                      </div>
+                      <input
+                        type="text"
+                        maxLength={50}
+                        required
+                        value={getSiteTitleValue('en')}
+                        onChange={(e) => updateSiteTitleField('en', e.target.value)}
+                        placeholder="e.g. MARKAZ AHLE HADEES KOKAN"
+                        className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-800 focus:border-indigo-500 focus:outline-none shadow-2xs"
+                      />
+                    </div>
+
+                    {/* Urdu */}
+                    <div className="block">
+                      <div className="mb-1 flex items-center justify-between">
+                        <span className="text-xs font-semibold text-slate-700 flex items-center gap-1">
+                          <span>Urdu Title (اردو)</span>
+                        </span>
+                        <span className={`text-[10px] font-mono font-medium ${
+                          (getSiteTitleValue('ur')?.length || 0) > 45 ? 'text-amber-600' : 'text-slate-400'
+                        }`}>
+                          {getSiteTitleValue('ur')?.length || 0}/50
+                        </span>
+                      </div>
+                      <input
+                        type="text"
+                        dir="rtl"
+                        maxLength={50}
+                        value={getSiteTitleValue('ur')}
+                        onChange={(e) => updateSiteTitleField('ur', e.target.value)}
+                        placeholder="مثلاً: مرکز اہل حدیث کوکن"
+                        className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-800 focus:border-indigo-500 focus:outline-none shadow-2xs font-urdu"
+                      />
+                    </div>
+
+                    {/* Arabic */}
+                    <div className="block">
+                      <div className="mb-1 flex items-center justify-between">
+                        <span className="text-xs font-semibold text-slate-700 flex items-center gap-1">
+                          <span>Arabic Title (العربية)</span>
+                        </span>
+                        <span className={`text-[10px] font-mono font-medium ${
+                          (getSiteTitleValue('ar')?.length || 0) > 45 ? 'text-amber-600' : 'text-slate-400'
+                        }`}>
+                          {getSiteTitleValue('ar')?.length || 0}/50
+                        </span>
+                      </div>
+                      <input
+                        type="text"
+                        dir="rtl"
+                        maxLength={50}
+                        value={getSiteTitleValue('ar')}
+                        onChange={(e) => updateSiteTitleField('ar', e.target.value)}
+                        placeholder="مثلاً: مركز أهل الحديث كوكان"
+                        className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-800 focus:border-indigo-500 focus:outline-none shadow-2xs font-arabic"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid gap-4 sm:grid-cols-2">
                   <div className="block">
                     <div className="mb-1.5 flex items-center justify-between">
                       <span className="text-xs font-semibold text-slate-700">Public Site Subtitle (Navbar Tagline)</span>
@@ -847,7 +997,6 @@ const HomepageCustomizer = () => {
                       className="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-3.5 py-2.5 text-sm text-slate-800 focus:border-indigo-500 focus:bg-white focus:outline-none disabled:opacity-50 disabled:bg-slate-100 disabled:cursor-not-allowed transition"
                     />
                   </div>
-                </div>
 
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="block">

@@ -21,3 +21,24 @@ def test_default_homepage_settings_include_sections_and_theme():
     assert settings["sections"]["hero"]["order"] == 0
     assert "primary_cta_label" in settings["sections"]["hero"]
     assert "secondary_cta_url" in settings["sections"]["hero"]
+    assert isinstance(settings["site_title"], dict)
+    assert settings["site_title"]["en"] == "Markaz Ahle Hadees Kokan"
+    assert "ur" in settings["site_title"]
+    assert "ar" in settings["site_title"]
+
+
+def test_merge_settings_site_title():
+    # Dictionary update
+    merged = settings_controller._merge_settings({"site_title": {"en": "Custom English"}})
+    assert merged["site_title"]["en"] == "Custom English"
+    assert merged["site_title"]["ur"] == "مرکز اہل حدیث کوکن"
+
+    # String update backwards-compatibility
+    merged_str = settings_controller._merge_settings({"site_title": "String Title"})
+    assert merged_str["site_title"]["en"] == "String Title"
+
+
+if __name__ == "__main__":
+    test_default_homepage_settings_include_sections_and_theme()
+    test_merge_settings_site_title()
+    print("All homepage settings tests passed successfully!")

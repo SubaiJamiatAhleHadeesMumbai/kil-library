@@ -572,7 +572,9 @@ const PublicHome = () => {
   }, [sectionVisibility]);
 
   const language = homepageSettings?.language || 'en';
-  const siteTitle = homepageSettings?.site_title || 'Kokan Library';
+  const siteTitle = (typeof homepageSettings?.site_title === 'object' && homepageSettings?.site_title !== null)
+    ? (homepageSettings.site_title[language] || homepageSettings.site_title.en || 'Kokan Library')
+    : (homepageSettings?.site_title || 'Kokan Library');
   const layout = homepageSettings?.layout || {};
   const showSearchStripBlock = layout.show_search_strip !== false;
   const showFeaturedPanel = layout.show_featured_books !== false;

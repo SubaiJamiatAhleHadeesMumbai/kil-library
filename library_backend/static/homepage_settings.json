@@ -1,7 +1,7 @@
 {
   "theme": "night",
   "theme_palette": "rose",
-  "accent_color": "#7df207",
+  "accent_color": "#072ff2",
   "heading_style": "sans",
   "background_style": "glass",
   "button_style": "glass",
@@ -9,7 +9,11 @@
   "ui_feel": "premium",
   "language": "en",
   "hero_badge": "where with be thsi ",
-  "site_title": "AHLE HADEES KOKAN",
+  "site_title": {
+    "en": "MARKAZ AHLE HADEES KOKAN",
+    "ur": "مرکز اہل حدیث کوکن",
+    "ar": "مركز أهل الحديث كوكان"
+  },
   "site_subtitle": "",
   "show_site_subtitle": false,
   "site_logo_url": "https://res.cloudinary.com/dhlfaiijj/image/upload/v1788282547/booknest/branding/pylbboxe1s8cxdojlt56.png",
@@ -142,7 +146,7 @@
     "upi_id": "kokanislamiclibrary@upi",
     "instructions": "Scan QR code or use UPI ID to pay. Enter UTR reference to verify and download.",
     "qr_image_url": "https://res.cloudinary.com/dhlfaiijj/image/upload/v1788106527/booknest/qr_codes/uwtwflgolcusgkbun83n.png",
-    "master_enabled": true,
+    "master_enabled": false,
     "default_upi_id": "kokanislamiclibrary@upi"
   },
   "deep_search": {
@@ -156,24 +160,55 @@
     "max_snippets_per_book": 5,
     "snippet_context_chars": 80
   },
+  "ui_settings": {
+    "primary_color": "#1E3A8A",
+    "primary_hover": "#172554",
+    "primary_light": "#EEF4FF",
+    "secondary_color": "#0F766E",
+    "accent_color": "#38BDF8",
+    "border_radius": "rounded",
+    "spacing_density": "compact",
+    "font_scale": "normal",
+    "arabic_font": "Noto Naskh Arabic",
+    "urdu_font": "Noto Nastaliq Urdu",
+    "default_language": "ur",
+    "enabled_languages": [
+      "en",
+      "ur",
+      "ar"
+    ],
+    "theme_mode": "light",
+    "allow_user_theme_override": false,
+    "site_title": "Kokan Islamic Library",
+    "site_subtitle": "Markaz Ahle Hadees Kokan",
+    "logo_url": "/static/images/MarkazLogo.png",
+    "favicon_url": "/favicon.ico"
+  },
+  "loader_config": {
+    "loader_style": "hybrid",
+    "splash_theme": "ivory",
+    "occasion_theme": "conference",
+    "show_quotes": true,
+    "splash_duration": 1800
+  },
   "announcement_bar": {
-    "enabled": true,
+    "enabled": false,
     "badge": "\u2728 Hadith of the Day",
     "text": "\u062e\u064e\u064a\u0652\u0631\u064f\u0643\u064f\u0645\u0652 \u0645\u064e\u0646\u0652 \u062a\u064e\u0639\u064e\u0644\u064e\u0651\u0645\u064e \u0627\u0644\u0652\u0642\u064f\u0631\u0652\u0622\u0646\u064e \u0648\u064e\u0639\u064e\u0644\u064e\u0651\u0645\u064e\u0647\u064f",
     "translation": "The best among you are those who learn the Quran and teach it. (Sahih al-Bukhari)",
     "link": "/books",
-    "theme": "amber",
-    "is_dismissible": false,
+    "theme": "rose",
+    "is_dismissible": true,
     "speed": "normal"
   },
   "navbar_config": {
-    "logo_size": 32,
-    "show_subtitle": false,
+    "logo_size": 56,
+    "show_subtitle": true,
     "show_continue_reading": true,
     "show_search": true,
     "search_style": "pill",
     "show_language": true,
-    "show_donate": false,
+    "show_donate": true,
     "donate_text": "Donate",
     "menu_items": {
       "home": true,
@@ -192,12 +227,5 @@
     "show_search": true,
     "show_fatawa": true,
     "show_profile": true
-  },
-  "loader_config": {
-    "loader_style": "hybrid",
-    "splash_theme": "ivory",
-    "occasion_theme": "conference",
-    "show_quotes": true,
-    "splash_duration": 1800
   }
 }
