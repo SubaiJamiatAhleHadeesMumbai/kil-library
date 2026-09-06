@@ -8,6 +8,9 @@ import {
 } from "@heroicons/react/24/outline";
 import { donationService } from "../../api/donationService";
 
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL ||
+  (import.meta.env.PROD ? "" : "http://127.0.0.1:8000");
 const DEFAULT_POSTER = "/uploads/donation/markaz_donation_qr_2026.png";
 
 const DonationPanel = () => {

@@ -1,7 +1,7 @@
 # file: schemas/log_schema.py
 
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, List
 from datetime import datetime
 from .user_schema import User
 
@@ -23,3 +23,12 @@ class Log(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class PaginatedLogResponse(BaseModel):
+    items: List[Log]
+    total: int
+    page: int
+    limit: int
+    total_pages: int
+

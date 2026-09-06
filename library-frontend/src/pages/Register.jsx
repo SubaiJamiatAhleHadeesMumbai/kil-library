@@ -187,31 +187,39 @@ const Register = () => {
   };
 
   return (
-    <div className="relative min-h-screen flex items-center justify-center overflow-hidden bg-gradient-to-br from-slate-50 via-slate-100/60 to-indigo-50/50 px-4 py-8 sm:px-6 sm:py-12">
+    <div className="relative min-h-screen flex items-center justify-center overflow-hidden bg-gradient-to-br from-slate-50 via-slate-100/60 to-indigo-50/50 px-4 py-4 sm:px-6">
       {/* Background Decorative Gradient Orbs */}
-      <div aria-hidden="true" className="absolute top-0 right-0 w-[30rem] h-[30rem] bg-indigo-500/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none" />
-      <div aria-hidden="true" className="absolute bottom-0 left-0 w-[24rem] h-[24rem] bg-cyan-500/10 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2 pointer-events-none" />
+      <div aria-hidden="true" className="absolute top-0 right-0 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none" />
+      <div aria-hidden="true" className="absolute bottom-0 left-0 w-80 h-80 bg-cyan-500/10 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2 pointer-events-none" />
 
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
+        initial={{ opacity: 0, y: 15 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, ease: "easeOut" }}
-        className="relative z-10 w-full max-w-[34rem] rounded-3xl border border-slate-200/80 bg-white/90 backdrop-blur-md p-6 sm:p-8 shadow-xl shadow-slate-900/5"
+        transition={{ duration: 0.35, ease: "easeOut" }}
+        className="relative z-10 w-full max-w-lg rounded-3xl border border-slate-200/80 bg-white/95 backdrop-blur-md p-5 sm:p-6 shadow-xl shadow-slate-900/5 my-auto"
       >
         {/* Brand Header */}
-        <div className="flex items-center gap-3.5 mb-7">
-          <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-[#002147] to-indigo-900 flex items-center justify-center shadow-md shadow-indigo-950/20 text-white">
-            <UserPlusIcon className="w-6 h-6" />
+        <div className="flex items-center justify-between mb-3.5 pb-2.5 border-b border-slate-100">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-[#002147] to-indigo-900 flex items-center justify-center shadow-md shadow-indigo-950/20 text-white">
+              <UserPlusIcon className="w-4 h-4" />
+            </div>
+            <div>
+              <h1 className="text-sm font-extrabold tracking-tight text-slate-900 leading-none">MARKAZ AHLE HADEES KOKAN</h1>
+              <p className="text-[10.5px] text-slate-500 font-medium mt-0.5">New Account Registration</p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-base font-extrabold tracking-tight text-slate-900">Markaz Library System</h1>
-            <p className="text-xs text-slate-500 font-medium">New Account Registration</p>
-          </div>
+          <Link
+            to="/"
+            className="text-xs font-bold text-slate-500 hover:text-[#002147] px-2 py-0.5 rounded-lg hover:bg-slate-100 transition-colors"
+          >
+            ← Home
+          </Link>
         </div>
 
-        <div className="mb-6">
-          <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">Create Account</h2>
-          <p className="text-slate-500 text-sm mt-1 font-medium">
+        <div className="mb-3">
+          <h2 className="text-lg sm:text-xl font-extrabold text-slate-900 tracking-tight">Create Account</h2>
+          <p className="text-slate-500 text-xs mt-0.5 font-medium">
             Fill in your details to get started with your research profile.
           </p>
         </div>
@@ -220,17 +228,17 @@ const Register = () => {
           animate={shake ? { x: [0, -10, 10, -6, 6, 0] } : { x: 0 }}
           transition={{ duration: 0.4 }}
         >
-          <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+          <form onSubmit={handleSubmit} className="space-y-2.5" noValidate>
             {/* Full Name & Username Row */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
               {/* Full Name */}
-              <div className="space-y-1.5">
-                <label htmlFor="full_name" className="text-[11px] font-extrabold text-slate-500 uppercase tracking-wider">
+              <div className="space-y-1">
+                <label htmlFor="full_name" className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">
                   Full Name
                 </label>
                 <div className="relative group">
-                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-400 group-focus-within:text-[#002147] transition-colors pointer-events-none" aria-hidden="true">
-                    <IdentificationIcon className="w-5 h-5" />
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400 group-focus-within:text-[#002147] transition-colors pointer-events-none" aria-hidden="true">
+                    <IdentificationIcon className="w-4 h-4" />
                   </div>
                   <input
                     id="full_name"
@@ -243,7 +251,7 @@ const Register = () => {
                     autoComplete="name"
                     aria-invalid={!!fieldErrors.full_name}
                     aria-describedby={fieldErrors.full_name ? "fn-error" : undefined}
-                    className={`w-full pl-10 pr-3 py-3 rounded-2xl outline-none transition-all text-sm font-medium text-slate-800 placeholder:text-slate-400 disabled:opacity-60 border-2 ${
+                    className={`w-full pl-8 pr-2.5 py-2 rounded-xl outline-none transition-all text-xs font-medium text-slate-800 placeholder:text-slate-400 disabled:opacity-60 border-2 ${
                       fieldErrors.full_name
                         ? "bg-rose-50/50 border-rose-300 focus:border-rose-500 focus:ring-4 focus:ring-rose-500/10"
                         : "bg-slate-50/80 border-slate-200/80 focus:border-[#002147] focus:bg-white focus:ring-4 focus:ring-[#002147]/10"
@@ -254,13 +262,13 @@ const Register = () => {
               </div>
 
               {/* Username */}
-              <div className="space-y-1.5">
-                <label htmlFor="username" className="text-[11px] font-extrabold text-slate-500 uppercase tracking-wider">
+              <div className="space-y-1">
+                <label htmlFor="username" className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">
                   Username
                 </label>
                 <div className="relative group">
-                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-400 group-focus-within:text-[#002147] transition-colors pointer-events-none" aria-hidden="true">
-                    <UserIcon className="w-5 h-5" />
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400 group-focus-within:text-[#002147] transition-colors pointer-events-none" aria-hidden="true">
+                    <UserIcon className="w-4 h-4" />
                   </div>
                   <input
                     id="username"
@@ -273,7 +281,7 @@ const Register = () => {
                     autoComplete="username"
                     aria-invalid={!!fieldErrors.username}
                     aria-describedby={fieldErrors.username ? "un-error" : undefined}
-                    className={`w-full pl-10 pr-3 py-3 rounded-2xl outline-none transition-all text-sm font-medium text-slate-800 placeholder:text-slate-400 disabled:opacity-60 border-2 ${
+                    className={`w-full pl-8 pr-2.5 py-2 rounded-xl outline-none transition-all text-xs font-medium text-slate-800 placeholder:text-slate-400 disabled:opacity-60 border-2 ${
                       fieldErrors.username
                         ? "bg-rose-50/50 border-rose-300 focus:border-rose-500 focus:ring-4 focus:ring-rose-500/10"
                         : "bg-slate-50/80 border-slate-200/80 focus:border-[#002147] focus:bg-white focus:ring-4 focus:ring-[#002147]/10"
@@ -285,13 +293,13 @@ const Register = () => {
             </div>
 
             {/* Email Address */}
-            <div className="space-y-1.5">
-              <label htmlFor="email" className="text-[11px] font-extrabold text-slate-500 uppercase tracking-wider">
+            <div className="space-y-1">
+              <label htmlFor="email" className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">
                 Email Address
               </label>
               <div className="relative group">
-                <div className="absolute inset-y-0 left-0 pl-4 flex items-center text-slate-400 group-focus-within:text-[#002147] transition-colors pointer-events-none" aria-hidden="true">
-                  <EnvelopeIcon className="w-5 h-5" />
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400 group-focus-within:text-[#002147] transition-colors pointer-events-none" aria-hidden="true">
+                  <EnvelopeIcon className="w-4 h-4" />
                 </div>
                 <input
                   id="email"
@@ -304,7 +312,7 @@ const Register = () => {
                   autoComplete="email"
                   aria-invalid={!!fieldErrors.email}
                   aria-describedby={fieldErrors.email ? "em-error" : undefined}
-                  className={`w-full pl-11 pr-4 py-3.5 rounded-2xl outline-none transition-all text-sm font-medium text-slate-800 placeholder:text-slate-400 disabled:opacity-60 border-2 ${
+                  className={`w-full pl-8 pr-3 py-2 rounded-xl outline-none transition-all text-xs font-medium text-slate-800 placeholder:text-slate-400 disabled:opacity-60 border-2 ${
                     fieldErrors.email
                       ? "bg-rose-50/50 border-rose-300 focus:border-rose-500 focus:ring-4 focus:ring-rose-500/10"
                       : "bg-slate-50/80 border-slate-200/80 focus:border-[#002147] focus:bg-white focus:ring-4 focus:ring-[#002147]/10"
@@ -314,114 +322,112 @@ const Register = () => {
               <FieldError id="em-error" message={fieldErrors.email} />
             </div>
 
-            {/* Password Field */}
-            <div className="space-y-1.5">
-              <label htmlFor="password" className="text-[11px] font-extrabold text-slate-500 uppercase tracking-wider">
-                Password
-              </label>
-              <div className="relative group">
-                <div className="absolute inset-y-0 left-0 pl-4 flex items-center text-slate-400 group-focus-within:text-[#002147] transition-colors pointer-events-none" aria-hidden="true">
-                  <LockClosedIcon className="w-5 h-5" />
+            {/* Password & Confirm Password Row */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              {/* Password Field */}
+              <div className="space-y-1">
+                <label htmlFor="password" className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">
+                  Password
+                </label>
+                <div className="relative group">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400 group-focus-within:text-[#002147] transition-colors pointer-events-none" aria-hidden="true">
+                    <LockClosedIcon className="w-4 h-4" />
+                  </div>
+                  <input
+                    id="password"
+                    name="password"
+                    type={showPassword ? "text" : "password"}
+                    value={formData.password}
+                    onChange={handleChange}
+                    disabled={loading}
+                    placeholder="Create password"
+                    autoComplete="new-password"
+                    aria-invalid={!!fieldErrors.password}
+                    aria-describedby={fieldErrors.password ? "pw-error" : undefined}
+                    className={`w-full pl-8 pr-9 py-2 rounded-xl outline-none transition-all text-xs font-medium text-slate-800 placeholder:text-slate-400 disabled:opacity-60 border-2 ${
+                      fieldErrors.password
+                        ? "bg-rose-50/50 border-rose-300 focus:border-rose-500 focus:ring-4 focus:ring-rose-500/10"
+                        : "bg-slate-50/80 border-slate-200/80 focus:border-[#002147] focus:bg-white focus:ring-4 focus:ring-[#002147]/10"
+                    }`}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((prev) => !prev)}
+                    disabled={loading}
+                    aria-label={showPassword ? "Hide password" : "Show password"}
+                    className="absolute inset-y-0 right-0 pr-2.5 flex items-center text-slate-400 hover:text-[#002147] transition-colors focus:outline-none"
+                  >
+                    {showPassword ? <EyeSlashIcon className="w-3.5 h-3.5" /> : <EyeIcon className="w-3.5 h-3.5" />}
+                  </button>
                 </div>
-                <input
-                  id="password"
-                  name="password"
-                  type={showPassword ? "text" : "password"}
-                  value={formData.password}
-                  onChange={handleChange}
-                  disabled={loading}
-                  placeholder="Create a strong password"
-                  autoComplete="new-password"
-                  aria-invalid={!!fieldErrors.password}
-                  aria-describedby={fieldErrors.password ? "pw-error" : undefined}
-                  className={`w-full pl-11 pr-12 py-3.5 rounded-2xl outline-none transition-all text-sm font-medium text-slate-800 placeholder:text-slate-400 disabled:opacity-60 border-2 ${
-                    fieldErrors.password
-                      ? "bg-rose-50/50 border-rose-300 focus:border-rose-500 focus:ring-4 focus:ring-rose-500/10"
-                      : "bg-slate-50/80 border-slate-200/80 focus:border-[#002147] focus:bg-white focus:ring-4 focus:ring-[#002147]/10"
-                  }`}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword((prev) => !prev)}
-                  disabled={loading}
-                  aria-label={showPassword ? "Hide password" : "Show password"}
-                  className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-[#002147] transition-colors focus:outline-none"
-                >
-                  {showPassword ? <EyeSlashIcon className="w-5 h-5" /> : <EyeIcon className="w-5 h-5" />}
-                </button>
+                <FieldError id="pw-error" message={fieldErrors.password} />
               </div>
-              <FieldError id="pw-error" message={fieldErrors.password} />
 
-              {/* Password Strength Dynamic Meter */}
-              {formData.password && (
-                <div className="mt-2 space-y-1">
-                  <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
-                    <div
-                      className={`h-full ${strengthColor} transition-all duration-300 rounded-full`}
-                      style={{ width: `${(passwordStrength / 5) * 100}%` }}
-                    />
+              {/* Confirm Password Field */}
+              <div className="space-y-1">
+                <label htmlFor="confirmPassword" className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">
+                  Confirm Password
+                </label>
+                <div className="relative group">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400 group-focus-within:text-[#002147] transition-colors pointer-events-none" aria-hidden="true">
+                    <LockClosedIcon className="w-4 h-4" />
                   </div>
-                  <div className="flex justify-between items-center text-[11px] text-slate-500 font-medium">
-                    <span>Password Strength:</span>
-                    <span className="font-bold text-slate-800">{strengthLabel}</span>
-                  </div>
+                  <input
+                    id="confirmPassword"
+                    name="confirmPassword"
+                    type={showConfirmPassword ? "text" : "password"}
+                    value={formData.confirmPassword}
+                    onChange={handleChange}
+                    disabled={loading}
+                    placeholder="Re-enter password"
+                    autoComplete="new-password"
+                    aria-invalid={!!fieldErrors.confirmPassword}
+                    aria-describedby={fieldErrors.confirmPassword ? "cp-error" : undefined}
+                    className={`w-full pl-8 pr-9 py-2 rounded-xl outline-none transition-all text-xs font-medium text-slate-800 placeholder:text-slate-400 disabled:opacity-60 border-2 ${
+                      fieldErrors.confirmPassword
+                        ? "bg-rose-50/50 border-rose-300 focus:border-rose-500 focus:ring-4 focus:ring-rose-500/10"
+                        : "bg-slate-50/80 border-slate-200/80 focus:border-[#002147] focus:bg-white focus:ring-4 focus:ring-[#002147]/10"
+                    }`}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword((prev) => !prev)}
+                    disabled={loading}
+                    aria-label={showConfirmPassword ? "Hide password" : "Show password"}
+                    className="absolute inset-y-0 right-0 pr-2.5 flex items-center text-slate-400 hover:text-[#002147] transition-colors focus:outline-none"
+                  >
+                    {showConfirmPassword ? <EyeSlashIcon className="w-3.5 h-3.5" /> : <EyeIcon className="w-3.5 h-3.5" />}
+                  </button>
                 </div>
-              )}
+                <FieldError id="cp-error" message={fieldErrors.confirmPassword} />
+              </div>
             </div>
 
-            {/* Confirm Password Field */}
-            <div className="space-y-1.5">
-              <label htmlFor="confirmPassword" className="text-[11px] font-extrabold text-slate-500 uppercase tracking-wider">
-                Confirm Password
-              </label>
-              <div className="relative group">
-                <div className="absolute inset-y-0 left-0 pl-4 flex items-center text-slate-400 group-focus-within:text-[#002147] transition-colors pointer-events-none" aria-hidden="true">
-                  <LockClosedIcon className="w-5 h-5" />
+            {/* Password Strength & Match Status Bar */}
+            {formData.password && (
+              <div className="pt-0.5 space-y-1">
+                <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+                  <div
+                    className={`h-full ${strengthColor} transition-all duration-300 rounded-full`}
+                    style={{ width: `${(passwordStrength / 5) * 100}%` }}
+                  />
                 </div>
-                <input
-                  id="confirmPassword"
-                  name="confirmPassword"
-                  type={showConfirmPassword ? "text" : "password"}
-                  value={formData.confirmPassword}
-                  onChange={handleChange}
-                  disabled={loading}
-                  placeholder="Re-enter password"
-                  autoComplete="new-password"
-                  aria-invalid={!!fieldErrors.confirmPassword}
-                  aria-describedby={fieldErrors.confirmPassword ? "cp-error" : undefined}
-                  className={`w-full pl-11 pr-12 py-3.5 rounded-2xl outline-none transition-all text-sm font-medium text-slate-800 placeholder:text-slate-400 disabled:opacity-60 border-2 ${
-                    fieldErrors.confirmPassword
-                      ? "bg-rose-50/50 border-rose-300 focus:border-rose-500 focus:ring-4 focus:ring-rose-500/10"
-                      : "bg-slate-50/80 border-slate-200/80 focus:border-[#002147] focus:bg-white focus:ring-4 focus:ring-[#002147]/10"
-                  }`}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowConfirmPassword((prev) => !prev)}
-                  disabled={loading}
-                  aria-label={showConfirmPassword ? "Hide password" : "Show password"}
-                  className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-[#002147] transition-colors focus:outline-none"
-                >
-                  {showConfirmPassword ? <EyeSlashIcon className="w-5 h-5" /> : <EyeIcon className="w-5 h-5" />}
-                </button>
-              </div>
-              <FieldError id="cp-error" message={fieldErrors.confirmPassword} />
-
-              {/* Real-time Match Indicator */}
-              {formData.confirmPassword && !fieldErrors.confirmPassword && (
-                <div className="mt-1 flex items-center gap-1.5 text-[11px] font-bold">
-                  {formData.password === formData.confirmPassword ? (
-                    <span className="text-emerald-600 flex items-center gap-1">
-                      <CheckCircleIcon className="w-4 h-4" /> Passwords match
-                    </span>
-                  ) : (
-                    <span className="text-rose-500 flex items-center gap-1">
-                      <XCircleIcon className="w-4 h-4" /> Passwords do not match
-                    </span>
+                <div className="flex justify-between items-center text-[10px] text-slate-500 font-medium">
+                  <span>Strength: <strong className="text-slate-800">{strengthLabel}</strong></span>
+                  {formData.confirmPassword && !fieldErrors.confirmPassword && (
+                    formData.password === formData.confirmPassword ? (
+                      <span className="text-emerald-600 font-bold flex items-center gap-1">
+                        <CheckCircleIcon className="w-3 h-3" /> Match
+                      </span>
+                    ) : (
+                      <span className="text-rose-500 font-bold flex items-center gap-1">
+                        <XCircleIcon className="w-3 h-3" /> Mismatch
+                      </span>
+                    )
                   )}
                 </div>
-              )}
-            </div>
+              </div>
+            )}
 
             {/* Submit Button */}
             <motion.button
@@ -429,7 +435,7 @@ const Register = () => {
               whileTap={{ scale: loading ? 1 : 0.98 }}
               type="submit"
               disabled={loading}
-              className="w-full py-4 rounded-2xl bg-[#002147] text-white font-bold text-sm shadow-md shadow-[#002147]/20 hover:bg-[#002f66] hover:shadow-lg hover:shadow-[#002147]/30 transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2.5 mt-2 focus:outline-none focus:ring-4 focus:ring-[#002147]/25"
+              className="w-full py-2.5 rounded-xl bg-[#002147] text-white font-bold text-xs sm:text-sm shadow-md shadow-[#002147]/20 hover:bg-[#002f66] hover:shadow-lg hover:shadow-[#002147]/30 transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 mt-2 focus:outline-none focus:ring-4 focus:ring-[#002147]/25 cursor-pointer"
             >
               {loading ? (
                 <>
@@ -438,7 +444,7 @@ const Register = () => {
                 </>
               ) : (
                 <>
-                  <UserPlusIcon className="w-5 h-5" aria-hidden="true" />
+                  <UserPlusIcon className="w-4 h-4" aria-hidden="true" />
                   <span>Create Account</span>
                 </>
               )}
@@ -446,7 +452,7 @@ const Register = () => {
           </form>
 
           {/* Login Link */}
-          <p className="mt-8 text-center text-sm text-slate-500 font-medium">
+          <p className="mt-3.5 text-center text-xs text-slate-500 font-medium">
             Already have an account?{" "}
             <Link
               to="/login"
@@ -456,8 +462,8 @@ const Register = () => {
             </Link>
           </p>
 
-          <p className="mt-8 text-center text-xs text-slate-400">
-            &copy; {new Date().getFullYear()} Markaz Library System &bull; All Rights Reserved
+          <p className="mt-2 text-center text-[10px] text-slate-400">
+            &copy; {new Date().getFullYear()}  MARKAZ AHLE HADEES KOKAN &bull; All Rights Reserved
           </p>
         </motion.div>
       </motion.div>

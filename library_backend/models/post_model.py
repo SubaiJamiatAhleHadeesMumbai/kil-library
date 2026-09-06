@@ -22,6 +22,10 @@ class MarkazPost(Base):
     media_type = Column(String(20), nullable=False, default="none")
     file_url = Column(String(500), nullable=True)
 
+    # ✅ Content Scheduling Fields
+    status = Column(String(20), nullable=False, default="published", index=True)  # draft | scheduled | published
+    published_at = Column(DateTime, nullable=True)  # When to auto-publish (for scheduled posts)
+
     # Metadata
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
@@ -34,4 +38,4 @@ class MarkazPost(Base):
     __table_args__ = {"mysql_engine": "InnoDB"}
 
     def __repr__(self):
-        return f"<MarkazPost id={self.id} title='{self.title}'>" 
+        return f"<MarkazPost id={self.id} title='{self.title}' status='{self.status}'>" 

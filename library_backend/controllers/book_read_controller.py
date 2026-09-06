@@ -1,14 +1,27 @@
 import os
 import re
+import math
+import logging
 import urllib.request
-from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from pathlib import Path
+import requests
+from typing import List, Optional, Union
+from fastapi import APIRouter, Depends, HTTPException, status, Query, Request
 from fastapi.responses import StreamingResponse, FileResponse
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import or_, func # ✅ func add kiya case-insensitive check ke liye
 
+try:
+    from slowapi import Limiter
+    from slowapi.util import get_remote_address
+    limiter = Limiter(key_func=get_remote_address)
+except ImportError:
+    limiter = None
+
+logger = logging.getLogger(__name__)
+
 # --- Imports ---
-from models import book_model, user_model, book_permission_model, request_user_model, interaction_model
+from models import book_model, user_model, book_permission_model, request_user_model, interaction_model, language_model
 from schemas import book_schema
 from auth import get_current_user_optional 
 from database import get_db
@@ -310,40 +323,41 @@ def get_book_stats(db: Session = Depends(get_db)):
         "digitalOnly": digital_only
     }
 
-@router.get("/", response_model=List[book_schema.Book])
+@router.get("/", response_model=Union[book_schema.PaginatedBookResponse, List[book_schema.Book]])
 def read_books(
     skip: int = 0, 
-    limit: int = 2000,
+    limit: int = 24,
+    page: Optional[int] = None,
+    paginated: bool = False,
     search: Optional[str] = None,
     category_id: Optional[int] = None,
+    subcategory_id: Optional[int] = None,
     language_id: Optional[int] = None,
+    language: Optional[str] = None,
+    our_publications: Optional[bool] = None,
     approved_only: bool = False,
     sort_order: Optional[str] = "desc",
     distinct: Optional[bool] = None,
     db: Session = Depends(get_db),
     current_user: Optional[user_model.User] = Depends(get_current_user_optional)
 ):
-    print("\n" + "="*50)
-    print("🔍 DEBUG: Searching Books...")
-    
-    if current_user:
-        print(f"👤 User Logged In: {current_user.username} (ID: {current_user.id})")
-    else:
-        print("👤 Guest User (Not Logged In)")
+    is_paginated = paginated or (page is not None)
+    active_page = max(1, page or 1)
+    page_limit = max(1, min(limit or 24, 2000))
+    offset = (active_page - 1) * page_limit if is_paginated else skip
 
-    # 1. Fetch Books
+    # 1. Base Query
     query = db.query(book_model.Book).options(
         joinedload(book_model.Book.subcategories).joinedload(book_model.Subcategory.category),
         joinedload(book_model.Book.language)
     ).filter(book_model.Book.deleted_at.is_(None))
 
     # 2. Approval filter: only admins can see unapproved books
-    if not current_user or not (hasattr(current_user, 'role') and current_user.role.name.lower() in ['admin', 'superadmin']):
-        query = query.filter(book_model.Book.is_approved == True)
-    elif approved_only:
+    is_admin = bool(current_user and hasattr(current_user, 'role') and current_user.role and current_user.role.name.lower() in ['admin', 'superadmin'])
+    if not is_admin or approved_only:
         query = query.filter(book_model.Book.is_approved == True)
     
-    # Filters
+    # 3. Filters
     if search and search.strip():
         search_term = f"%{search.strip()}%"
         query = query.filter(
@@ -360,162 +374,354 @@ def read_books(
         )
 
     if category_id:
-        query = query.filter(book_model.Book.subcategories.any(id=category_id))
+        query = query.filter(
+            or_(
+                book_model.Book.subcategories.any(book_model.Subcategory.category_id == category_id),
+                book_model.Book.subcategories.any(book_model.Subcategory.id == category_id)
+            )
+        )
+
+    if subcategory_id:
+        query = query.filter(book_model.Book.subcategories.any(book_model.Subcategory.id == subcategory_id))
     
     if language_id:
         query = query.filter(book_model.Book.language_id == language_id)
-        
+
+    if language and language.strip().lower() != "all":
+        lang_term = language.strip().lower()
+        query = query.join(book_model.Book.language).filter(
+            or_(
+                func.lower(language_model.Language.name).ilike(f"%{lang_term}%"),
+                func.lower(language_model.Language.code) == lang_term
+            )
+        )
+
+    if our_publications:
+        query = query.filter(
+            or_(
+                book_model.Book.publisher.ilike("%مرکز%"),
+                book_model.Book.publisher.ilike("%مركز%"),
+                book_model.Book.publisher.ilike("%markaz%"),
+                book_model.Book.publisher.ilike("%dawah%"),
+                book_model.Book.publisher.ilike("%دعوة%"),
+                book_model.Book.publisher.ilike("%دعوۃ%")
+            )
+        )
+
+    total_count = query.count()
+
+    # 4. Sorting & Offset Fetch
     if sort_order == "asc":
-        books = query.order_by(book_model.Book.id.asc()).offset(skip).limit(limit).all()
+        books = query.order_by(book_model.Book.id.asc()).offset(offset).limit(page_limit).all()
     else:
-        books = query.order_by(book_model.Book.id.desc()).offset(skip).limit(limit).all()
+        books = query.order_by(book_model.Book.id.desc()).offset(offset).limit(page_limit).all()
 
-    # =========================================================
-    # ✅ LOGIC: User Access Permission Check (DEBUGGED)
-    # =========================================================
-    
+    # 5. Access Permission Check
     accessible_book_ids = set()
-
     if current_user:
-        # A. Check Direct Permissions
-        direct_perms = db.query(book_permission_model.BookPermission).filter(
+        direct_perms = db.query(book_permission_model.BookPermission.book_id).filter(
             book_permission_model.BookPermission.user_id == current_user.id
         ).all()
-        accessible_book_ids.update([p.book_id for p in direct_perms])
+        accessible_book_ids.update([p[0] for p in direct_perms])
 
-        # B. Check Approved Requests (Case Insensitive Fix)
         try:
-            # 🔍 Debug: User ki saari requests print karo
-            all_reqs = db.query(request_user_model.AccessRequest).filter(
-                request_user_model.AccessRequest.user_id == current_user.id
-            ).all()
-            
-            print(f"📋 Total Requests found for user: {len(all_reqs)}")
-            for req in all_reqs:
-                print(f"   - Book ID: {req.book_id} | Status in DB: '{req.status}'")
-
-            # ✅ FIX: Case Insensitive Check (Approved, approved, APPROVED sab chalega)
-            approved_reqs = db.query(request_user_model.AccessRequest).filter(
+            approved_reqs = db.query(request_user_model.AccessRequest.book_id).filter(
                 request_user_model.AccessRequest.user_id == current_user.id,
                 func.lower(request_user_model.AccessRequest.status) == "approved"
             ).all()
-            
-            found_ids = [req.book_id for req in approved_reqs]
-            accessible_book_ids.update(found_ids)
-            print(f"✅ Approved Book IDs found: {found_ids}")
-
+            accessible_book_ids.update([req[0] for req in approved_reqs])
         except Exception as e:
-            print(f"❌ Error fetching requests: {e}")
+            logger.warning(f"Error checking access requests for user {current_user.id}: {e}")
 
-    # Step 2: Set Flag
     for book in books:
         has_access = False
-
         if not book.is_restricted:
             has_access = True
-        elif current_user and hasattr(current_user, 'role') and current_user.role.name.lower() in ['admin', 'superadmin']:
+        elif is_admin:
             has_access = True
         elif current_user and book.id in accessible_book_ids:
             has_access = True
-            print(f"🔓 Unlocking Restricted Book ID: {book.id} for User")
 
         setattr(book, "user_has_access", has_access)
 
-    # ✅ DEDUPLICATION: For public users (or when distinct=True / approved_only=True), show ONLY 1 rich record per title
-    is_admin = bool(current_user and hasattr(current_user, 'role') and current_user.role and current_user.role.name.lower() in ['admin', 'superadmin'])
+    # 6. Deduplication for non-paginated public requests
     should_deduplicate = distinct if distinct is not None else (not is_admin or approved_only)
-    
-    if should_deduplicate:
+    if should_deduplicate and not is_paginated:
         books = deduplicate_public_books(books)
 
-    print("="*50 + "\n")
+    if is_paginated:
+        total_pages = math.ceil(total_count / page_limit) if total_count > 0 else 1
+        return {
+            "items": books,
+            "total": total_count,
+            "page": active_page,
+            "limit": page_limit,
+            "total_pages": total_pages
+        }
+
     return books
 
 
 # ==================================
-# 🚀 NEW: DEEP SEARCH ROUTE (Isko /book_id se UPAR rakhna zaroori hai!)
+# 🚀 ADVANCED TRILINGUAL DEEP SEARCH ENGINE & LOCAL CACHE
 # ==================================
+CACHE_TEXTS_DIR = Path(__file__).resolve().parent.parent / "cache" / "texts"
+CACHE_TEXTS_DIR.mkdir(parents=True, exist_ok=True)
+
+ARABIC_URDU_DIACRITICS = re.compile(
+    r'[\u0610-\u061A\u064B-\u065F\u0670\u06D6-\u06DC\u06DF-\u06E8\u06EA-\u06ED\u0640]'
+)
+
+
+def get_or_cache_txt_content(book_id: int, url_path: str, enable_cache: bool = True) -> Optional[str]:
+    """
+    Reads local TXT file or fetches remote Cloudinary file and caches it locally
+    to ensure ultra-fast (0.01s) search times on subsequent queries.
+    """
+    if not url_path:
+        return None
+    
+    clean_url = str(url_path).strip()
+    cache_file = CACHE_TEXTS_DIR / f"book_{book_id}.txt"
+
+    # 1. If caching is enabled and file is already cached, read from local cache
+    if enable_cache and cache_file.exists():
+        try:
+            with open(cache_file, "r", encoding="utf-8", errors="replace") as f:
+                return f.read()
+        except Exception as e:
+            logger.warning(f"Error reading from cache for book {book_id}: {e}")
+
+    # 2. Check if it's a local file on disk
+    local_path = resolve_upload_path(clean_url) or clean_url
+    if os.path.exists(local_path) and os.path.isfile(local_path):
+        try:
+            with open(local_path, "r", encoding="utf-8", errors="replace") as f:
+                content = f.read()
+                if enable_cache and not cache_file.exists():
+                    try:
+                        with open(cache_file, "w", encoding="utf-8") as cf:
+                            cf.write(content)
+                    except Exception:
+                        pass
+                return content
+        except Exception as e:
+            logger.warning(f"Error reading local file {local_path}: {e}")
+
+    # 3. If it's a remote URL (Cloudinary, S3, etc.)
+    if clean_url.startswith("http://") or clean_url.startswith("https://"):
+        try:
+            resp = requests.get(clean_url, timeout=12)
+            if resp.status_code == 200:
+                resp.encoding = "utf-8"
+                content = resp.text
+                if enable_cache:
+                    try:
+                        with open(cache_file, "w", encoding="utf-8") as cf:
+                            cf.write(content)
+                    except Exception as ce:
+                        logger.warning(f"Error saving cache for book {book_id}: {ce}")
+                return content
+        except Exception as e:
+            logger.error(f"Failed to fetch remote text file for book {book_id}: {e}")
+
+    return None
+
+
+def build_trilingual_search_regex(
+    query_str: str, 
+    enable_normalization: bool = True,
+    context_chars: int = 80
+) -> Optional[re.Pattern]:
+    """
+    Constructs a flexible regex pattern supporting English, Urdu, and Arabic:
+    - Normalizes Harakaat / Tashkeel
+    - Unifies Alif variants (ا, أ, إ, آ, ٱ)
+    - Unifies Yeh variants (ی, ي, ى, ے, ئ)
+    - Unifies Kaf variants (ک, ك)
+    - Unifies Heh variants (ہ, ه, ۂ, ۃ, ة)
+    - Handles whitespace flexibility
+    """
+    clean_q = query_str.strip()
+    if not clean_q:
+        return None
+
+    if not enable_normalization:
+        safe_q = re.escape(clean_q)
+        return re.compile(f'(.{{0,{context_chars}}})({safe_q})(.{{0,{context_chars}}})', re.IGNORECASE)
+
+    # Strip diacritics from incoming query
+    q_stripped = ARABIC_URDU_DIACRITICS.sub('', clean_q)
+    
+    char_patterns = []
+    for char in q_stripped:
+        if char in 'اأإآٱ':
+            char_patterns.append(r'[اأإآٱ]')
+        elif char in 'يىےئی':
+            char_patterns.append(r'[يىےئی]')
+        elif char in 'کك':
+            char_patterns.append(r'[کك]')
+        elif char in 'ہھۂۃةه':
+            char_patterns.append(r'[ہھۂۃةه]')
+        elif char in 'وؤ':
+            char_patterns.append(r'[وؤ]')
+        elif char.isalnum():
+            char_patterns.append(re.escape(char))
+        elif char.isspace():
+            char_patterns.append(r'\s+')
+        else:
+            char_patterns.append(re.escape(char))
+
+    diacritics_sub = r'[\u0610-\u061A\u064B-\u065F\u0670\u06D6-\u06DC\u06DF-\u06E8\u06EA-\u06ED\u0640]*'
+    pattern_body = diacritics_sub.join(char_patterns)
+    
+    try:
+        return re.compile(f'(.{{0,{context_chars}}})({pattern_body})(.{{0,{context_chars}}})', re.IGNORECASE)
+    except Exception as e:
+        logger.warning(f"Regex build error: {e}")
+        safe_fallback = re.escape(clean_q)
+        return re.compile(f'(.{{0,{context_chars}}})({safe_fallback})(.{{0,{context_chars}}})', re.IGNORECASE)
+
+
 @router.get("/deep-search", tags=["Global Search"])
+@limiter.limit("10/minute") if limiter else lambda f: f
 def deep_search_all_books(
+    request: Request,
     query: str = Query(..., min_length=1, description="Search keyword"),
+    category_id: Optional[int] = Query(None, description="Optional category filter"),
+    book_id: Optional[int] = Query(None, description="Optional single book filter"),
+    author: Optional[str] = Query(None, description="Optional author filter"),
     db: Session = Depends(get_db)
 ):
-    print(f"\n🔍 [DEEP SEARCH START] Query: '{query}'")
+    """
+    Trilingual Deep Search across book TXT files with local Cloud caching,
+    Urdu/Arabic normalization, and full admin controller integration.
+    """
+    # 1. Fetch Deep Search settings from Admin Controller
+    try:
+        from controllers.settings_controller import _load_settings_from_disk, get_default_homepage_settings
+        homepage_settings = _load_settings_from_disk()
+        ds_settings = homepage_settings.get("deep_search", get_default_homepage_settings()["deep_search"])
+    except Exception as e:
+        logger.warning(f"Error loading deep search settings: {e}")
+        ds_settings = {
+            "enabled": True,
+            "enable_cloud_caching": True,
+            "enable_aerab_normalization": True,
+            "enable_boolean_operators": True,
+            "enable_scope_filters": True,
+            "enable_citation_tool": True,
+            "enable_research_export": True,
+            "max_snippets_per_book": 5,
+            "snippet_context_chars": 80
+        }
+
+    # Clean arguments when invoked directly or via FastAPI
+    query_str = str(query).strip() if query and not hasattr(query, "default") else ""
+    cat_id = category_id if (category_id is not None and not hasattr(category_id, "default")) else None
+    b_id = book_id if (book_id is not None and not hasattr(book_id, "default")) else None
+    author_str = str(author).strip() if (author is not None and not hasattr(author, "default")) else None
+
+    # If Deep Search is disabled globally by Admin:
+    if not ds_settings.get("enabled", True):
+        return {
+            "total_results": 0,
+            "query": query_str,
+            "results": [],
+            "disabled": True,
+            "message": "Deep Content Search is currently disabled by administrator."
+        }
+
+    max_per_book = int(ds_settings.get("max_snippets_per_book", 5))
+    context_chars = int(ds_settings.get("snippet_context_chars", 80))
+    enable_cache = bool(ds_settings.get("enable_cloud_caching", True))
+    enable_norm = bool(ds_settings.get("enable_aerab_normalization", True))
+    enable_scopes = bool(ds_settings.get("enable_scope_filters", True))
+
     results = []
-    
-    # 1. Wo saari books nikalo jinka TXT file available hai
-    books_with_text = db.query(book_model.Book).filter(
+
+    # 2. Query books with attached text
+    query_filters = [
         book_model.Book.txt_file_url.isnot(None),
-        book_model.Book.deleted_at.is_(None)
-    ).all()
+        book_model.Book.deleted_at.is_(None),
+        book_model.Book.is_approved.is_(True)
+    ]
 
-    print(f"📚 Found {len(books_with_text)} books with TXT files attached.")
+    if enable_scopes:
+        if b_id:
+            query_filters.append(book_model.Book.id == b_id)
+        if author_str:
+            query_filters.append(book_model.Book.author.ilike(f"%{author_str}%"))
 
-    # 2. Page delimiter ka regex
-    page_delimiter_pattern = re.compile(r'_{5,}|===PAGE===|PAGE_SEPARATOR', re.IGNORECASE)
-    
-    # 3. Search pattern: Keyword aur uske aage-peeche ke 60 characters nikalna
-    safe_query = re.escape(query)
-    search_pattern = re.compile(f'(.{{0,60}})({safe_query})(.{{0,60}})', re.IGNORECASE)
+    books_query = db.query(book_model.Book).filter(*query_filters)
+
+    if enable_scopes and cat_id:
+        books_query = books_query.filter(
+            book_model.Book.subcategories.any(
+                book_model.Subcategory.category_id == cat_id
+            )
+        )
+
+    books_with_text = books_query.all()
+
+    # 3. Delimiter & Search Pattern
+    page_delimiter_pattern = re.compile(r'_{5,}|===PAGE===|PAGE_SEPARATOR|\x0c', re.IGNORECASE)
+    search_pattern = build_trilingual_search_regex(query_str, enable_normalization=enable_norm, context_chars=context_chars)
+
+    if not search_pattern:
+        return {"total_results": 0, "query": query_str, "results": []}
 
     for book in books_with_text:
-        # File path formatting
-        url_path = str(book.txt_file_url)
-        print(f"➡️ Checking Book ID {book.id} | TXT URL: {url_path}")
-        
-        # Resolve uploaded file paths robustly, regardless of process CWD
-        file_path = resolve_upload_path(url_path)
-        if file_path is None:
-            file_path = url_path
-
-        print(f"📂 Looking for physical file at: {file_path}")
-
-        if not os.path.exists(file_path):
-            print("❌ FILE NOT FOUND ON SYSTEM! Skipping...\n")
+        content = get_or_cache_txt_content(book.id, book.txt_file_url, enable_cache=enable_cache)
+        if not content:
             continue
 
-        try:
-            # File read karo
-            with open(file_path, 'r', encoding='utf-8') as f:
-                content = f.read()
+        pages = page_delimiter_pattern.split(content)
+        book_matches = 0
 
-            # File ko pages me split karo
-            pages = page_delimiter_pattern.split(content)
+        for page_idx, page_text in enumerate(pages):
+            if not page_text or not page_text.strip():
+                continue
 
-            # Har page me search karo
-            book_match_count = 0
-            for page_idx, page_text in enumerate(pages):
-                matches = search_pattern.finditer(page_text)
+            matches = list(search_pattern.finditer(page_text))
+            if not matches:
+                continue
+
+            for match in matches:
+                before_text = match.group(1).strip()
+                matched_word = match.group(2)
+                after_text = match.group(3).strip()
                 
-                for match in matches:
-                    before_text = match.group(1).strip()
-                    matched_word = match.group(2)
-                    after_text = match.group(3).strip()
-                    
-                    snippet = f"...{before_text} <mark>{matched_word}</mark> {after_text}..."
+                snippet = f"...{before_text} <mark class='bg-amber-300 text-slate-950 font-bold px-1 rounded'>{matched_word}</mark> {after_text}..."
 
-                    results.append({
-                        "book_id": book.id,
-                        "title": book.title,
-                        "author": book.author,
-                        "cover_image": book.cover_image_url,
-                        "page_number": page_idx + 1,
-                        "snippet": snippet
-                    })
-                    
-                    book_match_count += 1
-                    # Ek book me maximum 5 results dikhayenge
-                    if book_match_count >= 5:
-                        break
-                        
-        except Exception as e:
-            print(f"❌ Error reading file {file_path}: {e}")
+                results.append({
+                    "book_id": book.id,
+                    "title": book.title,
+                    "author": book.author or "Unknown",
+                    "publisher": book.publisher or "",
+                    "cover_image": book.cover_image_url,
+                    "page_number": page_idx + 1,
+                    "snippet": snippet,
+                    "matched_text": matched_word,
+                    "is_restricted": bool(book.is_restricted)
+                })
 
-    print(f"✅ [DEEP SEARCH END] Total Results Found: {len(results)}\n")
+                book_matches += 1
+                if book_matches >= max_per_book:
+                    break
+
+            if book_matches >= max_per_book:
+                break
+
     return {
         "total_results": len(results),
         "query": query,
-        "results": results
+        "results": results,
+        "settings": {
+            "citation_enabled": ds_settings.get("enable_citation_tool", True),
+            "export_enabled": ds_settings.get("enable_research_export", True),
+            "scopes_enabled": ds_settings.get("enable_scope_filters", True),
+        }
     }
 
 
@@ -547,26 +753,19 @@ def read_book(
     elif current_user and hasattr(current_user, 'role') and current_user.role.name.lower() in ['admin', 'superadmin']:
         has_access = True
     elif current_user:
-        # Check Permission Table
-        perm = db.query(book_permission_model.BookPermission).filter(
-            book_permission_model.BookPermission.book_id == book_id,
-            book_permission_model.BookPermission.user_id == current_user.id
-        ).first()
-        
-        # Check Request Table (Case Insensitive)
-        req = db.query(request_user_model.AccessRequest).filter(
-            request_user_model.AccessRequest.book_id == book_id,
-            request_user_model.AccessRequest.user_id == current_user.id,
-            func.lower(request_user_model.AccessRequest.status) == "approved"
-        ).first()
-
-        if perm or req:
+        accessible_ids = _get_accessible_book_ids(db, current_user)
+        if db_book.id in accessible_ids:
             has_access = True
 
-    if db_book.is_restricted and not has_access:
-         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You do not have permission to view this restricted book.")
-
     setattr(db_book, "user_has_access", has_access)
+
+    # Hide private URLs for unauthorized users while allowing metadata view
+    if db_book.is_restricted and not has_access:
+        db_book.pdf_url = None
+        db_book.pdf_file = None
+        db_book.txt_file_url = None
+        db_book.txt_file = None
+
     return db_book
 
 
@@ -642,8 +841,24 @@ async def stream_book_pdf(
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Local document file not found")
 
     # Case B: Cloudflare R2 / Remote CDN URL (Handles Unicode / Urdu / Spaces gracefully)
+    # SECURITY: Validate that remote URLs belong to trusted CDN domains only (prevent SSRF)
+    TRUSTED_DOMAINS = {
+        "res.cloudinary.com",
+        "cloudinary.com",
+        "r2.cloudflarestorage.com",
+        "pub-",  # R2 public bucket prefix pattern
+    }
     try:
         parsed = urllib.parse.urlsplit(raw_url)
+
+        # SSRF Prevention: block private/internal IPs and non-trusted domains
+        hostname = parsed.hostname or ""
+        if not any(hostname.endswith(d) or hostname.startswith(d) for d in TRUSTED_DOMAINS):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Remote URL is not from a trusted CDN domain."
+            )
+
         quoted_path = urllib.parse.quote(parsed.path)
         encoded_url = urllib.parse.urlunsplit((parsed.scheme, parsed.netloc, quoted_path, parsed.query, parsed.fragment))
 
@@ -735,9 +950,25 @@ async def stream_book_text(
             )
 
     # Case B: Remote R2 / Cloudinary / CDN
+    # SECURITY: Validate that remote URLs belong to trusted CDN domains only (prevent SSRF)
+    TRUSTED_TEXT_DOMAINS = {
+        "res.cloudinary.com",
+        "cloudinary.com",
+        "r2.cloudflarestorage.com",
+        "pub-",  # R2 public bucket prefix pattern
+    }
     try:
         import urllib.parse
         parsed = urllib.parse.urlsplit(raw_url)
+
+        # SSRF Prevention: block private/internal IPs and non-trusted domains
+        hostname = parsed.hostname or ""
+        if not any(hostname.endswith(d) or hostname.startswith(d) for d in TRUSTED_TEXT_DOMAINS):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Remote URL is not from a trusted CDN domain."
+            )
+
         quoted_path = urllib.parse.quote(parsed.path)
         encoded_url = urllib.parse.urlunsplit((parsed.scheme, parsed.netloc, quoted_path, parsed.query, parsed.fragment))
 

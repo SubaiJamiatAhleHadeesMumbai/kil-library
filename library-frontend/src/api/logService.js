@@ -22,9 +22,18 @@ const extractErrorMessage = (error, fallback = "Failed to fetch audit logs") => 
  */
 const normalizeFilters = (filters = {}) => {
   const params = {
-    limit: Number.isFinite(filters.limit) ? filters.limit : 100,
+    limit: Number.isFinite(filters.limit) ? filters.limit : 50,
     skip: Number.isFinite(filters.skip) ? filters.skip : 0,
   };
+
+  if (filters.paginated || filters.page !== undefined) {
+    params.paginated = true;
+    params.page = filters.page || 1;
+  }
+
+  if (filters.search && String(filters.search).trim()) {
+    params.search = String(filters.search).trim();
+  }
 
   // userId safe parse
   if (
@@ -37,12 +46,12 @@ const normalizeFilters = (filters = {}) => {
   }
 
   // actionType safe
-  if (filters.actionType && String(filters.actionType).trim()) {
+  if (filters.actionType && String(filters.actionType).trim() && filters.actionType !== "ALL") {
     params.action_type = String(filters.actionType).trim();
   }
 
   // targetType safe
-  if (filters.targetType && String(filters.targetType).trim()) {
+  if (filters.targetType && String(filters.targetType).trim() && filters.targetType !== "ALL") {
     params.target_type = String(filters.targetType).trim();
   }
 
@@ -53,8 +62,9 @@ const normalizeFilters = (filters = {}) => {
  * ✅ Validate response data
  */
 const normalizeLogsResponse = (data) => {
-  if (Array.isArray(data)) return data;
-  return [];
+  if (data && data.items && Array.isArray(data.items)) return data;
+  if (Array.isArray(data)) return { items: data, total: data.length, page: 1, limit: data.length, total_pages: 1 };
+  return { items: [], total: 0, page: 1, limit: 50, total_pages: 1 };
 };
 
 /**

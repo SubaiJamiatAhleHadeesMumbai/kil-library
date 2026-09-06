@@ -75,7 +75,8 @@ def create_upload_request(
 @router.get("/upload", response_model=List[request_schema.UploadRequest])
 def get_all_upload_requests(
     status_filter: Optional[str] = None, 
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: user_model.User = Depends(require_permission("REQUEST_MANAGE"))
 ):
     """ Admin View: List all book approval requests. """
     query = db.query(request_model.UploadRequest).options(

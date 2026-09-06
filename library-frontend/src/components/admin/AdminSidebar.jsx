@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { NavLink, useNavigate } from 'react-router-dom';
+import { NavLink, useNavigate, Link } from 'react-router-dom';
 import restrictedBookService from '../../api/restrictedBookService';
 import { 
     HomeIcon, BookOpenIcon, UsersIcon, ShieldCheckIcon, 
@@ -9,7 +9,7 @@ import {
     ComputerDesktopIcon, DocumentDuplicateIcon, AdjustmentsHorizontalIcon,
     InformationCircleIcon, ChatBubbleLeftRightIcon, PhotoIcon,
     ChevronLeftIcon, ChevronRightIcon, ChevronDownIcon, MagnifyingGlassIcon,
-    SparklesIcon
+    SparklesIcon, UserGroupIcon, NewspaperIcon, ServerStackIcon, BanknotesIcon, Bars3Icon
 } from '@heroicons/react/24/outline';
 
 // ✅ Custom Hooks & Services
@@ -103,36 +103,43 @@ const AdminSidebar = ({ mobileClose = () => {} }) => {
             items: [
                 { name: 'Dashboard', path: '/admin/dashboard', icon: HomeIcon, requiredPerm: null },
                 { name: 'Access Requests', path: '/admin/access-requests', icon: ShieldCheckIcon, badge: pendingCount, requiredPerm: 'REQUEST_VIEW' },
-                { name: 'Approvals', path: '/admin/approvals', icon: CheckBadgeIcon, requiredPerm: 'BOOK_APPROVE' },
+                { name: 'Approvals', path: '/admin/approvals', icon: CheckBadgeIcon, requiredPerm: 'REQUEST_APPROVE' },
             ]
         },
         { 
             section: "Library Management",
             items: [
-                { name: 'All Books', path: '/admin/books', icon: BookOpenIcon, requiredPerm: 'BOOK_VIEW' },
+                { name: 'All Books', path: '/admin/books', icon: BookOpenIcon, requiredPerm: ['BOOK_VIEW', 'BOOK_MANAGE'] },
+                { name: 'Book Orders & Payments', path: '/admin/book-orders', icon: BanknotesIcon, requiredPerm: 'BOOK_MANAGE' },
+                { name: 'Newspaper Clippings', path: '/admin/newspaper-clippings', icon: NewspaperIcon, requiredPerm: ['HOMEPAGE_CONTENT_MANAGE', 'BOOK_MANAGE', 'SOCIAL_WORK_MANAGE'] },
                 { name: 'Copies & Issuing', path: '/admin/copies', icon: DocumentDuplicateIcon, requiredPerm: 'BOOK_ISSUE' },
-                { name: 'Categories', path: '/admin/categories', icon: TagIcon, requiredPerm: 'BOOK_MANAGE' },
-                { name: 'Subcategories', path: '/admin/subcategories', icon: RectangleStackIcon, requiredPerm: 'BOOK_MANAGE' },
+                { name: 'Categories', path: '/admin/categories', icon: TagIcon, requiredPerm: ['CATEGORY_MANAGE', 'BOOK_MANAGE'] },
+                { name: 'Subcategories', path: '/admin/subcategories', icon: RectangleStackIcon, requiredPerm: ['CATEGORY_MANAGE', 'BOOK_MANAGE'] },
             ]
         },
         {
             section: "Settings & Users",
             items: [
-                { name: 'Users Management', path: '/admin/users', icon: UsersIcon, requiredPerm: 'USER_VIEW' },
-                { name: 'Languages', path: '/admin/languages', icon: LanguageIcon, requiredPerm: 'BOOK_MANAGE' },
-                { name: 'Locations', path: '/admin/locations', icon: MapPinIcon, requiredPerm: 'BOOK_MANAGE' },
+                { name: 'Users Management', path: '/admin/users', icon: UsersIcon, requiredPerm: ['USER_VIEW', 'USER_MANAGE'] },
+                { name: 'Social Work & Activities', path: '/admin/social-work', icon: UserGroupIcon, requiredPerm: 'SOCIAL_WORK_MANAGE' },
+                { name: 'Languages', path: '/admin/languages', icon: LanguageIcon, requiredPerm: ['LANGUAGE_MANAGE', 'BOOK_MANAGE'] },
+                { name: 'Translations CMS', path: '/admin/translations', icon: LanguageIcon, requiredPerm: ['HOMEPAGE_CONTENT_MANAGE', 'BOOK_MANAGE'] },
+                { name: 'Locations', path: '/admin/locations', icon: MapPinIcon, requiredPerm: ['LOCATION_MANAGE', 'BOOK_MANAGE'] },
                 { name: 'About Page Settings', path: '/admin/about-settings', icon: InformationCircleIcon, requiredPerm: 'HOMEPAGE_CONTENT_MANAGE' },
+                { name: 'Gallery Management', path: '/admin/gallery', icon: PhotoIcon, requiredPerm: ['HOMEPAGE_CONTENT_MANAGE', 'SOCIAL_WORK_MANAGE'] },
                 { name: 'Posters', path: '/admin/posters', icon: PhotoIcon, requiredPerm: 'HOMEPAGE_CONTENT_MANAGE' },
-                { name: 'Fatawa Management', path: '/admin/fatawa', icon: ChatBubbleLeftRightIcon, requiredPerm: 'BOOK_MANAGE' },
-                { name: 'Roles & Permissions', path: '/admin/roles-permissions', icon: KeyIcon, requiredPerm: 'ROLE_VIEW' },
+                { name: 'Fatawa Management', path: '/admin/fatawa', icon: ChatBubbleLeftRightIcon, requiredPerm: ['FATAWA_MANAGE', 'FATAWA_VIEW'] },
+                { name: 'Comments Moderation', path: '/admin/comments', icon: ChatBubbleLeftRightIcon, requiredPerm: null },
+                { name: 'Roles & Permissions', path: '/admin/roles-permissions', icon: KeyIcon, requiredPerm: ['ROLE_VIEW', 'ROLE_MANAGE', 'ROLE_PERMISSION_ASSIGN'] },
             ]
         },
         {
             section: "Security & Analytics",
             items: [
-                { name: 'Restricted Books', path: '/admin/book-permissions', icon: LockClosedIcon, requiredPerm: 'PERMISSION_VIEW' },
-                { name: 'Digital Access', path: '/admin/digital-access-history', icon: ComputerDesktopIcon, requiredPerm: 'LOG_VIEW' },
+                { name: 'Restricted Books', path: '/admin/book-permissions', icon: LockClosedIcon, requiredPerm: ['BOOK_PERMISSION_MANAGE', 'BOOK_PERMISSION_VIEW', 'PERMISSION_VIEW'] },
+                { name: 'Digital Access', path: '/admin/digital-access-history', icon: ComputerDesktopIcon, requiredPerm: 'DIGITAL_ACCESS_VIEW' },
                 { name: 'Audit Logs', path: '/admin/logs', icon: ClipboardDocumentListIcon, requiredPerm: 'LOG_VIEW' },
+                { name: 'System Health', path: '/admin/system-health', icon: ServerStackIcon, requiredPerm: 'LOG_VIEW' },
                 {
                     name: 'Homepage Settings',
                     path: '/admin/homepage-settings',
@@ -144,6 +151,22 @@ const AdminSidebar = ({ mobileClose = () => {} }) => {
                         'HOMEPAGE_VISIBILITY_MANAGE',
                         'HOMEPAGE_SEARCH_MANAGE',
                     ]
+                },
+                {
+                    name: 'Header & Navigation',
+                    path: '/admin/navigation-settings',
+                    icon: Bars3Icon,
+                    requiredPerm: [
+                        'HOMEPAGE_BRANDING_MANAGE',
+                        'HOMEPAGE_CONTENT_MANAGE',
+                        'HOMEPAGE_LAYOUT_MANAGE',
+                    ]
+                },
+                {
+                    name: 'Theme & Design Tokens',
+                    path: '/admin/theme-settings',
+                    icon: SparklesIcon,
+                    requiredPerm: null,
                 },
             ]
         }
@@ -340,67 +363,97 @@ const AdminSidebar = ({ mobileClose = () => {} }) => {
                 )}
             </nav>
 
-            {/* --- USER PROFILE FOOTER --- */}
-            <div className="p-3 border-t border-slate-800/80 bg-[#070A12]/95 backdrop-blur-md sticky bottom-0 z-20">
+            {/* --- USER PROFILE FOOTER (Ultra-Compact) --- */}
+            <div className="p-2 border-t border-slate-800/80 bg-[#070A12]/95 backdrop-blur-md sticky bottom-0 z-20">
                 {!isCollapsed ? (
-                    <div className="bg-slate-900/80 rounded-xl p-3 border border-slate-800/80 shadow-lg space-y-3">
-                        <div className="flex items-center gap-3">
-                            <div className="relative">
-                                <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-500 p-0.5 shadow-md">
-                                    <div className="w-full h-full bg-slate-950 rounded-[10px] flex items-center justify-center text-slate-300">
-                                        <UserCircleIcon className="w-6 h-6 text-emerald-400" />
-                                    </div>
+                    <div className="flex items-center justify-between gap-2.5 px-2.5 py-1.5 rounded-xl bg-slate-900/70 border border-slate-800/70 hover:border-slate-700/80 transition-colors">
+                        <Link 
+                            to="/admin/profile" 
+                            onClick={mobileClose}
+                            className="flex items-center gap-2.5 min-w-0 flex-1 group/user cursor-pointer"
+                            title="Go to Admin Profile"
+                        >
+                            <div className="relative shrink-0">
+                                <div className="w-8 h-8 rounded-lg bg-slate-800 border border-emerald-500/30 group-hover/user:border-emerald-400/60 flex items-center justify-center text-emerald-400 shadow-xs transition-colors">
+                                    <UserCircleIcon className="w-5 h-5 group-hover/user:scale-110 transition-transform" />
                                 </div>
-                                <span className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 border-2 border-slate-950 rounded-full" title="Online" />
+                                <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 border-2 border-slate-950 rounded-full" title="Online" />
                             </div>
 
-                            <div className="overflow-hidden flex-1">
-                                <p className="text-xs font-bold text-white truncate tracking-wide">
-                                    {user?.username || 'Admin User'}
+                            <div className="min-w-0 flex-1">
+                                <div className="flex items-center gap-1.5">
+                                    <p className="text-xs font-bold text-white group-hover/user:text-emerald-400 truncate leading-tight transition-colors">
+                                        {user?.username || 'Admin'}
+                                    </p>
+                                    <span className="text-[9px] font-extrabold uppercase px-1 py-0.2 bg-emerald-500/10 text-emerald-400 rounded border border-emerald-500/20 leading-none shrink-0">
+                                        {roleDisplayName}
+                                    </span>
+                                </div>
+                                <p className="text-[10px] text-slate-400 truncate leading-tight mt-0.5 group-hover/user:text-slate-300 transition-colors">
+                                    {user?.email || 'admin@markaz.org'}
                                 </p>
-                                <p className="text-[11px] text-slate-400 truncate">
-                                    {user?.email || 'admin@booknest.com'}
-                                </p>
-                                <span className="inline-block mt-0.5 text-[9px] font-extrabold uppercase px-1.5 py-0.2 bg-emerald-500/10 text-emerald-400 rounded border border-emerald-500/20">
-                                    {roleDisplayName}
-                                </span>
                             </div>
-                        </div>
+                        </Link>
 
                         <button 
+                            type="button"
                             onClick={handleLogout} 
-                            className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-slate-800/80 hover:bg-rose-500/15 text-slate-300 hover:text-rose-400 border border-slate-700/60 hover:border-rose-500/30 transition-all duration-200 text-xs font-semibold group"
+                            className="shrink-0 p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-500/15 border border-transparent hover:border-rose-500/30 transition-all duration-200 cursor-pointer"
+                            title="Sign Out"
+                            aria-label="Sign Out"
                         >
-                            <ArrowLeftOnRectangleIcon className="w-4 h-4 group-hover:-translate-x-1 transition-transform text-slate-400 group-hover:text-rose-400" />
-                            <span>Sign Out</span>
+                            <ArrowLeftOnRectangleIcon className="w-4 h-4" />
                         </button>
                     </div>
                 ) : (
                     /* Compact User Footer */
-                    <div className="flex flex-col items-center gap-3 py-1">
-                        <div className="relative group cursor-pointer">
-                            <div className="w-10 h-10 rounded-xl bg-slate-900 border border-slate-700 flex items-center justify-center text-emerald-400 shadow-md">
-                                <UserCircleIcon className="w-6 h-6" />
+                    <div className="flex flex-col items-center gap-2 py-1">
+                        <Link 
+                            to="/admin/profile"
+                            onClick={mobileClose}
+                            className="relative group cursor-pointer"
+                            title="Go to Admin Profile"
+                        >
+                            <div className="w-8 h-8 rounded-lg bg-slate-900 border border-slate-700 hover:border-emerald-500/50 flex items-center justify-center text-emerald-400 shadow-xs transition-colors">
+                                <UserCircleIcon className="w-5 h-5" />
                             </div>
-                            <span className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 border-2 border-slate-950 rounded-full" />
+                            <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 border-2 border-slate-950 rounded-full" />
                             
                             {/* User Tooltip */}
-                            <div className="absolute left-full ml-3 px-3 py-2 bg-slate-900 text-slate-100 text-xs rounded-xl shadow-2xl border border-slate-700 whitespace-nowrap z-50 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none backdrop-blur-md">
+                            <div className="absolute left-full ml-3 px-3 py-1.5 bg-slate-900 text-slate-100 text-xs rounded-xl shadow-2xl border border-slate-700 whitespace-nowrap z-50 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none backdrop-blur-md">
                                 <p className="font-bold">{user?.username || 'Admin User'}</p>
-                                <p className="text-[10px] text-emerald-400">{roleDisplayName}</p>
+                                <p className="text-[10px] text-emerald-400">{roleDisplayName} • Click for Profile</p>
                             </div>
-                        </div>
+                        </Link>
 
                         <button 
+                            type="button"
                             onClick={handleLogout}
-                            className="p-2.5 rounded-xl bg-slate-900 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 border border-slate-800 hover:border-rose-500/30 transition-all duration-200 group"
+                            className="p-1.5 rounded-lg bg-slate-900 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 border border-slate-800 hover:border-rose-500/30 transition-all duration-200 cursor-pointer"
                             title="Sign Out"
+                            aria-label="Sign Out"
                         >
-                            <ArrowLeftOnRectangleIcon className="w-5 h-5 group-hover:-translate-x-0.5 transition-transform" />
+                            <ArrowLeftOnRectangleIcon className="w-4 h-4" />
                         </button>
                     </div>
                 )}
             </div>
+
+            <style>{`
+                .custom-scrollbar::-webkit-scrollbar {
+                    width: 4px;
+                }
+                .custom-scrollbar::-webkit-scrollbar-track {
+                    background: transparent;
+                }
+                .custom-scrollbar::-webkit-scrollbar-thumb {
+                    background: rgba(148, 163, 184, 0.2);
+                    border-radius: 9999px;
+                }
+                .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+                    background: rgba(16, 185, 129, 0.4);
+                }
+            `}</style>
         </aside>
     );
 };

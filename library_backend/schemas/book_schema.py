@@ -20,6 +20,9 @@ class BookBase(BaseModel):
     description: Optional[str] = None
     language_id: int = Field(...) 
     is_restricted: bool = Field(False)
+    is_download_paid: bool = Field(False)
+    download_price: Optional[float] = Field(0.0, ge=0)
+    download_upi_id: Optional[str] = Field(None, max_length=100)
     fatawa_category_id: Optional[int] = None
     
     # Additional Fields
@@ -68,6 +71,9 @@ class BookUpdate(BaseModel):
     description: Optional[str] = None
     language_id: Optional[int] = None
     is_restricted: Optional[bool] = None
+    is_download_paid: Optional[bool] = None
+    download_price: Optional[float] = Field(None, ge=0)
+    download_upi_id: Optional[str] = Field(None, max_length=100)
     fatawa_category_id: Optional[int] = None
     
     serial_number: Optional[str] = Field(None, max_length=100)
@@ -95,6 +101,20 @@ class BookUpdate(BaseModel):
     # ✅ NEW: Text File Update Support
     txt_file_url: Optional[str] = None
     txt_file: Optional[str] = None
+
+class BookSummary(BaseModel):
+    id: int
+    title: str
+    author: Optional[str] = None
+    book_number: Optional[str] = None
+    language_id: Optional[int] = None
+    total_copies: Optional[int] = 1
+    is_digital: bool = True
+    is_approved: bool = True
+
+    class Config:
+        from_attributes = True
+
 
 # ==============================================================================
 # 🔵 4. RESPONSE SCHEMA (Output)
@@ -137,6 +157,15 @@ class Book(BookBase):
 
     class Config:
         from_attributes = True
+
+
+class PaginatedBookResponse(BaseModel):
+    items: List[Book]
+    total: int
+    page: int
+    limit: int
+    total_pages: int
+
 
 
 # ==============================================================================

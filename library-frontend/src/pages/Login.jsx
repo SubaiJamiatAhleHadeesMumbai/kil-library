@@ -40,7 +40,8 @@ import {
 } from "@heroicons/react/24/outline";
 
 // ─── Constants & Env Setup ──────────────────────────────────
-const GOOGLE_CLIENT_ID = (import.meta.env?.VITE_GOOGLE_CLIENT_ID || "").trim();
+const DEFAULT_GOOGLE_CLIENT_ID = "158248986174-cv22ngbp9ctjlf0dmditmsre151lpqm9.apps.googleusercontent.com";
+const GOOGLE_CLIENT_ID = (import.meta.env?.VITE_GOOGLE_CLIENT_ID || DEFAULT_GOOGLE_CLIENT_ID).trim();
 const GOOGLE_AUTH_ENABLED = Boolean(GOOGLE_CLIENT_ID);
 const IS_DEV = import.meta.env?.DEV || process.env.NODE_ENV === "development";
 
@@ -184,6 +185,21 @@ const Login = () => {
   // ── Post-Authentication Central Handler ───────────────────
   const handleAuthSuccess = useCallback(
     (user, token) => {
+      // ✅ Always default to English upon any login
+      localStorage.setItem('kil_language', 'en');
+      try {
+        const hostname = window.location.hostname;
+        const parts = hostname.split('.');
+        const rootDomain = parts.length > 2 ? parts.slice(-2).join('.') : hostname;
+        document.cookie = "googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+        document.cookie = `googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=${hostname};`;
+        document.cookie = `googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=.${rootDomain};`;
+        document.documentElement.dir = 'ltr';
+        document.documentElement.lang = 'en';
+        document.body.classList.remove('lang-ur', 'lang-ar', 'font-urdu', 'font-arabic');
+        document.body.classList.add('lang-en');
+      } catch (e) {}
+
       authService.setToken?.(token, rememberMe);
       authService.setUser?.(user, rememberMe);
       setAuthData({ access_token: token, user }, token);
@@ -274,15 +290,23 @@ const Login = () => {
     setGoogleLoading(true);
     const toastId = toast.loading("Authenticating via Google...");
     try {
+      const googleToken = tokenResponse?.access_token || tokenResponse?.credential || tokenResponse?.id_token;
+      if (!googleToken) {
+        throw new Error("No authentication token received from Google.");
+      }
       const res = await apiClient.post("/api/auth/google", {
-        token: tokenResponse.access_token,
+        token: googleToken,
       });
-      const { access_token, user } = res.data ?? {};
+      const { access_token, refresh_token, user } = res.data ?? {};
       if (!access_token || !user) throw new Error("Invalid authentication payload.");
+      if (refresh_token) {
+        authService.setRefreshToken?.(refresh_token, rememberMe);
+      }
       toast.success("Google Sign-In successful!", { id: toastId });
       handleAuthSuccess(user, access_token);
     } catch (err) {
-      const msg = err?.response?.data?.detail || "Google login failed. Please try again.";
+      console.error("Google Auth Error:", err);
+      const msg = err?.response?.data?.detail || err?.message || "Google login failed. Please try again.";
       toast.error(msg, { id: toastId });
       triggerShake();
     } finally {
@@ -290,8 +314,9 @@ const Login = () => {
     }
   };
 
-  const handleGoogleError = () => {
-    toast.error("Google Sign-In popup closed or interrupted.");
+  const handleGoogleError = (error) => {
+    console.warn("Google Sign-In Popup Error:", error);
+    toast.error("Google Sign-In was closed or cancelled. Please try again.");
     triggerShake();
   };
 
@@ -308,31 +333,39 @@ const Login = () => {
   // RENDER
   // ═══════════════════════════════════════════════════════════
   return (
-    <div className="relative min-h-screen flex items-center justify-center overflow-hidden bg-gradient-to-br from-slate-50 via-slate-100/60 to-indigo-50/50 px-4 py-8 sm:px-6 sm:py-12">
+    <div className="relative min-h-screen flex items-center justify-center overflow-hidden bg-gradient-to-br from-slate-50 via-slate-100/60 to-indigo-50/50 px-4 py-4 sm:px-6">
       {/* Background Decorative Gradient Orbs */}
-      <div aria-hidden="true" className="absolute top-0 right-0 w-[30rem] h-[30rem] bg-indigo-500/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none" />
-      <div aria-hidden="true" className="absolute bottom-0 left-0 w-[24rem] h-[24rem] bg-cyan-500/10 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2 pointer-events-none" />
+      <div aria-hidden="true" className="absolute top-0 right-0 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none" />
+      <div aria-hidden="true" className="absolute bottom-0 left-0 w-80 h-80 bg-cyan-500/10 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2 pointer-events-none" />
 
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
+        initial={{ opacity: 0, y: 15 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, ease: "easeOut" }}
-        className="relative z-10 w-full max-w-md rounded-3xl border border-slate-200/80 bg-white/90 backdrop-blur-md p-6 sm:p-8 shadow-xl shadow-slate-900/5"
+        transition={{ duration: 0.35, ease: "easeOut" }}
+        className="relative z-10 w-full max-w-md rounded-3xl border border-slate-200/80 bg-white/95 backdrop-blur-md p-5 sm:p-6 shadow-xl shadow-slate-900/5 my-auto"
       >
         {/* Brand Logo & Header */}
-        <div className="flex items-center gap-3.5 mb-8">
-          <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-[#002147] to-indigo-900 flex items-center justify-center shadow-md shadow-indigo-950/20 text-white">
-            <ShieldCheckIcon className="w-6 h-6" />
+        <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-[#002147] to-indigo-900 flex items-center justify-center shadow-md shadow-indigo-950/20 text-white">
+              <ShieldCheckIcon className="w-5 h-5" />
+            </div>
+            <div>
+              <h1 className="text-sm font-extrabold tracking-tight text-slate-900 leading-none"> Library  </h1>
+              <p className="text-[11px] text-slate-500 font-medium mt-0.5">Secure Access Portal</p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-base font-extrabold tracking-tight text-slate-900">Markaz Library System</h1>
-            <p className="text-xs text-slate-500 font-medium">Secure Access Portal</p>
-          </div>
+          <Link
+            to="/"
+            className="text-xs font-bold text-slate-500 hover:text-[#002147] px-2.5 py-1 rounded-lg hover:bg-slate-100 transition-colors"
+          >
+            ← Home
+          </Link>
         </div>
 
-        <div className="mb-6">
-          <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">Welcome back</h2>
-          <p className="text-slate-500 text-sm mt-1 font-medium">
+        <div className="mb-3.5">
+          <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">Welcome back</h2>
+          <p className="text-slate-500 text-xs mt-0.5 font-medium">
             Sign in to access your digital catalog and research profile.
           </p>
         </div>
@@ -343,7 +376,7 @@ const Login = () => {
         >
           {/* Active Cooldown Banner */}
           {cooldownRemaining > 0 && (
-            <div className="mb-5">
+            <div className="mb-3">
               <CooldownBanner remaining={cooldownRemaining} />
             </div>
           )}
@@ -361,7 +394,7 @@ const Login = () => {
               disabled
               type="button"
               aria-label="Google login unavailable"
-              className="w-full flex items-center justify-center gap-3 bg-slate-100 border border-slate-200 text-slate-400 font-semibold py-3.5 rounded-2xl mb-5 text-sm cursor-not-allowed"
+              className="w-full flex items-center justify-center gap-2.5 bg-slate-100 border border-slate-200 text-slate-400 font-semibold py-2.5 rounded-xl mb-3 text-xs cursor-not-allowed"
             >
               <GoogleIcon />
               <span>Google Login Disabled</span>
@@ -369,22 +402,22 @@ const Login = () => {
           )}
 
           {/* Form Divider */}
-          <div className="flex items-center gap-4 mb-6" aria-hidden="true">
+          <div className="flex items-center gap-3 my-3" aria-hidden="true">
             <div className="h-px bg-slate-200 flex-1" />
-            <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest">or login with password</span>
+            <span className="text-[9px] font-extrabold text-slate-400 uppercase tracking-widest">or login with password</span>
             <div className="h-px bg-slate-200 flex-1" />
           </div>
 
           {/* Login Form */}
-          <form onSubmit={handleLogin} className="space-y-4" noValidate>
+          <form onSubmit={handleLogin} className="space-y-3" noValidate>
             {/* Username Input */}
-            <div className="space-y-1.5">
-              <label htmlFor="username" className="text-[11px] font-extrabold text-slate-500 uppercase tracking-wider">
+            <div className="space-y-1">
+              <label htmlFor="username" className="text-[10.5px] font-extrabold text-slate-500 uppercase tracking-wider">
                 Username
               </label>
               <div className="relative group">
-                <div className="absolute inset-y-0 left-0 pl-4 flex items-center text-slate-400 group-focus-within:text-[#002147] transition-colors pointer-events-none" aria-hidden="true">
-                  <UserIcon className="w-5 h-5" />
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-400 group-focus-within:text-[#002147] transition-colors pointer-events-none" aria-hidden="true">
+                  <UserIcon className="w-4 h-4" />
                 </div>
                 <input
                   id="username"
@@ -397,7 +430,7 @@ const Login = () => {
                   autoComplete="username"
                   aria-invalid={!!fieldErrors.username}
                   aria-describedby={fieldErrors.username ? "username-error" : undefined}
-                  className={`w-full pl-11 pr-4 py-3.5 rounded-2xl outline-none transition-all text-sm font-medium text-slate-800 placeholder:text-slate-400 disabled:opacity-60 disabled:cursor-not-allowed border-2 ${
+                  className={`w-full pl-9 pr-3 py-2.5 rounded-xl outline-none transition-all text-xs sm:text-sm font-medium text-slate-800 placeholder:text-slate-400 disabled:opacity-60 disabled:cursor-not-allowed border-2 ${
                     fieldErrors.username
                       ? "bg-rose-50/50 border-rose-300 focus:border-rose-500 focus:ring-4 focus:ring-rose-500/10"
                       : "bg-slate-50/80 border-slate-200/80 focus:border-[#002147] focus:bg-white focus:ring-4 focus:ring-[#002147]/10"
@@ -408,22 +441,22 @@ const Login = () => {
             </div>
 
             {/* Password Input */}
-            <div className="space-y-1.5">
+            <div className="space-y-1">
               <div className="flex justify-between items-center">
-                <label htmlFor="password" className="text-[11px] font-extrabold text-slate-500 uppercase tracking-wider">
+                <label htmlFor="password" className="text-[10.5px] font-extrabold text-slate-500 uppercase tracking-wider">
                   Password
                 </label>
                 <Link
                   to="/forgot-password"
-                  className="text-xs text-[#002147] font-bold hover:text-indigo-600 transition-colors focus:outline-none focus:underline"
+                  className="text-[11px] text-[#002147] font-bold hover:text-indigo-600 transition-colors focus:outline-none focus:underline"
                   tabIndex={isDisabled ? -1 : 0}
                 >
                   Forgot password?
                 </Link>
               </div>
               <div className="relative group">
-                <div className="absolute inset-y-0 left-0 pl-4 flex items-center text-slate-400 group-focus-within:text-[#002147] transition-colors pointer-events-none" aria-hidden="true">
-                  <LockClosedIcon className="w-5 h-5" />
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-400 group-focus-within:text-[#002147] transition-colors pointer-events-none" aria-hidden="true">
+                  <LockClosedIcon className="w-4 h-4" />
                 </div>
                 <input
                   id="password"
@@ -436,7 +469,7 @@ const Login = () => {
                   autoComplete="current-password"
                   aria-invalid={!!fieldErrors.password}
                   aria-describedby={fieldErrors.password ? "password-error" : undefined}
-                  className={`w-full pl-11 pr-12 py-3.5 rounded-2xl outline-none transition-all text-sm font-medium text-slate-800 placeholder:text-slate-400 disabled:opacity-60 disabled:cursor-not-allowed border-2 ${
+                  className={`w-full pl-9 pr-10 py-2.5 rounded-xl outline-none transition-all text-xs sm:text-sm font-medium text-slate-800 placeholder:text-slate-400 disabled:opacity-60 disabled:cursor-not-allowed border-2 ${
                     fieldErrors.password
                       ? "bg-rose-50/50 border-rose-300 focus:border-rose-500 focus:ring-4 focus:ring-rose-500/10"
                       : "bg-slate-50/80 border-slate-200/80 focus:border-[#002147] focus:bg-white focus:ring-4 focus:ring-[#002147]/10"
@@ -447,25 +480,25 @@ const Login = () => {
                   onClick={() => setShowPassword((prev) => !prev)}
                   disabled={isDisabled}
                   aria-label={showPassword ? "Hide password" : "Show password"}
-                  className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-[#002147] transition-colors focus:outline-none disabled:cursor-not-allowed"
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-[#002147] transition-colors focus:outline-none disabled:cursor-not-allowed"
                 >
-                  {showPassword ? <EyeSlashIcon className="w-5 h-5" /> : <EyeIcon className="w-5 h-5" />}
+                  {showPassword ? <EyeSlashIcon className="w-4 h-4" /> : <EyeIcon className="w-4 h-4" />}
                 </button>
               </div>
               <FieldError id="password-error" message={fieldErrors.password} />
             </div>
 
             {/* Remember Me Checkbox */}
-            <div className="pt-1">
-              <label className="flex items-center gap-2.5 cursor-pointer select-none group w-fit">
+            <div className="pt-0.5">
+              <label className="flex items-center gap-2 cursor-pointer select-none group w-fit">
                 <input
                   type="checkbox"
                   checked={rememberMe}
                   onChange={(e) => setRememberMe(e.target.checked)}
                   disabled={isDisabled}
-                  className="w-4 h-4 rounded border-slate-300 accent-[#002147] cursor-pointer focus:ring-2 focus:ring-[#002147]/20"
+                  className="w-3.5 h-3.5 rounded border-slate-300 accent-[#002147] cursor-pointer focus:ring-2 focus:ring-[#002147]/20"
                 />
-                <span className="text-sm text-slate-600 font-medium group-hover:text-slate-900 transition-colors">
+                <span className="text-xs text-slate-600 font-medium group-hover:text-slate-900 transition-colors">
                   Keep me signed in on this device
                 </span>
               </label>
@@ -477,7 +510,7 @@ const Login = () => {
               whileTap={{ scale: isDisabled ? 1 : 0.98 }}
               type="submit"
               disabled={isDisabled}
-              className="w-full py-4 rounded-2xl bg-[#002147] text-white font-bold text-sm shadow-md shadow-[#002147]/20 hover:bg-[#002f66] hover:shadow-lg hover:shadow-[#002147]/30 transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2.5 mt-2 focus:outline-none focus:ring-4 focus:ring-[#002147]/25"
+              className="w-full py-3 rounded-xl bg-[#002147] text-white font-bold text-xs sm:text-sm shadow-md shadow-[#002147]/20 hover:bg-[#002f66] hover:shadow-lg hover:shadow-[#002147]/30 transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 mt-1.5 focus:outline-none focus:ring-4 focus:ring-[#002147]/25 cursor-pointer"
             >
               {loading ? (
                 <>
@@ -486,7 +519,7 @@ const Login = () => {
                 </>
               ) : (
                 <>
-                  <ArrowRightOnRectangleIcon className="w-5 h-5" aria-hidden="true" />
+                  <ArrowRightOnRectangleIcon className="w-4 h-4" aria-hidden="true" />
                   <span>Sign In to Library</span>
                 </>
               )}
@@ -494,7 +527,7 @@ const Login = () => {
           </form>
 
           {/* Registration Redirect Link */}
-          <p className="mt-8 text-center text-sm text-slate-500 font-medium">
+          <p className="mt-4 text-center text-xs text-slate-500 font-medium">
             Don't have an account?{" "}
             <Link
               to="/register"
@@ -504,8 +537,8 @@ const Login = () => {
             </Link>
           </p>
 
-          <p className="mt-8 text-center text-xs text-slate-400">
-            &copy; {new Date().getFullYear()} Markaz Library System &bull; All Rights Reserved
+          <p className="mt-3 text-center text-[10px] text-slate-400">
+            &copy; {new Date().getFullYear()} MARKAZ AHLE HADEES KOKAN &bull; All Rights Reserved
           </p>
         </motion.div>
       </motion.div>

@@ -26,20 +26,35 @@ def get_default_homepage_settings():
         "ui_feel": "premium",
         "language": "en",
         "hero_badge": "Adaptive Knowledge Grid",
-        "site_title": "Kokan Library",
+        "site_title": {
+            "en": "Markaz Ahle Hadees Kokan",
+            "ur": "مرکز اہل حدیث کوکن",
+            "ar": "مركز أهل الحديث كوكان",
+        },
+        "site_subtitle": "Ahle Hadees Kokan",
+        "show_site_subtitle": True,
+        "site_logo_url": "/static/images/MarkazLogo.png",
         "sections": {
             "hero": {
                 "enabled": True,
                 "order": 0,
-                "title": "Welcome to the future of the library",
+                "badge": "MARKAZ AHLE HADEES KOKAN",
+                "show_badge": True,
+                "ayah_arabic": "يَا أَيُّهَا الَّذِينَ آمَنُوا أَطِيعُوا اللَّهَ وَأَطِيعُوا الرَّسُولَ",
+                "ayah_translation": "",
+                "show_ayah": True,
+                "title": "Kokan Islamic Library",
+                "description": "Explore curated Islamic knowledge with a calm, modern reading experience.",
+                "banner_image_url": "",
+                "banner_overlay_opacity": 70,
+                "show_stars": True,
                 "subtitle": "A modern, intelligent reading experience",
-                "description": "Main landing intro and spotlight area",
-                "badge": "Adaptive Knowledge Grid",
                 "cta_label": "Explore the catalog",
                 "primary_cta_label": "Explore the catalog",
                 "primary_cta_url": "/books",
                 "secondary_cta_label": "Request access",
                 "secondary_cta_url": "/contact",
+                "spotlight_color": "#2227bf",
             },
             "posters": {
                 "enabled": True,
@@ -121,6 +136,44 @@ def get_default_homepage_settings():
             "show_donation_panel": True,
             "show_posters": True,
         },
+        "paid_downloads": {
+            "global_enabled": False,
+            "default_price": 49.0,
+            "upi_id": "kokanislamiclibrary@upi",
+            "instructions": "Scan QR code or use UPI ID to pay. Enter UTR reference to verify and download.",
+            "qr_image_url": "",
+        },
+        "deep_search": {
+            "enabled": True,
+            "enable_cloud_caching": True,
+            "enable_aerab_normalization": True,
+            "enable_boolean_operators": True,
+            "enable_scope_filters": True,
+            "enable_citation_tool": True,
+            "enable_research_export": True,
+            "max_snippets_per_book": 5,
+            "snippet_context_chars": 80
+        },
+        "ui_settings": {
+            "primary_color": "#002147",
+            "primary_hover": "#003166",
+            "primary_light": "#EEF4FF",
+            "secondary_color": "#064e3b",
+            "accent_color": "#2D89C8",
+            "border_radius": "rounded",
+            "spacing_density": "comfortable",
+            "font_scale": "normal",
+            "arabic_font": "Noto Naskh Arabic",
+            "urdu_font": "Jameel Noori Nastaleeq",
+            "default_language": "en",
+            "enabled_languages": ["en", "ur", "ar"],
+            "theme_mode": "light",
+            "allow_user_theme_override": False,
+            "site_title": "Kokan Islamic Library",
+            "site_subtitle": "Markaz Ahle Hadees Kokan",
+            "logo_url": "/static/images/MarkazLogo.png",
+            "favicon_url": "/favicon.ico",
+        },
     }
 
 
@@ -163,6 +216,28 @@ def _merge_settings(payload: dict):
             merged_layout = copy.deepcopy(merged.get("layout", {}))
             merged_layout.update(value)
             merged["layout"] = merged_layout
+        elif key == "paid_downloads" and isinstance(value, dict):
+            merged_downloads = copy.deepcopy(merged.get("paid_downloads", {}))
+            merged_downloads.update(value)
+            merged["paid_downloads"] = merged_downloads
+        elif key == "ui_settings" and isinstance(value, dict):
+            merged_ui = copy.deepcopy(merged.get("ui_settings", {}))
+            merged_ui.update(value)
+            merged["ui_settings"] = merged_ui
+        elif key == "site_title":
+            if isinstance(value, dict):
+                merged_title = copy.deepcopy(merged.get("site_title", {}))
+                if isinstance(merged_title, str):
+                    merged_title = {"en": merged_title, "ur": "", "ar": ""}
+                merged_title.update(value)
+                merged["site_title"] = merged_title
+            elif isinstance(value, str):
+                default_title = merged.get("site_title", {})
+                merged["site_title"] = {
+                    "en": value,
+                    "ur": default_title.get("ur", "") if isinstance(default_title, dict) else "",
+                    "ar": default_title.get("ar", "") if isinstance(default_title, dict) else "",
+                }
         else:
             merged[key] = value
 
@@ -215,3 +290,81 @@ def update_homepage_settings(payload: dict, db: Session = Depends(get_db), curre
     merged = _merge_settings(payload)
     _write_settings_to_disk(merged)
     return {"message": "Homepage settings updated", "settings": merged}
+
+
+@router.get("/deep-search")
+def get_deep_search_settings():
+    """Returns deep search configuration."""
+    settings = _load_settings_from_disk()
+    default_ds = get_default_homepage_settings()["deep_search"]
+    current_ds = settings.get("deep_search", {})
+    # Merge defaults so any newly added keys exist
+    merged = {**default_ds, **current_ds}
+    return merged
+
+
+@router.put("/deep-search")
+def update_deep_search_settings(
+    payload: dict,
+    current_user: user_model.User = Depends(get_current_user)
+):
+    """Admin Only: Updates deep search configuration."""
+    role_name = (current_user.role.name if hasattr(current_user, 'role') and current_user.role else str(getattr(current_user, 'role', ''))).lower()
+    is_admin = role_name in ["admin", "superadmin", "administrator"]
+    
+    perms = set()
+    if hasattr(current_user, 'permissions') and current_user.permissions:
+        for p in current_user.permissions:
+            if hasattr(p, 'code') and p.code:
+                perms.add(p.code)
+            elif hasattr(p, 'name') and p.name:
+                perms.add(p.name)
+
+    if not is_admin and not (perms & {'HOMEPAGE_LAYOUT_MANAGE', 'BOOK_MANAGE', 'HOMEPAGE_SEARCH_MANAGE', 'ADMIN_ACCESS'}):
+        raise HTTPException(status_code=403, detail="Permission denied to update Deep Search settings.")
+
+    settings = _load_settings_from_disk()
+    default_ds = get_default_homepage_settings()["deep_search"]
+    current_ds = settings.get("deep_search", default_ds)
+    current_ds.update(payload)
+    settings["deep_search"] = current_ds
+    _write_settings_to_disk(settings)
+    return {"message": "Deep Search settings updated successfully", "deep_search": current_ds}
+
+
+@router.get("/ui-config")
+def get_ui_settings():
+    """Returns global UI/UX design token and theme settings."""
+    settings = _load_settings_from_disk()
+    default_ui = get_default_homepage_settings()["ui_settings"]
+    current_ui = settings.get("ui_settings", {})
+    return {**default_ui, **current_ui}
+
+
+@router.put("/ui-config")
+def update_ui_settings(
+    payload: dict,
+    current_user: user_model.User = Depends(get_current_user)
+):
+    """Admin Only: Updates global UI/UX design tokens and theme settings."""
+    role_name = (current_user.role.name if hasattr(current_user, 'role') and current_user.role else str(getattr(current_user, 'role', ''))).lower()
+    is_admin = role_name in ["admin", "superadmin", "administrator"]
+    
+    perms = set()
+    if hasattr(current_user, 'permissions') and current_user.permissions:
+        for p in current_user.permissions:
+            if hasattr(p, 'code') and p.code:
+                perms.add(p.code)
+            elif hasattr(p, 'name') and p.name:
+                perms.add(p.name)
+
+    if not is_admin and not (perms & {'HOMEPAGE_BRANDING_MANAGE', 'HOMEPAGE_THEME_MANAGE', 'BOOK_MANAGE', 'ADMIN_ACCESS'}):
+        raise HTTPException(status_code=403, detail="Permission denied to update UI/UX settings.")
+
+    settings = _load_settings_from_disk()
+    default_ui = get_default_homepage_settings()["ui_settings"]
+    current_ui = settings.get("ui_settings", default_ui)
+    current_ui.update(payload)
+    settings["ui_settings"] = current_ui
+    _write_settings_to_disk(settings)
+    return {"message": "UI/UX settings updated successfully", "ui_settings": current_ui}

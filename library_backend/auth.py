@@ -56,6 +56,8 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None):
     to_encode = data.copy()
     if "sub" in to_encode and to_encode["sub"] is not None:
         to_encode["sub"] = str(to_encode["sub"])
+    if "type" not in to_encode:
+        to_encode["type"] = "access"
     if expires_delta:
         expire = datetime.now(timezone.utc) + expires_delta
     else:
@@ -128,6 +130,11 @@ async def get_user_from_token(token: str, db: Session) -> Optional[user_model.Us
         sub = payload.get("sub")
 
         if sub is None:
+            return None
+
+        # SECURITY FIX: Reject refresh tokens used as access tokens
+        token_type = payload.get("type")
+        if token_type != "access":
             return None
 
         # ✅ Check if token is blacklisted (ISSUE #2 FIX)
@@ -240,23 +247,28 @@ async def get_current_user(
 # ✅ PERMISSION CHECKER
 # ==========================================================
 
-def require_permission(permission_code: str):
+def require_permission(*permission_codes: str):
     """
-    Dependency to check user permissions.
+    Dependency to check user permissions. Accepts one or more permission codes (OR logic).
     """
+    codes = set()
+    for item in permission_codes:
+        if isinstance(item, (list, tuple, set)):
+            codes.update(item)
+        elif item:
+            codes.add(item)
 
     async def permission_checker(
         current_user: user_model.User = Depends(get_current_user),
     ):
         # ✅ Admin bypass
-        if current_user.role and current_user.role.name and current_user.role.name.lower() in [
-            "admin", "superadmin", "administrator"
-        ]:
-            return current_user
+        if current_user.role and current_user.role.name:
+            rname = current_user.role.name.strip().lower()
+            if rname in ["admin", "superadmin", "administrator", "super admin"]:
+                return current_user
 
         # ✅ Collect permissions
         user_perms = set()
-
         if current_user.role and current_user.role.permissions:
             for p in current_user.role.permissions:
                 if hasattr(p, "code") and p.code:
@@ -264,10 +276,10 @@ def require_permission(permission_code: str):
                 elif hasattr(p, "name") and p.name:
                     user_perms.add(p.name)
 
-        if permission_code not in user_perms:
+        if not (codes & user_perms):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"You do not have permission: {permission_code}",
+                detail=f"You do not have required permission: {', '.join(codes)}",
             )
 
         return current_user

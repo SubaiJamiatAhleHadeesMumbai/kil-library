@@ -16,8 +16,10 @@ import {
     ArrowPathIcon,
     XMarkIcon,
     NoSymbolIcon,
+    KeyIcon,
 } from '@heroicons/react/24/outline';
 import { userService } from '../api/userService';
+import bulkActionService from '../api/bulkActionService';
 import Modal from '../components/common/Modal';
 import UserForm from '../components/user/UserForm';
 
@@ -90,6 +92,8 @@ const UserManagement = () => {
     const [filterStatus, setFilterStatus] = useState('All');
     const [sortConfig, setSortConfig] = useState({ key: 'username', direction: 'asc' });
     const [page, setPage] = useState(1);
+    const [totalUsers, setTotalUsers] = useState(0);
+    const [serverTotalPages, setServerTotalPages] = useState(1);
 
     // --- Modal state ---
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -99,6 +103,36 @@ const UserManagement = () => {
     // --- Delete confirmation state ---
     const [userPendingDelete, setUserPendingDelete] = useState(null);
     const [deletingId, setDeletingId] = useState(null);
+    
+    // --- Password Reset Modal state ---
+    const [userPendingPasswordReset, setUserPendingPasswordReset] = useState(null);
+    const [newPasswordValue, setNewPasswordValue] = useState('');
+    const [resettingPassword, setResettingPassword] = useState(false);
+
+    // --- Bulk Action State ---
+    const [selectedUsers, setSelectedUsers] = useState(new Set());
+    const [bulkActionLoading, setBulkActionLoading] = useState(false);
+
+    const handleResetPasswordSubmit = async (e) => {
+        e.preventDefault();
+        if (!userPendingPasswordReset || !newPasswordValue.trim()) return;
+        if (newPasswordValue.trim().length < 4) {
+            toast.error("Password must be at least 4 characters.");
+            return;
+        }
+
+        try {
+            setResettingPassword(true);
+            const res = await userService.adminResetPassword(userPendingPasswordReset.id, newPasswordValue.trim());
+            toast.success(res.message || `Password for ${userPendingPasswordReset.username} updated!`);
+            setUserPendingPasswordReset(null);
+            setNewPasswordValue('');
+        } catch (err) {
+            toast.error(err?.detail || "Failed to update password.");
+        } finally {
+            setResettingPassword(false);
+        }
+    };
 
     // Debounce search input
     useEffect(() => {
@@ -116,11 +150,27 @@ const UserManagement = () => {
         setLoading(true);
         setError(null);
         try {
-            const [usersData, rolesData] = await Promise.all([
-                userService.getAllUsers(),
+            const params = {
+                paginated: true,
+                page,
+                limit: PAGE_SIZE,
+                search: searchTerm.trim() || undefined,
+                status: filterStatus !== 'All' ? filterStatus : undefined,
+            };
+            const [usersRes, rolesData] = await Promise.all([
+                userService.getAllUsers(params),
                 userService.getAllRoles(),
             ]);
-            setUsers(usersData || []);
+
+            if (usersRes && usersRes.items) {
+                setUsers(usersRes.items);
+                setTotalUsers(usersRes.total);
+                setServerTotalPages(usersRes.total_pages);
+            } else if (Array.isArray(usersRes)) {
+                setUsers(usersRes);
+                setTotalUsers(usersRes.length);
+                setServerTotalPages(Math.ceil(usersRes.length / PAGE_SIZE) || 1);
+            }
             setRoles(rolesData || []);
         } catch (err) {
             console.error('Error fetching users/roles:', err);
@@ -128,41 +178,15 @@ const UserManagement = () => {
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [page, searchTerm, filterStatus]);
 
     useEffect(() => { 
         fetchData(); 
     }, [fetchData]);
 
-    // --- Filtering ---
-    const filteredUsers = useMemo(() => {
-        let data = users;
-
-        if (searchTerm.trim()) {
-            const lowerTerm = searchTerm.toLowerCase();
-            data = data.filter(u =>
-                (u.username || '').toLowerCase().includes(lowerTerm) ||
-                (u.email || '').toLowerCase().includes(lowerTerm) ||
-                (u.full_name || '').toLowerCase().includes(lowerTerm)
-            );
-        }
-
-        if (filterStatus !== 'All') {
-            data = data.filter(u => u.status === filterStatus);
-        }
-
-        if (activeTab === 'staff') {
-            data = data.filter(u => getRoleName(u).toLowerCase() !== 'member');
-        } else if (activeTab === 'public') {
-            data = data.filter(u => getRoleName(u).toLowerCase() === 'member');
-        }
-
-        return data;
-    }, [users, searchTerm, filterStatus, activeTab]);
-
-    // --- Sorting ---
+    // --- Sorting (applied on current page) ---
     const sortedUsers = useMemo(() => {
-        const data = [...filteredUsers];
+        const data = [...users];
         const { key, direction } = sortConfig;
         data.sort((a, b) => {
             let aVal, bVal;
@@ -178,7 +202,7 @@ const UserManagement = () => {
             return 0;
         });
         return data;
-    }, [filteredUsers, sortConfig]);
+    }, [users, sortConfig]);
 
     const toggleSort = (key) => {
         setSortConfig(prev => prev.key === key
@@ -187,19 +211,16 @@ const UserManagement = () => {
     };
 
     // --- Pagination ---
-    const totalPages = Math.max(1, Math.ceil(sortedUsers.length / PAGE_SIZE));
-    const pagedUsers = useMemo(() => {
-        const start = (page - 1) * PAGE_SIZE;
-        return sortedUsers.slice(start, start + PAGE_SIZE);
-    }, [sortedUsers, page]);
+    const totalPages = serverTotalPages || 1;
+    const pagedUsers = sortedUsers;
 
     // --- Stats ---
     const stats = useMemo(() => {
-        const total = users.length;
+        const total = totalUsers || users.length;
         const active = users.filter(u => u.status === 'Active').length;
         const staffUsers = users.filter(u => getRoleName(u).toLowerCase() !== 'member').length;
         return { total, active, staffUsers };
-    }, [users]);
+    }, [users, totalUsers]);
 
     const hasActiveFilters = searchTerm || filterStatus !== 'All' || activeTab !== 'all';
     
@@ -240,6 +261,38 @@ const UserManagement = () => {
             setDeletingId(null);
             setUserPendingDelete(null);
         }
+    };
+
+    const handleBulkAction = async (action) => {
+        if (!selectedUsers.size) return;
+        const confirmMsg = `Are you sure you want to ${action} ${selectedUsers.size} users?`;
+        if (!window.confirm(confirmMsg)) return;
+        setBulkActionLoading(true);
+        try {
+            const result = await bulkActionService.bulkUserAction(action, [...selectedUsers]);
+            toast.success(result.message);
+            setSelectedUsers(new Set());
+            fetchData();
+        } catch (err) {
+            toast.error(err.response?.data?.detail || 'Bulk action failed');
+        } finally {
+            setBulkActionLoading(false);
+        }
+    };
+
+    const toggleSelectAll = (e) => {
+        if (e.target.checked) {
+            setSelectedUsers(new Set(pagedUsers.map(u => u.id)));
+        } else {
+            setSelectedUsers(new Set());
+        }
+    };
+
+    const toggleSelectUser = (id) => {
+        const newSet = new Set(selectedUsers);
+        if (newSet.has(id)) newSet.delete(id);
+        else newSet.add(id);
+        setSelectedUsers(newSet);
     };
 
     const SortHeader = ({ label, sortKey, className = '' }) => (
@@ -393,11 +446,30 @@ const UserManagement = () => {
                     </div>
                 </div>
 
+                {/* Bulk Actions Toolbar */}
+                {selectedUsers.size > 0 && (
+                  <div className="flex flex-wrap items-center gap-3 px-6 py-4 bg-indigo-50 border-b border-indigo-100">
+                    <span className="text-sm font-bold text-indigo-700">{selectedUsers.size} selected</span>
+                    <button disabled={bulkActionLoading} onClick={() => handleBulkAction('suspend')} className="px-3 py-1.5 text-xs font-bold bg-amber-100 text-amber-700 rounded-xl hover:bg-amber-200 transition disabled:opacity-50">Suspend</button>
+                    <button disabled={bulkActionLoading} onClick={() => handleBulkAction('activate')} className="px-3 py-1.5 text-xs font-bold bg-emerald-100 text-emerald-700 rounded-xl hover:bg-emerald-200 transition disabled:opacity-50">Activate</button>
+                    <button disabled={bulkActionLoading} onClick={() => handleBulkAction('delete')} className="px-3 py-1.5 text-xs font-bold bg-red-100 text-red-700 rounded-xl hover:bg-red-200 transition disabled:opacity-50">Delete Selected</button>
+                    <button disabled={bulkActionLoading} onClick={() => setSelectedUsers(new Set())} className="ml-auto px-3 py-1.5 text-xs font-bold bg-slate-100 text-slate-600 rounded-xl hover:bg-slate-200 transition disabled:opacity-50">Clear</button>
+                  </div>
+                )}
+
                 {/* Table (Desktop) */}
-                <div className="overflow-x-auto hidden md:block">
+                <div className="overflow-x-auto max-h-[700px] hidden md:block">
                     <table className="w-full text-left border-collapse">
-                        <thead>
+                        <thead className="sticky top-0 bg-slate-50/95 z-10 backdrop-blur-xs shadow-2xs">
                             <tr className="bg-slate-50/80 border-b border-slate-200/80 text-[11px] font-black text-slate-500 uppercase tracking-widest">
+                                <th className="px-6 py-4 w-12 text-center">
+                                    <input 
+                                        type="checkbox" 
+                                        className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                                        checked={pagedUsers.length > 0 && selectedUsers.size === pagedUsers.length}
+                                        onChange={toggleSelectAll}
+                                    />
+                                </th>
                                 <th className="px-6 py-4">Security ID</th>
                                 <SortHeader label="User Account" sortKey="username" />
                                 <SortHeader label="Role Level" sortKey="role" className="text-center" />
@@ -410,7 +482,7 @@ const UserManagement = () => {
                                 Array.from({ length: 5 }).map((_, i) => <SkeletonRow key={i} />)
                             ) : pagedUsers.length === 0 ? (
                                 <tr>
-                                    <td colSpan={5} className="px-6 py-16 text-center text-slate-400">
+                                    <td colSpan={6} className="px-6 py-16 text-center text-slate-400">
                                         <ShieldCheckIcon className="h-12 w-12 mx-auto mb-3 opacity-20 text-slate-500" />
                                         {hasActiveFilters ? (
                                             <>
@@ -432,6 +504,14 @@ const UserManagement = () => {
                             ) : (
                                 pagedUsers.map(user => (
                                     <tr key={user.id} className="hover:bg-slate-50/80 transition-colors group">
+                                        <td className="px-6 py-4 text-center">
+                                            <input 
+                                                type="checkbox" 
+                                                className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                                                checked={selectedUsers.has(user.id)}
+                                                onChange={() => toggleSelectUser(user.id)}
+                                            />
+                                        </td>
                                         <td className="px-6 py-4 text-xs font-mono font-bold text-slate-400">
                                             #{String(user.id).padStart(3, '0')}
                                         </td>
@@ -471,6 +551,17 @@ const UserManagement = () => {
 
                                         <td className="px-6 py-4 whitespace-nowrap text-right">
                                             <div className="flex justify-end gap-1.5 opacity-90 group-hover:opacity-100 transition-opacity">
+                                                <button
+                                                    onClick={() => {
+                                                        setUserPendingPasswordReset(user);
+                                                        setNewPasswordValue('');
+                                                    }}
+                                                    className="p-2 text-slate-500 hover:text-amber-600 hover:bg-amber-50 rounded-xl transition-colors"
+                                                    title="Reset / Change Password"
+                                                    aria-label={`Reset password for ${user.username}`}
+                                                >
+                                                    <KeyIcon className="h-4 w-4" />
+                                                </button>
                                                 <button
                                                     onClick={() => handleEditUser(user)}
                                                     className="p-2 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors"
@@ -540,6 +631,16 @@ const UserManagement = () => {
                                 </div>
 
                                 <div className="flex items-center gap-1 shrink-0">
+                                    <button
+                                        onClick={() => {
+                                            setUserPendingPasswordReset(user);
+                                            setNewPasswordValue('');
+                                        }}
+                                        className="p-2 text-amber-600 hover:bg-amber-50 rounded-xl"
+                                        title="Reset Password"
+                                    >
+                                        <KeyIcon className="h-4 w-4" />
+                                    </button>
                                     <button onClick={() => handleEditUser(user)} className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-xl">
                                         <PencilSquareIcon className="h-4 w-4" />
                                     </button>
@@ -641,6 +742,61 @@ const UserManagement = () => {
                         </button>
                     </div>
                 </div>
+            </Modal>
+
+            {/* --- ADMIN PASSWORD RESET MODAL --- */}
+            <Modal
+                isOpen={!!userPendingPasswordReset}
+                onClose={() => {
+                    setUserPendingPasswordReset(null);
+                    setNewPasswordValue('');
+                }}
+                title={`Change Password: ${userPendingPasswordReset?.username || ''}`}
+                size="max-w-md"
+            >
+                <form onSubmit={handleResetPasswordSubmit} className="space-y-4">
+                    <div className="bg-amber-50 border border-amber-200 p-3.5 rounded-2xl flex items-start gap-3">
+                        <KeyIcon className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                        <div className="text-xs text-amber-800 leading-relaxed">
+                            Set a new password for <strong className="font-bold">{userPendingPasswordReset?.username}</strong> ({userPendingPasswordReset?.email}). The user can log in immediately with this new password.
+                        </div>
+                    </div>
+
+                    <div>
+                        <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
+                            New Password <span className="text-rose-500">*</span>
+                        </label>
+                        <input
+                            type="text"
+                            required
+                            placeholder="Enter new password (e.g. admin123)"
+                            value={newPasswordValue}
+                            onChange={(e) => setNewPasswordValue(e.target.value)}
+                            className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-mono text-slate-900 focus:bg-white focus:border-[#002147] outline-none transition"
+                        />
+                        <p className="text-[10px] text-slate-400 mt-1">Minimum 4 characters.</p>
+                    </div>
+
+                    <div className="flex justify-end gap-2.5 pt-2">
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setUserPendingPasswordReset(null);
+                                setNewPasswordValue('');
+                            }}
+                            className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 transition cursor-pointer"
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            type="submit"
+                            disabled={resettingPassword || !newPasswordValue.trim()}
+                            className="px-5 py-2 rounded-xl text-xs font-bold text-white bg-[#002147] hover:bg-[#003166] transition shadow-md disabled:opacity-40 cursor-pointer"
+                        >
+                            {resettingPassword ? 'Updating...' : 'Update Password'}
+                        </button>
+                    </div>
+                </form>
             </Modal>
 
         </div>

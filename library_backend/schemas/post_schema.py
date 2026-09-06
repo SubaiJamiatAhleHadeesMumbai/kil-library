@@ -24,6 +24,10 @@ class PostResponse(PostBase):
     file_url: Optional[str] = None
     created_at: datetime
 
+    # ✅ Content Scheduling Fields
+    status: str = "published"  # draft | scheduled | published
+    published_at: Optional[datetime] = None
+
     # Display author name (Public feed)
     author_name: str = "Markaz Admin"
 

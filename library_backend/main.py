@@ -18,8 +18,10 @@ from sqlalchemy.orm import Session
 try:
     from slowapi import Limiter
     from slowapi.util import get_remote_address
+    from slowapi.errors import RateLimitExceeded
 except ImportError:
     Limiter = None
+    RateLimitExceeded = None
     print("⚠️ WARNING: 'slowapi' library not found. Rate limiting will be disabled.")
 
 limiter = Limiter(key_func=get_remote_address) if Limiter else None
@@ -66,7 +68,18 @@ from controllers import (
     analytics_controller,
     settings_controller,
     about_controller,
-    fatawa_controller
+    fatawa_controller,
+    social_work_controller,
+    search_controller,
+    newspaper_clipping_controller,
+    system_health_controller,
+    bulk_actions_controller,
+    admin_dashboard_controller,
+    book_order_controller,
+    translation_controller,
+    gallery_controller,
+    comment_controller,
+    admin_comment_controller,
 )
 
 def sync_database_schema():
@@ -93,6 +106,49 @@ def sync_database_schema():
         "ALTER TABLE books ADD COLUMN IF NOT EXISTS date_of_purchase DATE;",
         "ALTER TABLE books ADD COLUMN IF NOT EXISTS serial_number VARCHAR(100);",
         "ALTER TABLE books ADD COLUMN IF NOT EXISTS book_number VARCHAR(100);",
+        "ALTER TABLE books ADD COLUMN IF NOT EXISTS is_download_paid BOOLEAN DEFAULT FALSE;",
+        "ALTER TABLE books ADD COLUMN IF NOT EXISTS download_price DOUBLE PRECISION DEFAULT 0.0;",
+        "ALTER TABLE books ADD COLUMN IF NOT EXISTS download_upi_id VARCHAR(100);",
+        # book_download_orders
+        """
+        CREATE TABLE IF NOT EXISTS book_download_orders (
+            id SERIAL PRIMARY KEY,
+            order_code VARCHAR(64) UNIQUE NOT NULL,
+            book_id INTEGER NOT NULL REFERENCES books(id) ON DELETE CASCADE,
+            user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+            buyer_name VARCHAR(255) NOT NULL,
+            buyer_email VARCHAR(255) NOT NULL,
+            buyer_phone VARCHAR(50),
+            amount DOUBLE PRECISION DEFAULT 0.0 NOT NULL,
+            payment_method VARCHAR(50) DEFAULT 'UPI_MANUAL' NOT NULL,
+            transaction_ref VARCHAR(100),
+            screenshot_url TEXT,
+            notes TEXT,
+            status VARCHAR(50) DEFAULT 'PENDING' NOT NULL,
+            admin_remarks TEXT,
+            reviewed_by_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+            reviewed_at TIMESTAMP,
+            download_token VARCHAR(128) UNIQUE,
+            download_expires_at TIMESTAMP,
+            download_count INTEGER DEFAULT 0 NOT NULL,
+            max_downloads INTEGER DEFAULT 5 NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
+        );
+        """,
+        # translations CMS table
+        """
+        CREATE TABLE IF NOT EXISTS translations (
+            id SERIAL PRIMARY KEY,
+            key VARCHAR(120) UNIQUE NOT NULL,
+            category VARCHAR(50) DEFAULT 'common',
+            en TEXT NOT NULL,
+            ur TEXT,
+            ar TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+        """,
         # upload_requests
         "ALTER TABLE upload_requests ADD COLUMN IF NOT EXISTS submitted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;",
         "ALTER TABLE upload_requests ADD COLUMN IF NOT EXISTS reviewed_at TIMESTAMP;",
@@ -107,6 +163,61 @@ def sync_database_schema():
         "ALTER TABLE users ADD COLUMN IF NOT EXISTS social_activities VARCHAR(1000);",
         "ALTER TABLE users ADD COLUMN IF NOT EXISTS otp_code VARCHAR(6);",
         "ALTER TABLE users ADD COLUMN IF NOT EXISTS otp_expires_at TIMESTAMP;",
+        # newspaper_clippings
+        "ALTER TABLE newspaper_clippings ADD COLUMN IF NOT EXISTS images TEXT;",
+        # comments system
+        """
+        CREATE TABLE IF NOT EXISTS comments (
+            id SERIAL PRIMARY KEY,
+            entity_type VARCHAR(50) NOT NULL,
+            entity_id INTEGER NOT NULL,
+            user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+            parent_id INTEGER REFERENCES comments(id) ON DELETE CASCADE,
+            rating SMALLINT,
+            body TEXT NOT NULL,
+            status VARCHAR(20) DEFAULT 'pending' NOT NULL,
+            is_pinned BOOLEAN DEFAULT FALSE NOT NULL,
+            flagged_reason VARCHAR(255),
+            report_count INTEGER DEFAULT 0 NOT NULL,
+            admin_reply TEXT,
+            admin_reply_at TIMESTAMP,
+            helpful_count INTEGER DEFAULT 0 NOT NULL,
+            not_helpful_count INTEGER DEFAULT 0 NOT NULL,
+            is_verified_read BOOLEAN DEFAULT FALSE NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+            deleted_at TIMESTAMP
+        );
+        """,
+        """
+        CREATE TABLE IF NOT EXISTS comment_votes (
+            id SERIAL PRIMARY KEY,
+            comment_id INTEGER NOT NULL REFERENCES comments(id) ON DELETE CASCADE,
+            user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            vote_type VARCHAR(20) NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+            UNIQUE(comment_id, user_id)
+        );
+        """,
+        """
+        CREATE TABLE IF NOT EXISTS comment_settings (
+            id SERIAL PRIMARY KEY,
+            entity_type VARCHAR(50) UNIQUE NOT NULL,
+            feature_comments_enabled BOOLEAN DEFAULT TRUE NOT NULL,
+            feature_login_required BOOLEAN DEFAULT TRUE NOT NULL,
+            feature_admin_approval BOOLEAN DEFAULT TRUE NOT NULL,
+            feature_ratings_enabled BOOLEAN DEFAULT TRUE NOT NULL,
+            feature_helpful_votes BOOLEAN DEFAULT TRUE NOT NULL,
+            feature_verified_badge BOOLEAN DEFAULT TRUE NOT NULL,
+            feature_replies_enabled BOOLEAN DEFAULT TRUE NOT NULL,
+            feature_report_enabled BOOLEAN DEFAULT TRUE NOT NULL,
+            feature_pin_enabled BOOLEAN DEFAULT TRUE NOT NULL,
+            feature_admin_reply BOOLEAN DEFAULT TRUE NOT NULL,
+            auto_flag_threshold INTEGER DEFAULT 3 NOT NULL,
+            max_comment_length INTEGER DEFAULT 1000 NOT NULL,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
+        );
+        """,
     ]
     
     try:
@@ -116,9 +227,9 @@ def sync_database_schema():
                     conn.execute(text(stmt))
                 except Exception:
                     pass
-        print("✅ Database schema synchronized successfully.")
+        print("[OK] Database schema synchronized successfully.")
     except Exception as e:
-        print(f"⚠️ Schema sync notice: {e}")
+        print(f"[WARN] Schema sync notice: {e}")
 
 # --- Lifespan Manager (Startup/Shutdown Logic) ---
 @asynccontextmanager
@@ -158,9 +269,22 @@ async def lifespan(app: FastAPI):
     else:
         print("⚠️ Rate Limiting skipped (slowapi library missing).")
 
+    # 5. ✅ Start Content Scheduler (auto-publish scheduled posts/posters)
+    import asyncio
+    scheduler_task = None
+    try:
+        from utils.content_scheduler import content_scheduler_loop
+        scheduler_task = asyncio.create_task(content_scheduler_loop())
+        print("✅ Content Scheduler Started")
+    except Exception as e:
+        print(f"⚠️ Content scheduler skipped: {str(e)[:100]}")
+
     yield  # Application runs here
 
     # 🛑 Shutdown
+    if scheduler_task:
+        scheduler_task.cancel()
+        print("🕐 Content Scheduler Stopped")
     print("🛑 System Shutting Down...")
 
 # --- Initialize FastAPI App ---
@@ -173,10 +297,11 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# ✅ Add Rate Limiter to App (Issue #4 Fix)
+# ✅ Add Rate Limiter to App (Issue #16 Fix)
 if limiter:
     app.state.limiter = limiter
-    app.add_exception_handler(Exception, lambda req, exc: JSONResponse({"detail": "Rate limit exceeded"}, status_code=429))
+    if RateLimitExceeded:
+        app.add_exception_handler(RateLimitExceeded, lambda req, exc: JSONResponse({"detail": "Rate limit exceeded. Please try again later."}, status_code=429))
 
 # ==========================================
 # 🛡️ MIDDLEWARES (Best Practices)
@@ -224,24 +349,22 @@ origins = [o.strip() for o in _cors_env.split(",") if o.strip()] if _cors_env el
     "https://kil2.pages.dev",  # ✅ Cloudflare Pages (optional)
 ]
 
-# Allow any current/future Vercel or Cloudflare Pages preview/custom domains.
-# This avoids breaking deployments when the Vercel project URL changes.
-cors_origin_regex = r"https://.*\.vercel\.app|https://.*\.pages\.dev"
+# SECURITY FIX: Removed cors_origin_regex = r".*" which allowed ANY origin with credentials.
+# Now uses strict whitelist-only matching via allow_origins above.
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
-    allow_origin_regex=cors_origin_regex,
-    allow_credentials=True,  # ✅ REQUIRED for cookies
-    allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH"],  # ✅ Whitelist (was "*")
-    allow_headers=[  # ✅ Whitelist (was "*")
-        "Content-Type",
-        "Authorization",
-        "Accept",
-        "Origin",
-        "X-Requested-With",
+    allow_credentials=True,
+    allow_methods=["*"],  # ✅ Allow GET, POST, PUT, DELETE, PATCH, HEAD, OPTIONS
+    allow_headers=["*"],  # ✅ Allow Range, Content-Type, Authorization, etc.
+    expose_headers=[
+        "Content-Range",
+        "Accept-Ranges",
+        "Content-Length",
+        "Content-Disposition",
+        "X-Process-Time",
     ],
-    expose_headers=["X-Process-Time"],
     max_age=3600,
 )
 
@@ -256,18 +379,61 @@ uploads_path.mkdir(parents=True, exist_ok=True)
 (uploads_path / "pdfs").mkdir(parents=True, exist_ok=True)
 (uploads_path / "texts").mkdir(parents=True, exist_ok=True)
 
-# Mount paths for frontend access
-app.mount("/static", StaticFiles(directory="static"), name="static")
-# ✅ Added this line so frontend can access http://127.0.0.1:8000/uploads/...
-app.mount("/uploads", StaticFiles(directory="static/uploads"), name="uploads")
+class CORSStaticFiles(StaticFiles):
+    async def get_response(self, path: str, scope):
+        # Extract origin from scope headers if present
+        headers_dict = dict(scope.get("headers", []))
+        origin = headers_dict.get(b"origin", b"").decode("latin1")
+        allowed_origin = origin if origin else "*"
+
+        if scope["method"] == "OPTIONS":
+            from starlette.responses import Response
+            resp = Response(status_code=200)
+            resp.headers["Access-Control-Allow-Origin"] = allowed_origin
+            resp.headers["Access-Control-Allow-Methods"] = "GET, HEAD, OPTIONS"
+            resp.headers["Access-Control-Allow-Headers"] = "*"
+            if allowed_origin != "*":
+                resp.headers["Access-Control-Allow-Credentials"] = "true"
+            resp.headers["Access-Control-Max-Age"] = "86400"
+            return resp
+
+        resp = await super().get_response(path, scope)
+        resp.headers["Access-Control-Allow-Origin"] = allowed_origin
+        resp.headers["Access-Control-Allow-Methods"] = "GET, HEAD, OPTIONS"
+        resp.headers["Access-Control-Allow-Headers"] = "*"
+        if allowed_origin != "*":
+            resp.headers["Access-Control-Allow-Credentials"] = "true"
+        resp.headers["Access-Control-Expose-Headers"] = "Content-Range, Accept-Ranges, Content-Length, Content-Disposition, *"
+        resp.headers["Accept-Ranges"] = "bytes"
+        return resp
+
+# Mount paths for frontend access with guaranteed CORS and Range streaming
+app.mount("/static", CORSStaticFiles(directory="static"), name="static")
+app.mount("/uploads", CORSStaticFiles(directory="static/uploads"), name="uploads")
 # ==========================================
 # 🚨 EXCEPTION HANDLERS
 # ==========================================
+# 🚨 EXCEPTION HANDLERS (With Guaranteed CORS)
+# ==========================================
+
+def _get_cors_headers(request: Request) -> dict:
+    origin = request.headers.get("origin")
+    if origin and (origin in origins or "*" in origins):
+        return {
+            "Access-Control-Allow-Origin": origin,
+            "Access-Control-Allow-Credentials": "true",
+            "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, PATCH, OPTIONS",
+            "Access-Control-Allow-Headers": "*",
+        }
+    return {
+        "Access-Control-Allow-Origin": "*",
+    }
 
 # 1. Validation Error Handler (Detailed)
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
     error_details = []
+    cors_headers = _get_cors_headers(request)
     try:
         for error in exc.errors():
             input_repr = error.get("input")
@@ -287,16 +453,26 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
         return JSONResponse(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             content=jsonable_encoder({"detail": error_details}),
+            headers=cors_headers,
         )
     except Exception:
         return JSONResponse(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            content={"detail": "Internal server error during validation."}
+            content={"detail": "Internal server error during validation."},
+            headers=cors_headers,
         )
 
 # 2. Global Exception Handler (Crash Prevention) - ✅ Updated with error logging (Issue #7)
 @app.exception_handler(Exception)
 async def global_exception_handler_impl(request: Request, exc: Exception):
+    cors_headers = _get_cors_headers(request)
+    if RateLimitExceeded and isinstance(exc, RateLimitExceeded):
+        return JSONResponse(
+            {"detail": "Rate limit exceeded. Please try again later."}, 
+            status_code=429,
+            headers=cors_headers
+        )
+
     try:
         db = next(get_db())
         error_log = log_error(
@@ -320,9 +496,10 @@ async def global_exception_handler_impl(request: Request, exc: Exception):
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         content={
             "detail": "An unexpected error occurred on the server.",
-            "error_id": error_log["error_id"],  # ✅ Give user a reference ID
+            "error_id": error_log.get("error_id", "ERR_UNKNOWN") if isinstance(error_log, dict) else "ERR_UNKNOWN",
             "message": "Please contact support with the error ID."
-        }
+        },
+        headers=cors_headers
     )
 
 # ==========================================
@@ -347,6 +524,7 @@ api_router.include_router(password_controller.router, prefix="/auth", tags=["Pas
 api_router.include_router(profile_controller.router, prefix="/profile", tags=["Profile"])
 api_router.include_router(user_controller.router, prefix="/users", tags=["Users"])
 api_router.include_router(role_controller.router, prefix="/roles", tags=["Roles"])
+api_router.include_router(permission_controller.router, prefix="/permissions", tags=["Permissions"])
 api_router.include_router(permission_controller.router, tags=["Permissions"])
 
 # 3. Library Content Management
@@ -379,9 +557,29 @@ api_router.include_router(analytics_controller.router, prefix="/analytics", tags
 api_router.include_router(settings_controller.router, prefix="/settings", tags=["Homepage Settings"])
 api_router.include_router(about_controller.router, prefix="/settings", tags=["About Settings"])
 api_router.include_router(fatawa_controller.router, prefix="/fatawa", tags=["Fatawa"])
+api_router.include_router(social_work_controller.router, prefix="/social-work-items", tags=["Social Work & Activities"])
+api_router.include_router(search_controller.router, prefix="/search", tags=["Global Search"])
+api_router.include_router(newspaper_clipping_controller.router, prefix="/newspaper-clippings", tags=["Newspaper Clippings"])
+api_router.include_router(system_health_controller.router, prefix="/system", tags=["System Health"])
+
+api_router.include_router(bulk_actions_controller.router, prefix="/bulk", tags=["Bulk Actions"])
+api_router.include_router(admin_dashboard_controller.router, prefix="/admin", tags=["Admin Dashboard"])
+api_router.include_router(book_order_controller.router, tags=["Book Orders & Paid Downloads"])
+api_router.include_router(translation_controller.router, prefix="/translations", tags=["Translations CMS"])
+api_router.include_router(gallery_controller.router, tags=["Gallery"])
+
+# Comments & Feedback
+api_router.include_router(comment_controller.router, prefix="/comments", tags=["Comments"])
+api_router.include_router(admin_comment_controller.router, prefix="/admin/comments", tags=["Admin Comments"])
 
 # Register Main Router
 app.include_router(api_router)
+app.include_router(gallery_controller.router, include_in_schema=False)
+app.include_router(translation_controller.router, prefix="/api/translations", include_in_schema=False)
+app.include_router(book_order_controller.router, prefix="/api/books", include_in_schema=False)
+app.include_router(social_work_controller.router, prefix="/social-work-items", include_in_schema=False)
+app.include_router(search_controller.router, prefix="/search", include_in_schema=False)
+app.include_router(newspaper_clipping_controller.router, prefix="/newspaper-clippings", include_in_schema=False)
 
 
 # ------------------------------------------------------------------
@@ -408,19 +606,15 @@ def restricted_requests_counts_alias(
 # 🛠️ UTILITY & SETUP ENDPOINTS
 # ==========================================
 
-@app.get("/api/nuke-issues", tags=["Debug"], include_in_schema=False)
-def nuke_issues(db: Session = Depends(get_db), current_user=Depends(auth.get_current_user)):
-    try:
-        from models.library_management_models import IssuedBook
-        deleted_count = db.query(IssuedBook).delete()
-        db.commit()
-        return {"message": f"Successfully deleted {deleted_count} corrupt issue records. Dashboard should work now."}
-    except Exception as e:
-        db.rollback()
-        return {"message": f"Error deleting issues: {str(e)}"}
+# REMOVED: /api/nuke-issues debug endpoint (Security Audit - Critical)
+# This endpoint allowed any authenticated user to delete all IssuedBook records.
+# Use a proper admin CLI command or migration script instead.
 
 @app.get("/api/setup-permissions", tags=["Setup"])
-def setup_default_permissions(db: Session = Depends(get_db)):
+def setup_default_permissions(
+    db: Session = Depends(get_db),
+    current_user=Depends(auth.require_permission("ROLE_MANAGE"))
+):
     permission_groups = {
         "User Management": [
             {"name": "USER_VIEW", "description": "Can view user lists and profiles"},

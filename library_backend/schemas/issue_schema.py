@@ -46,3 +46,11 @@ class Issue(IssueBase):
 
     class Config:
         from_attributes = True
+
+
+class PaginatedIssueResponse(BaseModel):
+    items: list[Issue]
+    total: int
+    page: int
+    limit: int
+    total_pages: int

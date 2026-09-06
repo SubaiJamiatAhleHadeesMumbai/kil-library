@@ -14,6 +14,7 @@ import ProtectedRoute from "./components/common/ProtectedRoute";
 import { ADMIN_ALLOWED_ROLES } from "./config/accessControl";
 import AnalyticsTracker from "./components/common/AnalyticsTracker";
 import { LanguageProvider } from "./context/LanguageContext";
+import { ThemeProvider } from "./context/ThemeContext";
 
 // ================= LAYOUTS =================
 import Layout from "./components/layout/Layout";
@@ -22,7 +23,7 @@ import UserLayout from "./components/layout/UserLayout";
 // ================= PUBLIC PAGES =================
 import PublicHome from "./pages/PublicHome";
 import AboutUs from "./pages/AboutUs";
-import AboutGallery from "./pages/AboutGallery";
+import GalleryPage from "./pages/GalleryPage";
 import Fatawa from "./pages/Fatawa";
 import ReadBook from "./pages/ReadBook";
 import History from "./pages/History";
@@ -36,6 +37,8 @@ import CreatePost from "./pages/Admin/CreatePost";
 // ================= LAZY PAGES =================
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const BookManagement = lazy(() => import("./pages/BookManagement"));
+const AdminBookOrdersPage = lazy(() => import("./pages/Admin/AdminBookOrdersPage"));
+const AdminTranslationsPage = lazy(() => import("./pages/Admin/AdminTranslationsPage"));
 const UserManagement = lazy(() => import("./pages/UserManagement"));
 const RoleManagement = lazy(() => import("./pages/RoleManagement"));
 const RolePermissionManagement = lazy(() => import("./pages/RolePermissionManagement"));
@@ -57,10 +60,21 @@ const AddBookPage = lazy(() => import("./pages/AddBookPage"));
 const Authors = lazy(() => import("./pages/Authors"));
 const Publishers = lazy(() => import("./pages/Publishers"));
 const HomepageSettingsPage = lazy(() => import("./pages/Admin/HomepageSettingsPage"));
+const AdminNavigationSettingsPage = lazy(() => import("./pages/AdminNavigationSettingsPage"));
 const PosterManagementPage = lazy(() => import("./pages/Admin/PosterManagementPage"));
 const AboutSettingsPage = lazy(() => import("./pages/Admin/AboutSettingsPage"));
+const GalleryManagementPage = lazy(() => import("./pages/Admin/GalleryManagementPage"));
 const FatawaManager = lazy(() => import("./pages/Admin/FatawaManager"));
 const EditBookPage = lazy(() => import("./pages/Admin/EditBookPage"));
+const EducationPage = lazy(() => import("./pages/EducationPage"));
+const ActivitiesPage = lazy(() => import("./pages/ActivitiesPage"));
+const SocialWorkPage = lazy(() => import("./pages/SocialWorkPage"));
+const SocialWorkManager = lazy(() => import("./pages/Admin/SocialWorkManager"));
+const NewspaperClippingsPage = lazy(() => import("./pages/NewspaperClippingsPage"));
+const NewspaperClippingsManager = lazy(() => import("./pages/Admin/NewspaperClippingsManager"));
+const SystemHealthPage = lazy(() => import("./pages/Admin/SystemHealthPage"));
+const CommentsModeration = lazy(() => import("./pages/CommentsModeration"));
+const AdminThemeCustomizer = lazy(() => import("./pages/Admin/AdminThemeCustomizer"));
 
 // ✅ TEST / URDU EDITOR
 const UrduEditor = lazy(() => import("./components/UrduEditor/UrduEditor"));
@@ -82,14 +96,9 @@ const ScrollToTop = () => {
   return null;
 };
 
-const PageLoader = () => (
-  <div className="flex h-screen w-full flex-col items-center justify-center bg-white">
-    <div className="w-12 h-12 border-4 border-slate-200 border-t-[#002147] rounded-full animate-spin"></div>
-    <p className="mt-4 text-sm font-bold text-slate-400 tracking-widest uppercase">
-      Loading Library...
-    </p>
-  </div>
-);
+import AppPageLoader from "./components/common/loaders/AppPageLoader";
+
+const PageLoader = () => <AppPageLoader />;
 
 // ================= APP =================
 function App() {
@@ -99,18 +108,24 @@ function App() {
       <AnalyticsTracker />
       <Toaster position="top-center" />
 
-      <LanguageProvider>
-      <Suspense fallback={<PageLoader />}>
+      <ThemeProvider>
+        <LanguageProvider>
+        <Suspense fallback={<PageLoader />}>
         <Routes>
 
           {/* ================= PUBLIC / USER ROUTES ================= */}
           <Route path="/" element={<UserLayout />}>
             <Route index element={<PublicHome />} />
             <Route path="about" element={<AboutUs />} />
-            <Route path="about/gallery" element={<AboutGallery />} />
+            <Route path="about/gallery" element={<Navigate to="/gallery" replace />} />
+            <Route path="gallery" element={<GalleryPage />} />
             <Route path="fatawa" element={<Fatawa />} />
             <Route path="news" element={<MarkazFeed />} />
             <Route path="posts" element={<LatestPosts />} />
+            <Route path="education" element={<EducationPage />} />
+            <Route path="activities" element={<ActivitiesPage />} />
+            <Route path="social-work" element={<SocialWorkPage />} />
+            <Route path="clippings" element={<NewspaperClippingsPage />} />
             <Route path="authors" element={<Authors />} />
             <Route path="publishers" element={<Publishers />} />
             <Route path="books" element={<UserLibrary />} />
@@ -127,10 +142,11 @@ function App() {
             <Route path="reset-password" element={<ResetPassword />} />
             <Route path="access-denied" element={<AccessDenied />} />
 
+            {/* SECURITY FIX: Profile should be accessible to ALL authenticated users, not just admins */}
             <Route
               path="profile"
               element={
-                <ProtectedRoute allowedRoles={ADMIN_ALLOWED_ROLES}>
+                <ProtectedRoute>
                   <Profile />
                 </ProtectedRoute>
               }
@@ -153,10 +169,13 @@ function App() {
             <Route path="donation" element={<DonationManager />} />
             <Route path="posts" element={<CreatePost />} />
             <Route path="posts/add" element={<CreatePost />} />
+            <Route path="social-work" element={<SocialWorkManager />} />
+            <Route path="newspaper-clippings" element={<NewspaperClippingsManager />} />
             <Route path="users" element={<UserManagement />} />
             <Route path="roles" element={<RoleManagement />} />
             <Route path="roles-permissions" element={<RolePermissionManagement />} />
             <Route path="books" element={<BookManagement />} />
+            <Route path="book-orders" element={<AdminBookOrdersPage />} />
             <Route path="books/add" element={<AddBookPage />} />
             <Route path="books/:id/edit" element={<EditBookPage />} />
             <Route path="books/:id" element={<BookDetail />} />
@@ -168,12 +187,22 @@ function App() {
             <Route path="approvals" element={<ApprovalManagement />} />
             <Route path="access-requests" element={<AccessRequests />} />
             <Route path="book-permissions" element={<RestrictedBookPermissions />} />
+            <Route path="restricted-permissions" element={<RestrictedBookPermissions />} />
+            <Route path="digital-access" element={<DigitalAccessHistory />} />
             <Route path="digital-access-history" element={<DigitalAccessHistory />} />
             <Route path="logs" element={<AuditLogPage />} />
             <Route path="homepage-settings" element={<HomepageSettingsPage />} />
+            <Route path="navigation-settings" element={<AdminNavigationSettingsPage />} />
             <Route path="posters" element={<PosterManagementPage />} />
+            <Route path="gallery" element={<GalleryManagementPage />} />
             <Route path="about-settings" element={<AboutSettingsPage />} />
             <Route path="fatawa" element={<FatawaManager />} />
+            <Route path="system-health" element={<SystemHealthPage />} />
+            <Route path="translations" element={<AdminTranslationsPage />} />
+            <Route path="profile" element={<Profile />} />
+            <Route path="comments" element={<CommentsModeration />} />
+            <Route path="theme-settings" element={<AdminThemeCustomizer />} />
+            <Route path="theme-customizer" element={<AdminThemeCustomizer />} />
 
             {/* (Optional) Admin-only editor */}
             <Route path="test-editor" element={<UrduEditor />} />
@@ -185,6 +214,7 @@ function App() {
         </Routes>
       </Suspense>
     </LanguageProvider>
+    </ThemeProvider>
     </>
   );
 }

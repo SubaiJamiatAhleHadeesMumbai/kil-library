@@ -11,10 +11,10 @@ from utils.pdf_optimizer import optimize_pdf_file
 router = APIRouter()
 
 # --- 1. IMAGE UPLOAD ---
-@router.post("/image", dependencies=[Depends(require_permission("FILE_UPLOAD"))])
+@router.post("/image", dependencies=[Depends(require_permission("FILE_UPLOAD", "HOMEPAGE_CONTENT_MANAGE", "HOMEPAGE_BRANDING_MANAGE", "BOOK_MANAGE"))])
 async def upload_image(file: UploadFile = File(...)):
     await validate_image(file)
-    url = smart_upload(file, folder="booknest/covers", resource_type="image")
+    url = smart_upload(file, folder="booknest/branding", resource_type="image")
     if not url:
         raise HTTPException(status_code=500, detail="Image upload failed on server.")
     return {"url": url}
@@ -23,6 +23,7 @@ async def upload_image(file: UploadFile = File(...)):
 # --- 2. PDF UPLOAD ---
 @router.post("/pdf", dependencies=[Depends(require_permission("FILE_UPLOAD"))])
 async def upload_pdf(file: UploadFile = File(...)):
+    await validate_pdf(file)
     url = smart_upload(file, folder="booknest/pdfs")
     if not url:
         raise HTTPException(status_code=500, detail="PDF upload failed on server.")

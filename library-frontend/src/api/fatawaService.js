@@ -72,4 +72,13 @@ export const fatawaService = {
     const response = await apiClient.get(`/api/fatawa/categories/${categoryId}/books`);
     return response.data;
   },
+
+  async uploadAttachment(file) {
+    const formData = new FormData();
+    formData.append('file', file);
+    const response = await apiClient.post('/api/fatawa/upload-attachment', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return response.data;
+  },
 };

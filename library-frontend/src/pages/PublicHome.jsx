@@ -14,10 +14,16 @@ import {
   UserGroupIcon,
   ChevronRightIcon,
   ArrowRightIcon,
+  ChevronDownIcon,
+  ChevronUpIcon,
   MagnifyingGlassIcon,
   FunnelIcon,
   PlusIcon,
+  ShieldCheckIcon,
+  LockClosedIcon,
+  CheckBadgeIcon,
 } from "@heroicons/react/24/outline";
+import { useLanguage } from "../context/LanguageContext";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Autoplay, Navigation } from "swiper/modules";
 
@@ -32,16 +38,25 @@ import BookDetailsModal from "../components/book/BookDetailsModal";
 import RestrictedAccessFlow from "../components/book/RestrictedAccessFlow";
 import SuccessScreen from "../components/RestrictedAccess/SuccessScreen";
 import AskQuestionModal from "../components/fatawa/AskQuestionModal";
+import AppPageLoader from "../components/common/loaders/AppPageLoader";
+import KokanHubBento from "../components/public/KokanHubBento";
+import NewspaperClippingsHomeSection from "../components/public/NewspaperClippingsHomeSection";
+import ImpactStatsCounter from "../components/public/ImpactStatsCounter";
+import WhatsAppCommunityBlock from "../components/public/WhatsAppCommunityBlock";
 
 // Services + Hooks
 import { bookService } from "../api/bookService";
 import { categoryService } from "../api/categoryService";
 import { fatawaService } from "../api/fatawaService";
 import aboutService from "../api/aboutService";
+import socialWorkService from "../api/socialWorkService";
+import SocialWorkCard from "../components/social_work/SocialWorkCard";
+import SocialWorkItemDetailModal from "../components/social_work/SocialWorkItemDetailModal";
 import { useBookSearch, deduplicateBooks } from "../hooks/useBookSearch";
 import LandingPostsPreview from "../components/public/LandingPostsPreview";
 import HomepagePostersCarousel from "../components/public/HomepagePostersCarousel";
 import DonationPanel from "../components/donation/DonationPanel";
+import { getErrorMessage } from "../utils/errorMessage";
 
 // --- API & IMAGE HELPERS ---
 const API_BASE_URL =
@@ -56,9 +71,38 @@ const resolveImageUrl = (value) => {
   return `${API_BASE_URL}${cleanPath}`;
 };
 
+const SVG_NO_COVER =
+  "data:image/svg+xml;utf8," +
+  encodeURIComponent(`
+    <svg xmlns="http://www.w3.org/2000/svg" width="360" height="520" viewBox="0 0 360 520">
+      <defs>
+        <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="#0b1120"/>
+          <stop offset="50%" stop-color="#002147"/>
+          <stop offset="100%" stop-color="#064e3b"/>
+        </linearGradient>
+        <linearGradient id="gold" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stop-color="#fbbf24"/>
+          <stop offset="100%" stop-color="#f59e0b"/>
+        </linearGradient>
+      </defs>
+      <rect width="360" height="520" fill="url(#bg)"/>
+      <rect x="16" y="16" width="328" height="488" rx="8" fill="none" stroke="#334155" stroke-width="1.5" stroke-dasharray="4 4"/>
+      <rect x="22" y="22" width="316" height="476" rx="6" fill="none" stroke="#10b981" stroke-opacity="0.3" stroke-width="1"/>
+      <circle cx="180" cy="180" r="54" fill="#0f172a" stroke="#10b981" stroke-width="2" stroke-opacity="0.4"/>
+      <path d="M160 162h40c2.2 0 4 1.8 4 4v32c0 2.2-1.8 4-4 4h-40c-2.2 0-4-1.8-4-4v-32c0-2.2 1.8-4 4-4zm4 8v24h32v-24h-32z" fill="#34d399"/>
+      <path d="M168 178h16v4h-16zm0 8h24v4h-24z" fill="#6ee7b7"/>
+      <text x="180" y="275" font-family="'Segoe UI', Roboto, sans-serif" font-size="11" font-weight="700" fill="#94a3b8" letter-spacing="3" text-anchor="middle">MARKAZ ISLAMIC LIBRARY</text>
+      <text x="180" y="320" font-family="'Traditional Arabic', 'Amiri', serif" font-size="28" font-weight="bold" fill="url(#gold)" text-anchor="middle">قَرِيبـاً</text>
+      <text x="180" y="355" font-family="'Segoe UI', Roboto, sans-serif" font-size="18" font-weight="800" fill="#ffffff" letter-spacing="2" text-anchor="middle">COMING SOON</text>
+      <rect x="120" y="375" width="120" height="22" rx="11" fill="#10b981" fill-opacity="0.15" stroke="#10b981" stroke-opacity="0.4"/>
+      <text x="180" y="390" font-family="'Segoe UI', Roboto, sans-serif" font-size="10" font-weight="700" fill="#34d399" letter-spacing="1" text-anchor="middle">COVER IN PROCESS</text>
+    </svg>
+  `);
+
 const getBookImage = (book) => {
   const rawUrl = book?.cover_image_url || book?.cover_image;
-  if (!rawUrl) return "https://via.placeholder.com/240x320?text=No+Cover";
+  if (!rawUrl) return SVG_NO_COVER;
   if (typeof rawUrl === "string" && (rawUrl.startsWith("http://") || rawUrl.startsWith("https://"))) return rawUrl;
   const path = String(rawUrl);
   const cleanPath = path.startsWith("/") ? path : `/${path}`;
@@ -176,7 +220,7 @@ const PublicHome = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { isAdmin, user, loading: authLoading } = useAuth();
-
+  const { t, currentLang, isRTL } = useLanguage();
 
   // Data States
   const [books, setBooks] = useState([]);
@@ -187,6 +231,11 @@ const PublicHome = () => {
   const [dynamicCategories, setDynamicCategories] = useState([]);
   const [galleryImages, setGalleryImages] = useState([]);
   const [aboutContent, setAboutContent] = useState({ hero: {}, intro: {}, display: {} });
+  const [isAboutExpanded, setIsAboutExpanded] = useState(false);
+  const [activitiesItems, setActivitiesItems] = useState([]);
+  const [selectedActivity, setSelectedActivity] = useState(null);
+  const [recentFatawa, setRecentFatawa] = useState([]);
+  const [fatawaSearchInput, setFatawaSearchInput] = useState("");
 
   // Filters & State
   const [sortBy, setSortBy] = useState("newest");
@@ -228,11 +277,13 @@ const PublicHome = () => {
   const loadAllData = useCallback(async () => {
     setLoading(true);
     try {
-      const [booksRes, catRes, settingsRes, aboutRes] = await Promise.allSettled([
+      const [booksRes, catRes, settingsRes, aboutRes, activitiesRes, fatawaRes] = await Promise.allSettled([
         bookService.getAllBooks(0, 200),
         categoryService.getAllCategories(),
         settingsService.getHomepageSettings(),
         aboutService.getAboutSettings(),
+        socialWorkService.getPublicItems('', '', 6),
+        fatawaService.getQuestions({ status: 'answered', limit: 3 }),
       ]);
 
       // 1. Process Books
@@ -267,6 +318,22 @@ const PublicHome = () => {
           display: aboutData?.display || {},
           gallery,
         });
+      }
+
+      // 5. Process Activities / Social Work
+      if (activitiesRes.status === 'fulfilled' && activitiesRes.value) {
+        const items = Array.isArray(activitiesRes.value) ? activitiesRes.value : [];
+        setActivitiesItems(items);
+      } else {
+        setActivitiesItems([]);
+      }
+
+      // 6. Process Recent Fatawa Highlights
+      if (fatawaRes.status === 'fulfilled' && fatawaRes.value) {
+        const qList = Array.isArray(fatawaRes.value) ? fatawaRes.value : fatawaRes.value?.questions || [];
+        setRecentFatawa(qList);
+      } else {
+        setRecentFatawa([]);
       }
     } catch (error) {
       console.error("âŒ PublicHome Master Load Error:", error);
@@ -396,7 +463,7 @@ const PublicHome = () => {
       toast.success('Question submitted successfully!');
       setAskQuestionOpen(false);
     } catch (error) {
-      toast.error(error?.response?.data?.detail || 'Could not submit question');
+      toast.error(getErrorMessage(error, 'Could not submit question'));
     } finally {
       setCreateQuestionLoading(false);
     }
@@ -499,7 +566,9 @@ const PublicHome = () => {
   }, [sectionVisibility]);
 
   const language = homepageSettings?.language || 'en';
-  const siteTitle = homepageSettings?.site_title || 'Kokan Library';
+  const siteTitle = (typeof homepageSettings?.site_title === 'object' && homepageSettings?.site_title !== null)
+    ? (homepageSettings.site_title[language] || homepageSettings.site_title.en || 'Kokan Library')
+    : (homepageSettings?.site_title || 'Kokan Library');
   const layout = homepageSettings?.layout || {};
   const showSearchStripBlock = layout.show_search_strip !== false;
   const showFeaturedPanel = layout.show_featured_books !== false;
@@ -549,17 +618,9 @@ const PublicHome = () => {
     };
   }, [accentColor]);
 
-  // Loading Screen State
+  // Loading Screen State (Admin Configurable: Islamic Splash / Skeleton / Hybrid)
   if (authLoading || !homepageSettingsLoaded) {
-    return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-        <div className="rounded-[2rem] border border-slate-200/80 bg-white px-10 py-12 text-center shadow-lg">
-          <div className="mx-auto h-12 w-12 animate-spin rounded-full border-4 border-slate-200 border-t-[#002147]" />
-          <p className="mt-5 text-base font-bold text-slate-700">Loading library experience...</p>
-          <p className="mt-1 text-xs text-slate-400">Fetching collection & settings</p>
-        </div>
-      </div>
-    );
+    return <AppPageLoader config={homepageSettings?.loader_config} />;
   }
 
   return (
@@ -570,35 +631,44 @@ const PublicHome = () => {
       {/* HERO SECTION */}
       {getSectionConfig('hero', { enabled: true }).enabled !== false && (
         <div className="app-shell-container py-3 sm:py-5">
-          <LibraryHero />
-          {/* Place search under hero for immediate access */}
-          {showSearchStripBlock && getSectionConfig('search', { enabled: true }).enabled !== false && (
-            <div className="mt-6">
-              <div className={`${sectionFrameClass} overflow-hidden`}>
-                <LibrarySearchStrip
-                  autoFocus={true}
-                  searchTerm={searchTerm}
-                  onSearchChange={setSearchTerm}
-                  title={getSectionConfig('search', { title: 'Library Search' }).title || 'Library Search'}
-                  subtitle={getSectionConfig('search', { subtitle: 'Search the library collection' }).subtitle || 'Search the library collection'}
-                  description={getSectionConfig('search', { description: 'Find books, authors, publishers and smart recommendations right from the library section.' }).description || 'Find books, authors, publishers and smart recommendations right from the library section.'}
-                  placeholder={getSectionConfig('search', { placeholder: 'Search by title, author, or ISBN...' }).placeholder || 'Search by title, author, or ISBN...'}
-                  showHint={Boolean(getSectionConfig('search', { show_hint: true }).show_hint !== false)}
-                  enableVoice={Boolean(getSectionConfig('search', { enable_voice: true }).enable_voice !== false)}
-                  enableDeepSearch={Boolean(getSectionConfig('search', { enable_deep: true }).enable_deep !== false)}
-                  enableSuggestions={Boolean(getSectionConfig('search', { show_suggestions: true }).show_suggestions !== false)}
-                />
-              </div>
-            </div>
-          )}
+          <LibraryHero config={getSectionConfig('hero', {})} />
         </div>
       )}
 
       {/* DYNAMIC HOMEPAGE SECTIONS */}
       {orderedHomepageSections.map(({ key }) => {
-        if (key === 'hero') return null;
+        if (key === 'hero' || key === 'search' || key === 'featured' || key === 'catalog') return null;
 
-        // POSTERS
+        // 1. KOKAN HUB BENTO GRID
+        if (key === 'bento_hub' && getSectionConfig('bento_hub', { enabled: true }).enabled !== false) {
+          return (
+            <div key="bento_hub" className="app-shell-container pb-4 sm:pb-8">
+              <KokanHubBento config={getSectionConfig('bento_hub', {})} />
+            </div>
+          );
+        }
+
+        // 2. LIVE IMPACT STATS COUNTER
+        if (key === 'stats_impact' && getSectionConfig('stats_impact', { enabled: true }).enabled !== false) {
+          return (
+            <div key="stats_impact" className="app-shell-container pb-4 sm:pb-8">
+              <ImpactStatsCounter config={getSectionConfig('stats_impact', {})} />
+            </div>
+          );
+        }
+
+        // 3. NEWSPAPER PRESS CLIPPINGS
+        if (key === 'newspaper_clippings' && getSectionConfig('newspaper_clippings', { enabled: true }).enabled !== false) {
+          return (
+            <div key="newspaper_clippings" className="app-shell-container pb-6 sm:pb-10">
+              <div className={sectionFrameClass}>
+                <NewspaperClippingsHomeSection config={getSectionConfig('newspaper_clippings', {})} />
+              </div>
+            </div>
+          );
+        }
+
+        // 4. POSTERS STUDIO CAROUSEL
         if (key === 'posters' && showPosterBlock) {
           return (
             <div key="posters" className={`app-shell-container py-2 sm:py-4 lg:py-6 ${themeClasses.spacing}`}>
@@ -607,111 +677,11 @@ const PublicHome = () => {
           );
         }
 
-        // SEARCH STRIP
-        if (key === 'search' && getSectionConfig('search', { enabled: true }).enabled !== false && showSearchStripBlock) {
+        // 5. WHATSAPP & SOCIAL COMMUNITY
+        if (key === 'whatsapp_community' && getSectionConfig('whatsapp_community', { enabled: true }).enabled !== false) {
           return (
-            <div key="search" className="app-shell-container scroll-mt-24 pb-5 sm:pb-8" id="search">
-              <div className={`${sectionFrameClass} overflow-hidden`}>
-                <LibrarySearchStrip
-                  searchTerm={searchTerm}
-                  onSearchChange={setSearchTerm}
-                  title={getSectionConfig('search', { title: 'Library Search' }).title || 'Library Search'}
-                  subtitle={getSectionConfig('search', { subtitle: 'Search the library collection' }).subtitle || 'Search the library collection'}
-                  description={getSectionConfig('search', { description: 'Find books, authors, publishers and smart recommendations right from the library section.' }).description || 'Find books, authors, publishers and smart recommendations right from the library section.'}
-                  placeholder={getSectionConfig('search', { placeholder: 'Search by title, author, or ISBN...' }).placeholder || 'Search by title, author, or ISBN...'}
-                  showHint={Boolean(getSectionConfig('search', { show_hint: true }).show_hint !== false)}
-                  enableVoice={Boolean(getSectionConfig('search', { enable_voice: true }).enable_voice !== false)}
-                  enableDeepSearch={Boolean(getSectionConfig('search', { enable_deep: true }).enable_deep !== false)}
-                  enableSuggestions={Boolean(getSectionConfig('search', { show_suggestions: true }).show_suggestions !== false)}
-                />
-              </div>
-            </div>
-          );
-        }
-
-        // CONTINUE READING
-        if (key === 'continue_reading' && getSectionConfig('continue_reading', { enabled: true }).enabled !== false && recentReadBooks.length > 0) {
-          return (
-            <div key="continue_reading" className="app-shell-container pb-6 sm:pb-10">
-              <div className={sectionFrameClass}>
-                <div className="mb-5 flex items-end justify-between gap-3">
-                  <div>
-                    <p className="eyebrow text-emerald-600 font-bold uppercase tracking-[0.25em] text-xs">Continue reading</p>
-                    <h3 className="section-title text-2xl font-black text-slate-900 mt-1">Pick up where you left off</h3>
-                  </div>
-                </div>
-                <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-                  {recentReadBooks.map((entry) => (
-                    <CompactBookCard
-                      key={entry.book.id}
-                      book={entry.book}
-                      label={`Page ${entry.last_page_read || 1}`}
-                      meta={
-                        entry.total_pages > 0
-                          ? `Page ${entry.last_page_read || 1} of ${entry.total_pages}`
-                          : entry.updated_at
-                          ? new Date(entry.updated_at).toLocaleDateString("en-IN", { month: "short", day: "numeric" })
-                          : "Recently"
-                      }
-                      progress={entry.total_pages > 0 ? (Number(entry.last_page_read || 1) / Number(entry.total_pages)) * 100 : null}
-                      onClick={() => handleResumeReading(entry.book.id)}
-                    />
-                  ))}
-                </div>
-              </div>
-            </div>
-          );
-        }
-
-        // FEATURED HIGHLIGHTS
-        if (key === 'featured' && getSectionConfig('featured', { enabled: true }).enabled !== false && showFeaturedPanel) {
-          return (
-            <div key="featured" className="app-shell-container pb-6 sm:pb-12">
-              <div className={sectionFrameClass}>
-                <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between mb-8">
-                  <div>
-                    <p className="eyebrow text-xs font-bold uppercase tracking-[0.25em]" style={{ color: accentColor }}>
-                      {getSectionConfig('featured', { title: 'Library Highlights' }).title || 'Library Highlights'}
-                    </p>
-                    <h2 className="section-title text-2xl sm:text-3xl font-black text-slate-900 mt-1">
-                      {getSectionConfig('featured', { subtitle: 'Recommended by the library team' }).subtitle || 'Recommended by the library team'}
-                    </h2>
-                  </div>
-                  <button
-                    onClick={() => {
-                      const el = document.getElementById("book-grid");
-                      if (el) el.scrollIntoView({ behavior: "smooth" });
-                    }}
-                    className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-5 py-2.5 text-sm font-bold text-slate-700 shadow-sm transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-[#002147]"
-                  >
-                    Browse full collection <ArrowRightIcon className="h-4 w-4" />
-                  </button>
-                </div>
-
-                {loading ? (
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-6">
-                    {Array.from({ length: 4 }).map((_, idx) => (
-                      <BookCardSkeleton key={idx} />
-                    ))}
-                  </div>
-                ) : featuredBooks.length > 0 ? (
-                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-6">
-                    {featuredBooks.map((book) => (
-                      <PublicBookCard
-                        key={book.id}
-                        book={book}
-                        isFavorite={favorites.includes(book.id)}
-                        onToggleFavorite={(e) => toggleFavorite(e, book.id)}
-                        onClick={() => setSelectedBook(book)}
-                      />
-                    ))}
-                  </div>
-                ) : (
-                  <div className="rounded-3xl border border-dashed border-slate-300 bg-slate-50/50 p-10 text-center text-slate-500">
-                    No featured titles are available yet. Please check back soon.
-                  </div>
-                )}
-              </div>
+            <div key="whatsapp_community" className="app-shell-container pb-6 sm:pb-10">
+              <WhatsAppCommunityBlock config={getSectionConfig('whatsapp_community', {})} />
             </div>
           );
         }
@@ -723,10 +693,8 @@ const PublicHome = () => {
             galleryImages.length > 0
               ? galleryImages
               : [
-                  { image_url: 'https://via.placeholder.com/600x400?text=Gallery+Image+1', title: 'Gallery Image 1' },
-                  { image_url: 'https://via.placeholder.com/600x400?text=Gallery+Image+2', title: 'Gallery Image 2' },
-                  { image_url: 'https://via.placeholder.com/600x400?text=Gallery+Image+3', title: 'Gallery Image 3' },
-                  { image_url: 'https://via.placeholder.com/600x400?text=Gallery+Image+4', title: 'Gallery Image 4' },
+                  { image_url: "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='600' height='400' viewBox='0 0 600 400'><rect width='600' height='400' fill='%230f172a'/><text x='50%' y='50%' font-family='sans-serif' font-size='20' font-weight='bold' fill='%2338bdf8' text-anchor='middle'>Markaz Islamic Library</text></svg>", title: 'Markaz Gallery 1' },
+                  { image_url: "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='600' height='400' viewBox='0 0 600 400'><rect width='600' height='400' fill='%231e293b'/><text x='50%' y='50%' font-family='sans-serif' font-size='20' font-weight='bold' fill='%2310b981' text-anchor='middle'>Research & Manuscript Archives</text></svg>", title: 'Markaz Gallery 2' },
                 ];
 
           return (
@@ -793,57 +761,234 @@ const PublicHome = () => {
           );
         }
 
-        // FATAWA Q&A SECTION
+        // FATAWA Q&A SECTION (Trilingual Authentic Dar-ul-Ifta Portal)
         if (key === 'fatawa' && getSectionConfig('fatawa', { enabled: false }).enabled !== false) {
           const fatawaConfig = getSectionConfig('fatawa', {});
-          const stats = [
-            { label: 'Answered', value: '2' },
-            { label: 'Private', value: '0' },
-            { label: 'Categories', value: '0' },
+          
+          const getLangText = (urText, arText, enText) => {
+            if (currentLang === 'ar') return arText;
+            if (currentLang === 'en') return enText;
+            return urText;
+          };
+
+          const handleFatawaSearch = (e) => {
+            e.preventDefault();
+            if (fatawaSearchInput.trim()) {
+              navigateToTop(`/fatawa?search=${encodeURIComponent(fatawaSearchInput.trim())}`);
+            } else {
+              navigateToTop('/fatawa');
+            }
+          };
+
+          const quickTopics = [
+            { label: getLangText('نماز و طہارت', 'الصلاة والطهارة', 'Prayer & Purity'), icon: '🕌', query: 'نماز' },
+            { label: getLangText('روزہ و زکوٰۃ', 'الصيام والزكاة', 'Fasting & Zakat'), icon: '🌙', query: 'زکوٰۃ' },
+            { label: getLangText('نکاح و خاندان', 'النكاح والأسرة', 'Marriage & Family'), icon: '💍', query: 'نکاح' },
+            { label: getLangText('معاملات و معیشت', 'المعاملات والتجارة', 'Business & Finance'), icon: '💼', query: 'تجارت' },
           ];
+
           return (
-            <div key="fatawa" className="app-shell-container pb-6 sm:pb-12">
+            <div key="fatawa" className="app-shell-container pb-6 sm:pb-12" dir={isRTL ? "rtl" : "ltr"}>
               <div className={sectionFrameClass}>
-                <div className="mb-6 flex items-end justify-between gap-3">
+                {/* Header Strip */}
+                <div className="mb-6 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
                   <div>
-                    <p className="eyebrow text-xs font-bold uppercase tracking-[0.25em]" style={{ color: accentColor }}>
-                      {fatawaConfig.title || 'Fatawa Q&A'}
-                    </p>
-                    <h3 className="section-title text-2xl font-black text-slate-900 mt-1">
-                      {fatawaConfig.subtitle || 'Structured fatwa questions with fast search and clear answers.'}
+                    <div className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3.5 py-1 text-xs font-bold text-emerald-800 border border-emerald-200 mb-2">
+                      <ShieldCheckIcon className="w-4 h-4 text-emerald-600" />
+                      <span>{getLangText('دار الافتاء والارشاد • شرعی فتاویٰ', 'دار الإفتاء والإرشاد • أحكام شرعية', 'DAR-UL-IFTA & ISLAMIC GUIDANCE')}</span>
+                    </div>
+                    <h3
+                      className="section-title text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight"
+                      style={{ fontFamily: isRTL ? (currentLang === 'ar' ? "'Noto Naskh Arabic', serif" : "'Noto Nastaliq Urdu', 'JameelNoori', serif") : "inherit" }}
+                    >
+                      {fatawaConfig.title || getLangText('قرآن و سنت کی روشنی میں مستند شرعی رہنمائی', 'فتاوى شرعية موثقة وفق الكتاب والسنة', 'Authentic Islamic Guidance Based on Quran & Sunnah')}
                     </h3>
+                    <p className="text-xs sm:text-sm text-slate-600 mt-1 max-w-2xl">
+                      {fatawaConfig.subtitle || getLangText(
+                        'دینی، خاندانی اور مالیاتی مسائل پر دار الافتاء کے مستند مفتیانِ کرام سے شرعی جواب حاصل کریں۔',
+                        'احصل على إجابات موثقة لمسائلك الدينية والمعاملات اليومية من كبار العلماء والمفتين.',
+                        'Submit religious, family, or financial inquiries and receive authenticated guidance from Dar-ul-Ifta scholars.'
+                      )}
+                    </p>
+                  </div>
+
+                  {/* Header Quick Buttons */}
+                  <div className="flex items-center gap-2.5 flex-wrap">
+                    <button
+                      onClick={() => setAskQuestionOpen(true)}
+                      className="inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-xs sm:text-sm font-bold text-white transition-all shadow-md hover:shadow-lg active:scale-95 cursor-pointer"
+                      style={{ backgroundColor: accentColor }}
+                    >
+                      <PlusIcon className="h-4 w-4" />
+                      <span>{getLangText('سوال پوچھیں', 'اطرح سؤالك', 'Ask a Question')}</span>
+                    </button>
+
+                    <button
+                      onClick={() => navigateToTop('/fatawa')}
+                      className="inline-flex items-center gap-1.5 rounded-full border border-slate-300 bg-white/90 hover:bg-white px-4 py-2.5 text-xs sm:text-sm font-bold text-slate-700 hover:text-slate-900 transition shadow-2xs cursor-pointer"
+                    >
+                      <span>{getLangText('تمام فتاویٰ', 'كافة الفتاوى', 'Browse All')}</span>
+                      <ArrowRightIcon className={`h-3.5 w-3.5 ${isRTL ? 'rotate-180' : ''}`} />
+                    </button>
                   </div>
                 </div>
-                <div className="rounded-[1.75rem] border border-blue-100 bg-gradient-to-br from-blue-50/70 via-cyan-50/50 to-white p-6 sm:p-8 lg:p-10 shadow-sm">
-                  <div className="grid gap-6 lg:grid-cols-[1.15fr_0.85fr] lg:items-center">
-                    <div>
-                      <p className="text-base sm:text-lg leading-8 text-slate-700">
-                        Browse public answered questions, keep private questions private, and ask with or without your name. Related books are linked by category for quick follow-up reading.
-                      </p>
-                      <div className="mt-6 flex flex-col sm:flex-row flex-wrap gap-3">
+
+                {/* Main Interactive Dar-ul-Ifta Card */}
+                <div className="rounded-[2.25rem] border-2 border-emerald-100 bg-gradient-to-br from-[#FAFDFC] via-white to-emerald-50/40 p-6 sm:p-8 lg:p-10 shadow-sm relative overflow-hidden">
+                  {/* Decorative Islamic Star Outline Accent */}
+                  <div aria-hidden="true" className="absolute top-0 right-0 w-80 h-80 bg-emerald-500/5 rounded-full blur-3xl pointer-events-none" />
+
+                  {/* Search Form Box */}
+                  <form onSubmit={handleFatawaSearch} className="relative z-10 mb-6">
+                    <div className="relative flex items-center shadow-sm rounded-2xl overflow-hidden border border-emerald-200/90 bg-white focus-within:border-emerald-600 focus-within:ring-2 focus-within:ring-emerald-500/20 transition-all">
+                      <MagnifyingGlassIcon className={`w-5 h-5 text-emerald-700 absolute ${isRTL ? 'right-4' : 'left-4'} pointer-events-none`} />
+                      <input
+                        type="text"
+                        value={fatawaSearchInput}
+                        onChange={(e) => setFatawaSearchInput(e.target.value)}
+                        placeholder={getLangText(
+                          'شرعی مسئلہ یا فتویٰ تلاش کریں... (مثال: نماز، روزہ، زکوٰۃ، تجارت)',
+                          'ابحث في الفتاوى... (الصلاة، الصيام، الزكاة، المعاملات)',
+                          'Search Fatawa by topic (Prayer, Fasting, Zakat, Finance)...'
+                        )}
+                        className={`w-full py-3.5 text-xs sm:text-sm text-slate-800 placeholder-slate-400 bg-transparent outline-none ${isRTL ? 'pr-12 pl-24 text-right' : 'pl-12 pr-24 text-left'}`}
+                      />
+                      <button
+                        type="submit"
+                        className={`absolute ${isRTL ? 'left-2' : 'right-2'} px-4 py-2 rounded-xl text-xs font-bold text-white transition shadow-2xs hover:opacity-95 cursor-pointer`}
+                        style={{ backgroundColor: accentColor }}
+                      >
+                        {getLangText('تلاش کریں', 'بحث', 'Search')}
+                      </button>
+                    </div>
+                  </form>
+
+                  {/* Quick Topics Pills */}
+                  <div className="relative z-10 flex flex-wrap items-center gap-2 mb-8">
+                    <span className="text-xs font-bold text-slate-500 mr-1 ml-1">
+                      {getLangText('اہم موضوعات:', 'أهم المواضيع:', 'Popular Topics:')}
+                    </span>
+                    {quickTopics.map((topic, idx) => (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => navigateToTop(`/fatawa?search=${encodeURIComponent(topic.query)}`)}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-white border border-emerald-200/80 text-emerald-950 hover:bg-emerald-50/80 hover:border-emerald-300 transition-all shadow-2xs cursor-pointer"
+                      >
+                        <span>{topic.icon}</span>
+                        <span>{topic.label}</span>
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Trust Highlights & Recent Answered Grid */}
+                  <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr] items-start relative z-10">
+                    {/* Left: Recent Public Answered Fatawa Preview */}
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between pb-1 border-b border-emerald-100">
+                        <span className="text-xs font-extrabold uppercase tracking-wider text-emerald-900 flex items-center gap-1.5">
+                          <CheckBadgeIcon className="w-4 h-4 text-emerald-600" />
+                          {getLangText('حالیہ تصدیق شدہ فتاویٰ', 'أحدث الفتاوى المعتمدة', 'Recent Answered Fatawa')}
+                        </span>
                         <button
-                          onClick={() => setAskQuestionOpen(true)}
-                          className="inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 text-sm font-bold text-white transition-all shadow-lg hover:shadow-xl hover:opacity-95 focus:outline-none focus:ring-2 focus:ring-offset-2"
-                          style={{ backgroundColor: accentColor }}
-                        >
-                          <PlusIcon className="h-4 w-4" /> Ask Your Question
-                        </button>
-                        <button
+                          type="button"
                           onClick={() => navigateToTop('/fatawa')}
-                          className="inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 text-sm font-bold text-white transition-all shadow-lg hover:shadow-xl hover:opacity-95 focus:outline-none focus:ring-2 focus:ring-offset-2"
-                          style={{ backgroundColor: accentColor }}
+                          className="text-xs font-bold text-emerald-700 hover:text-emerald-900 hover:underline"
                         >
-                          Browse Questions <ArrowRightIcon className="h-4 w-4" />
+                          {getLangText('سب دیکھیں ←', 'عرض الكل ←', 'View all →')}
                         </button>
                       </div>
-                    </div>
-                    <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1 xl:grid-cols-3">
-                      {stats.map((item) => (
-                        <div key={item.label} className="rounded-2xl border border-white/90 bg-white/90 p-4 shadow-sm text-center">
-                          <p className="text-[11px] font-bold uppercase tracking-[0.25em] text-slate-400">{item.label}</p>
-                          <p className="mt-2 text-2xl font-black text-slate-900">{item.value}</p>
+
+                      {recentFatawa && recentFatawa.length > 0 ? (
+                        <div className="space-y-2.5">
+                          {recentFatawa.map((item) => (
+                            <div
+                              key={item.id}
+                              onClick={() => navigateToTop('/fatawa')}
+                              className="group p-3.5 rounded-2xl bg-white border border-emerald-100 hover:border-emerald-300 shadow-2xs hover:shadow-sm transition-all cursor-pointer"
+                            >
+                              <div className="flex items-start justify-between gap-3">
+                                <p className="text-xs sm:text-sm font-bold text-slate-900 group-hover:text-emerald-900 line-clamp-2 transition">
+                                  {item.question_text}
+                                </p>
+                                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700 flex-shrink-0 border border-emerald-200/60">
+                                  ✓ {getLangText('جواب دستیاب', 'تمت الإجابة', 'Answered')}
+                                </span>
+                              </div>
+                              {item.mufti_name && (
+                                <p className="text-[11px] text-slate-500 mt-1.5">
+                                  {getLangText('تصدیق شدہ از:', 'معتمد من:', 'Verified by:')} <strong className="font-semibold text-slate-700">{item.mufti_name}</strong>
+                                </p>
+                              )}
+                            </div>
+                          ))}
                         </div>
-                      ))}
+                      ) : (
+                        <div className="p-4 rounded-2xl bg-white border border-emerald-100 text-center text-xs text-slate-500">
+                          {getLangText(
+                            'دار الافتاء میں روزانہ شرعی سوالات کے تفصیلی جوابات دیے جاتے ہیں۔',
+                            'يتم الرد على الاستفسارات الشرعية يومياً بإشراف دار الإفتاء.',
+                            'Dar-ul-Ifta actively addresses daily questions with Quranic & Sunnah references.'
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Right: 3 Pillars of Trust (Authentic Badges) */}
+                    <div className="grid gap-3">
+                      <div className="p-4 rounded-2xl bg-white/90 border border-emerald-100 shadow-2xs flex items-start gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center flex-shrink-0 border border-emerald-200">
+                          <ShieldCheckIcon className="w-5 h-5" />
+                        </div>
+                        <div>
+                          <h4 className="text-xs sm:text-sm font-bold text-slate-900">
+                            {getLangText('مستند مفتیانِ کرام کی تصدیق', 'اعتماد من كبار العلماء', 'Verified by Muftis & Scholars')}
+                          </h4>
+                          <p className="text-xs text-slate-600 mt-0.5 leading-relaxed">
+                            {getLangText(
+                              'ہر فتویٰ قرآن و صحیح احادیث کے دلائل کے ساتھ مستند دار الافتاء سے جاری کیا جاتا ہے۔',
+                              'تصدر جميع الفتاوى بأدلة من القرآن والسنة النبوية بإشراف هيئة علمية معتمدة.',
+                              'Every ruling is verified with explicit evidence from Quran and authentic Sunnah.'
+                            )}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="p-4 rounded-2xl bg-white/90 border border-emerald-100 shadow-2xs flex items-start gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center flex-shrink-0 border border-emerald-200">
+                          <LockClosedIcon className="w-5 h-5" />
+                        </div>
+                        <div>
+                          <h4 className="text-xs sm:text-sm font-bold text-slate-900">
+                            {getLangText('مکمل پرائیویسی اور رازداری', 'خصوصية وسرية تامة', '100% Confidential Inquiries')}
+                          </h4>
+                          <p className="text-xs text-slate-600 mt-0.5 leading-relaxed">
+                            {getLangText(
+                              'آپ اپنا نام ظاہر کیے بغیر نجی طور پر بھی سوال پوچھ سکتے ہیں۔',
+                              'يمكنك طرح سؤالك بشكل خاص وسري دون الكشف عن هويتك.',
+                              'Option to submit questions privately without displaying your name publicly.'
+                            )}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="p-4 rounded-2xl bg-white/90 border border-emerald-100 shadow-2xs flex items-start gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center flex-shrink-0 border border-emerald-200">
+                          <BookOpenIcon className="w-5 h-5" />
+                        </div>
+                        <div>
+                          <h4 className="text-xs sm:text-sm font-bold text-slate-900">
+                            {getLangText('کتب و مآخذ کے حوالے', 'مراجع موثقة من أمهات الكتب', 'Linked to Library References')}
+                          </h4>
+                          <p className="text-xs text-slate-600 mt-0.5 leading-relaxed">
+                            {getLangText(
+                              'فتاویٰ کے ساتھ مرکز کی ڈیجیٹل لائبریری کی معتبر کتب منسلک کی جاتی ہیں۔',
+                              'ربط مباشر مع أمهات الكتب والمراجع الفقهية في مكتبة المركز الرقمية.',
+                              'Fatawa are directly referenced with authentic Islamic books in our digital library.'
+                            )}
+                          </p>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -888,8 +1033,8 @@ const PublicHome = () => {
                   </button>
                 </div>
 
-                {/* Full-Width Makhtota Manuscript Card without image */}
-                <div className="w-full overflow-hidden rounded-[2.5rem] border-2 border-[#E2D4BE] bg-[#FAF6EE] p-6 sm:p-10 shadow-[inset_0_0_40px_rgba(180,140,75,0.04),0_8px_24px_rgba(0,0,0,0.03)] ring-1 ring-[#D8C6A5]">
+                {/* Full-Width Makhtota Manuscript Card with Read More Clamp */}
+                <div className="w-full rounded-[2.5rem] border-2 border-[#E2D4BE] bg-[#FAF6EE] p-6 sm:p-10 shadow-[inset_0_0_40px_rgba(180,140,75,0.04),0_8px_24px_rgba(0,0,0,0.03)] ring-1 ring-[#D8C6A5] transition-all duration-300">
                   <div className="flex flex-col justify-between" dir="rtl">
                     <div className="space-y-4">
                       <div className="flex items-center justify-between border-b border-[#E2D4BE] pb-3 mb-4">
@@ -901,28 +1046,55 @@ const PublicHome = () => {
                         </span>
                       </div>
 
-                      {homeIntroText ? (
-                        <StandardFormattedText
-                          text={homeIntroText}
-                          makhtotaPaper={false}
-                          showZoomControls={false}
-                        />
-                      ) : null}
+                      {/* Content with elegant clamp when collapsed */}
+                      <div className={`relative transition-all duration-500 ${!isAboutExpanded ? 'max-h-[260px] sm:max-h-[300px] overflow-hidden' : ''}`}>
+                        {homeIntroText ? (
+                          <StandardFormattedText
+                            text={homeIntroText}
+                            makhtotaPaper={false}
+                            showZoomControls={false}
+                          />
+                        ) : null}
+
+                        {/* Bottom Gradient Fade when collapsed */}
+                        {!isAboutExpanded && (
+                          <div className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-[#FAF6EE] via-[#FAF6EE]/90 to-transparent pointer-events-none" />
+                        )}
+                      </div>
                     </div>
 
-                    <div className="mt-8 pt-4 border-t border-[#E8DEC9] flex flex-wrap items-center justify-between gap-4">
-                      <button
-                        onClick={() => navigateToTop('/about')}
-                        className="inline-flex items-center gap-2 rounded-full px-7 py-3 text-sm font-bold text-white transition-all shadow-sm hover:opacity-95 focus:outline-none focus:ring-2 focus:ring-[#002147]"
-                        style={{ backgroundColor: accentColor }}
-                      >
-                        مکمل تعارف و سرگرمیاں پڑھیں <ArrowRightIcon className="h-4 w-4" />
-                      </button>
+                    {/* Expand/Collapse & Full About Link Controls */}
+                    <div className="mt-6 pt-4 border-t border-[#E8DEC9] flex flex-wrap items-center justify-between gap-4">
+                      <div className="flex items-center gap-3">
+                        <button
+                          type="button"
+                          onClick={() => setIsAboutExpanded((prev) => !prev)}
+                          className="inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-xs sm:text-sm font-bold text-white transition-all shadow-sm hover:opacity-95 focus:outline-none focus:ring-2 focus:ring-offset-2 cursor-pointer"
+                          style={{ backgroundColor: accentColor }}
+                        >
+                          <span>{isAboutExpanded ? 'مختصر کریں (Show Less)' : 'مزید پڑھیں (Read More)'}</span>
+                          {isAboutExpanded ? (
+                            <ChevronUpIcon className="h-4 w-4" />
+                          ) : (
+                            <ChevronDownIcon className="h-4 w-4" />
+                          )}
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => navigateToTop('/about')}
+                          className="inline-flex items-center gap-1.5 rounded-full border border-[#8B6E32]/40 bg-white/80 px-4 py-2 text-xs sm:text-sm font-bold text-[#8B6E32] hover:bg-white transition cursor-pointer"
+                        >
+                          <span>مکمل صفحہ کھولیں</span>
+                          <ArrowRightIcon className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+
                       <span
                         className="text-xs sm:text-sm font-semibold text-[#8B6E32]"
                         style={{ fontFamily: "'Noto Nastaliq Urdu', serif" }}
                       >
-                        مرکز کے اغراض و مقاصد اور شاخیں ←
+                        مرکز کے تفصیلی اغراض و مقاصد اور شاخیں ←
                       </span>
                     </div>
                   </div>
@@ -932,179 +1104,140 @@ const PublicHome = () => {
           );
         }
 
-        // EDUCATION, SOCIAL & ACTIVITY
-        if (key === 'education_social_activity' && getSectionConfig('education_social_activity', { enabled: false }).enabled !== false) {
+        // ACTIVITIES, EDUCATION & SOCIAL WELFARE SECTION
+        if (key === 'education_social_activity' && getSectionConfig('education_social_activity', { enabled: true }).enabled !== false) {
           const educationConfig = getSectionConfig('education_social_activity', {});
-          const cards = [
-            { title: 'Education', description: 'Knowledge-based learning programs, seminars, and public guidance for students and families.', icon: AcademicCapIcon },
-            { title: 'Social Work', description: 'Community welfare efforts, support initiatives, and outreach rooted in compassion and service.', icon: UserGroupIcon },
-            { title: 'Activities', description: 'Events, gatherings, and educational activities that keep the community engaged and connected.', icon: BookOpenIcon },
+          const actionCards = [
+            {
+              title: 'Education & Guidance',
+              urduTitle: 'تعلیم و رہنمائی',
+              description: 'Knowledge-based learning programs, educational seminars, and academic support for students.',
+              icon: AcademicCapIcon,
+              to: '/education',
+              color: 'from-blue-600 to-indigo-600',
+              bgColor: 'bg-blue-50',
+              textColor: 'text-blue-700',
+              borderColor: 'border-blue-200'
+            },
+            {
+              title: 'Social Work & Welfare',
+              urduTitle: 'سماجی خدمات و ریلیف',
+              description: 'Humanitarian relief drives, medical assistance, ration distribution, and welfare support.',
+              icon: UserGroupIcon,
+              to: '/social-work',
+              color: 'from-emerald-600 to-teal-600',
+              bgColor: 'bg-emerald-50',
+              textColor: 'text-emerald-700',
+              borderColor: 'border-emerald-200'
+            },
+            {
+              title: 'Markaz Activities & Events',
+              urduTitle: 'سرگرمیاں اور کانفرنسز',
+              description: 'Annual conventions, book fairs, youth gatherings, and community educational events.',
+              icon: SparklesIcon,
+              to: '/activities',
+              color: 'from-purple-600 to-pink-600',
+              bgColor: 'bg-purple-50',
+              textColor: 'text-purple-700',
+              borderColor: 'border-purple-200'
+            },
           ];
+
           return (
-            <div key="education_social_activity" className="app-shell-container pb-6 sm:pb-12">
+            <div key="education_social_activity" id="education_social_activity" className="app-shell-container pb-6 sm:pb-12 scroll-mt-24">
               <div className={sectionFrameClass}>
-                <div className="mb-6 flex items-end justify-between gap-3">
+                <div className="mb-8 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
                   <div>
-                    <p className="eyebrow text-xs font-bold uppercase tracking-[0.25em]" style={{ color: accentColor }}>
-                      {educationConfig.title || 'Education, Social & Activity'}
-                    </p>
-                    <h3 className="section-title text-2xl font-black text-slate-900 mt-1">
-                      {educationConfig.subtitle || 'Community learning, service, and engagement'}
+                    <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-50 border border-indigo-200 text-indigo-700 text-xs font-bold mb-2">
+                      <SparklesIcon className="w-3.5 h-3.5" />
+                      <span>{educationConfig.title || 'Activities, Education & Social Welfare'}</span>
+                    </div>
+                    <h3 className="section-title text-2xl sm:text-3xl font-black text-slate-900">
+                      {educationConfig.subtitle || 'Community Services & Markaz Initiatives'}
                     </h3>
+                    <p className="text-xs sm:text-sm text-slate-500 mt-1 max-w-2xl">
+                      Empowering our community through educational seminars, humanitarian relief, book fairs, and youth conventions.
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => navigateToTop('/activities')}
+                      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 transition-colors shadow-2xs cursor-pointer"
+                    >
+                      <span>View All Activities</span>
+                      <ArrowRightIcon className="w-3.5 h-3.5" />
+                    </button>
                   </div>
                 </div>
-                <div className="grid gap-5 md:grid-cols-3">
-                  {cards.map((card) => {
+
+                {/* 3 Main Action Hub Cards */}
+                <div className="grid gap-5 md:grid-cols-3 mb-8">
+                  {actionCards.map((card) => {
                     const CardIcon = card.icon;
                     return (
-                      <div key={card.title} className="rounded-[1.5rem] border border-slate-200 bg-white p-6 shadow-sm transition hover:shadow-md">
-                        <div className="h-10 w-10 rounded-xl bg-slate-100 text-[#002147] flex items-center justify-center mb-4">
-                          <CardIcon className="h-5 w-5" />
+                      <div
+                        key={card.title}
+                        onClick={() => navigateToTop(card.to)}
+                        className={`group relative rounded-3xl border ${card.borderColor} bg-white p-6 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer flex flex-col justify-between`}
+                      >
+                        <div>
+                          <div className="flex items-center justify-between mb-4">
+                            <div className={`h-12 w-12 rounded-2xl ${card.bgColor} ${card.textColor} flex items-center justify-center shadow-xs group-hover:scale-110 transition-transform`}>
+                              <CardIcon className="h-6 w-6 stroke-2" />
+                            </div>
+                            <span className={`text-[10px] font-extrabold px-2.5 py-1 rounded-full ${card.bgColor} ${card.textColor} border ${card.borderColor}`}>
+                              Explore Hub
+                            </span>
+                          </div>
+
+                          <h4 className="text-lg font-black text-slate-900 group-hover:text-emerald-700 transition-colors">
+                            {card.title}
+                          </h4>
+                          <p className="text-xs font-bold text-slate-400 mb-2 font-serif">
+                            {card.urduTitle}
+                          </p>
+                          <p className="text-xs leading-relaxed text-slate-600">
+                            {card.description}
+                          </p>
                         </div>
-                        <h4 className="text-lg font-black text-slate-900">{card.title}</h4>
-                        <p className="mt-2 text-sm leading-7 text-slate-600">{card.description}</p>
+
+                        <div className="mt-5 pt-4 border-t border-slate-100 flex items-center justify-between text-xs font-bold text-slate-800 group-hover:text-emerald-600">
+                          <span>Open Section</span>
+                          <ArrowRightIcon className="h-4 w-4 transform group-hover:translate-x-1 transition-transform" />
+                        </div>
                       </div>
                     );
                   })}
                 </div>
-              </div>
-            </div>
-          );
-        }
 
-        // CATALOG & FULL BOOK GRID
-        if (key === 'catalog' && getSectionConfig('catalog', { enabled: true }).enabled !== false) {
-          return (
-            <div key="catalog" className="app-shell-container py-5 sm:py-8 scroll-mt-20" id="book-grid">
-              <div className={sectionFrameClass}>
-                {/* Catalog Header & Filter Bar */}
-                <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-8 border-b border-slate-200 pb-6">
+                {/* Live Recent Activities Grid */}
+                {activitiesItems.length > 0 && (
                   <div>
-                    <h2 className="page-title text-2xl sm:text-3xl font-black text-[#002147] max-w-4xl">
-                      {searchTerm ? `Results for "${searchTerm}"` : getSectionConfig('catalog', { title: 'Explore the Library' }).title || 'Explore the Library'}
-                    </h2>
-                    <p className="mt-2 text-sm text-slate-600">
-                      {getSectionConfig('catalog', { description: 'Browse our handpicked selection, curated recommendations, and full catalog from Kokan Islamic Library.' }).description || 'Browse our handpicked selection, curated recommendations, and full catalog from Kokan Islamic Library.'}
-                    </p>
-                  </div>
-
-                  <div className="flex flex-wrap items-center gap-3">
-                    <button
-                      onClick={() => setShowFavoritesOnly((p) => !p)}
-                      className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl border text-sm font-bold transition-all shadow-sm focus:outline-none focus:ring-2 focus:ring-[#002147] ${
-                        showFavoritesOnly
-                          ? "bg-pink-50 border-pink-200 text-pink-700"
-                          : "bg-white border-slate-200 text-slate-700 hover:bg-slate-50"
-                      }`}
-                      title="Show only favorite books"
-                    >
-                      <HeartIcon className="w-4 h-4 text-pink-500 fill-pink-500" />
-                      Favorites
-                      {favorites.length > 0 && (
-                        <span className="ml-1 text-xs bg-pink-100 text-pink-800 border border-pink-200 px-2 py-0.5 rounded-full font-bold">
-                          {favorites.length}
-                        </span>
-                      )}
-                    </button>
-
-                    <button
-                      onClick={loadAllData}
-                      disabled={loading}
-                      className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 text-sm font-bold shadow-sm disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-[#002147]"
-                      title="Refresh Books"
-                    >
-                      <ArrowPathIcon className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
-                      Refresh
-                    </button>
-
-                    <div className="text-sm font-semibold text-slate-500 bg-slate-100 px-3 py-1.5 rounded-xl border border-slate-200">
-                      Showing <span className="font-bold text-slate-900">{finalBooks.length}</span> books
+                    <div className="flex items-center justify-between mb-4 border-t border-slate-100 pt-6">
+                      <h4 className="text-sm font-extrabold uppercase tracking-wider text-slate-400 flex items-center gap-2">
+                        <SparklesIcon className="w-4 h-4 text-amber-500" />
+                        <span>Recent Activities & Happenings</span>
+                      </h4>
                     </div>
-                  </div>
-                </div>
 
-                {/* Catalog Grid Content */}
-                {loading ? (
-                  <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
-                    {Array.from({ length: 10 }).map((_, i) => (
-                      <BookCardSkeleton key={i} />
-                    ))}
-                  </div>
-                ) : finalBooks.length > 0 ? (
-                  <div className="mb-10 space-y-10">
-                    {/* Trending Swiper */}
-                    {!searchTerm && !showFavoritesOnly && sortedBooks.length > 0 && (
-                      <div>
-                        <div className="flex items-center gap-2 mb-4">
-                          <SparklesIcon className="h-5 w-5 text-amber-500" />
-                          <h3 className="text-base font-bold uppercase tracking-wider text-slate-800">
-                            Trending Now
-                          </h3>
-                        </div>
-                        <Swiper
-                          modules={[Autoplay, Navigation]}
-                          spaceBetween={20}
-                          loop={sortedBooks.length > 4}
-                          autoplay={{
-                            delay: 3500,
-                            disableOnInteraction: false,
-                          }}
-                          breakpoints={{
-                            320: { slidesPerView: 2 },
-                            640: { slidesPerView: 3 },
-                            768: { slidesPerView: 4 },
-                            1024: { slidesPerView: 5 },
-                          }}
-                        >
-                          {sortedBooks.slice(0, 8).map((book) => (
-                            <SwiperSlide key={book.id}>
-                              <PublicBookCard
-                                book={book}
-                                isFavorite={favorites.includes(book.id)}
-                                onToggleFavorite={(e) => toggleFavorite(e, book.id)}
-                                onClick={() => setSelectedBook(book)}
-                              />
-                            </SwiperSlide>
-                          ))}
-                        </Swiper>
-                      </div>
-                    )}
-
-                    {/* Main Book Grid */}
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-6">
-                      {finalBooks.map((book) => (
-                        <PublicBookCard
-                          key={book.id}
-                          book={book}
-                          isFavorite={favorites.includes(book.id)}
-                          onToggleFavorite={(e) => toggleFavorite(e, book.id)}
-                          onClick={() => setSelectedBook(book)}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                      {activitiesItems.slice(0, 3).map((item) => (
+                        <SocialWorkCard
+                          key={item.id}
+                          item={item}
+                          onSelect={(selected) => setSelectedActivity(selected)}
                         />
                       ))}
                     </div>
-                  </div>
-                ) : (
-                  <div className="text-center py-16 bg-slate-50/80 rounded-2xl border border-dashed border-slate-300">
-                    <FaceFrownIcon className="w-12 h-12 text-slate-400 mx-auto mb-3" />
-                    <p className="text-slate-800 font-bold text-lg">
-                      No books found matching your criteria.
-                    </p>
-                    <p className="text-slate-500 text-sm mt-1">
-                      Try different keywords or clear filters.
-                    </p>
-                    <button
-                      onClick={handleClearAll}
-                      className="mt-6 inline-flex items-center justify-center px-6 py-2.5 rounded-full text-white font-bold transition-all shadow-sm focus:outline-none focus:ring-2 focus:ring-[#002147]"
-                      style={{ backgroundColor: accentColor }}
-                    >
-                      Clear All Filters
-                    </button>
                   </div>
                 )}
               </div>
             </div>
           );
         }
+
+
 
         // POSTS & DONATIONS
         if (key === 'posts' || key === 'donation') {
@@ -1166,6 +1299,15 @@ const PublicHome = () => {
         loading={createQuestionLoading}
         onSubmit={handleCreateQuestion}
       />
+
+      {/* ACTIVITY DETAIL MODAL */}
+      {selectedActivity && (
+        <SocialWorkItemDetailModal
+          item={selectedActivity}
+          isOpen={!!selectedActivity}
+          onClose={() => setSelectedActivity(null)}
+        />
+      )}
     </div>
   );
 };

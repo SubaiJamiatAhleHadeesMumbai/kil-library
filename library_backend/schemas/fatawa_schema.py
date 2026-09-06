@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field, field_validator, model_validator
-from typing import Optional
+from typing import Optional, List, Any
 from datetime import datetime
 
 
@@ -89,25 +89,24 @@ class FatawaQuestionUpdate(BaseModel):
     is_anonymous: Optional[bool] = None
     display_name: Optional[str] = Field(None, max_length=255)
     guest_email: Optional[str] = Field(None, max_length=255)
+    status: Optional[str] = None
+    answer_text: Optional[str] = None
+    pdf_url: Optional[str] = None
+    images: Optional[List[Any]] = None
+    verdict_summary: Optional[str] = None
+    mufti_name: Optional[str] = None
+    darul_ifta_reference_no: Optional[str] = None
 
 
 class FatawaQuestionAnswer(BaseModel):
-    answer_text: str = Field(...)
+    answer_text: Optional[str] = ""
     visibility: Optional[str] = None
     status: Optional[str] = None
-
-    @field_validator("answer_text", mode="before")
-    @classmethod
-    def normalize_answer_text(cls, value):
-        if value is None:
-            return value
-        return str(value).strip()
-
-    @model_validator(mode="after")
-    def ensure_answer_text(self):
-        if not self.answer_text:
-            raise ValueError("answer_text is required")
-        return self
+    pdf_url: Optional[str] = None
+    images: Optional[List[Any]] = None
+    verdict_summary: Optional[str] = None
+    mufti_name: Optional[str] = None
+    darul_ifta_reference_no: Optional[str] = None
 
 
 class FatawaQuestion(FatawaQuestionBase):
@@ -115,6 +114,11 @@ class FatawaQuestion(FatawaQuestionBase):
     user_id: Optional[int] = None
     answer_text: Optional[str] = None
     status: str
+    pdf_url: Optional[str] = None
+    images: Optional[List[Any]] = None
+    verdict_summary: Optional[str] = None
+    mufti_name: Optional[str] = None
+    darul_ifta_reference_no: Optional[str] = None
     answered_by_id: Optional[int] = None
     answered_at: Optional[datetime] = None
     created_at: Optional[datetime] = None
@@ -124,3 +128,11 @@ class FatawaQuestion(FatawaQuestionBase):
 
     class Config:
         from_attributes = True
+
+
+class PaginatedFatawaResponse(BaseModel):
+    items: List[FatawaQuestion]
+    total: int
+    page: int
+    limit: int
+    total_pages: int

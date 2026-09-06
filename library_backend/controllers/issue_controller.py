@@ -1,5 +1,7 @@
-from typing import List
+import math
+from typing import List, Optional, Union
 from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy import or_
 from sqlalchemy.orm import Session, joinedload
 from datetime import datetime
 
@@ -17,21 +19,67 @@ router = APIRouter()
 # ==================================
 
 # --- READ ALL ISSUES (History/Returns) ---
-@router.get("/", response_model=List[schemas.IssuedBook])
+@router.get("/", response_model=Union[schemas.PaginatedIssuedBookResponse, List[schemas.IssuedBook]])
 def get_all_issues(
     skip: int = 0, 
-    limit: int = 100, 
+    limit: int = 20, 
+    page: Optional[int] = None,
+    paginated: bool = False,
+    status: Optional[str] = None,
+    search: Optional[str] = None,
+    date_from: Optional[datetime] = None,
+    date_to: Optional[datetime] = None,
     db: Session = Depends(get_db),
     # ✅ FIX: 'BOOK_ISSUE' allow kiya taake 'Returns' tab load ho sake
     current_user: user_model.User = Depends(require_permission("BOOK_ISSUE"))
 ):
     """
-    Get list of all issued books (Active & Returned).
+    Get list of all issued books with search, date range, status, and pagination support.
     """
-    return db.query(models.IssuedBook).options(
+    is_paginated = paginated or (page is not None)
+    active_page = max(1, page or 1)
+    page_limit = max(1, min(limit or 20, 1000))
+    offset = (active_page - 1) * page_limit if is_paginated else skip
+
+    query = db.query(models.IssuedBook).options(
         joinedload(models.IssuedBook.book_copy).joinedload(models.BookCopy.book),
         joinedload(models.IssuedBook.client)
-    ).order_by(models.IssuedBook.id.desc()).offset(skip).limit(limit).all()
+    )
+
+    if status and status.strip() and status.strip().lower() != "all":
+        query = query.filter(models.IssuedBook.status.ilike(status.strip()))
+
+    if date_from:
+        query = query.filter(models.IssuedBook.issue_date >= date_from)
+
+    if date_to:
+        query = query.filter(models.IssuedBook.issue_date <= date_to)
+
+    if search and search.strip():
+        search_term = f"%{search.strip()}%"
+        query = query.join(models.IssuedBook.client).filter(
+            or_(
+                user_model.User.username.ilike(search_term),
+                user_model.User.full_name.ilike(search_term),
+                user_model.User.email.ilike(search_term)
+            )
+        )
+
+    total_count = query.count()
+
+    issues = query.order_by(models.IssuedBook.id.desc()).offset(offset).limit(page_limit).all()
+
+    if is_paginated:
+        total_pages = math.ceil(total_count / page_limit) if total_count > 0 else 1
+        return {
+            "items": issues,
+            "total": total_count,
+            "page": active_page,
+            "limit": page_limit,
+            "total_pages": total_pages
+        }
+
+    return issues
 
 
 # --- ISSUE A BOOK ---

@@ -22,6 +22,9 @@ def resolve_upload_path(url_path: str | None):
     The backend stores URLs like /uploads/texts/filename.txt. These should be
     resolved relative to the library_backend/static directory so deep-search can
     read uploaded text files regardless of the current working directory.
+
+    SECURITY: Validates that the resolved path is within the allowed static
+    directory to prevent path traversal attacks.
     """
     if not url_path:
         return None
@@ -33,15 +36,30 @@ def resolve_upload_path(url_path: str | None):
     if cleaned.startswith("http://") or cleaned.startswith("https://"):
         return cleaned
 
+    # Security: reject any path containing traversal sequences before resolution
     normalized = cleaned.replace("\\", "/")
-    if normalized.startswith("/uploads/"):
-        relative_path = normalized.lstrip("/")
-        return (BASE_DIR / "static" / relative_path).resolve()
+    if ".." in normalized:
+        return None
 
-    if normalized.startswith("uploads/"):
-        return (BASE_DIR / "static" / normalized).resolve()
+    ALLOWED_ROOT = (BASE_DIR / "static").resolve()
 
-    return (BASE_DIR / normalized).resolve()
+    # Strip leading slash so Path / does not reset to filesystem root
+    rel_normalized = normalized.lstrip("/")
+    if rel_normalized.startswith("static/"):
+        rel_path = rel_normalized[len("static/"):]
+        resolved = (ALLOWED_ROOT / rel_path).resolve()
+    elif rel_normalized.startswith("uploads/"):
+        resolved = (ALLOWED_ROOT / rel_normalized).resolve()
+    else:
+        resolved = (ALLOWED_ROOT / rel_normalized).resolve()
+
+    # Security: ensure resolved path is within the allowed static directory
+    try:
+        resolved.relative_to(ALLOWED_ROOT)
+    except ValueError:
+        return None
+
+    return str(resolved)
 
 
 def _ensure_dir(path):
@@ -93,7 +111,8 @@ def save_txt_locally(file: UploadFile):
         file_ext = Path(file.filename or "file.txt").suffix.lower()
         if not file_ext:
             file_ext = ".txt"
-        allowed_extensions = {".txt", ".text", ".md", ".docx", ".doc", ".rtf", ".html", ".json", ".csv", ".xml"}
+        # SECURITY FIX: Removed .html to prevent Stored XSS via static file hosting
+        allowed_extensions = {".txt", ".text", ".md", ".docx", ".doc", ".rtf", ".json", ".csv", ".xml"}
         if file_ext not in allowed_extensions:
             file_ext = ".txt"
                 

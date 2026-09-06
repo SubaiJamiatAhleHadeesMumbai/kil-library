@@ -1,15 +1,24 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.orm import Session
 from database import get_db
 from models import user_model
 from schemas import user_schema
 from auth import get_password_hash
 
+# Rate limiting
+try:
+    from slowapi import Limiter
+    from slowapi.util import get_remote_address
+    limiter = Limiter(key_func=get_remote_address)
+except ImportError:
+    limiter = None
+
 # Note: Yahan humne koi 'get_current_user' dependency nahi lagayi
 router = APIRouter()
 
 @router.post("/register", response_model=user_schema.UserResponse, status_code=status.HTTP_201_CREATED)
-def register_public_user(user: user_schema.UserCreate, db: Session = Depends(get_db)):
+@limiter.limit("5/minute") if limiter else lambda f: f
+def register_public_user(request: Request, user: user_schema.UserCreate, db: Session = Depends(get_db)):
     """
     Public Registration:
     - Koi bhi naya user yahan account bana sakta hai.

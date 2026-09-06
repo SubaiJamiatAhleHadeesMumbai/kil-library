@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { PlusIcon, TrashIcon, ArrowUpTrayIcon, ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
 import aboutService from '../../api/aboutService';
@@ -376,11 +377,27 @@ const AboutSettingsPage = () => {
         </div>
       </section>
 
-      <section id="gallery-settings" className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
+      <section id="gallery-settings" className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm space-y-4">
+        {/* Dedicated Gallery Suite Banner */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-2xl bg-gradient-to-r from-indigo-50 to-blue-50 border border-indigo-100 p-4">
+          <div>
+            <h3 className="text-sm font-black text-indigo-950">✨ Dedicated Gallery Management Suite Available</h3>
+            <p className="text-xs text-indigo-800/80 mt-0.5">
+              Manage trilingual albums, bulk drag-and-drop photos, and events in the dedicated Gallery Manager.
+            </p>
+          </div>
+          <Link
+            to="/admin/gallery"
+            className="inline-flex items-center justify-center shrink-0 rounded-xl bg-indigo-600 px-4 py-2 text-xs font-bold text-white shadow-sm hover:bg-indigo-500 transition"
+          >
+            Open Gallery Manager →
+          </Link>
+        </div>
+
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h2 className="text-xl font-black text-slate-900">Markaz Gallery</h2>
-            <p className="text-sm text-slate-500">Upload introduction images for the About page gallery. The grid is paginated so large collections stay manageable.</p>
+            <h2 className="text-xl font-black text-slate-900">Markaz Gallery (Legacy List)</h2>
+            <p className="text-sm text-slate-500">Introduction images for the About page. You can also manage all photos in the new Gallery Manager.</p>
           </div>
           <button onClick={addGalleryItem} className="inline-flex items-center gap-2 rounded-full border border-slate-200 px-4 py-2 text-sm font-bold text-slate-700 transition hover:border-[#002147] hover:text-[#002147]">
             <PlusIcon className="h-4 w-4" /> Add Gallery Image

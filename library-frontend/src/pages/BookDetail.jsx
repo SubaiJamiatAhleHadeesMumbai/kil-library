@@ -1,6 +1,6 @@
 import StandardFormattedText from "../components/common/StandardFormattedText";
 import React, { useState, useEffect, useMemo } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { bookService } from '../api/bookService';
 import { getBookCover } from '../utils/cover';
 import { Toaster, toast } from 'react-hot-toast';
@@ -24,11 +24,15 @@ import { Viewer, Worker } from '@react-pdf-viewer/core';
 import { defaultLayoutPlugin } from '@react-pdf-viewer/default-layout';
 import '@react-pdf-viewer/core/lib/styles/index.css';
 import '@react-pdf-viewer/default-layout/lib/styles/index.css';
+import BookPurchaseModal from '../components/book/BookPurchaseModal';
+import CommentSection from '../components/book/CommentSection';
 
 const BookDetail = () => {
     const { id } = useParams();
+    const navigate = useNavigate();
     const [book, setBook] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [showPurchaseModal, setShowPurchaseModal] = useState(false);
     
     // --- Reader States ---
     const [viewMode, setViewMode] = useState("pdf"); // 'pdf' or 'text'
@@ -42,14 +46,19 @@ const BookDetail = () => {
     const defaultLayoutPluginInstance = defaultLayoutPlugin();
 
     useEffect(() => {
+        if (!id || id === 'null' || id === 'undefined') {
+            navigate('/books', { replace: true });
+            return;
+        }
         const fetchDetails = async () => {
             try {
                 const data = await bookService.getBookById(id);
-                setBook(data);
-                
-                // Smart Default: If no PDF but Text exists, switch to Text mode
-                if (!data.pdf_url && data.txt_file_url) {
-                    setViewMode("text");
+                if (data) {
+                    setBook(data);
+                    // Smart Default: If no PDF but Text exists, switch to Text mode
+                    if (!data.pdf_url && data.txt_file_url) {
+                        setViewMode("text");
+                    }
                 }
             } catch (err) {
                 console.error("Error:", err);
@@ -109,7 +118,28 @@ const BookDetail = () => {
         </div>
     );
 
-    if (!book) return <div className="p-20 text-center text-xl text-gray-500">Book Not Found</div>;
+    if (!book) {
+        return (
+            <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6 text-center">
+                <div className="bg-white p-8 sm:p-12 rounded-3xl border border-slate-200 shadow-sm max-w-md w-full space-y-4">
+                    <div className="w-16 h-16 bg-slate-100 text-slate-400 rounded-2xl flex items-center justify-center mx-auto">
+                        <BookOpenIcon className="w-8 h-8 stroke-1" />
+                    </div>
+                    <h2 className="text-xl font-bold text-slate-800">Book Not Found</h2>
+                    <p className="text-xs text-slate-500">
+                        This book ID ({id}) either does not exist, has been removed, or is awaiting admin approval.
+                    </p>
+                    <Link
+                        to="/books"
+                        className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full bg-[#002147] text-white text-xs font-bold hover:bg-slate-900 transition shadow-sm"
+                    >
+                        <ArrowLeftIcon className="w-4 h-4" />
+                        <span>Return to Library</span>
+                    </Link>
+                </div>
+            </div>
+        );
+    }
 
     // --- SMART STYLING LOGIC ---
     const isRTL = ['arabic', 'urdu', 'persian'].includes(book.language?.name?.toLowerCase());
@@ -129,8 +159,8 @@ const BookDetail = () => {
             <div className="bg-white border-b border-gray-200 py-4 px-4 sticky top-0 z-20 shadow-sm">
                 <div className="max-w-7xl mx-auto flex items-center justify-between">
                     <div className="flex items-center gap-2 text-sm text-slate-500">
-                        <Link to="/" className="hover:text-indigo-600 flex items-center gap-1">
-                            <ArrowLeftIcon className="w-4 h-4" /> Library
+                        <Link to="/books" className="hover:text-emerald-600 flex items-center gap-1.5 transition-colors">
+                            <ArrowLeftIcon className="w-4 h-4 rtl:rotate-180" /> Library
                         </Link>
                         <span className="text-gray-300">/</span>
                         <span className="font-medium text-slate-900 truncate max-w-[200px] sm:max-w-md">{book.title}</span>
@@ -177,26 +207,25 @@ const BookDetail = () => {
                             </div>
 
                             {/* Download / Read Actions */}
-                            <div className="space-y-3">
+                            <div className="space-y-2.5">
                                 {(book.pdf_url || book.txt_file_url) && (
                                     <Link
                                         to={`/read/${book.id}`}
-                                        className="w-full bg-emerald-600 text-white py-3.5 rounded-xl font-bold hover:bg-emerald-700 transition-all flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/30 text-sm"
+                                        className="w-full bg-emerald-600 text-white py-3 rounded-xl font-bold hover:bg-emerald-700 transition-all flex items-center justify-center gap-2 shadow-md text-xs sm:text-sm"
                                     >
-                                        <BookOpenIcon className="w-5 h-5" /> Open Split Reader (PDF + Text)
+                                        <BookOpenIcon className="w-4 h-4 sm:w-5 sm:h-5" /> Read Free Online (Split Reader)
                                     </Link>
                                 )}
 
                                 {book.pdf_url && (
-                                    <a 
-                                        href={book.pdf_url} 
-                                        download 
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="w-full bg-slate-900 text-white py-3 rounded-xl font-bold hover:bg-slate-800 transition-all flex items-center justify-center gap-2 shadow-md text-sm"
+                                    <button 
+                                        type="button"
+                                        onClick={() => setShowPurchaseModal(true)}
+                                        className="w-full bg-[#002147] text-white py-3 rounded-xl font-bold hover:bg-[#003166] transition-all flex items-center justify-center gap-2 shadow-md text-xs sm:text-sm cursor-pointer"
                                     >
-                                        <ArrowDownTrayIcon className="w-5 h-5" /> {book.pdf_url?.toLowerCase().includes('.doc') ? 'Download Document' : 'Download PDF'}
-                                    </a>
+                                        <ArrowDownTrayIcon className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-400" />
+                                        {book.is_download_paid ? `Download Offline PDF (₹${book.download_price || 49})` : 'Download PDF'}
+                                    </button>
                                 )}
                             </div>
 
@@ -238,11 +267,11 @@ const BookDetail = () => {
                                 )}
                             </div>
                             
-                            <h1 className={`text-2xl sm:text-4xl font-black text-slate-900 leading-tight mb-3 ${langClass}`} style={{ fontFamily: isRTL ? '"Jameel Noori Nastaleeq", "Noto Naskh Arabic", serif' : 'inherit' }}>
+                            <h1 className={`text-xl sm:text-2xl font-bold text-slate-900 leading-snug mb-2 ${langClass}`} style={{ fontFamily: isRTL ? '"Jameel Noori Nastaleeq", "Noto Naskh Arabic", serif' : 'inherit' }}>
                                 {book.title}
                             </h1>
-                            <p className="text-base sm:text-lg text-slate-500 font-medium">
-                                تالیف / Author: <span className="text-slate-900 font-bold underline decoration-slate-300 decoration-2 underline-offset-4">{book.author || "فضیلۃ الشیخ"}</span>
+                            <p className="text-xs sm:text-sm text-slate-600 font-normal">
+                                تالیف / Author: <span className="text-slate-900 font-bold underline decoration-slate-300 decoration-1 underline-offset-4">{book.author || "فضیلۃ الشیخ"}</span>
                             </p>
                             {book.translator && (
                                 <p className="text-sm text-slate-500 font-medium mt-1">
@@ -439,7 +468,7 @@ const BookDetail = () => {
                                 </div>
                             ) : (
                                 <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden" style={{height: 'calc(100vh - 240px)'}}>
-                                    <Worker workerUrl="/pdf.worker.min.mjs">
+                                    <Worker workerUrl="https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.worker.min.js">
                                         <Viewer fileUrl={book.pdf_url} plugins={[defaultLayoutPluginInstance]} />
                                     </Worker>
                                 </div>
@@ -460,7 +489,23 @@ const BookDetail = () => {
 
                     </div>
                 </div>
+
+                {/* Comments & Reviews Section */}
+                {book?.id && (
+                    <div className="mt-12 pt-8 border-t border-slate-200">
+                        <CommentSection entityType="book" entityId={book.id} isRTL={isRTL} />
+                    </div>
+                )}
             </div>
+
+            {/* Paid Download & UPI Purchase Modal */}
+            <BookPurchaseModal
+                key="book-detail-purchase-modal"
+                book={book}
+                pdfUrl={book?.pdf_url || book?.pdf_file}
+                isOpen={showPurchaseModal}
+                onClose={() => setShowPurchaseModal(false)}
+            />
         </div>
     );
 };

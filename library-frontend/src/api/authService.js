@@ -160,6 +160,10 @@ export const authService = {
         }
     },
 
+    setToken(token, rememberMe = true) {
+        this.setAccessToken(token, rememberMe);
+    },
+
     getAccessToken() {
         return (
             localStorage.getItem(ACCESS_TOKEN_KEY) ||

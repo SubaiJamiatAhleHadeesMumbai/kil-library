@@ -1,7 +1,8 @@
+from datetime import datetime
 import json
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
+from fastapi import APIRouter, Body, Depends, File, Form, HTTPException, UploadFile
 from sqlalchemy.orm import Session
 
 from auth import get_current_user
@@ -52,8 +53,8 @@ def _is_admin(user: user_model.User) -> bool:
     return bool(permissions & ADMIN_PERMISSIONS)
 
 
-def _parse_translations(raw_value: Optional[str], title: str) -> Dict[str, Dict[str, Any]]:
-    default_translation = {
+def _parse_translations(raw_value: Optional[str], title: str) -> Dict[str, Any]:
+    default_translation: Dict[str, Any] = {
         "en": {
             "title": title,
             "program_name": "",
@@ -61,6 +62,14 @@ def _parse_translations(raw_value: Optional[str], title: str) -> Dict[str, Dict[
             "location_name": "",
             "location_url": "",
             "description": "",
+        },
+        "settings": {
+            "enable_share": True,
+            "enable_download": True,
+            "enable_link": False,
+            "external_link": "",
+            "enable_expiry": False,
+            "expires_at": "",
         }
     }
 
@@ -75,18 +84,31 @@ def _parse_translations(raw_value: Optional[str], title: str) -> Dict[str, Dict[
     if not isinstance(parsed, dict):
         raise HTTPException(status_code=400, detail="translations must be an object")
 
-    normalized: Dict[str, Dict[str, Any]] = {}
-    for language, payload in parsed.items():
+    normalized: Dict[str, Any] = {}
+    for key, payload in parsed.items():
         if not isinstance(payload, dict):
             continue
-        normalized[str(language)] = {
-            "title": (payload.get("title") or "").strip(),
-            "program_name": (payload.get("program_name") or "").strip(),
-            "event_date": (payload.get("event_date") or "").strip(),
-            "location_name": (payload.get("location_name") or "").strip(),
-            "location_url": (payload.get("location_url") or "").strip(),
-            "description": (payload.get("description") or "").strip(),
-        }
+        if key == "settings":
+            normalized["settings"] = {
+                "enable_share": bool(payload.get("enable_share", True)),
+                "enable_download": bool(payload.get("enable_download", True)),
+                "enable_link": bool(payload.get("enable_link", False)),
+                "external_link": str(payload.get("external_link", "") or "").strip(),
+                "enable_expiry": bool(payload.get("enable_expiry", False)),
+                "expires_at": str(payload.get("expires_at", "") or "").strip(),
+            }
+        else:
+            normalized[str(key)] = {
+                "title": (payload.get("title") or "").strip(),
+                "program_name": (payload.get("program_name") or "").strip(),
+                "event_date": (payload.get("event_date") or "").strip(),
+                "location_name": (payload.get("location_name") or "").strip(),
+                "location_url": (payload.get("location_url") or "").strip(),
+                "description": (payload.get("description") or "").strip(),
+            }
+
+    if "settings" not in normalized:
+        normalized["settings"] = default_translation["settings"]
 
     if not normalized:
         return default_translation
@@ -115,7 +137,18 @@ def get_public_posters(db: Session = Depends(get_db)):
         .order_by(poster_model.HomepagePoster.sort_order.asc(), poster_model.HomepagePoster.created_at.desc())
         .all()
     )
-    return [_to_response(poster) for poster in posters]
+
+    today_str = datetime.utcnow().strftime("%Y-%m-%d")
+    valid_posters = []
+    for poster in posters:
+        trans = poster.translations or {}
+        settings = trans.get("settings") or {}
+        if settings.get("enable_expiry") and settings.get("expires_at"):
+            if str(settings["expires_at"]) < today_str:
+                continue
+        valid_posters.append(poster)
+
+    return [_to_response(poster) for poster in valid_posters]
 
 
 @router.get("/", response_model=List[PosterResponse])
@@ -330,3 +363,111 @@ def delete_poster(
     db.delete(poster)
     db.commit()
     return {"message": "Poster deleted successfully"}
+
+
+@router.post("/batch", response_model=List[PosterResponse])
+def batch_upload_posters(
+    images: List[UploadFile] = File(...),
+    db: Session = Depends(get_db),
+    current_user: user_model.User = Depends(get_current_user),
+):
+    if not _is_admin(current_user):
+        raise HTTPException(status_code=403, detail="You do not have permission to manage posters")
+
+    if not images:
+        raise HTTPException(status_code=400, detail="At least one image file is required.")
+
+    created = []
+    max_order = db.query(poster_model.HomepagePoster).count()
+
+    for idx, img in enumerate(images):
+        if not img or not img.filename:
+            continue
+
+        raw_filename = img.filename
+        clean_name = raw_filename.rsplit(".", 1)[0].replace("_", " ").replace("-", " ").strip().title()
+        if not clean_name:
+            clean_name = f"Poster {max_order + idx + 1}"
+
+        url = _upload_if_present(img, folder="posters")
+        if not url:
+            continue
+
+        poster = poster_model.HomepagePoster(
+            title=clean_name,
+            translations={
+                "en": {"title": clean_name, "program_name": "", "event_date": "", "location_name": "", "location_url": "", "description": ""},
+                "settings": {
+                    "enable_share": True,
+                    "enable_download": True,
+                    "enable_link": False,
+                    "external_link": "",
+                    "enable_expiry": False,
+                    "expires_at": "",
+                }
+            },
+            media_type="image",
+            desktop_image_url=url,
+            mobile_image_url=url,
+            desktop_fit="contain",
+            mobile_fit="contain",
+            desktop_height=520,
+            mobile_height=380,
+            caption_alignment="bottom",
+            sort_order=max_order + idx,
+            is_active=True,
+            author_id=current_user.id,
+        )
+        db.add(poster)
+        created.append(poster)
+
+    db.commit()
+    for p in created:
+        db.refresh(p)
+
+    return [_to_response(p) for p in created]
+
+
+@router.put("/reorder")
+def reorder_posters(
+    poster_ids: List[int] = Body(..., embed=True),
+    db: Session = Depends(get_db),
+    current_user: user_model.User = Depends(get_current_user),
+):
+    if not _is_admin(current_user):
+        raise HTTPException(status_code=403, detail="You do not have permission to manage posters")
+
+    for order, p_id in enumerate(poster_ids):
+        db.query(poster_model.HomepagePoster).filter(poster_model.HomepagePoster.id == p_id).update({"sort_order": order})
+
+    db.commit()
+    return {"message": "Order updated successfully"}
+
+
+@router.post("/bulk-delete")
+def bulk_delete_posters(
+    poster_ids: List[int] = Body(..., embed=True),
+    db: Session = Depends(get_db),
+    current_user: user_model.User = Depends(get_current_user),
+):
+    if not _is_admin(current_user):
+        raise HTTPException(status_code=403, detail="You do not have permission to manage posters")
+
+    db.query(poster_model.HomepagePoster).filter(poster_model.HomepagePoster.id.in_(poster_ids)).delete(synchronize_session=False)
+    db.commit()
+    return {"message": f"{len(poster_ids)} posters deleted successfully"}
+
+
+@router.post("/bulk-status")
+def bulk_status_posters(
+    poster_ids: List[int] = Body(...),
+    is_active: bool = Body(...),
+    db: Session = Depends(get_db),
+    current_user: user_model.User = Depends(get_current_user),
+):
+    if not _is_admin(current_user):
+        raise HTTPException(status_code=403, detail="You do not have permission to manage posters")
+
+    db.query(poster_model.HomepagePoster).filter(poster_model.HomepagePoster.id.in_(poster_ids)).update({"is_active": is_active}, synchronize_session=False)
+    db.commit()
+    return {"message": f"Updated status for {len(poster_ids)} posters"}

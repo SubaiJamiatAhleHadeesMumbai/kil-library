@@ -51,6 +51,9 @@ const BookForm = ({ initialData, isEditing, onBookAdded, onBookUpdated, onCancel
         
         is_restricted: false,
         is_digital: false,
+        is_download_paid: false,
+        download_price: 0,
+        download_upi_id: "",
         
         subcategory_ids: [],
         
@@ -149,6 +152,9 @@ const BookForm = ({ initialData, isEditing, onBookAdded, onBookUpdated, onCancel
                 extra_data: initialData.extra_data ?? prev.extra_data ?? "",
                 is_restricted: initialData.is_restricted ?? prev.is_restricted,
                 is_digital: initialData.is_digital ?? prev.is_digital,
+                is_download_paid: initialData.is_download_paid ?? prev.is_download_paid,
+                download_price: initialData.download_price ?? prev.download_price,
+                download_upi_id: initialData.download_upi_id ?? prev.download_upi_id,
                 subcategory_ids: matchedSubIds.length > 0 ? matchedSubIds : prev.subcategory_ids,
             }));
         }

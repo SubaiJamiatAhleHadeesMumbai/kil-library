@@ -104,6 +104,17 @@ apiClient.interceptors.response.use(
     }
 
     if (error.response?.status === 401 && originalRequest && !originalRequest._retry) {
+      const hasRefreshToken = Boolean(getRefreshToken());
+      const hasAccessToken = Boolean(
+        localStorage.getItem(ACCESS_TOKEN_KEY) ||
+        sessionStorage.getItem(ACCESS_TOKEN_KEY)
+      );
+
+      // If user is a guest (no token stored), NEVER attempt refresh and NEVER force redirect
+      if (!hasRefreshToken && !hasAccessToken) {
+        return Promise.reject(error);
+      }
+
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject });
@@ -129,8 +140,16 @@ apiClient.interceptors.response.use(
       } catch (refreshError) {
         processQueue(refreshError, null);
         clearTokens();
-        if (window.location.pathname !== "/login") {
-          window.location.href = "/login";
+        
+        // Only redirect to /login if on a strictly protected route
+        const currentPath = typeof window !== 'undefined' ? window.location.pathname : '';
+        const isProtectedRoute = 
+          currentPath.startsWith("/admin") || 
+          currentPath.startsWith("/profile") || 
+          currentPath.startsWith("/dashboard");
+
+        if (isProtectedRoute && currentPath !== "/login") {
+          window.location.href = `/login?redirect=${encodeURIComponent(currentPath)}`;
         }
         return Promise.reject(refreshError);
       }

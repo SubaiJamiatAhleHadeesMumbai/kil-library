@@ -21,6 +21,7 @@ import '../assets/css/ManagementPages.css';
 import '../assets/css/ApprovalManagement.css';
 
 // --- Constants ---
+import { FALLBACK_COVER } from '../utils/cover';
 const API_BASE_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '' : 'http://127.0.0.1:8000');
 
 // âœ… FIXED: Hybrid URL Generator (Works for Cloudinary & Local)
@@ -187,10 +188,10 @@ const ApprovalManagement = () => {
                     onClick={() => setPreviewBook(request)}
                 >
                     <img 
-                        src={getStaticUrl(request.book?.cover_image_url) || "https://via.placeholder.com/150"} 
+                        src={getStaticUrl(request.book?.cover_image_url) || FALLBACK_COVER} 
                         alt="Cover" 
                         className="w-full h-full object-cover"
-                        onError={(e) => e.target.src = "https://via.placeholder.com/150?text=No+Img"}
+                        onError={(e) => e.target.src = FALLBACK_COVER}
                     />
                     <div className="absolute inset-0 flex items-center justify-center bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity">
                         <EyeIcon className="w-8 h-8 text-white drop-shadow-md" />

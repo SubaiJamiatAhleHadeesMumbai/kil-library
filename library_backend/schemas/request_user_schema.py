@@ -50,6 +50,13 @@ class AccessRequestResponse(AccessRequestBase):
 
     book_title: Optional[str] = None 
     book_cover: Optional[str] = None
+    book_author: Optional[str] = None
+    book_publisher: Optional[str] = None
+    book_isbn: Optional[str] = None
+    book_edition: Optional[str] = None
+    book_pages: Optional[str] = None
+    book_price: Optional[str] = None
+    book_location: Optional[str] = None
 
     # --- VALIDATOR (CRITICAL FIX) ---
     @validator('purpose', pre=True)
