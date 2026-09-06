@@ -63,10 +63,11 @@ class Comment(Base):
 
     # --- Relationships ---
     user    = relationship("User", foreign_keys=[user_id])
+    parent  = relationship("Comment", remote_side=[id], foreign_keys=[parent_id], back_populates="replies")
     replies = relationship(
         "Comment",
-        backref="parent",
         foreign_keys=[parent_id],
+        back_populates="parent",
         cascade="all, delete-orphan",
         lazy="select"
     )
