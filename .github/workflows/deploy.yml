@@ -45,8 +45,7 @@ jobs:
           chmod 600 ~/.ssh/config
 
           echo "🌐 Testing Connection to $VPS_USER@$VPS_HOST on port $VPS_PORT..."
-          ssh -v -i ~/.ssh/deploy_key -p $VPS_PORT -o ConnectTimeout=60 "$VPS_USER@$VPS_HOST" << 'EOF'
-            set -e
+          ssh -i ~/.ssh/deploy_key -p $VPS_PORT -o ConnectTimeout=60 "$VPS_USER@$VPS_HOST" << 'EOF' 2>&1 | tee /tmp/vps_output.txt
             echo "🚀 Successfully Connected to VPS!"
             cd /root/kil-library || cd ~/kil-library || { echo "Directory not found"; exit 1; }
             echo "📍 Current Directory: $(pwd)"
@@ -55,13 +54,23 @@ jobs:
             git reset --hard origin/main
             echo "📌 Current Commit on VPS: $(git log -1 --oneline)"
 
-            echo "🔍 Diagnosing VPS Webserver / Nginx Configuration..."
-            cat /etc/nginx/sites-enabled/* 2>/dev/null || cat /etc/nginx/conf.d/* 2>/dev/null || true
+            echo "🔍 Testing Nginx Configuration..."
+            nginx -T 2>&1 | grep -E "server_name|listen|proxy_pass|root " || true
+
+            echo "📊 Docker Status BEFORE:"
+            docker compose ps -a || true
+            docker compose logs --tail=50 backend || true
+
+            echo "🐳 Stopping containers cleanly..."
+            docker compose down --remove-orphans || true
 
             echo "🐳 Building frontend and backend with --no-cache to force 100% fresh builds..."
             docker compose build --no-cache frontend backend
-            echo "🐳 Restarting containers with forced recreate..."
-            docker compose up -d --force-recreate --remove-orphans
+            echo "🐳 Starting containers..."
+            docker compose up -d --remove-orphans
+
+            echo "⏳ Waiting 10 seconds for containers to settle..."
+            sleep 10
 
             echo "📁 Syncing static assets and homepage settings into backend..."
             docker compose exec -T backend mkdir -p /app/static/uploads /app/static/images || true
@@ -85,43 +94,37 @@ jobs:
             docker compose exec -T backend python create_tables.py || true
             docker compose exec -T backend python setup_admin.py || true
 
-            echo "📊 Capturing comprehensive diagnostics to debug_status.txt..."
-            DEBUG_FILE="/tmp/debug_status.txt"
-            {
-              echo "=== 1. TIMESTAMP ==="
-              date -u
-              echo ""
-              echo "=== 2. DOCKER COMPOSE PS ==="
-              docker compose ps -a
-              echo ""
-              echo "=== 3. PORT LISTENING CHECK (8000) ==="
-              ss -tulpn | grep 8000 || netstat -tlpn | grep 8000 || echo "Port 8000 is NOT listening"
-              echo ""
-              echo "=== 4. HOST NGINX PROXY PASS CONFIG ==="
-              grep -rn "proxy_pass" /etc/nginx/sites-enabled/ /etc/nginx/conf.d/ 2>/dev/null || true
-              echo ""
-              echo "=== 5. BACKEND LOGS (last 100 lines) ==="
-              docker compose logs --tail=100 backend 2>&1 || true
-              echo ""
-              echo "=== 6. DB LOGS (last 50 lines) ==="
-              docker compose logs --tail=50 db 2>&1 || true
-              echo ""
-              echo "=== 7. ONE-OFF BACKEND IMPORT TEST ==="
-              docker compose run --rm backend python -c "import main; print('Backend Python main.py imports cleanly!')" 2>&1 || true
-              echo ""
-              echo "=== 8. DIRECT CURL TEST ON VPS ==="
-              curl -sv http://127.0.0.1:8000/docs 2>&1 || true
-            } > "$DEBUG_FILE"
+            echo "📊 Docker Status AFTER:"
+            docker compose ps -a || true
 
-            echo "🚀 Publishing debug_status.txt to all webroots..."
-            for WEBROOT in /var/www/html /var/www/kil-library /var/www/kil-library/library-frontend/dist /root/kil-library/library-frontend/dist; do
-              if [ -d "$WEBROOT" ]; then
-                cp "$DEBUG_FILE" "$WEBROOT/debug_status.txt" || true
-              fi
-            done
-            cat "$DEBUG_FILE"
+            echo "📋 Backend Logs AFTER:"
+            docker compose logs --tail=100 backend || true
+
+            echo "📋 DB Logs AFTER:"
+            docker compose logs --tail=50 db || true
+
+            echo "🌐 Testing Local Backend API on VPS..."
+            curl -sv http://127.0.0.1:8000/docs || true
+            curl -sv http://127.0.0.1:8000/api/settings/homepage-settings || true
 
             echo "🧹 Cleaning unused docker images..."
             docker image prune -f
             echo "✅ Deployment Completed Successfully!"
           EOF
+
+      - name: 📝 Commit VPS Debug Log to Repo Branch
+        if: always()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout --orphan vps-diagnostics
+          git rm -rf . || true
+          if [ -f /tmp/vps_output.txt ]; then
+            cp /tmp/vps_output.txt vps_diagnostics.txt
+          else
+            echo "No log generated" > vps_diagnostics.txt
+          fi
+          git add vps_diagnostics.txt
+          git commit -m "diagnostics: vps deployment log [skip ci]" || exit 0
+          git push origin vps-diagnostics --force
+
