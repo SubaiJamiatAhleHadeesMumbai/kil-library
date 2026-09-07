@@ -997,6 +997,7 @@ const HomepageCustomizer = () => {
                       className="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-3.5 py-2.5 text-sm text-slate-800 focus:border-indigo-500 focus:bg-white focus:outline-none disabled:opacity-50 disabled:bg-slate-100 disabled:cursor-not-allowed transition"
                     />
                   </div>
+                </div>
 
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="block">
