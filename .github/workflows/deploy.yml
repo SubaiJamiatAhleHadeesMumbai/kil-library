@@ -56,16 +56,17 @@ jobs:
             echo "📌 Current Commit on VPS: $(git log -1 --oneline)"
 
             echo "🔍 Diagnosing VPS Webserver / Nginx Configuration..."
-            grep -rn "root " /etc/nginx/sites-enabled/ /etc/nginx/conf.d/ 2>/dev/null || true
-            grep -rn "proxy_pass" /etc/nginx/sites-enabled/ /etc/nginx/conf.d/ 2>/dev/null || true
+            cat /etc/nginx/sites-enabled/* 2>/dev/null || cat /etc/nginx/conf.d/* 2>/dev/null || true
 
-            echo "🐳 Building frontend with --no-cache to force 100% fresh React build..."
-            docker compose build --no-cache frontend
+            echo "🐳 Building frontend and backend with --no-cache to force 100% fresh builds..."
+            docker compose build --no-cache frontend backend
             echo "🐳 Restarting containers with forced recreate..."
-            docker compose up -d --build --force-recreate --remove-orphans
+            docker compose up -d --force-recreate --remove-orphans
 
             echo "📁 Syncing static assets and homepage settings into backend..."
+            docker compose exec -T backend mkdir -p /app/static/uploads /app/static/images || true
             docker compose cp ./library_backend/static/uploads/. backend:/app/static/uploads/ || true
+            docker compose cp ./library_backend/static/images/. backend:/app/static/images/ || true
             docker compose cp ./library_backend/static/homepage_settings.json backend:/app/static/homepage_settings.json || true
 
             echo "🚀 Syncing fresh frontend build to all potential host Nginx webroots..."
@@ -83,6 +84,20 @@ jobs:
             echo "🗄️ Checking database schema..."
             docker compose exec -T backend python create_tables.py || true
             docker compose exec -T backend python setup_admin.py || true
+
+            echo "📊 Checking container status..."
+            docker compose ps -a
+
+            echo "📋 Checking Backend Logs..."
+            docker compose logs --tail=100 backend || true
+
+            echo "📋 Checking DB Logs..."
+            docker compose logs --tail=50 db || true
+
+            echo "🌐 Testing Local Backend API on VPS..."
+            curl -I http://127.0.0.1:8000/docs || true
+            curl -I http://127.0.0.1:8000/api/settings/homepage-settings || true
+
             echo "🧹 Cleaning unused docker images..."
             docker image prune -f
             echo "✅ Deployment Completed Successfully!"
