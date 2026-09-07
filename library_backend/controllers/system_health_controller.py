@@ -5,7 +5,10 @@ import os
 import sys
 import fastapi
 from datetime import datetime, timezone
-import psutil
+try:
+    import psutil
+except ImportError:
+    psutil = None
 
 from database import get_db
 from models.book_model import Book, Category, Subcategory

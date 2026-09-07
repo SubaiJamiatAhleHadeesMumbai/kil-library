@@ -79,7 +79,7 @@ jobs:
             docker compose cp ./library_backend/static/homepage_settings.json backend:/app/static/homepage_settings.json || true
 
             echo "🚀 Syncing fresh frontend build to all potential host Nginx webroots..."
-            for WEBROOT in /var/www/html /var/www/kil-library /var/www/kil-library/library-frontend/dist /root/kil-library/library-frontend/dist; do
+            for WEBROOT in /home/ahlehadeeskokan/htdocs/www.ahlehadeeskokan.com /home/ahlehadeeskokan/htdocs/ahlehadeeskokan.com /var/www/html /var/www/kil-library /var/www/kil-library/library-frontend/dist /root/kil-library/library-frontend/dist; do
               if [ -d "$WEBROOT" ]; then
                 echo "Syncing build into $WEBROOT..."
                 docker compose cp frontend:/usr/share/nginx/html/. "$WEBROOT/" || true
