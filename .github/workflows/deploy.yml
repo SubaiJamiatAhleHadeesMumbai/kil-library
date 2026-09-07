@@ -85,18 +85,41 @@ jobs:
             docker compose exec -T backend python create_tables.py || true
             docker compose exec -T backend python setup_admin.py || true
 
-            echo "📊 Checking container status..."
-            docker compose ps -a
+            echo "📊 Capturing comprehensive diagnostics to debug_status.txt..."
+            DEBUG_FILE="/tmp/debug_status.txt"
+            {
+              echo "=== 1. TIMESTAMP ==="
+              date -u
+              echo ""
+              echo "=== 2. DOCKER COMPOSE PS ==="
+              docker compose ps -a
+              echo ""
+              echo "=== 3. PORT LISTENING CHECK (8000) ==="
+              ss -tulpn | grep 8000 || netstat -tlpn | grep 8000 || echo "Port 8000 is NOT listening"
+              echo ""
+              echo "=== 4. HOST NGINX PROXY PASS CONFIG ==="
+              grep -rn "proxy_pass" /etc/nginx/sites-enabled/ /etc/nginx/conf.d/ 2>/dev/null || true
+              echo ""
+              echo "=== 5. BACKEND LOGS (last 100 lines) ==="
+              docker compose logs --tail=100 backend 2>&1 || true
+              echo ""
+              echo "=== 6. DB LOGS (last 50 lines) ==="
+              docker compose logs --tail=50 db 2>&1 || true
+              echo ""
+              echo "=== 7. ONE-OFF BACKEND IMPORT TEST ==="
+              docker compose run --rm backend python -c "import main; print('Backend Python main.py imports cleanly!')" 2>&1 || true
+              echo ""
+              echo "=== 8. DIRECT CURL TEST ON VPS ==="
+              curl -sv http://127.0.0.1:8000/docs 2>&1 || true
+            } > "$DEBUG_FILE"
 
-            echo "📋 Checking Backend Logs..."
-            docker compose logs --tail=100 backend || true
-
-            echo "📋 Checking DB Logs..."
-            docker compose logs --tail=50 db || true
-
-            echo "🌐 Testing Local Backend API on VPS..."
-            curl -I http://127.0.0.1:8000/docs || true
-            curl -I http://127.0.0.1:8000/api/settings/homepage-settings || true
+            echo "🚀 Publishing debug_status.txt to all webroots..."
+            for WEBROOT in /var/www/html /var/www/kil-library /var/www/kil-library/library-frontend/dist /root/kil-library/library-frontend/dist; do
+              if [ -d "$WEBROOT" ]; then
+                cp "$DEBUG_FILE" "$WEBROOT/debug_status.txt" || true
+              fi
+            done
+            cat "$DEBUG_FILE"
 
             echo "🧹 Cleaning unused docker images..."
             docker image prune -f
