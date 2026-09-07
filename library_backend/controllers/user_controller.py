@@ -52,12 +52,16 @@ def create_user(
         if not db.query(user_model.Role).filter(user_model.Role.id == user.role_id).first():
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Role with ID {user.role_id} not found.")
     else:
-        # Default to 'Member' if no role provided
-        member_role = db.query(user_model.Role).filter(user_model.Role.name == "Member").first()
-        if member_role:
-            user.role_id = member_role.id
-        else:
-            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Default 'Member' role not found. Please contact admin.")
+        # Default to non-admin role ('user' / 'Member' / 'Student') if no role provided
+        member_role = db.query(user_model.Role).filter(
+            user_model.Role.name.in_(["user", "Registered Member / Student", "Member", "member", "User", "Student", "student"])
+        ).first()
+        if not member_role:
+            member_role = user_model.Role(name="user", description="Standard library user")
+            db.add(member_role)
+            db.commit()
+            db.refresh(member_role)
+        user.role_id = member_role.id
 
     # 4. Create User
     try:

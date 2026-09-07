@@ -41,6 +41,7 @@ import UniversalSearchModal from "../common/UniversalSearchModal";
 import TopAnnouncementBar from "../common/TopAnnouncementBar";
 import MobileBottomNav from "./MobileBottomNav";
 import settingsService from "../../api/settingsService";
+import { isAdminUser } from "../../config/accessControl";
 
 // âœ… CONFIG
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || (import.meta.env.PROD ? "" : "http://127.0.0.1:8000");
@@ -96,9 +97,7 @@ const getRoleDisplayName = (u) => {
 
 const isUserAdmin = (u) => {
   if (!u) return false;
-  const roleName = typeof u.role === "object" ? (u.role.name || "") : String(u.role || "");
-  const normalized = roleName.toLowerCase().trim();
-  return ["admin", "superadmin", "super admin", "administrator"].includes(normalized);
+  return isAdminUser(u);
 };
 
 // ==========================================

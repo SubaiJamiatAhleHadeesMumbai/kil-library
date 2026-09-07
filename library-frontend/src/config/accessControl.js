@@ -19,6 +19,9 @@ export const PUBLIC_ROLES = [
   ROLE_NAMES.STUDENT,
   ROLE_NAMES.MEMBER,
   ROLE_NAMES.PUBLIC,
+  "registered member / student",
+  "registered member",
+  "guest",
 ];
 
 export const ADMIN_ALLOWED_ROLES = [
@@ -111,8 +114,9 @@ export function isStaffOrAdmin(user) {
     return true;
   }
 
-  // If role is not a basic public member
-  if (!PUBLIC_ROLES.includes(role)) {
+  // Explicit check: only roles listed in ADMIN_ALLOWED_ROLES are staff/admin
+  const normalizedAdminRoles = ADMIN_ALLOWED_ROLES.map((r) => normalizeRole(r));
+  if (normalizedAdminRoles.includes(role)) {
     return true;
   }
 
@@ -121,7 +125,8 @@ export function isStaffOrAdmin(user) {
 
 export function isAdminRole(roleLike) {
   const norm = normalizeRole(roleLike);
-  return !PUBLIC_ROLES.includes(norm);
+  const normalizedAdminRoles = ADMIN_ALLOWED_ROLES.map((r) => normalizeRole(r));
+  return normalizedAdminRoles.includes(norm);
 }
 
 export function isAdminUser(user) {

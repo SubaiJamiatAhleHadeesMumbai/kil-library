@@ -205,15 +205,26 @@ const Login = () => {
       setAuthData({ access_token: token, user }, token);
 
       const from = location.state?.from?.pathname;
-      const safeRedirect = from && from !== "/login" && from !== "/register" && from.startsWith("/");
+      const isAdmin = isAdminUser(user);
 
-      if (safeRedirect) {
+      if (from && from !== "/login" && from !== "/register" && from.startsWith("/")) {
+        // 🔒 SECURITY CHECK: Only allow redirect to /admin if the user is actually an Admin or Staff!
+        if (from.startsWith("/admin")) {
+          if (isAdmin) {
+            navigate(from, { replace: true });
+            return;
+          }
+          // Normal/Member users must NEVER be sent to an admin route!
+          navigate("/", { replace: true });
+          return;
+        }
+
         navigate(from, { replace: true });
         return;
       }
 
-      // If user is Admin, redirect to Admin Dashboard; Normal users always go to Homepage ("/")
-      if (isAdminUser(user)) {
+      // If user is Admin or Staff, redirect to Admin Dashboard; Normal users always go to Homepage ("/")
+      if (isAdmin) {
         navigate("/admin/dashboard", { replace: true });
       } else {
         navigate("/", { replace: true });

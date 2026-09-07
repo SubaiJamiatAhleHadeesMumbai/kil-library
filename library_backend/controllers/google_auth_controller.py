@@ -101,18 +101,11 @@ def google_login(payload: GoogleLoginRequest, db: Session = Depends(get_db)):
                     func.lower(user_model.Role.name).in_(["user", "registered member / student", "member", "student", "viewer"])
                 ).first()
 
-                # Safety fallback: find any role that does NOT contain admin keywords
+                # Fallback: strictly create/fetch 'user' or 'Registered Member / Student' role
                 if not role:
-                    role = db.query(user_model.Role).filter(
-                        ~func.lower(user_model.Role.name).contains("admin")
-                    ).first()
-
-                # Hard security invariant: Never grant Admin role by default
-                if not role or "admin" in (role.name or "").lower():
-                    # Fallback to creating/fetching a clean 'user' role
-                    role = db.query(user_model.Role).filter(user_model.Role.name == "user").first()
+                    role = db.query(user_model.Role).filter(user_model.Role.name.in_(["user", "Registered Member / Student", "member"])).first()
                     if not role:
-                        role = user_model.Role(name="user")
+                        role = user_model.Role(name="user", description="Standard public user")
                         db.add(role)
                         db.commit()
                         db.refresh(role)

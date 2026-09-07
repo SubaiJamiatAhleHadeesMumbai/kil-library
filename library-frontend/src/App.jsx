@@ -159,7 +159,7 @@ function App() {
           <Route
             path="admin"
             element={
-              <ProtectedRoute allowedRoles={ADMIN_ALLOWED_ROLES} redirectTo="/access-denied">
+              <ProtectedRoute allowedRoles={ADMIN_ALLOWED_ROLES} requireStaff={true} redirectTo="/access-denied">
                 <Layout />
               </ProtectedRoute>
             }

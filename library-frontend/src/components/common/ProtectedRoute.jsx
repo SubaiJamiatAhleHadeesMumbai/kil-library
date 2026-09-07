@@ -34,7 +34,12 @@ const getStoredUser = () => {
   }
 };
 
-const ProtectedRoute = ({ children, allowedRoles = [], redirectTo = "/access-denied" }) => {
+const ProtectedRoute = ({
+  children,
+  allowedRoles = [],
+  requireStaff = false,
+  redirectTo = "/access-denied",
+}) => {
   const { user, loading } = useAuth();
   const location = useLocation();
 
@@ -51,25 +56,30 @@ const ProtectedRoute = ({ children, allowedRoles = [], redirectTo = "/access-den
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  // 4) Super Admin always allowed
+  // 4) If no specific roles and not requiring staff, any logged-in user is allowed (e.g. /profile)
+  if (!requireStaff && allowedRoles.length === 0) {
+    return children;
+  }
+
+  // 5) Super Admin always allowed
   if (isSuperAdmin(currentUser)) {
     return children;
   }
 
-  // 5) If user is staff/admin or has assigned permissions
-  if (isStaffOrAdmin(currentUser)) {
-    // If specific allowedRoles are passed, check them or allow if staff
-    if (allowedRoles.length > 0) {
-      if (hasAnyRole(currentUser, allowedRoles) || isStaffOrAdmin(currentUser)) {
-        return children;
-      }
-    } else {
+  // 6) Check specific allowed roles or staff status
+  if (allowedRoles.length > 0) {
+    if (hasAnyRole(currentUser, allowedRoles) || isStaffOrAdmin(currentUser)) {
       return children;
     }
+    return <Navigate to={redirectTo} state={{ from: location }} replace />;
   }
 
-  // ❌ Plain Public user with 0 staff permissions blocked from admin routes
-  return <Navigate to={redirectTo} state={{ from: location }} replace />;
+  // 7) Require staff/admin
+  if (requireStaff && !isStaffOrAdmin(currentUser)) {
+    return <Navigate to={redirectTo} state={{ from: location }} replace />;
+  }
+
+  return children;
 };
 
 export default ProtectedRoute;
