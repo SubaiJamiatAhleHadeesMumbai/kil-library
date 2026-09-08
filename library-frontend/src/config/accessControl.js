@@ -19,6 +19,10 @@ export const PUBLIC_ROLES = [
   ROLE_NAMES.STUDENT,
   ROLE_NAMES.MEMBER,
   ROLE_NAMES.PUBLIC,
+  "user",
+  "student",
+  "member",
+  "viewer",
   "registered member / student",
   "registered member",
   "guest",
@@ -52,8 +56,8 @@ export const STAFF_PERMISSIONS = [
   'ROLE_VIEW',
   'ROLE_MANAGE',
   'ROLE_PERMISSION_ASSIGN',
-  'REQUEST_VIEW',
   'REQUEST_APPROVE',
+  'REQUEST_MANAGE',
   'LOG_VIEW',
   'HOMEPAGE_BRANDING_MANAGE',
   'HOMEPAGE_CONTENT_MANAGE',
@@ -104,19 +108,27 @@ export function isSuperAdmin(user) {
 
 export function isStaffOrAdmin(user) {
   if (!user) return false;
-  if (isSuperAdmin(user)) return true;
 
   const role = getUserRole(user);
-  const permissions = getUserPermissions(user);
+  const normalizedPublicRoles = PUBLIC_ROLES.map((r) => normalizeRole(r));
 
-  // If user has any staff permission assigned
-  if (permissions.some((p) => STAFF_PERMISSIONS.includes(p))) {
+  // 1. HARD SECURITY INVARIANT: Public roles are NEVER staff or admin!
+  if (normalizedPublicRoles.includes(role)) {
+    return false;
+  }
+
+  // 2. Superadmin check
+  if (isSuperAdmin(user)) return true;
+
+  // 3. Positive whitelist check: must be in ADMIN_ALLOWED_ROLES
+  const normalizedAdminRoles = ADMIN_ALLOWED_ROLES.map((r) => normalizeRole(r));
+  if (normalizedAdminRoles.includes(role)) {
     return true;
   }
 
-  // Explicit check: only roles listed in ADMIN_ALLOWED_ROLES are staff/admin
-  const normalizedAdminRoles = ADMIN_ALLOWED_ROLES.map((r) => normalizeRole(r));
-  if (normalizedAdminRoles.includes(role)) {
+  // 4. Staff permissions check ONLY for non-public accounts
+  const permissions = getUserPermissions(user);
+  if (permissions.some((p) => STAFF_PERMISSIONS.includes(p))) {
     return true;
   }
 
@@ -125,11 +137,21 @@ export function isStaffOrAdmin(user) {
 
 export function isAdminRole(roleLike) {
   const norm = normalizeRole(roleLike);
+  const normalizedPublicRoles = PUBLIC_ROLES.map((r) => normalizeRole(r));
+  if (normalizedPublicRoles.includes(norm)) {
+    return false;
+  }
   const normalizedAdminRoles = ADMIN_ALLOWED_ROLES.map((r) => normalizeRole(r));
   return normalizedAdminRoles.includes(norm);
 }
 
 export function isAdminUser(user) {
+  if (!user) return false;
+  const role = getUserRole(user);
+  const normalizedPublicRoles = PUBLIC_ROLES.map((r) => normalizeRole(r));
+  if (normalizedPublicRoles.includes(role)) {
+    return false;
+  }
   return isStaffOrAdmin(user);
 }
 

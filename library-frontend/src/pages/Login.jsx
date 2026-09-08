@@ -207,28 +207,23 @@ const Login = () => {
       const from = location.state?.from?.pathname;
       const isAdmin = isAdminUser(user);
 
-      if (from && from !== "/login" && from !== "/register" && from.startsWith("/")) {
-        // 🔒 SECURITY CHECK: Only allow redirect to /admin if the user is actually an Admin or Staff!
-        if (from.startsWith("/admin")) {
-          if (isAdmin) {
-            navigate(from, { replace: true });
-            return;
-          }
-          // Normal/Member users must NEVER be sent to an admin route!
+      // 🔒 HARD SECURITY INVARIANT:
+      // Non-admin / normal users (students, members, viewers) can NEVER be redirected to /admin
+      if (!isAdmin) {
+        if (!from || from.startsWith("/admin") || from === "/login" || from === "/register") {
           navigate("/", { replace: true });
           return;
         }
-
         navigate(from, { replace: true });
         return;
       }
 
-      // If user is Admin or Staff, redirect to Admin Dashboard; Normal users always go to Homepage ("/")
-      if (isAdmin) {
-        navigate("/admin/dashboard", { replace: true });
-      } else {
-        navigate("/", { replace: true });
+      // Only true Admins / Staff reach here:
+      if (from && from !== "/login" && from !== "/register" && from.startsWith("/")) {
+        navigate(from, { replace: true });
+        return;
       }
+      navigate("/admin/dashboard", { replace: true });
     },
     [navigate, location, setAuthData, rememberMe]
   );

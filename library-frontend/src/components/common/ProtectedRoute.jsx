@@ -66,16 +66,16 @@ const ProtectedRoute = ({
     return children;
   }
 
-  // 6) Check specific allowed roles or staff status
-  if (allowedRoles.length > 0) {
-    if (hasAnyRole(currentUser, allowedRoles) || isStaffOrAdmin(currentUser)) {
-      return children;
-    }
+  // 6) Hard Gate: If route requires staff/admin, non-staff/public users are strictly rejected
+  if (requireStaff && !isStaffOrAdmin(currentUser)) {
     return <Navigate to={redirectTo} state={{ from: location }} replace />;
   }
 
-  // 7) Require staff/admin
-  if (requireStaff && !isStaffOrAdmin(currentUser)) {
+  // 7) Check specific allowed roles
+  if (allowedRoles.length > 0) {
+    if (hasAnyRole(currentUser, allowedRoles)) {
+      return children;
+    }
     return <Navigate to={redirectTo} state={{ from: location }} replace />;
   }
 
