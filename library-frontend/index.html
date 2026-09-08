@@ -81,7 +81,8 @@
             document.documentElement.lang = 'en';
             return;
           }
-          var saved = localStorage.getItem('kil_language') || 'ur';
+          // Only apply if user explicitly chose a language
+          var saved = localStorage.getItem('kil_language');
           if (saved === 'ur' || saved === 'ar') {
             document.documentElement.dir = 'rtl';
             document.documentElement.lang = saved;
@@ -89,8 +90,11 @@
             document.cookie = 'googtrans=' + val + '; path=/;';
             document.cookie = 'googtrans=' + val + '; path=/; domain=' + window.location.hostname + ';';
           } else {
+            // Default is pure English LTR with NO automatic translation
             document.documentElement.dir = 'ltr';
             document.documentElement.lang = 'en';
+            document.cookie = 'googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+            document.cookie = 'googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=' + window.location.hostname + ';';
           }
         } catch (e) {}
       })();
@@ -109,10 +113,10 @@
           autoDisplay: false
         }, 'google_translate_element');
 
-        // Auto-select language if saved
+        // Only sync if user EXPLICITLY selected ur or ar before
         setTimeout(function() {
-          var saved = localStorage.getItem('kil_language') || 'ur';
-          if (saved && saved !== 'en') {
+          var saved = localStorage.getItem('kil_language');
+          if (saved && (saved === 'ur' || saved === 'ar')) {
             var select = document.querySelector('.goog-te-combo');
             if (select && select.value !== saved) {
               select.value = saved;

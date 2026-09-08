@@ -288,7 +288,7 @@ export const LanguageProvider = ({ children }) => {
   const location = useLocation();
   const isAdmin = location.pathname.startsWith('/admin');
 
-  // Load language preference from cookie or localStorage
+  // Load language preference strictly from user choice (cookie or localStorage)
   const [currentLang, setCurrentLang] = useState(() => {
     try {
       const cookieMatch = document.cookie.match(/(?:^|;\s*)kil_locale=([^;]+)/);
@@ -299,10 +299,6 @@ export const LanguageProvider = ({ children }) => {
       if (saved && ['ur', 'ar', 'en'].includes(saved)) {
         return saved;
       }
-      // Browser language detection
-      const browserLang = navigator.language || navigator.userLanguage || '';
-      if (browserLang.startsWith('ur')) return 'ur';
-      if (browserLang.startsWith('ar')) return 'ar';
       return 'en';
     } catch {
       return 'en';
