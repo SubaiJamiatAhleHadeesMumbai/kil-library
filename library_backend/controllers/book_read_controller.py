@@ -84,8 +84,8 @@ def _book_to_recommendation_payload(book: book_model.Book, score: int, reasons: 
             "is_digital": book.is_digital,
             "is_restricted": book.is_restricted,
             "language": {
-                "id": book.language.LanguageID,
-                "name": book.language.Name
+                "id": book.language.id,
+                "name": book.language.name
             } if getattr(book, "language", None) else None,
             "subcategories": [
                 {

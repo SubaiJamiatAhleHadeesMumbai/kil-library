@@ -13,7 +13,7 @@ from database import get_db
 from models import user_model
 from models.gallery_model import GalleryAlbum, GalleryItem
 
-router = APIRouter(prefix="/api/gallery", tags=["Gallery"])
+router = APIRouter(prefix="", tags=["Gallery"])
 
 UPLOAD_DIR = Path(__file__).resolve().parent.parent / "static" / "gallery_uploads"
 

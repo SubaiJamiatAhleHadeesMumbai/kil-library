@@ -566,7 +566,7 @@ api_router.include_router(bulk_actions_controller.router, prefix="/bulk", tags=[
 api_router.include_router(admin_dashboard_controller.router, prefix="/admin", tags=["Admin Dashboard"])
 api_router.include_router(book_order_controller.router, tags=["Book Orders & Paid Downloads"])
 api_router.include_router(translation_controller.router, prefix="/translations", tags=["Translations CMS"])
-api_router.include_router(gallery_controller.router, tags=["Gallery"])
+api_router.include_router(gallery_controller.router, prefix="/gallery", tags=["Gallery"])
 
 # Comments & Feedback
 api_router.include_router(comment_controller.router, prefix="/comments", tags=["Comments"])
@@ -574,7 +574,6 @@ api_router.include_router(admin_comment_controller.router, prefix="/admin/commen
 
 # Register Main Router
 app.include_router(api_router)
-app.include_router(gallery_controller.router, include_in_schema=False)
 app.include_router(translation_controller.router, prefix="/api/translations", include_in_schema=False)
 app.include_router(book_order_controller.router, prefix="/api/books", include_in_schema=False)
 app.include_router(social_work_controller.router, prefix="/social-work-items", include_in_schema=False)

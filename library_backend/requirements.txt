@@ -67,3 +67,4 @@ botocore==1.36.18
 pypdf>=5.0.0
 pillow>=10.0.0
 psutil>=5.9.0
+httpx>=0.25.0
