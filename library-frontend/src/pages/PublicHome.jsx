@@ -300,7 +300,7 @@ const PublicHome = () => {
     setLoading(true);
     try {
       const [booksRes, catRes, settingsRes, aboutRes, activitiesRes, fatawaRes] = await Promise.allSettled([
-        bookService.getAllBooks(0, 200),
+        bookService.getAllBooks({ approved_only: true, sort_order: 'desc' }, 200),
         categoryService.getAllCategories(),
         settingsService.getHomepageSettings(),
         aboutService.getAboutSettings(),
@@ -308,9 +308,10 @@ const PublicHome = () => {
         fatawaService.getQuestions({ status: 'answered', limit: 3 }),
       ]);
 
-      // 1. Process Books
+      // 1. Process Books - only approved books should appear on public homepage
       if (booksRes.status === 'fulfilled' && booksRes.value) {
-        const list = Array.isArray(booksRes.value) ? booksRes.value : booksRes.value?.books || [];
+        const rawList = Array.isArray(booksRes.value) ? booksRes.value : booksRes.value?.books || [];
+        const list = rawList.filter(b => b.is_approved !== false);
         setBooks(list);
       } else {
         setBooks([]);

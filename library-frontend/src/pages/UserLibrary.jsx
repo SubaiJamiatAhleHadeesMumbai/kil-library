@@ -314,7 +314,9 @@ const UserLibrary = () => {
       });
 
       if (requestId === activeRequestRef.current) {
-        setBooks(Array.isArray(data) ? data : data?.books || []);
+        const rawList = Array.isArray(data) ? data : data?.books || [];
+        const list = rawList.filter(b => b.is_approved !== false);
+        setBooks(list);
       }
     } catch (error) {
       console.error(error);

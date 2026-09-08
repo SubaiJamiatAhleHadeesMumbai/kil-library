@@ -58,6 +58,9 @@ export const useBookSearch = (initialBooks = []) => {
     const subcatFilter = selectedSubcategory ? String(selectedSubcategory).trim() : "all";
 
     return books.filter((book) => {
+      // Only approved books should be visible in public search
+      if (book?.is_approved === false) return false;
+
       /** ✅ 1) Language filter */
       if (langFilter !== "all") {
         const bookLang = getLanguageName(book);
