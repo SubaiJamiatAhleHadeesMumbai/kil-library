@@ -1,35 +1,45 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { ArrowLeft, BookText, FileText, LayoutGrid } from 'lucide-react';
+import { 
+  ArrowLeft, BookText, FileText, LayoutGrid, 
+  Maximize2, Minimize2, Search, X, ChevronUp, ChevronDown 
+} from 'lucide-react';
 import Toolbar from './Toolbar';
 import PdfViewer from './PdfViewer';
+import interactionService from '../../api/interactionService';
 
 const LANDING_UNLOCK_DELAY_MS = 200;
 const SEARCH_DEBOUNCE_MS = 400;
 
 const SmartReader = ({ 
   pdfUrl, 
+  directPdfUrl,
+  fallbackPdfUrl,
   txtUrl, 
   directTxtUrl,
   onClose, 
   onBackToSearch,
   initialPage = 1, 
   initialSearchText = "",
-  bookTitle = "Book Reader"
+  bookTitle = "Book Reader",
+  book = null,
+  bookId = null,
 }) => {
   const [isMobile, setIsMobile] = useState(() => (typeof window !== 'undefined' ? window.innerWidth < 768 : false));
   
-  // Shared States
+  // Shared States — Default to 100% Full-Width Single Mode (PDF first, or Text) on ALL devices!
   const [layoutMode, setLayoutMode] = useState(() => {
-    if (typeof window !== 'undefined' && window.innerWidth < 768) {
-      return pdfUrl ? 'pdf' : 'text';
-    }
-    if (pdfUrl && txtUrl) return 'split';
-    if (txtUrl && !pdfUrl) return 'text';
+    if (pdfUrl) return 'pdf';
+    if (txtUrl || directTxtUrl) return 'text';
     return 'pdf';
   }); 
 
-  const [viewMode, setViewMode] = useState(() => (typeof window !== 'undefined' && window.innerWidth < 768 ? 'single' : 'scroll')); 
+  // Zen Focus Mode & Expandable Search
+  const [isFocusMode, setIsFocusMode] = useState(false);
+  const [isSearchOpen, setIsSearchOpen] = useState(() => Boolean(initialSearchText));
+  const [textFontSize, setTextFontSize] = useState(1.15); // rem font size for text reader 
+
+  const [viewMode, setViewMode] = useState('scroll'); 
   
   const [currentPage, setCurrentPage] = useState(initialPage);
   const [searchText, setSearchText] = useState(initialSearchText);
@@ -94,16 +104,89 @@ const SmartReader = ({
     return () => window.removeEventListener('resize', onResize);
   }, []);
 
+  // Keyboard shortcut: Escape exits focus/search, 'F' toggles focus mode
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        if (isFocusMode) {
+          setIsFocusMode(false);
+        } else if (isSearchOpen) {
+          setIsSearchOpen(false);
+        }
+      }
+      if ((e.key === 'f' || e.key === 'F') && !e.target.matches('input, textarea')) {
+        setIsFocusMode((prev) => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isFocusMode, isSearchOpen]);
+
+  // ---------------------------------------------------------
+  // Live Reading Progress Sync (LocalStorage + Event + Backend)
+  // ---------------------------------------------------------
+  const effectiveBookId = bookId || book?.id;
+  const effectiveTitle = bookTitle || book?.title || "Book";
+  const effectiveCover = book?.cover_image_url || book?.cover_image;
+
+  useEffect(() => {
+    if (!effectiveBookId) return;
+
+    const pageNum = Number(currentPage) || 1;
+    const maxPages = Math.max(totalPages, Object.keys(allPagesContent).length || 1);
+
+    const timer = setTimeout(() => {
+      try {
+        // 1. Update primary Navbar "Continue Reading" widget key
+        const lastReadPayload = {
+          bookId: effectiveBookId,
+          title: effectiveTitle,
+          page: pageNum,
+          totalPages: maxPages,
+          cover: effectiveCover,
+          timestamp: Date.now()
+        };
+        localStorage.setItem('kil_last_read_book', JSON.stringify(lastReadPayload));
+
+        // 2. Dispatch live cross-component sync event
+        window.dispatchEvent(new CustomEvent('kil_reading_updated', { detail: lastReadPayload }));
+
+        // 3. Also update recent reads array for Homepage carousel / Library
+        const rawRecent = localStorage.getItem('bookNest_recent_reads');
+        let recentReads = [];
+        try {
+          recentReads = rawRecent ? JSON.parse(rawRecent) : [];
+        } catch {}
+        if (!Array.isArray(recentReads)) recentReads = [];
+
+        const updatedEntry = {
+          book_id: Number(effectiveBookId),
+          title: effectiveTitle,
+          cover_image_url: effectiveCover,
+          last_page_read: pageNum,
+          total_pages: maxPages,
+          updated_at: new Date().toISOString()
+        };
+        const filtered = recentReads.filter(r => String(r.book_id) !== String(effectiveBookId));
+        filtered.unshift(updatedEntry);
+        localStorage.setItem('bookNest_recent_reads', JSON.stringify(filtered.slice(0, 10)));
+
+        // 4. Background Cloud Sync for logged-in users (silently handled if guest/offline)
+        interactionService.updateProgress(effectiveBookId, pageNum, maxPages);
+      } catch (err) {
+        console.warn('Could not sync reading progress:', err);
+      }
+    }, 600); // 600ms debounce
+
+    return () => clearTimeout(timer);
+  }, [effectiveBookId, effectiveTitle, effectiveCover, currentPage, totalPages, allPagesContent]);
+
+
   useEffect(() => {
     if (isMobile) {
       if (layoutMode === 'split') setLayoutMode(pdfUrl ? 'pdf' : 'text');
-      if (viewMode !== 'single') setViewMode('single');
-    } else {
-      if (pdfUrl && txtUrl && layoutMode !== 'split' && layoutMode !== 'pdf' && layoutMode !== 'text') {
-        setLayoutMode('split');
-      }
     }
-  }, [isMobile, layoutMode, viewMode, pdfUrl, txtUrl]);
+  }, [isMobile, layoutMode, pdfUrl]);
 
   // ---------------------------------------------------------
   // 1. FETCH & SPLIT TEXT BY DELIMITERS (with Fallback to Direct URL)
@@ -123,6 +206,11 @@ const SmartReader = ({
 
       const decodeArrayBuffer = (buffer) => {
         const bytes = new Uint8Array(buffer);
+        // If binary ZIP/DOCX signature (PK\x03\x04) is detected, do not decode raw binary as characters!
+        if (bytes.length > 4 && bytes[0] === 0x50 && bytes[1] === 0x4B && bytes[2] === 0x03 && bytes[3] === 0x04) {
+          console.warn("Direct DOCX binary file detected. Text must be streamed via /api/books/{id}/stream-text");
+          return "";
+        }
         try {
           const utf8Decoder = new TextDecoder('utf-8', { fatal: true });
           const decoded = utf8Decoder.decode(bytes);
@@ -360,110 +448,260 @@ const SmartReader = ({
   const displayTotalPages = Math.max(totalPages, Object.keys(allPagesContent).length || 1);
 
   const readerContent = (
-    <div className="fixed inset-0 z-[10080] bg-white flex flex-col min-h-0 h-[100dvh] w-screen overflow-hidden">
-      <div className="flex items-center justify-between gap-2 border-b border-slate-200 bg-white/95 px-2.5 py-2 backdrop-blur sm:px-4 sm:py-2.5 shrink-0">
-        <div className="flex min-w-0 items-center gap-1.5 sm:gap-2">
-          <button
-            type="button"
-            onClick={() => {
-              if (onBackToSearch) {
-                onBackToSearch();
-                return;
-              }
-              onClose?.();
-            }}
-            className="inline-flex items-center gap-1 sm:gap-2 rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 sm:px-3 sm:py-1.5 text-xs font-bold text-slate-700 transition hover:bg-slate-100"
-            title="Back to search"
-          >
-            <ArrowLeft size={14} className="sm:w-4 sm:h-4" />
-            <span className="hidden sm:inline">Back to Search</span>
-            <span className="sm:hidden text-[11px]">Back</span>
-          </button>
-          <div className="min-w-0 flex-col flex max-w-[140px] sm:max-w-xs">
-            <span className="truncate text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-400">{bookTitle}</span>
-            <span className="truncate text-[11px] sm:text-xs font-bold text-slate-800 font-mono">Page {currentPage} of {displayTotalPages}</span>
+    <div 
+      className="fixed inset-0 z-[10080] bg-[#FAF8F5] flex flex-col min-h-0 h-screen w-full overflow-hidden"
+      style={{ height: '100dvh', maxHeight: '100dvh' }}
+    >
+      
+      {/* 1. ZEN / FULLSCREEN EXIT PILL (Visible ONLY in Focus Mode) */}
+      {isFocusMode && (
+        <button
+          onClick={() => setIsFocusMode(false)}
+          className="fixed top-3 end-4 z-[10090] flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-slate-900/90 text-white text-xs font-bold shadow-2xl border border-slate-700/80 backdrop-blur-md hover:bg-slate-800 transition cursor-pointer"
+          title="Exit Focus Mode (Esc or F)"
+        >
+          <Minimize2 size={13} />
+          <span>Exit Focus</span>
+        </button>
+      )}
+
+      {/* 2. UNIFIED SLIM HEADER BAR (Hidden in Focus Mode for 100% full screen) */}
+      {!isFocusMode && (
+        <div className="flex flex-col shrink-0 border-b border-slate-200 bg-white shadow-2xs z-30">
+          <div className="flex items-center justify-between gap-1.5 sm:gap-3 px-2 py-1.5 sm:px-4 sm:py-2">
+            
+            {/* Left: Back + Book Title & Page */}
+            <div className="flex min-w-0 items-center gap-1.5 sm:gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  if (onBackToSearch) {
+                    onBackToSearch();
+                    return;
+                  }
+                  onClose?.();
+                }}
+                className="inline-flex items-center gap-1 sm:gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 sm:px-3 sm:py-1.5 text-xs font-bold text-slate-700 transition hover:bg-slate-100 cursor-pointer shrink-0"
+                title="Back to search / library"
+              >
+                <ArrowLeft size={13} />
+                <span className="hidden sm:inline">Back</span>
+              </button>
+
+              <div className="min-w-0 flex flex-col max-w-[130px] sm:max-w-xs md:max-w-md">
+                <span className="truncate text-xs sm:text-sm font-bold text-slate-900 leading-tight">{bookTitle}</span>
+                <span className="truncate text-[10.5px] font-mono text-slate-500">Page {currentPage} of {displayTotalPages}</span>
+              </div>
+            </div>
+
+            {/* Right: Actions (Search, Font Size, Focus, Mode Switcher) */}
+            <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
+              
+              {/* Search Toggle Button */}
+              <button
+                type="button"
+                onClick={() => setIsSearchOpen((prev) => !prev)}
+                className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 sm:px-3 sm:py-1.5 text-xs font-bold transition cursor-pointer ${
+                  isSearchOpen || globalMatches.length > 0
+                    ? 'bg-emerald-600 text-white shadow-xs'
+                    : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                }`}
+                title="Search inside book"
+              >
+                <Search size={13} />
+                <span className="hidden md:inline">Search</span>
+                {globalMatches.length > 0 && (
+                  <span className="bg-white/20 text-white rounded-full px-1.5 py-0.2 text-[10px] font-mono">
+                    {currentMatchIndex + 1}/{globalMatches.length}
+                  </span>
+                )}
+              </button>
+
+              {/* Font Size A- / A+ (Visible in Text or Split Mode) */}
+              {(layoutMode === 'text' || layoutMode === 'split') && (
+                <div className="hidden sm:flex items-center rounded-full border border-slate-200 bg-slate-50 p-0.5 text-xs font-bold text-slate-700">
+                  <button
+                    type="button"
+                    onClick={() => setTextFontSize((s) => Math.max(0.9, Number((s - 0.1).toFixed(2))))}
+                    className="px-2 py-0.5 hover:bg-slate-200 rounded-full transition cursor-pointer"
+                    title="Smaller text"
+                  >
+                    A−
+                  </button>
+                  <span className="text-[10px] text-slate-400 px-1 font-mono">{Math.round((textFontSize / 1.15) * 100)}%</span>
+                  <button
+                    type="button"
+                    onClick={() => setTextFontSize((s) => Math.min(1.8, Number((s + 0.1).toFixed(2))))}
+                    className="px-2 py-0.5 hover:bg-slate-200 rounded-full transition cursor-pointer"
+                    title="Larger text"
+                  >
+                    A+
+                  </button>
+                </div>
+              )}
+
+              {/* Zen Focus Mode Button (1-Click Fullscreen) */}
+              <button
+                type="button"
+                onClick={() => setIsFocusMode(true)}
+                className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 sm:px-3 sm:py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-100 transition cursor-pointer"
+                title="Zen Focus Mode — Hide headers for maximum reading space (F)"
+              >
+                <Maximize2 size={13} />
+                <span className="hidden lg:inline">Focus</span>
+              </button>
+
+              {/* Layout Mode Switcher */}
+              <div className="flex items-center gap-0.5 rounded-full border border-slate-200 bg-slate-50 p-0.5 shadow-2xs">
+                {pdfUrl && (
+                  <button
+                    type="button"
+                    onClick={() => setLayoutMode('pdf')}
+                    aria-pressed={layoutMode === 'pdf'}
+                    className={`px-2 sm:px-2.5 py-1 rounded-full text-xs font-bold transition cursor-pointer ${
+                      layoutMode === 'pdf' ? 'bg-[#002147] text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                    title="PDF Full Width"
+                  >
+                    PDF
+                  </button>
+                )}
+                {(txtUrl || directTxtUrl) && (
+                  <button
+                    type="button"
+                    onClick={() => setLayoutMode('text')}
+                    aria-pressed={layoutMode === 'text'}
+                    className={`px-2 sm:px-2.5 py-1 rounded-full text-xs font-bold transition cursor-pointer ${
+                      layoutMode === 'text' ? 'bg-[#002147] text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                    title="Text Full Width"
+                  >
+                    TXT
+                  </button>
+                )}
+                {pdfUrl && (txtUrl || directTxtUrl) && (
+                  <button
+                    type="button"
+                    onClick={() => setLayoutMode('split')}
+                    aria-pressed={layoutMode === 'split'}
+                    className={`px-2 sm:px-2.5 py-1 rounded-full text-xs font-bold transition cursor-pointer ${
+                      layoutMode === 'split' ? 'bg-[#002147] text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                    title="Side by Side (Both)"
+                  >
+                    Both
+                  </button>
+                )}
+              </div>
+            </div>
           </div>
-        </div>
 
-        {/* Mode Switcher */}
-        <div className="flex items-center gap-0.5 sm:gap-1 rounded-full border border-slate-200 bg-slate-50 p-0.5 sm:p-1 shadow-xs">
-          <button
-            type="button"
-            onClick={() => setLayoutMode('split')}
-            aria-pressed={layoutMode === 'split'}
-            className={`inline-flex items-center gap-1 rounded-full px-2 py-1 sm:px-3 sm:py-1.5 text-[11px] sm:text-xs font-bold transition ${layoutMode === 'split' ? 'bg-[#002147] text-white shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
-            title="Both PDF and Text"
-            disabled={!pdfUrl || !txtUrl}
-          >
-            <LayoutGrid size={12} className="sm:w-3.5 sm:h-3.5" />
-            <span className="hidden xs:inline">Both</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setLayoutMode('text')}
-            aria-pressed={layoutMode === 'text'}
-            className={`inline-flex items-center gap-1 rounded-full px-2 py-1 sm:px-3 sm:py-1.5 text-[11px] sm:text-xs font-bold transition ${layoutMode === 'text' ? 'bg-[#002147] text-white shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
-            title="Text only"
-            disabled={!txtUrl && !directTxtUrl}
-          >
-            <BookText size={12} className="sm:w-3.5 sm:h-3.5" />
-            <span>TXT</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setLayoutMode('pdf')}
-            aria-pressed={layoutMode === 'pdf'}
-            className={`inline-flex items-center gap-1 rounded-full px-2 py-1 sm:px-3 sm:py-1.5 text-[11px] sm:text-xs font-bold transition ${layoutMode === 'pdf' ? 'bg-[#002147] text-white shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
-            title="PDF only"
-            disabled={!pdfUrl}
-          >
-            <FileText size={12} className="sm:w-3.5 sm:h-3.5" />
-            <span>PDF</span>
-          </button>
+          {/* Search Drawer (Expands smoothly ONLY when search is toggled open) */}
+          {isSearchOpen && (
+            <div className="flex items-center justify-between gap-2 border-t border-slate-100 bg-slate-50/95 px-3 py-2 animate-in slide-in-from-top-1 duration-200">
+              <div className="flex flex-1 items-center gap-2 max-w-xl">
+                <Search size={14} className="text-emerald-600 shrink-0" />
+                <input
+                  type="text"
+                  autoFocus
+                  value={searchText}
+                  onChange={(e) => handleSearchChange(e.target.value)}
+                  placeholder="Search word or phrase in book..."
+                  className="w-full bg-transparent text-xs sm:text-sm font-semibold text-slate-900 outline-none placeholder:text-slate-400"
+                />
+                {searchText && (
+                  <button
+                    type="button"
+                    onClick={clearSearch}
+                    className="p-1 text-slate-400 hover:text-slate-700 rounded-full"
+                    title="Clear search"
+                  >
+                    <X size={13} />
+                  </button>
+                )}
+              </div>
+
+              <div className="flex items-center gap-1.5 shrink-0">
+                <span className="text-xs font-bold text-emerald-800 bg-emerald-100/80 px-2 py-0.5 rounded-md font-mono">
+                  {globalMatches.length > 0 ? `${currentMatchIndex + 1}/${globalMatches.length}` : '0 found'}
+                </span>
+                <button
+                  type="button"
+                  onClick={handlePrevMatch}
+                  disabled={globalMatches.length === 0}
+                  className="p-1.5 rounded-lg border border-slate-200 bg-white text-slate-700 hover:bg-slate-100 disabled:opacity-30 transition cursor-pointer"
+                  title="Previous match"
+                >
+                  <ChevronUp size={14} />
+                </button>
+                <button
+                  type="button"
+                  onClick={handleNextMatch}
+                  disabled={globalMatches.length === 0}
+                  className="p-1.5 rounded-lg border border-slate-200 bg-white text-slate-700 hover:bg-slate-100 disabled:opacity-30 transition cursor-pointer"
+                  title="Next match"
+                >
+                  <ChevronDown size={14} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsSearchOpen(false)}
+                  className="p-1.5 text-slate-400 hover:text-slate-700 rounded-lg ml-1"
+                  title="Close search"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+            </div>
+          )}
         </div>
+      )}
+
+      <div className="flex-1 min-h-0 w-full h-full flex flex-col overflow-hidden">
+        <Toolbar 
+          searchText={searchText}
+          onSearchChange={handleSearchChange}
+          searchCount={globalMatches.length}
+          activeSearchIndex={currentMatchIndex}
+          onSearchPrev={handlePrevMatch}
+          onSearchNext={handleNextMatch}
+          onClearSearch={clearSearch}
+          isIndexing={isIndexing}
+          onPageSubmit={handlePageSubmit}
+          viewMode={viewMode}
+          onPageChange={handleAutoPageChange}
+          pdfComponent={pdfUrl ? (
+            <PdfViewer 
+              pdfUrl={pdfUrl}
+              fallbackPdfUrl={fallbackPdfUrl || directPdfUrl}
+              isMobile={isMobile}
+              viewMode={viewMode}
+              scale={scale}
+              setScale={setScale}
+              totalPages={totalPages}
+              setTotalPages={setTotalPages}
+              currentPage={currentPage}
+              setCurrentPage={setCurrentPage}
+              onAutoPageChange={handleAutoPageChange}
+              suppressAutoPageTracking={isLandingLocked}
+              onDocumentReady={() => setPdfReady(true)}
+              onDocumentError={() => setPdfReady(true)}
+              onLandingResolved={handleLandingResolved}
+              searchText={searchText}
+            />
+          ) : null}
+          textContent={allPagesContent[currentPage] || ""}
+          allPagesContent={allPagesContent}
+          isLoading={isLoadingText}
+          layoutMode={layoutMode}
+          suppressAutoPageTracking={isLandingLocked}
+          globalMatches={globalMatches}
+          currentMatchIndex={currentMatchIndex}
+          totalPages={displayTotalPages}
+          currentPage={currentPage}
+          textFontSize={textFontSize}
+        />
       </div>
-
-      <Toolbar 
-        searchText={searchText}
-        onSearchChange={handleSearchChange}
-        searchCount={globalMatches.length}
-        activeSearchIndex={currentMatchIndex}
-        onSearchPrev={handlePrevMatch}
-        onSearchNext={handleNextMatch}
-        onClearSearch={clearSearch}
-        isIndexing={isIndexing}
-        onPageSubmit={handlePageSubmit}
-        viewMode={viewMode}
-        onPageChange={handleAutoPageChange}
-        pdfComponent={pdfUrl ? (
-          <PdfViewer 
-            pdfUrl={pdfUrl}
-            isMobile={isMobile}
-            viewMode={viewMode}
-            scale={scale}
-            setScale={setScale}
-            totalPages={totalPages}
-            setTotalPages={setTotalPages}
-            currentPage={currentPage}
-            setCurrentPage={setCurrentPage}
-            onAutoPageChange={handleAutoPageChange}
-            suppressAutoPageTracking={isLandingLocked}
-            onDocumentReady={() => setPdfReady(true)}
-            onDocumentError={() => setPdfReady(true)}
-            onLandingResolved={handleLandingResolved}
-            searchText={searchText}
-          />
-        ) : null}
-        textContent={allPagesContent[currentPage] || ""}
-        allPagesContent={allPagesContent}
-        isLoading={isLoadingText}
-        layoutMode={layoutMode}
-        suppressAutoPageTracking={isLandingLocked}
-        globalMatches={globalMatches}
-        currentMatchIndex={currentMatchIndex}
-        totalPages={displayTotalPages}
-        currentPage={currentPage}
-      />
     </div>
   );
 

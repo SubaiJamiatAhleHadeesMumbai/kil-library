@@ -14,6 +14,7 @@ import 'react-pdf/dist/Page/TextLayer.css';
 
 const PdfViewer = ({ 
   pdfUrl, 
+  fallbackPdfUrl = null,
   viewMode = 'scroll', 
   scale = 1.0, 
   setScale = () => {}, 
@@ -33,21 +34,60 @@ const PdfViewer = ({
   const pageRefs = useRef({});
   const isProgrammaticScrollRef = useRef(false);
   const scrolledPageRef = useRef(null);
+  const isUserScrollingPdfRef = useRef(false);
+  const userScrollTimerRef = useRef(null);
   const [containerWidth, setContainerWidth] = useState(0);
-  const [loadError, setLoadError] = useState(null); // ✅ optional: surfaces real errors instead of silent infinite spinner
+  const [loadError, setLoadError] = useState(null);
+  const [activePdfUrl, setActivePdfUrl] = useState(pdfUrl);
+  const [fallbackAttempted, setFallbackAttempted] = useState(false);
+  const [docTotalPages, setDocTotalPages] = useState(() => totalPages || 1);
+
+  // Sync active URL when pdfUrl prop changes
+  useEffect(() => {
+    setActivePdfUrl(pdfUrl);
+    setFallbackAttempted(false);
+    setLoadError(null);
+  }, [pdfUrl]);
+
+  // Synchronize internal docTotalPages with prop
+  useEffect(() => {
+    if (totalPages && totalPages > 1) {
+      setDocTotalPages(totalPages);
+    }
+  }, [totalPages]);
+
+  const effectiveTotalPages = Math.max(docTotalPages, totalPages || 1);
+
+  // Keyboard vertical scrolling support (ArrowUp, ArrowDown, PageUp, PageDown, Space)
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (['INPUT', 'TEXTAREA'].includes(document.activeElement?.tagName)) return;
+      if (e.key === 'ArrowDown') {
+        scrollAreaRef.current?.scrollBy({ top: 140, behavior: 'smooth' });
+      } else if (e.key === 'ArrowUp') {
+        scrollAreaRef.current?.scrollBy({ top: -140, behavior: 'smooth' });
+      } else if (e.key === 'PageDown' || (e.key === ' ' && !e.shiftKey)) {
+        scrollAreaRef.current?.scrollBy({ top: window.innerHeight * 0.75, behavior: 'smooth' });
+      } else if (e.key === 'PageUp' || (e.key === ' ' && e.shiftKey)) {
+        scrollAreaRef.current?.scrollBy({ top: -window.innerHeight * 0.75, behavior: 'smooth' });
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   // Stable memoized file source so <Document> does NOT reload on every re-render (e.g. on scroll/page change)
   const fileSource = useMemo(() => {
-    if (!pdfUrl) return null;
-    return typeof pdfUrl === 'string' ? { url: pdfUrl, withCredentials: false } : pdfUrl;
-  }, [pdfUrl]);
+    if (!activePdfUrl) return null;
+    return typeof activePdfUrl === 'string' ? { url: activePdfUrl, withCredentials: false } : activePdfUrl;
+  }, [activePdfUrl]);
 
-  // Handle responsive width for mobile
+  // Handle responsive width for mobile and desktop containers
   useEffect(() => {
     const updateWidth = () => {
       if (containerRef.current) {
         const w = containerRef.current.offsetWidth;
-        const pad = window.innerWidth < 768 ? 16 : 48;
+        const pad = window.innerWidth < 768 ? 12 : 24;
         setContainerWidth(Math.max(280, w - pad));
       }
     };
@@ -56,8 +96,19 @@ const PdfViewer = ({
     return () => window.removeEventListener('resize', updateWidth);
   }, []);
 
-  // Automatic scaling for mobile devices based on standard A4 PDF width (595.28 pt)
-  const dynamicScale = containerWidth < 768 ? Math.max(0.45, (containerWidth / 595.28) * scale) : scale;
+  // Automatic responsive scaling based on container width vs standard A4 PDF width (595.28 pt)
+  // Ensures readable width on mobile, comfortable centered reading on desktop, and respects user zoom
+  const dynamicScale = useMemo(() => {
+    if (!containerWidth) return scale;
+    if (window.innerWidth < 768) {
+      const fit = (containerWidth / 595.28) * scale;
+      return Math.max(0.45, Math.min(2.5, fit));
+    }
+    // Tablet / Desktop:
+    const targetWidth = Math.min(containerWidth * 0.95, 920);
+    const fit = (targetWidth / 595.28) * scale;
+    return Math.max(0.5, Math.min(2.8, fit));
+  }, [containerWidth, scale]);
 
   const renderHighlightedText = useCallback((textItem) => {
     if (!searchText || !textItem?.str) return textItem.str;
@@ -83,8 +134,20 @@ const PdfViewer = ({
   const handlePrev = () => setCurrentPage(prev => Math.max(1, prev - 1));
   const handleNext = () => setCurrentPage(prev => Math.min(totalPages, prev + 1));
 
+  const handlePdfScroll = useCallback(() => {
+    if (isProgrammaticScrollRef.current) return;
+    isUserScrollingPdfRef.current = true;
+    if (userScrollTimerRef.current) clearTimeout(userScrollTimerRef.current);
+    userScrollTimerRef.current = setTimeout(() => {
+      isUserScrollingPdfRef.current = false;
+    }, 300);
+  }, []);
+
   useEffect(() => {
     if (viewMode !== 'scroll' || !currentPage) return;
+
+    // IF THE USER IS ACTIVELY SCROLLING THE PDF, DO NOT FORCE SCROLL / SNAP JUMP!
+    if (isUserScrollingPdfRef.current) return;
 
     // If currentPage change was triggered by user's natural scrolling, DO NOT snap/jump!
     if (scrolledPageRef.current === currentPage) {
@@ -107,11 +170,12 @@ const PdfViewer = ({
       isProgrammaticScrollRef.current = true;
       // Keep target page slightly below the top controls for better context visibility.
       const landingOffset = 24;
+      const scrollBehavior = suppressAutoPageTracking ? 'auto' : 'smooth';
       if (scrollAreaRef.current) {
         const nextTop = Math.max(0, targetPage.offsetTop - landingOffset);
-        scrollAreaRef.current.scrollTo({ top: nextTop, behavior: 'auto' });
+        scrollAreaRef.current.scrollTo({ top: nextTop, behavior: scrollBehavior });
       } else {
-        targetPage.scrollIntoView({ behavior: 'auto', block: 'start' });
+        targetPage.scrollIntoView({ behavior: scrollBehavior, block: 'start' });
       }
 
       releaseTimer = window.setTimeout(() => {
@@ -131,7 +195,7 @@ const PdfViewer = ({
   return (
     <div 
       ref={containerRef}
-      className="flex-1 min-h-0 bg-[#F8FAFC] relative flex flex-col items-stretch overflow-hidden h-full"
+      className="flex-1 min-h-0 w-full bg-[#FAF8F5] relative flex flex-col items-stretch overflow-hidden h-full"
     >
       {/* --- ULTRA-COMPACT SLEEK FLOATING CONTROLS (DOCKED AT BOTTOM) --- */}
       {pdfUrl && (
@@ -207,7 +271,12 @@ const PdfViewer = ({
       )}
 
       {/* --- MAIN VIEWER AREA --- */}
-      <div ref={scrollAreaRef} className="flex-1 min-h-0 w-full overflow-y-auto px-2 py-3 md:px-4 md:py-4 scroll-smooth custom-scrollbar">
+      <div 
+        ref={scrollAreaRef} 
+        onScroll={handlePdfScroll}
+        className="flex-1 min-h-0 w-full overflow-y-auto px-1 sm:px-3 pt-2 pb-28 sm:pb-32 custom-scrollbar overscroll-contain"
+        style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}
+      >
         {!pdfUrl ? (
           <div className="flex flex-col items-center justify-center text-slate-400 h-full animate-in fade-in duration-700">
             <div className="w-20 h-20 bg-slate-100 rounded-3xl flex items-center justify-center mb-6 ring-8 ring-slate-50">
@@ -217,25 +286,48 @@ const PdfViewer = ({
             <p className="text-sm">Upload a PDF to start viewing</p>
           </div>
         ) : loadError ? (
-          // ✅ FIX: Silent-stuck-loader ki jagah ab actual error dikhega
-          <div className="flex flex-col items-center justify-center text-red-400 h-full animate-in fade-in duration-700">
-            <div className="w-20 h-20 bg-red-50 rounded-3xl flex items-center justify-center mb-6 ring-8 ring-red-50/50">
-              <FileText size={40} className="text-red-300"/>
+          // Error UI with Retry Action
+          <div className="flex flex-col items-center justify-center text-red-400 h-full py-16 animate-in fade-in duration-700">
+            <div className="w-20 h-20 bg-red-500/10 rounded-3xl flex items-center justify-center mb-6 ring-8 ring-red-500/5">
+              <FileText size={40} className="text-red-400"/>
             </div>
-            <h3 className="text-lg font-semibold text-red-600">Failed to load PDF</h3>
-            <p className="text-sm text-red-400 max-w-sm text-center px-4">{loadError}</p>
+            <h3 className="text-lg font-bold text-red-400">Unable to load PDF</h3>
+            <p className="text-xs text-slate-400 max-w-sm text-center px-4 mt-1 leading-relaxed">{loadError}</p>
+            <button
+              type="button"
+              onClick={() => {
+                setLoadError(null);
+                if (fallbackPdfUrl && activePdfUrl !== fallbackPdfUrl) {
+                  setFallbackAttempted(true);
+                  setActivePdfUrl(fallbackPdfUrl);
+                } else {
+                  setActivePdfUrl(pdfUrl);
+                }
+              }}
+              className="mt-5 px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs transition shadow-md cursor-pointer"
+            >
+              Retry Loading PDF
+            </button>
           </div>
         ) : (
           <Document 
             file={fileSource} 
             className={`flex ${viewMode === 'grid' ? 'flex-wrap justify-center gap-8' : 'flex-col gap-10 items-center'} w-full`}
             onLoadSuccess={({numPages}) => {
+              setDocTotalPages(numPages);
               setTotalPages(numPages);
+              setLoadError(null);
               onDocumentReady?.(numPages);
             }}
             onLoadError={(err) => {
-              // ✅ FIX: Errors ab console + UI dono mein dikhenge, silent fail nahi hoga
               console.error('PDF load error:', err);
+              // If primary stream failed, try fallback direct URL seamlessly once
+              if (!fallbackAttempted && fallbackPdfUrl && fallbackPdfUrl !== activePdfUrl) {
+                console.warn('Primary stream PDF failed. Automatically falling back to direct URL:', fallbackPdfUrl);
+                setFallbackAttempted(true);
+                setActivePdfUrl(fallbackPdfUrl);
+                return;
+              }
               setLoadError(err?.message || 'Unknown error while loading PDF.');
               onDocumentError?.(err);
             }}
@@ -247,8 +339,8 @@ const PdfViewer = ({
             }
           >
             
-            {/* 1. SCROLL VIEW */}
-            {viewMode === 'scroll' && Array.from(new Array(totalPages), (_, index) => (
+            {/* 1. SCROLL VIEW (VERTICAL UPPER SE NICHE SCROLL) */}
+            {viewMode === 'scroll' && Array.from(new Array(effectiveTotalPages), (_, index) => (
               <InView
                 key={index}
                 threshold={0.3}
@@ -350,6 +442,11 @@ const PdfViewer = ({
           writing-mode: vertical-rl;
           text-orientation: mixed;
           transform: rotate(180deg);
+        }
+        .react-pdf__Page,
+        .react-pdf__Page__canvas,
+        .react-pdf__Page__textContent {
+          touch-action: pan-y !important;
         }
         .custom-scrollbar::-webkit-scrollbar {
           width: 6px;

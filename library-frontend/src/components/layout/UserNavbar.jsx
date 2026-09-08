@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Link, NavLink, useNavigate } from "react-router-dom";
+import { Link, NavLink, useNavigate, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 
 // --- ICONS ---
@@ -108,6 +108,8 @@ const UserNavbar = () => {
   const { user, isAuth, logout } = useAuth();
   const { t, language } = useLanguage();
   const navigate = useNavigate();
+  const location = useLocation();
+  const isReaderPage = location.pathname.startsWith('/read');
 
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isDonationOpen, setIsDonationOpen] = useState(false);
@@ -841,7 +843,7 @@ const UserNavbar = () => {
     />
 
     {/* FLOATING BOTTOM-RIGHT CONTINUE READING WIDGET */}
-    {lastReadBook && showContinueReading && !isContinueReadingDismissed && (
+    {lastReadBook && showContinueReading && !isContinueReadingDismissed && !isReaderPage && (
       <motion.div
         initial={{ opacity: 0, y: 30, scale: 0.85 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}

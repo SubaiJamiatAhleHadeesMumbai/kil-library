@@ -153,67 +153,74 @@ const BookCardSkeleton = () => (
 );
 
 // Compact Book Card for Continue Reading Section
-const CompactBookCard = ({ book, label, meta, onClick, progress = null, chips = [] }) => (
-  <button
-    onClick={onClick}
-    className="group w-full rounded-2xl border border-slate-200/80 bg-white p-3.5 text-left shadow-sm transition-all duration-200 hover:-translate-y-1 hover:shadow-md hover:border-slate-300 focus:outline-none focus:ring-2 focus:ring-[#002147]"
-  >
-    <div className="flex gap-3.5">
-      <div className="h-20 w-14 flex-shrink-0 overflow-hidden rounded-xl bg-slate-100 shadow-sm relative">
-        <img
-          src={getBookImage(book)}
-          alt={book?.title || "Book cover"}
-          className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-          loading="lazy"
-        />
-      </div>
-      <div className="min-w-0 flex-1 flex flex-col justify-between">
-        <div>
-          <div className="flex items-center justify-between gap-2">
-            <span className="inline-flex max-w-full rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.15em] text-emerald-700">
-              {label}
-            </span>
-            {meta ? <span className="text-[11px] text-slate-400 font-medium">{meta}</span> : null}
-          </div>
-          <h3 className="mt-1.5 line-clamp-2 text-sm font-bold leading-snug text-slate-900 group-hover:text-[#002147]">
-            {book?.title}
-          </h3>
-          <p className="mt-0.5 line-clamp-1 text-xs text-slate-500">
-            {getText(book?.author, "Unknown Author")}
-          </p>
+const CompactBookCard = ({ book, label, meta, onClick, progress = null, chips = [] }) => {
+  const coverUrl = resolveImageUrl(book?.cover_image_url || book?.cover_image) || SVG_NO_COVER;
+  const authorName = typeof book?.author === 'object' ? (book.author?.name || "Unknown Author") : (book?.author || "Unknown Author");
+
+  return (
+    <button
+      onClick={onClick}
+      type="button"
+      className="group w-full rounded-2xl border border-slate-200/90 bg-white p-3.5 text-left shadow-xs transition-all duration-200 hover:-translate-y-1 hover:shadow-md hover:border-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-600 cursor-pointer"
+    >
+      <div className="flex gap-3.5">
+        <div className="h-20 w-14 flex-shrink-0 overflow-hidden rounded-xl bg-slate-100 shadow-xs relative border border-slate-200/60">
+          <img
+            src={coverUrl}
+            alt={book?.title || "Book cover"}
+            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+            loading="lazy"
+            onError={(e) => { e.currentTarget.src = SVG_NO_COVER; }}
+          />
         </div>
-
-        {Array.isArray(chips) && chips.length > 0 ? (
-          <div className="mt-2 flex flex-wrap gap-1.5">
-            {chips.slice(0, 2).map((chip) => (
-              <span
-                key={chip}
-                className="inline-flex max-w-full rounded-full bg-cyan-50 px-2 py-0.5 text-[10px] font-semibold text-cyan-700"
-              >
-                {chip}
+        <div className="min-w-0 flex-1 flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between gap-2">
+              <span className="inline-flex max-w-full rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.15em] text-emerald-700">
+                {label}
               </span>
-            ))}
+              {meta ? <span className="text-[11px] text-slate-400 font-bold font-mono">{meta}</span> : null}
+            </div>
+            <h4 className="mt-1 line-clamp-1 text-sm font-bold leading-snug text-slate-900 group-hover:text-emerald-700">
+              {book?.title}
+            </h4>
+            <p className="mt-0.5 line-clamp-1 text-xs text-slate-500">
+              {authorName}
+            </p>
           </div>
-        ) : null}
 
-        {typeof progress === "number" && progress > 0 ? (
-          <div className="mt-2">
-            <div className="flex items-center justify-between text-[10px] font-medium text-slate-500">
-              <span>Reading progress</span>
-              <span className="font-bold text-slate-700">{Math.min(100, Math.max(0, Math.round(progress)))}%</span>
+          {Array.isArray(chips) && chips.length > 0 ? (
+            <div className="mt-1.5 flex flex-wrap gap-1">
+              {chips.slice(0, 2).map((chip) => (
+                <span
+                  key={chip}
+                  className="inline-flex max-w-full rounded-full bg-slate-100 px-2 py-0.5 text-[9.5px] font-semibold text-slate-600"
+                >
+                  {chip}
+                </span>
+              ))}
             </div>
-            <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-slate-100">
-              <div
-                className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-cyan-600 transition-all duration-500"
-                style={{ width: `${Math.min(100, Math.max(0, progress))}%` }}
-              />
+          ) : null}
+
+          {typeof progress === "number" && progress > 0 ? (
+            <div className="mt-2">
+              <div className="flex items-center justify-between text-[10px] font-semibold text-slate-500">
+                <span>Reading progress</span>
+                <span className="font-bold text-emerald-700">{Math.min(100, Math.max(1, Math.round(progress)))}%</span>
+              </div>
+              <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-slate-100">
+                <div
+                  className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-teal-600 transition-all duration-500"
+                  style={{ width: `${Math.min(100, Math.max(3, progress))}%` }}
+                />
+              </div>
             </div>
-          </div>
-        ) : null}
+          ) : null}
+        </div>
       </div>
-    </div>
-  </button>
-);
+    </button>
+  );
+};
 
 // --- MAIN COMPONENT ---
 const PublicHome = () => {
@@ -221,6 +228,12 @@ const PublicHome = () => {
   const location = useLocation();
   const { isAdmin, user, loading: authLoading } = useAuth();
   const { t, currentLang, isRTL } = useLanguage();
+
+  const getLangText = useCallback((urText, arText, enText) => {
+    if (currentLang === 'ar') return arText || enText || urText;
+    if (currentLang === 'en') return enText || urText || arText;
+    return urText || arText || enText;
+  }, [currentLang]);
 
   // Data States
   const [books, setBooks] = useState([]);
@@ -262,15 +275,24 @@ const PublicHome = () => {
     }
   });
 
-  // Recent Reads Local Storage State
+  // Recent Reads Local Storage State with live event sync
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem("bookNest_recent_reads");
-      const parsed = saved ? JSON.parse(saved) : [];
-      setRecentReads(Array.isArray(parsed) ? parsed : []);
-    } catch {
-      setRecentReads([]);
-    }
+    const syncReads = () => {
+      try {
+        const saved = localStorage.getItem("bookNest_recent_reads");
+        const parsed = saved ? JSON.parse(saved) : [];
+        setRecentReads(Array.isArray(parsed) ? parsed : []);
+      } catch {
+        setRecentReads([]);
+      }
+    };
+    syncReads();
+    window.addEventListener("kil_reading_updated", syncReads);
+    window.addEventListener("storage", syncReads);
+    return () => {
+      window.removeEventListener("kil_reading_updated", syncReads);
+      window.removeEventListener("storage", syncReads);
+    };
   }, []);
 
   // MASTER PARALLEL DATA LOADER
@@ -632,6 +654,41 @@ const PublicHome = () => {
       {getSectionConfig('hero', { enabled: true }).enabled !== false && (
         <div className="app-shell-container py-3 sm:py-5">
           <LibraryHero config={getSectionConfig('hero', {})} />
+        </div>
+      )}
+
+      {/* CONTINUE READING SECTION (Recent Reads) */}
+      {recentReadBooks && recentReadBooks.length > 0 && (
+        <div className="app-shell-container pb-4 sm:pb-6">
+          <div className="rounded-3xl border border-emerald-100 bg-gradient-to-r from-emerald-50/70 via-white to-teal-50/50 p-4 sm:p-6 shadow-xs">
+            <div className="mb-3.5 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <span className="flex h-3 w-3 relative">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+                </span>
+                <h3 className="text-base sm:text-lg font-black text-slate-900 flex items-center gap-2">
+                  <span>{getLangText('پڑھائی جاری رکھیں', 'متابعة القراءة', 'Continue Reading')}</span>
+                </h3>
+              </div>
+              <span className="text-xs text-slate-500 font-medium">
+                {getLangText('حالیہ مطالعہ', 'القراءة الأخيرة', 'Recent Activity')}
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+              {recentReadBooks.map((entry) => (
+                <CompactBookCard
+                  key={entry.book_id}
+                  book={entry.book}
+                  label={getLangText('جاری رکھیں', 'متابعة', 'Resume')}
+                  meta={`Page ${entry.last_page_read || 1}`}
+                  progress={entry.total_pages > 0 ? ((entry.last_page_read || 1) / entry.total_pages) * 100 : null}
+                  onClick={() => navigateToTop(`/read/${entry.book_id}?page=${entry.last_page_read || 1}`)}
+                />
+              ))}
+            </div>
+          </div>
         </div>
       )}
 

@@ -7,7 +7,7 @@ from pathlib import Path
 import requests
 from typing import List, Optional, Union
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Request
-from fastapi.responses import StreamingResponse, FileResponse
+from fastapi.responses import StreamingResponse, FileResponse, Response
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import or_, func # ✅ func add kiya case-insensitive check ke liye
 
@@ -473,10 +473,59 @@ ARABIC_URDU_DIACRITICS = re.compile(
 )
 
 
+def extract_text_from_docx_bytes(content_bytes: bytes) -> str:
+    """
+    Extracts text page-by-page from DOCX binary bytes.
+    Detects <w:br w:type="page"/> and <w:lastRenderedPageBreak/> and separates pages with '===PAGE==='.
+    """
+    import io
+    import zipfile
+    import xml.etree.ElementTree as ET
+
+    try:
+        with zipfile.ZipFile(io.BytesIO(content_bytes)) as z:
+            if "word/document.xml" not in z.namelist():
+                return ""
+            xml_data = z.read("word/document.xml")
+            root = ET.fromstring(xml_data)
+
+            pages = []
+            current_page_paras = []
+
+            for p in root.iter("{http://schemas.openxmlformats.org/wordprocessingml/2006/main}p"):
+                # Check for page break inside paragraph
+                is_break = False
+                for br in p.iter("{http://schemas.openxmlformats.org/wordprocessingml/2006/main}br"):
+                    if br.attrib.get("{http://schemas.openxmlformats.org/wordprocessingml/2006/main}type") == "page":
+                        is_break = True
+                        break
+                if not is_break:
+                    for pb in p.iter("{http://schemas.openxmlformats.org/wordprocessingml/2006/main}lastRenderedPageBreak"):
+                        is_break = True
+                        break
+
+                p_text = "".join(t.text for t in p.iter("{http://schemas.openxmlformats.org/wordprocessingml/2006/main}t") if t.text)
+
+                if is_break and current_page_paras:
+                    pages.append("\n\n".join(current_page_paras))
+                    current_page_paras = []
+
+                if p_text.strip():
+                    current_page_paras.append(p_text.strip())
+
+            if current_page_paras:
+                pages.append("\n\n".join(current_page_paras))
+
+            return "\n\n===PAGE===\n\n".join(pages)
+    except Exception as e:
+        logger.error(f"Failed to extract text from docx: {e}")
+        return ""
+
+
 def get_or_cache_txt_content(book_id: int, url_path: str, enable_cache: bool = True) -> Optional[str]:
     """
-    Reads local TXT file or fetches remote Cloudinary file and caches it locally
-    to ensure ultra-fast (0.01s) search times on subsequent queries.
+    Reads local TXT/DOCX file or fetches remote Cloudinary/R2 file, extracts text page-by-page if DOCX,
+    and caches clean UTF-8 text locally to ensure ultra-fast load and search.
     """
     if not url_path:
         return None
@@ -484,38 +533,55 @@ def get_or_cache_txt_content(book_id: int, url_path: str, enable_cache: bool = T
     clean_url = str(url_path).strip()
     cache_file = CACHE_TEXTS_DIR / f"book_{book_id}.txt"
 
-    # 1. If caching is enabled and file is already cached, read from local cache
+    # 1. If caching is enabled and clean text file is already cached (not raw ZIP binary)
     if enable_cache and cache_file.exists():
         try:
             with open(cache_file, "r", encoding="utf-8", errors="replace") as f:
-                return f.read()
+                content = f.read()
+                if not content.startswith("PK\x03\x04") and not content.startswith("PK"):
+                    return content
         except Exception as e:
             logger.warning(f"Error reading from cache for book {book_id}: {e}")
+
+    # Helper to process raw bytes into clean page-wise text
+    def _process_bytes_to_text(raw_bytes: bytes, filename_hint: str = "") -> str:
+        if raw_bytes.startswith(b"PK\x03\x04") or filename_hint.lower().endswith(".docx") or filename_hint.lower().endswith(".doc"):
+            extracted = extract_text_from_docx_bytes(raw_bytes)
+            if extracted:
+                return extracted
+        # Try UTF-8 first, fallback to windows-1256 (Arabic/Urdu)
+        try:
+            return raw_bytes.decode("utf-8")
+        except UnicodeDecodeError:
+            try:
+                return raw_bytes.decode("windows-1256")
+            except Exception:
+                return raw_bytes.decode("utf-8", errors="replace")
 
     # 2. Check if it's a local file on disk
     local_path = resolve_upload_path(clean_url) or clean_url
     if os.path.exists(local_path) and os.path.isfile(local_path):
         try:
-            with open(local_path, "r", encoding="utf-8", errors="replace") as f:
-                content = f.read()
-                if enable_cache and not cache_file.exists():
-                    try:
-                        with open(cache_file, "w", encoding="utf-8") as cf:
-                            cf.write(content)
-                    except Exception:
-                        pass
-                return content
+            with open(local_path, "rb") as f:
+                raw_bytes = f.read()
+            content = _process_bytes_to_text(raw_bytes, local_path)
+            if enable_cache and content:
+                try:
+                    with open(cache_file, "w", encoding="utf-8") as cf:
+                        cf.write(content)
+                except Exception:
+                    pass
+            return content
         except Exception as e:
             logger.warning(f"Error reading local file {local_path}: {e}")
 
-    # 3. If it's a remote URL (Cloudinary, S3, etc.)
+    # 3. If it's a remote URL (Cloudinary, S3, R2, etc.)
     if clean_url.startswith("http://") or clean_url.startswith("https://"):
         try:
-            resp = requests.get(clean_url, timeout=12)
+            resp = requests.get(clean_url, timeout=20)
             if resp.status_code == 200:
-                resp.encoding = "utf-8"
-                content = resp.text
-                if enable_cache:
+                content = _process_bytes_to_text(resp.content, clean_url)
+                if enable_cache and content:
                     try:
                         with open(cache_file, "w", encoding="utf-8") as cf:
                             cf.write(content)
@@ -769,13 +835,54 @@ def read_book(
     return db_book
 
 
+# Helper: SSRF and Remote URL Validator
+def _is_safe_remote_url(url: str) -> bool:
+    try:
+        import urllib.parse
+        import ipaddress
+        import socket
+        parsed = urllib.parse.urlsplit(url)
+        if parsed.scheme not in ("http", "https"):
+            return False
+        hostname = (parsed.hostname or "").lower()
+        if not hostname:
+            return False
+
+        TRUSTED_SUFFIXES = (
+            "cloudinary.com",
+            "r2.cloudflarestorage.com",
+            "r2.dev",
+            "amazonaws.com",
+            "storage.googleapis.com",
+            "supabase.co",
+            "ahlehadeeskokan.com",
+            "subaijamiat.com",
+            "onrender.com",
+            "githubusercontent.com",
+        )
+        if any(hostname.endswith(suffix) or hostname.startswith("pub-") for suffix in TRUSTED_SUFFIXES):
+            return True
+
+        try:
+            ip_str = socket.gethostbyname(hostname)
+            ip = ipaddress.ip_address(ip_str)
+            if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_multicast or ip.is_reserved:
+                return False
+            return True
+        except Exception:
+            return False
+    except Exception:
+        return False
+
+
 # ==================================
-# 📥 SAME-ORIGIN PDF STREAM ROUTE (Zero CORS Issue)
+# 📥 SAME-ORIGIN PDF STREAM ROUTE (Zero CORS Issue + Fast Range Streaming)
 # ==================================
 @router.get("/{book_id}/stream-pdf", tags=["Books (Read)"])
 @router.get("/{book_id}/pdf", tags=["Books (Read)"])
 async def stream_book_pdf(
     book_id: int,
+    request: Request,
     db: Session = Depends(get_db),
     current_user: Optional[user_model.User] = Depends(get_current_user_optional)
 ):
@@ -802,7 +909,6 @@ async def stream_book_pdf(
 
     raw_url = str(db_book.pdf_url).strip()
 
-    # Determine safe filename and media_type
     import urllib.parse
     import mimetypes
 
@@ -819,7 +925,7 @@ async def stream_book_pdf(
         else:
             media_type = "application/octet-stream"
 
-    # Always use safe ASCII filename in HTTP header to avoid Latin-1 header encoding crashes
+    # Always use safe ASCII filename in HTTP header
     safe_filename = f"book_{book_id}{file_ext if file_ext else '.pdf'}"
 
     # Case A: Local File
@@ -841,59 +947,74 @@ async def stream_book_pdf(
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Local document file not found")
 
     # Case B: Cloudflare R2 / Remote CDN URL (Handles Unicode / Urdu / Spaces gracefully)
-    # SECURITY: Validate that remote URLs belong to trusted CDN domains only (prevent SSRF)
-    TRUSTED_DOMAINS = {
-        "res.cloudinary.com",
-        "cloudinary.com",
-        "r2.cloudflarestorage.com",
-        "pub-",  # R2 public bucket prefix pattern
-    }
+    if not _is_safe_remote_url(raw_url):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Remote URL is not from an authorized or valid CDN domain."
+        )
+
     try:
         parsed = urllib.parse.urlsplit(raw_url)
-
-        # SSRF Prevention: block private/internal IPs and non-trusted domains
-        hostname = parsed.hostname or ""
-        if not any(hostname.endswith(d) or hostname.startswith(d) for d in TRUSTED_DOMAINS):
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Remote URL is not from a trusted CDN domain."
-            )
-
-        quoted_path = urllib.parse.quote(parsed.path)
+        unquoted_path = urllib.parse.unquote(parsed.path)
+        quoted_path = urllib.parse.quote(unquoted_path)
         encoded_url = urllib.parse.urlunsplit((parsed.scheme, parsed.netloc, quoted_path, parsed.query, parsed.fragment))
 
-        req = urllib.request.Request(encoded_url, headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"})
-        remote_resp = urllib.request.urlopen(req, timeout=30)
+        upstream_headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+        }
+        client_range = request.headers.get("range")
+        if client_range:
+            upstream_headers["Range"] = client_range
+
+        remote_resp = requests.get(encoded_url, headers=upstream_headers, stream=True, timeout=(10, 45))
+
+        if remote_resp.status_code not in (200, 206):
+            raise HTTPException(
+                status_code=remote_resp.status_code, 
+                detail=f"Remote storage returned HTTP {remote_resp.status_code}"
+            )
 
         remote_content_type = remote_resp.headers.get("Content-Type")
         if remote_content_type and "text/html" not in remote_content_type:
             media_type = remote_content_type
 
-        def file_stream_generator(resp):
+        response_headers = {
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "GET, HEAD, OPTIONS",
+            "Access-Control-Allow-Headers": "*",
+            "Access-Control-Expose-Headers": "Content-Range, Accept-Ranges, Content-Length, Content-Type",
+            "Content-Disposition": f'inline; filename="{safe_filename}"',
+            "Cache-Control": "public, max-age=86400",
+            "Accept-Ranges": "bytes",
+        }
+
+        if "Content-Range" in remote_resp.headers:
+            response_headers["Content-Range"] = remote_resp.headers["Content-Range"]
+        if "Content-Length" in remote_resp.headers:
+            response_headers["Content-Length"] = remote_resp.headers["Content-Length"]
+
+        def file_stream_generator():
             try:
-                while True:
-                    chunk = resp.read(65536)
-                    if not chunk:
-                        break
-                    yield chunk
+                for chunk in remote_resp.iter_content(chunk_size=65536):
+                    if chunk:
+                        yield chunk
+            except Exception as stream_err:
+                logger.debug(f"PDF stream closed: {stream_err}")
             finally:
-                resp.close()
+                remote_resp.close()
 
         return StreamingResponse(
-            file_stream_generator(remote_resp),
+            file_stream_generator(),
+            status_code=remote_resp.status_code,
             media_type=media_type,
-            headers={
-                "Access-Control-Allow-Origin": "*",
-                "Access-Control-Allow-Methods": "GET, HEAD, OPTIONS",
-                "Access-Control-Allow-Headers": "*",
-                "Content-Disposition": f'inline; filename="{safe_filename}"',
-                "Cache-Control": "public, max-age=86400"
-            }
+            headers=response_headers
         )
-    except urllib.error.HTTPError as he:
-        raise HTTPException(status_code=he.code, detail=f"Remote document error: {he.reason}")
+    except HTTPException:
+        raise
     except Exception as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Unable to load document: {str(e)}")
+        logger.error(f"Error streaming PDF for book {book_id}: {e}")
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=f"Unable to load document: {str(e)}")
+
 
 # ==================================
 # 📥 SAME-ORIGIN TEXT STREAM ROUTE (Zero CORS Issue)
@@ -902,6 +1023,7 @@ async def stream_book_pdf(
 @router.get("/{book_id}/text", tags=["Books (Read)"])
 async def stream_book_text(
     book_id: int,
+    request: Request,
     db: Session = Depends(get_db),
     current_user: Optional[user_model.User] = Depends(get_current_user_optional)
 ):
@@ -933,68 +1055,26 @@ async def stream_book_text(
     raw_url = str(getattr(db_book, 'txt_file_url', None) or getattr(db_book, 'txt_file', None) or '').strip()
     safe_filename = f"book_{book_id}.txt"
 
-    # Case A: Local File
-    if not raw_url.startswith("http://") and not raw_url.startswith("https://"):
-        local_path = resolve_upload_path(raw_url)
-        if local_path and os.path.exists(local_path):
-            return FileResponse(
-                path=local_path,
-                media_type="text/plain; charset=utf-8",
-                headers={
-                    "Access-Control-Allow-Origin": "*",
-                    "Access-Control-Allow-Methods": "GET, HEAD, OPTIONS",
-                    "Access-Control-Allow-Headers": "*",
-                    "Content-Disposition": f'inline; filename="{safe_filename}"',
-                    "Cache-Control": "public, max-age=86400"
-                }
-            )
-
-    # Case B: Remote R2 / Cloudinary / CDN
-    # SECURITY: Validate that remote URLs belong to trusted CDN domains only (prevent SSRF)
-    TRUSTED_TEXT_DOMAINS = {
-        "res.cloudinary.com",
-        "cloudinary.com",
-        "r2.cloudflarestorage.com",
-        "pub-",  # R2 public bucket prefix pattern
-    }
     try:
-        import urllib.parse
-        parsed = urllib.parse.urlsplit(raw_url)
+        content = get_or_cache_txt_content(book_id, raw_url, enable_cache=True)
+        if not content:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Text content could not be retrieved or parsed.")
 
-        # SSRF Prevention: block private/internal IPs and non-trusted domains
-        hostname = parsed.hostname or ""
-        if not any(hostname.endswith(d) or hostname.startswith(d) for d in TRUSTED_TEXT_DOMAINS):
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Remote URL is not from a trusted CDN domain."
-            )
-
-        quoted_path = urllib.parse.quote(parsed.path)
-        encoded_url = urllib.parse.urlunsplit((parsed.scheme, parsed.netloc, quoted_path, parsed.query, parsed.fragment))
-
-        req = urllib.request.Request(encoded_url, headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"})
-        remote_resp = urllib.request.urlopen(req, timeout=30)
-
-        def text_stream_generator(resp):
-            try:
-                while True:
-                    chunk = resp.read(65536)
-                    if not chunk:
-                        break
-                    yield chunk
-            finally:
-                resp.close()
-
-        return StreamingResponse(
-            text_stream_generator(remote_resp),
+        encoded_bytes = content.encode("utf-8")
+        return Response(
+            content=encoded_bytes,
             media_type="text/plain; charset=utf-8",
             headers={
                 "Access-Control-Allow-Origin": "*",
                 "Access-Control-Allow-Methods": "GET, HEAD, OPTIONS",
                 "Access-Control-Allow-Headers": "*",
                 "Content-Disposition": f'inline; filename="{safe_filename}"',
-                "Cache-Control": "public, max-age=86400"
+                "Cache-Control": "public, max-age=86400",
+                "Content-Length": str(len(encoded_bytes)),
             }
         )
+    except HTTPException:
+        raise
     except Exception as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Unable to load text: {str(e)}")
+        logger.error(f"Error streaming text for book {book_id}: {e}")
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=f"Unable to load text: {str(e)}")

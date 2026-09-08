@@ -34,10 +34,16 @@ export const interactionService = {
    */
   async updateProgress(bookId, pageNo, totalPages = 0) {
     try {
+      const hasToken = Boolean(
+        localStorage.getItem("access_token") || 
+        sessionStorage.getItem("access_token")
+      );
+      if (!hasToken) return null; // Guest user: keep in localStorage, don't spam 401
+
       const response = await apiClient.post("/api/interaction/progress", {
-        book_id: bookId,
-        page_no: pageNo,
-        total_pages: totalPages,
+        book_id: Number(bookId),
+        page_no: Number(pageNo),
+        total_pages: Number(totalPages) || 0,
       });
       return response.data;
     } catch (error) {

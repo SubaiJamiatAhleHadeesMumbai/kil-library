@@ -29,6 +29,7 @@ const SplitViewer = ({
   globalMatches = [],
   currentMatchIndex = -1,
   currentPage = 1,
+  textFontSize = 1.15,
 }) => {
   const textScrollRef = useRef(null);
   const pdfScrollRef = useRef(null);
@@ -36,6 +37,10 @@ const SplitViewer = ({
   const activeMarkRef = useRef(null);
   const mobileSearchInputRef = useRef(null);
   const mobileSearchContainerRef = useRef(null);
+  const isProgrammaticTextScrollRef = useRef(false);
+  const scrolledTextPageRef = useRef(null);
+  const isUserScrollingTextRef = useRef(false);
+  const userTextScrollTimerRef = useRef(null);
   const [showBackToTop, setShowBackToTop] = useState(false);
   const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
 
@@ -64,10 +69,30 @@ const SplitViewer = ({
     }
   }, [currentMatchIndex, activeSearchIndex]);
 
-  // Scroll to active page when changed programmatically
+  // Synchronized Scrolling: scroll text pane to active page when changed by PDF scroll or controls
   useEffect(() => {
-    if (layoutMode === 'text' && viewMode === 'scroll' && currentPage && pageRefs.current[currentPage]) {
+    if (
+      (layoutMode === 'text' || layoutMode === 'split') &&
+      viewMode === 'scroll' &&
+      currentPage &&
+      pageRefs.current[currentPage]
+    ) {
+      // If user is actively scrolling the text pane, do not snap back!
+      if (isUserScrollingTextRef.current) return;
+      if (scrolledTextPageRef.current === currentPage) {
+        scrolledTextPageRef.current = null;
+        return;
+      }
+      scrolledTextPageRef.current = null;
+
+      isProgrammaticTextScrollRef.current = true;
       pageRefs.current[currentPage].scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+      const timer = window.setTimeout(() => {
+        isProgrammaticTextScrollRef.current = false;
+      }, 500);
+
+      return () => window.clearTimeout(timer);
     }
   }, [currentPage, layoutMode, viewMode]);
 
@@ -103,13 +128,20 @@ const SplitViewer = ({
     };
   }, [isMobileSearchOpen]);
 
-  // Handle Back to Top button visibility on scroll
+  // Handle Back to Top button visibility and user scroll tracking
   const handleTextScroll = (e) => {
     if (e.target.scrollTop > 400) {
       setShowBackToTop(true);
     } else {
       setShowBackToTop(false);
     }
+
+    if (isProgrammaticTextScrollRef.current) return;
+    isUserScrollingTextRef.current = true;
+    if (userTextScrollTimerRef.current) clearTimeout(userTextScrollTimerRef.current);
+    userTextScrollTimerRef.current = setTimeout(() => {
+      isUserScrollingTextRef.current = false;
+    }, 300);
   };
 
   const scrollToTop = () => {
@@ -182,191 +214,28 @@ const SplitViewer = ({
   );
 
   return (
-    <div className="flex h-full w-full flex-1 flex-col min-h-0 overflow-hidden bg-slate-100 font-sans selection:bg-emerald-500 selection:text-white">
+    <div className="flex h-full w-full flex-1 flex-col min-h-0 overflow-hidden bg-[#FAF8F5] font-sans selection:bg-emerald-500 selection:text-white">
       
-      {/* --- DOCKED TOP TOOLBAR --- */}
-      <header className="z-30 flex shrink-0 items-center justify-between gap-1.5 border-b border-slate-200 bg-white px-2.5 py-1.5 shadow-sm sm:px-3 sm:py-2 relative">
-        {/* Reading Progress Line */}
+      {/* Subtle Top Reading Progress Line */}
+      <div className="h-0.5 w-full bg-slate-200 shrink-0 relative overflow-hidden">
         <div
-          className="absolute bottom-0 left-0 h-0.5 bg-gradient-to-r from-emerald-500 to-cyan-500 transition-all duration-300"
+          className="h-full bg-gradient-to-r from-emerald-500 to-teal-500 transition-all duration-300"
           style={{ width: `${readingProgressPercentage}%` }}
         />
-
-        {/* --- DESKTOP / TABLET: full inline search bar (sm and up) --- */}
-        <div className="hidden sm:flex flex-1 items-center gap-2 min-w-[180px]">
-          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700 sm:h-8 sm:w-8">
-            <Search size={14} />
-          </div>
-
-          <input
-            type="text"
-            value={searchText}
-            onChange={(e) => onSearchChange?.(e.target.value)}
-            onKeyDown={handleSearchKeyDown}
-            placeholder="Search in book..."
-            className="w-full min-w-0 bg-transparent text-sm font-semibold text-slate-800 outline-none placeholder:text-slate-400 sm:text-base"
-          />
-
-          {hasSearch && (
-            <button
-              type="button"
-              onClick={onClearSearch}
-              className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-xl text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
-              title="Clear search"
-            >
-              <X size={15} />
-            </button>
-          )}
-        </div>
-
-        {/* --- MOBILE: just a title placeholder so header isn't empty on the left --- */}
-        <div className="flex sm:hidden flex-1 items-center min-w-0">
-          <span className="truncate text-xs font-bold text-slate-500">
-            Page {currentPage} / {totalPagesCount}
-          </span>
-        </div>
-
-        {/* Search Match Counter & Prev/Next Controls (desktop only, inline) */}
-        <div className="hidden sm:flex items-center gap-2 shrink-0">
-          <div className="flex items-center gap-1 rounded-xl bg-emerald-50 px-2 py-0.5 text-[11px] font-bold text-emerald-800 border border-emerald-100">
-            <span className="text-emerald-600">{hasMatches ? activeSearchIndex + 1 : 0}</span>
-            <span className="text-emerald-300">/</span>
-            <span>{searchCount}</span>
-          </div>
-
-          <div className="flex items-center gap-1 border-l border-slate-200 pl-1.5">
-            <button
-              type="button"
-              onClick={onSearchPrev}
-              disabled={!hasMatches}
-              className="inline-flex h-7 w-7 items-center justify-center rounded-xl border border-emerald-200 bg-white text-emerald-700 shadow-sm transition hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-40 focus:outline-none"
-              title="Previous match"
-            >
-              <ChevronUp size={14} />
-            </button>
-            <button
-              type="button"
-              onClick={onSearchNext}
-              disabled={!hasMatches}
-              className="inline-flex h-7 w-7 items-center justify-center rounded-xl border border-emerald-200 bg-white text-emerald-700 shadow-sm transition hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-40 focus:outline-none"
-              title="Next match"
-            >
-              <ChevronDown size={14} />
-            </button>
-          </div>
-
-          <div className="hidden items-center gap-1 rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-medium text-slate-500 md:inline-flex">
-            <span>Enter</span>
-            <span className="text-[10px] text-slate-400">to jump</span>
-          </div>
-        </div>
-
-        {/* --- MOBILE: search trigger icon (only visible below sm) --- */}
-        <div className="flex sm:hidden items-center gap-1.5 shrink-0" ref={mobileSearchContainerRef}>
-          {hasMatches && (
-            <div className="flex items-center gap-1 rounded-lg bg-emerald-50 px-1.5 py-0.5 text-[10px] font-bold text-emerald-800 border border-emerald-100">
-              <span className="text-emerald-600">{activeSearchIndex + 1}</span>
-              <span className="text-emerald-300">/</span>
-              <span>{searchCount}</span>
-            </div>
-          )}
-          <button
-            type="button"
-            onClick={handleMobileSearchToggle}
-            aria-expanded={isMobileSearchOpen}
-            aria-label="Toggle search"
-            className={`relative inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-xl transition ${
-              isMobileSearchOpen
-                ? 'bg-emerald-600 text-white shadow-sm'
-                : 'bg-emerald-50 text-emerald-700'
-            }`}
-          >
-            <Search size={15} />
-            {hasSearch && !isMobileSearchOpen && (
-              <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-emerald-500 ring-2 ring-white" />
-            )}
-          </button>
-
-          {/* --- MOBILE: expanding search overlay panel --- */}
-          <div
-            className={`absolute left-0 right-0 top-full z-40 origin-top border-b border-slate-200 bg-white shadow-lg transition-all duration-200 ease-out ${
-              isMobileSearchOpen
-                ? 'pointer-events-auto max-h-24 opacity-100'
-                : 'pointer-events-none max-h-0 opacity-0'
-            } overflow-hidden`}
-          >
-            <div className="flex items-center gap-2 px-3 py-2.5">
-              <Search size={15} className="shrink-0 text-emerald-600" />
-              <input
-                ref={mobileSearchInputRef}
-                type="text"
-                value={searchText}
-                onChange={(e) => onSearchChange?.(e.target.value)}
-                onKeyDown={handleSearchKeyDown}
-                placeholder="Search in book..."
-                className="w-full min-w-0 bg-transparent text-sm font-semibold text-slate-800 outline-none placeholder:text-slate-400"
-              />
-              {hasSearch && (
-                <button
-                  type="button"
-                  onClick={handleMobileClear}
-                  className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
-                  title="Clear search"
-                >
-                  <X size={14} />
-                </button>
-              )}
-            </div>
-
-            {/* Prev/Next controls inside mobile panel */}
-            {hasSearch && (
-              <div className="flex items-center justify-between gap-2 border-t border-slate-100 px-3 py-2">
-                <div className="flex items-center gap-1 rounded-lg bg-emerald-50 px-2 py-0.5 text-[11px] font-bold text-emerald-800 border border-emerald-100">
-                  <span className="text-emerald-600">{hasMatches ? activeSearchIndex + 1 : 0}</span>
-                  <span className="text-emerald-300">/</span>
-                  <span>{searchCount}</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <button
-                    type="button"
-                    onClick={onSearchPrev}
-                    disabled={!hasMatches}
-                    className="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-emerald-200 bg-white text-emerald-700 shadow-sm transition active:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-40"
-                    title="Previous match"
-                  >
-                    <ChevronUp size={15} />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={onSearchNext}
-                    disabled={!hasMatches}
-                    className="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-emerald-200 bg-white text-emerald-700 shadow-sm transition active:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-40"
-                    title="Next match"
-                  >
-                    <ChevronDown size={15} />
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      </header>
+      </div>
 
       {/* --- VIEWER CONTENT AREA (100% FULL SCROLLABLE) --- */}
-      <div className="flex flex-1 min-h-0 flex-col md:flex-row overflow-hidden bg-[#FAF8F5] relative">
+      <div className="flex flex-1 min-h-0 flex-col md:flex-row overflow-hidden bg-[#FAF8F5] relative h-full w-full">
         
         {/* --- PDF VIEWER PANE (FULL HEIGHT SCROLL) --- */}
         {(layoutMode === 'pdf' || layoutMode === 'split') && (
           <div
             ref={pdfScrollRef}
-            className={`relative flex min-h-0 flex-col border-b md:border-b-0 md:border-r border-slate-200 bg-slate-100 transition-all duration-300 ${
+            className={`relative flex min-h-0 flex-1 flex-col border-b md:border-b-0 md:border-r border-slate-200 bg-[#FAF8F5] transition-all duration-300 ${
               layoutMode === 'split' ? 'h-1/2 md:h-full md:w-1/2' : 'h-full w-full'
             }`}
           >
-            {/* Added Padding to Prevent Floating Controls from covering text */}
-            <div className="flex flex-1 min-h-0 justify-center overflow-auto p-4 sm:p-6 pb-20 sm:pb-24 custom-scrollbar">
-              {pdfComponent}
-            </div>
+            {pdfComponent}
 
             {/* Loading Overlay */}
             {isLoading && (
@@ -394,19 +263,19 @@ const SplitViewer = ({
             <div
               ref={textScrollRef}
               onScroll={handleTextScroll}
-              className="flex-1 min-h-0 overflow-y-auto px-3 py-4 sm:px-8 sm:py-8 leading-[2.2] sm:leading-[2.5] text-right md:px-12 custom-scrollbar"
+              className="flex-1 min-h-0 overflow-y-auto px-2 py-3 sm:px-6 sm:py-6 leading-[2.2] sm:leading-[2.5] text-right md:px-10 pb-24 sm:pb-28 custom-scrollbar"
               dir="rtl"
               style={{
                 fontFamily: "'Jameel Noori Nastaleeq', 'JameelNoori', 'Gulzar', 'Noto Nastaliq Urdu', serif",
-                fontSize: '1.15rem',
+                fontSize: `${textFontSize}rem`,
               }}
             >
               <div
-                className={`mx-auto space-y-4 sm:space-y-6 rounded-2xl border border-[#E0D1B8] bg-[#FAF6EE] p-3 sm:p-8 text-[#2C2416] shadow-[inset_0_0_40px_rgba(180,140,75,0.04),0_10px_30px_rgba(0,0,0,0.04)] transition-all ${
+                className={`mx-auto space-y-4 sm:space-y-6 rounded-2xl border border-[#E0D1B8] bg-[#FAF6EE] p-4 sm:p-8 text-[#2C2416] shadow-[inset_0_0_40px_rgba(180,140,75,0.04),0_10px_30px_rgba(0,0,0,0.04)] transition-all ${
                   layoutMode === 'text' ? 'max-w-4xl shadow-md' : 'max-w-3xl'
                 }`}
               >
-                {layoutMode === 'text' && viewMode === 'scroll' && pageEntries.length > 0 ? (
+                {(layoutMode === 'text' || layoutMode === 'split') && viewMode === 'scroll' && pageEntries.length > 0 ? (
                   <div className="flex flex-col gap-10">
                     {pageEntries.map(([pageKey, pageValue]) => {
                       const pageNum = Number(pageKey);
@@ -418,7 +287,8 @@ const SplitViewer = ({
                           key={pageNum}
                           threshold={0.3}
                           onChange={(inView) => {
-                            if (inView) {
+                            if (inView && !isProgrammaticTextScrollRef.current) {
+                              scrolledTextPageRef.current = pageNum;
                               onPageChange?.(pageNum);
                             }
                           }}

@@ -39,8 +39,25 @@ import {
 
 // --- Constants ---
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || (import.meta.env.PROD ? "" : "http://127.0.0.1:8000");
-const FALLBACK_NO_COVER = "https://via.placeholder.com/400x600?text=No+Cover";
-const FALLBACK_BROKEN = "https://via.placeholder.com/400x600?text=Image+Not+Found";
+const FALLBACK_NO_COVER = `data:image/svg+xml;utf8,${encodeURIComponent(`
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="600" viewBox="0 0 400 600">
+  <defs>
+    <linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0f172a" />
+      <stop offset="100%" stop-color="#1e293b" />
+    </linearGradient>
+  </defs>
+  <rect width="400" height="600" fill="url(#g)" />
+  <rect x="24" y="24" width="352" height="552" rx="16" fill="none" stroke="#334155" stroke-width="2" stroke-dasharray="8 8" />
+  <g fill="#94a3b8" transform="translate(160, 230) scale(3.3)">
+    <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z" fill="none" stroke="#64748b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M6 2v20" stroke="#64748b" stroke-width="2"/>
+  </g>
+  <text x="200" y="340" fill="#94a3b8" font-family="system-ui, -apple-system, sans-serif" font-size="18" font-weight="600" text-anchor="middle">No Cover Available</text>
+  <text x="200" y="375" fill="#64748b" font-family="'Noto Naskh Arabic', serif" font-size="20" text-anchor="middle">غلاف دستیاب نہیں</text>
+</svg>
+`)}`;
+const FALLBACK_BROKEN = FALLBACK_NO_COVER;
 
 const showUpcomingToast = () => {
   toast("عنقریب...", {
@@ -985,14 +1002,40 @@ const UserLibrary = () => {
                   ) : (
                     <div className="flex gap-2">
                       {selectedBook.pdf_url || selectedBook.txt_file_url ? (
-                        <button
-                          onClick={() => {
-                            navigate(`/read/${selectedBook.id}`);
-                          }}
-                          className="flex-1 bg-emerald-600 text-white py-3 rounded-xl font-bold flex justify-center items-center gap-2 hover:bg-emerald-700 transition-colors shadow-sm"
-                        >
-                          <BookOpenIcon className="w-5 h-5" /> Read Now
-                        </button>
+                        (() => {
+                          let savedPage = null;
+                          try {
+                            const rawLast = localStorage.getItem('kil_last_read_book');
+                            if (rawLast) {
+                              const p = JSON.parse(rawLast);
+                              if (String(p?.bookId) === String(selectedBook.id) && Number(p?.page) > 1) {
+                                savedPage = Number(p.page);
+                              }
+                            }
+                            if (!savedPage) {
+                              const rawRec = localStorage.getItem('bookNest_recent_reads');
+                              if (rawRec) {
+                                const parsedRec = JSON.parse(rawRec);
+                                const match = Array.isArray(parsedRec) && parsedRec.find(r => String(r.book_id) === String(selectedBook.id));
+                                if (match && Number(match.last_page_read) > 1) {
+                                  savedPage = Number(match.last_page_read);
+                                }
+                              }
+                            }
+                          } catch {}
+
+                          return (
+                            <button
+                              onClick={() => {
+                                navigate(savedPage ? `/read/${selectedBook.id}?page=${savedPage}` : `/read/${selectedBook.id}`);
+                              }}
+                              className="flex-1 bg-emerald-600 text-white py-3 rounded-xl font-bold flex justify-center items-center gap-2 hover:bg-emerald-700 transition-colors shadow-sm cursor-pointer"
+                            >
+                              <BookOpenIcon className="w-5 h-5" />
+                              {savedPage ? `Resume (Page ${savedPage})` : 'Read Now'}
+                            </button>
+                          );
+                        })()
                       ) : (
                         <button
                           onClick={() => {

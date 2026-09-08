@@ -159,10 +159,6 @@ const FileDropZone = ({
     setLocalName(file.name);
     const syntheticEvent = { target: { files: [file], name: id } };
     if (onChange) onChange(syntheticEvent);
-    // If it's a text file, automatically open Google Docs Editor!
-    if (id === 'txtFile' && onOpenGoogleDocs) {
-      onOpenGoogleDocs(file);
-    }
   };
 
   const accentMap = {
@@ -178,11 +174,6 @@ const FileDropZone = ({
     <div className="flex flex-col gap-2">
       <div className="flex items-center justify-between">
         <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-widest">{label}</label>
-        {id === 'txtFile' && (
-          <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-200">
-            Google Docs Mode
-          </span>
-        )}
       </div>
 
       <div

@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Kokan Islamic Library - Production Architecture & Storage Manual</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+    @page {
+      size: A4;
+      margin: 14mm 14mm 14mm 14mm;
+      @bottom-right {
+        content: counter(page);
+      }
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      color: #1e293b;
+      background-color: #ffffff;
+      line-height: 1.55;
+      font-size: 13px;
+    }
+
+    .header-banner {
+      background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 50%, #047857 100%);
+      color: #ffffff;
+      padding: 24px 28px;
+      border-radius: 12px;
+      margin-bottom: 22px;
+      box-shadow: 0 4px 12px rgba(15, 23, 42, 0.15);
+    }
+
+    .header-banner h1 {
+      font-size: 22px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .header-banner p {
+      font-size: 13px;
+      color: #cbd5e1;
+      font-weight: 400;
+    }
+
+    .meta-badges {
+      display: flex;
+      gap: 10px;
+      margin-top: 14px;
+      flex-wrap: wrap;
+    }
+
+    .meta-badge {
+      background: rgba(255, 255, 255, 0.15);
+      backdrop-filter: blur(4px);
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 600;
+      color: #f8fafc;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    h2 {
+      font-size: 16px;
+      font-weight: 700;
+      color: #0f172a;
+      margin-top: 20px;
+      margin-bottom: 10px;
+      padding-bottom: 6px;
+      border-bottom: 2px solid #e2e8f0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .badge-number {
+      background: #2563eb;
+      color: white;
+      font-size: 11px;
+      font-weight: 700;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    h3 {
+      font-size: 13.5px;
+      font-weight: 600;
+      color: #1e293b;
+      margin-top: 12px;
+      margin-bottom: 6px;
+    }
+
+    p, li {
+      font-size: 12.5px;
+      color: #334155;
+    }
+
+    ul, ol {
+      margin-left: 18px;
+      margin-bottom: 10px;
+    }
+
+    li {
+      margin-bottom: 4px;
+    }
+
+    .card {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 14px 16px;
+      margin-bottom: 12px;
+    }
+
+    .card-accent-blue {
+      border-left: 4px solid #2563eb;
+    }
+
+    .card-accent-emerald {
+      border-left: 4px solid #059669;
+    }
+
+    .card-accent-amber {
+      border-left: 4px solid #d97706;
+    }
+
+    .card-accent-indigo {
+      border-left: 4px solid #6366f1;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 10px 0 14px 0;
+      font-size: 12px;
+    }
+
+    th, td {
+      border: 1px solid #e2e8f0;
+      padding: 8px 10px;
+      text-align: left;
+    }
+
+    th {
+      background: #f1f5f9;
+      font-weight: 600;
+      color: #1e293b;
+    }
+
+    tr:nth-child(even) {
+      background: #f8fafc;
+    }
+
+    code {
+      font-family: 'JetBrains Mono', monospace;
+      background: #e2e8f0;
+      color: #0f172a;
+      padding: 1.5px 5px;
+      border-radius: 4px;
+      font-size: 11px;
+    }
+
+    pre {
+      background: #0f172a;
+      color: #e2e8f0;
+      padding: 12px 14px;
+      border-radius: 6px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      line-height: 1.45;
+      overflow-x: auto;
+      margin: 8px 0 12px 0;
+      white-space: pre-wrap;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .highlight-box {
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      border-radius: 6px;
+      padding: 10px 12px;
+      margin: 8px 0;
+    }
+
+    .highlight-box strong {
+      color: #1d4ed8;
+    }
+
+    .page-break {
+      page-break-before: always;
+    }
+
+    .footer {
+      margin-top: 24px;
+      padding-top: 10px;
+      border-top: 1px solid #e2e8f0;
+      display: flex;
+      justify-content: space-between;
+      font-size: 10px;
+      color: #64748b;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header Banner -->
+  <div class="header-banner">
+    <h1>Kokan Islamic Library (KIL)</h1>
+    <p>Official Production Infrastructure, Storage Architecture & Security Manual</p>
+    <div class="meta-badges">
+      <span class="meta-badge">Server: Hostinger VPS (178.16.139.231)</span>
+      <span class="meta-badge">Domain: ahlehadeeskokan.com</span>
+      <span class="meta-badge">Stack: FastAPI + React + PostgreSQL + Nginx</span>
+      <span class="meta-badge">Version: 2026 Production Release</span>
+    </div>
+  </div>
+
+  <!-- Section 1 -->
+  <h2><span class="badge-number">1</span> Super Admin Access & Control Center</h2>
+  <div class="card card-accent-blue">
+    <p>Super Admin has unconditional full access to all system resources, books, approvals, roles, user accounts, and homepage customizer settings.</p>
+    <table>
+      <thead>
+        <tr>
+          <th>Property</th>
+          <th>Configuration Value</th>
+          <th>Notes & Security Details</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Username</strong></td>
+          <td><code>Markaz_Burhan</code></td>
+          <td>Case-insensitive login. Legacy fallback: <code>admin</code></td>
+        </tr>
+        <tr>
+          <td><strong>Password</strong></td>
+          <td><code>Burhan*2802</code></td>
+          <td>Hashed with Bcrypt (72-byte safe salt)</td>
+        </tr>
+        <tr>
+          <td><strong>Email</strong></td>
+          <td><code>admin@ahlehadeeskokan.com</code></td>
+          <td>Protected primary administrator mailbox</td>
+        </tr>
+        <tr>
+          <td><strong>Assigned Role</strong></td>
+          <td><code>Admin</code> / <code>Super Admin</code></td>
+          <td>Bypasses all route filters & permission checks</td>
+        </tr>
+        <tr>
+          <td><strong>Admin Panel URL</strong></td>
+          <td><code>https://www.ahlehadeeskokan.com/admin/dashboard</code></td>
+          <td>Gated by <code>ProtectedRoute</code> (Strictly staff only)</td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="highlight-box">
+      <strong>Security Guarantee:</strong> If credentials need to be re-initialized or updated at any point on the VPS, running <code>docker compose exec backend python setup_admin.py</code> will idempotently ensure this admin user exists with full permissions.
+    </div>
+  </div>
+
+  <!-- Section 2 -->
+  <h2><span class="badge-number">2</span> PostgreSQL Database Architecture & Data Storage</h2>
+  <div class="card card-accent-emerald">
+    <p>All structured relational data is stored in PostgreSQL running in a dedicated, isolated Docker container on the VPS.</p>
+    
+    <div class="grid-2">
+      <div>
+        <h3>Container & Network Specifications</h3>
+        <ul>
+          <li><strong>Container Name:</strong> <code>library_postgres</code></li>
+          <li><strong>Docker Image:</strong> <code>postgres:16-alpine</code></li>
+          <li><strong>Database Name:</strong> <code>library_db</code></li>
+          <li><strong>DB User:</strong> <code>library_user</code></li>
+          <li><strong>Internal Port:</strong> <code>5432</code> (Closed to external internet)</li>
+        </ul>
+      </div>
+      <div>
+        <h3>Host Storage Volume Mapping</h3>
+        <ul>
+          <li><strong>Docker Named Volume:</strong> <code>postgres_data</code></li>
+          <li><strong>Physical VPS Host Path:</strong><br>
+            <code>/var/lib/docker/volumes/kil-library_postgres_data/_data/</code>
+          </li>
+          <li><strong>Persistence:</strong> Data survives container restarts, rebuilds, and system reboots.</li>
+        </ul>
+      </div>
+    </div>
+
+    <h3>Tables & Data Models Stored in PostgreSQL:</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Module</th>
+          <th>Tables / Entities Stored</th>
+          <th>Purpose</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>User & Auth</strong></td>
+          <td><code>users</code>, <code>roles</code>, <code>permissions</code>, <code>role_permissions</code></td>
+          <td>Login accounts, passwords, staff assignments, audit tracking</td>
+        </tr>
+        <tr>
+          <td><strong>Library Catalog</strong></td>
+          <td><code>books</code>, <code>book_copies</code>, <code>categories</code>, <code>subcategories</code>, <code>authors</code>, <code>publishers</code>, <code>languages</code>, <code>locations</code></td>
+          <td>Complete metadata for physical and digital books, volume info, barcode tracking</td>
+        </tr>
+        <tr>
+          <td><strong>Circulation</strong></td>
+          <td><code>book_issues</code>, <code>requests</code>, <code>book_permissions</code>, <code>book_orders</code></td>
+          <td>Borrowing records, student access requests, physical copy issuance</td>
+        </tr>
+        <tr>
+          <td><strong>Community & Content</strong></td>
+          <td><code>fatawa</code>, <code>social_work</code>, <code>newspaper_clippings</code>, <code>posters</code>, <code>gallery_items</code>, <code>comments</code></td>
+          <td>Islamic inquiries, charitable activities, event archives, media clips</td>
+        </tr>
+        <tr>
+          <td><strong>System Logs</strong></td>
+          <td><code>logs</code>, <code>token_blacklist</code></td>
+          <td>Audit trail of user actions, login attempts, revoked tokens</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>Database Backup & Restore Commands:</h3>
+    <pre># Create instant SQL backup dump on VPS:
+docker compose exec -T db pg_dump -U library_user library_db > /root/backup_$(date +%Y%m%d).sql
+
+# Restore SQL backup:
+cat /root/backup.sql | docker compose exec -T db psql -U library_user -d library_db</pre>
+  </div>
+
+  <div class="page-break"></div>
+
+  <!-- Section 3 -->
+  <h2><span class="badge-number">3</span> Multi-Tier Media & File Storage (PDFs, Images & Books)</h2>
+  <div class="card card-accent-indigo">
+    <p>To support 10,000+ books and high-resolution PDFs without overwhelming the VPS disk, the backend features an intelligent 3-tier storage hierarchy:</p>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Storage Tier</th>
+          <th>Destination</th>
+          <th>Content Handled</th>
+          <th>Cost & Scaling Benefit</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Tier 1: Cloudflare R2 (Primary)</strong></td>
+          <td>Cloudflare S3-Compatible Object Bucket</td>
+          <td>Heavy Book PDFs, scanned manuscripts, digital library documents</td>
+          <td><strong>Zero Egress Fees</strong>. Millions of downloads with no bandwidth penalty.</td>
+        </tr>
+        <tr>
+          <td><strong>Tier 2: Cloudinary (Secondary)</strong></td>
+          <td>Cloudinary Account (<code>dhlfaiijj</code>)</td>
+          <td>Book cover thumbnails, event posters, author photos, gallery media</td>
+          <td>Automatic WebP/AVIF transformation, dynamic resizing, global edge CDN.</td>
+        </tr>
+        <tr>
+          <td><strong>Tier 3: VPS Disk (Local Fallback)</strong></td>
+          <td><code>/app/static/uploads</code><br>Host: <code>/root/kil-library/library_backend/static/uploads/</code></td>
+          <td>Uploaded assets when external cloud keys are absent or during offline testing</td>
+          <td>Direct volume mount in Docker via <code>backend_uploads</code> volume.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>Smart Conditional PDF Optimization Engine:</h3>
+    <div class="highlight-box">
+      <strong>Lossless Rule:</strong> Files <strong>&le; 100 MB</strong> are kept 100% untouched to preserve pristine text/vector clarity. Files <strong>&gt; 100 MB</strong> undergo automatic progressive stream compression before cloud upload, then local temp files are purged.
+    </div>
+  </div>
+
+  <!-- Section 4 -->
+  <h2><span class="badge-number">4</span> Website Branding & Dynamic Homepage Settings</h2>
+  <div class="card card-accent-amber">
+    <p>All dynamic homepage customizations (Site Title in 3 languages, header logos, hero slogans, stats, and layout section toggles) are stored persistently:</p>
+    <ul>
+      <li><strong>Physical File Location:</strong> <code>/root/kil-library/library_backend/static/homepage_settings.json</code></li>
+      <li><strong>Container Sync:</strong> Synced to <code>/app/static/homepage_settings.json</code> inside the backend container.</li>
+      <li><strong>Multilingual Schema:</strong>
+        <pre>{
+  "site_title": {
+    "en": "MARKAZ AHLE HADEES KOKAN",
+    "ur": "مرکز اہل حدیث کوکن",
+    "ar": "مركز أهل الحديث كوكان"
+  },
+  "logo_url": "/logo.png",
+  "hero_banner": { ... },
+  "features": { ... }
+}</pre>
+      </li>
+      <li><strong>Persistence:</strong> The GitHub Actions deployment script explicitly backs up and copies <code>homepage_settings.json</code> into the running container on every deployment, ensuring custom admin edits are never erased.</li>
+    </ul>
+  </div>
+
+  <!-- Section 5 -->
+  <h2><span class="badge-number">5</span> Web Server, Nginx & Reverse Proxy Flow</h2>
+  <div class="card card-accent-blue">
+    <p>How external visitors reach the application seamlessly on the VPS:</p>
+    <table>
+      <thead>
+        <tr>
+          <th>Component</th>
+          <th>Physical Location / Service</th>
+          <th>Role & Routing</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Host Nginx (CloudPanel)</strong></td>
+          <td><code>/home/ahlehadeeskokan/htdocs/www.ahlehadeeskokan.com</code></td>
+          <td>Handles SSL termination (Let's Encrypt), serves static frontend SPA assets, and routes <code>/api/*</code> traffic to backend port 8000.</td>
+        </tr>
+        <tr>
+          <td><strong>Frontend Container</strong></td>
+          <td><code>library_frontend</code> (Port 3000)</td>
+          <td>Docker Nginx container building and serving Vite React bundles.</td>
+        </tr>
+        <tr>
+          <td><strong>Backend Container</strong></td>
+          <td><code>library_backend</code> (Port 8000)</td>
+          <td>Uvicorn FastAPI service executing application business logic.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Section 6 -->
+  <h2><span class="badge-number">6</span> Production Quick Maintenance Cheat Sheet</h2>
+  <div class="card">
+    <pre># 1. Check all live container statuses:
+docker compose ps
+
+# 2. View real-time backend application logs:
+docker compose logs -f backend
+
+# 3. Restart entire stack cleanly:
+docker compose down && docker compose up -d
+
+# 4. Force Super Admin reset:
+docker compose exec backend python setup_admin.py
+
+# 5. Check database connection inside container:
+docker compose exec db pg_isready -U library_user -d library_db</pre>
+  </div>
+
+  <div class="footer">
+    <span>Kokan Islamic Library (KIL) — Markaz Ahle Hadees Kokan</span>
+    <span>Production Architecture Manual &copy; 2026 — Confidential</span>
+  </div>
+
+</body>
+</html>

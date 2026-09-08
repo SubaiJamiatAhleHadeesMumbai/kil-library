@@ -169,20 +169,46 @@ const BookDetailsModal = ({
     setView("policy");
   };
 
+  const getSavedPage = () => {
+    if (!book?.id) return null;
+    try {
+      const raw = localStorage.getItem('kil_last_read_book');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (String(parsed?.bookId) === String(book.id) && Number(parsed?.page) > 1) {
+          return Number(parsed.page);
+        }
+      }
+      const rawRecent = localStorage.getItem('bookNest_recent_reads');
+      if (rawRecent) {
+        const parsedRecent = JSON.parse(rawRecent);
+        const match = Array.isArray(parsedRecent) && parsedRecent.find(r => String(r.book_id) === String(book.id));
+        if (match && Number(match.last_page_read) > 1) {
+          return Number(match.last_page_read);
+        }
+      }
+    } catch {}
+    return null;
+  };
+
   const handleReadPdfClick = () => {
     if (!pdfUrl && !txtUrl) {
       toast.error("No digital format available to read.");
       return;
     }
-    setShowSmartReader(true);
+    const savedPage = getSavedPage();
+    handleClose();
+    navigate(savedPage ? `/read/${book.id}?page=${savedPage}` : `/read/${book.id}`);
   };
 
-  const handleReadTextClick = async () => {
+  const handleReadTextClick = () => {
     if (!txtUrl && !pdfUrl) {
       toast.error("No digital format available to read.");
       return;
     }
-    setShowSmartReader(true);
+    const savedPage = getSavedPage();
+    handleClose();
+    navigate(savedPage ? `/read/${book.id}?page=${savedPage}` : `/read/${book.id}`);
   };
 
   // -----------------------------
@@ -410,7 +436,7 @@ const BookDetailsModal = ({
                               className="w-full py-3.5 px-4 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2 bg-gradient-to-r from-emerald-600 to-[#002147] text-white shadow-lg shadow-emerald-600/25 active:scale-98 cursor-pointer"
                             >
                               <BookOpenIcon className="w-5 h-5" />
-                              <span>Read Free Online / سمارٹ ریڈر</span>
+                              <span>{getSavedPage() ? `Resume Reading (Page ${getSavedPage()})` : 'Read Free Online / سمارٹ ریڈر'}</span>
                             </button>
                           )}
                           <div className="grid grid-cols-2 gap-2">
@@ -550,7 +576,7 @@ const BookDetailsModal = ({
                               className="flex-[2] py-3.5 px-5 rounded-2xl font-bold text-sm transition-all flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/20 bg-gradient-to-r from-emerald-600 to-[#002147] text-white cursor-pointer"
                             >
                               <BookOpenIcon className="w-5 h-5" />
-                              <span>Read Free Online / سمارٹ ریڈر</span>
+                              <span>{getSavedPage() ? `Resume Reading (Page ${getSavedPage()})` : 'Read Free Online / سمارٹ ریڈر'}</span>
                             </motion.button>
                           )}
 

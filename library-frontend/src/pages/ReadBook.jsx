@@ -47,11 +47,12 @@ const ReadBook = () => {
   const { currentLang = 'ur', isRTL = true } = useLanguage();
   const loc = READ_I18N[currentLang] || READ_I18N.ur;
 
-  const targetPage = parseInt(searchParams.get('page') || '1', 10);
+  const targetPageQuery = parseInt(searchParams.get('page') || '0', 10);
   const targetQuery = searchParams.get('q') || '';
 
   const [book, setBook] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [startPage, setStartPage] = useState(targetPageQuery > 0 ? targetPageQuery : 1);
 
   useEffect(() => {
     const initReader = async () => {
@@ -61,7 +62,7 @@ const ReadBook = () => {
         const bookData = bookRes.data;
         setBook(bookData);
 
-        // Interaction / History Tracking
+        // Interaction / History Tracking & Auto-Resume Detection
         try {
           let status = null;
           const hasToken = Boolean(
@@ -75,14 +76,69 @@ const ReadBook = () => {
               console.warn("Could not load user interaction status:", err);
             }
           }
+
+          // Auto-resume determination if no ?page was specified in URL
+          let resumePage = targetPageQuery > 0 ? targetPageQuery : 1;
+          if (targetPageQuery <= 0) {
+            // Check localStorage fastest first
+            try {
+              const rawLast = localStorage.getItem('kil_last_read_book');
+              if (rawLast) {
+                const parsedLast = JSON.parse(rawLast);
+                if (String(parsedLast?.bookId) === String(id) && Number(parsedLast?.page) > 1) {
+                  resumePage = Number(parsedLast.page);
+                }
+              }
+            } catch {}
+
+            // Fallback to recent reads
+            if (resumePage <= 1) {
+              try {
+                const rawRecent = localStorage.getItem('bookNest_recent_reads');
+                if (rawRecent) {
+                  const parsedRecent = JSON.parse(rawRecent);
+                  const match = Array.isArray(parsedRecent) && parsedRecent.find(r => String(r.book_id) === String(id));
+                  if (match && Number(match.last_page_read) > 1) {
+                    resumePage = Number(match.last_page_read);
+                  }
+                }
+              } catch {}
+            }
+
+            // Fallback to backend status
+            if (resumePage <= 1 && status?.last_page_read > 1) {
+              resumePage = Number(status.last_page_read);
+            }
+
+            if (resumePage > 1) {
+              setStartPage(resumePage);
+            }
+          }
+
+          const coverUrl = bookData?.cover_image_url || bookData?.cover_image;
+          const totalPagesCount = status?.total_pages || bookData?.page_count || 0;
+
+          // 1. Sync kil_last_read_book for floating Navbar widget
+          const lastReadPayload = {
+            bookId: Number(id),
+            title: bookData?.title,
+            cover: coverUrl,
+            page: resumePage,
+            totalPages: totalPagesCount,
+            timestamp: Date.now(),
+          };
+          localStorage.setItem('kil_last_read_book', JSON.stringify(lastReadPayload));
+          window.dispatchEvent(new CustomEvent('kil_reading_updated', { detail: lastReadPayload }));
+
+          // 2. Sync bookNest_recent_reads array
           const recentReadsRaw = localStorage.getItem("bookNest_recent_reads");
           const recentReads = recentReadsRaw ? JSON.parse(recentReadsRaw) : [];
           const nextEntry = {
             book_id: Number(id),
             title: bookData?.title,
-            cover_image_url: bookData?.cover_image_url || bookData?.cover_image,
-            last_page_read: status?.last_page_read || 1,
-            total_pages: status?.total_pages || 0,
+            cover_image_url: coverUrl,
+            last_page_read: resumePage,
+            total_pages: totalPagesCount,
             updated_at: new Date().toISOString(),
           };
 
@@ -90,7 +146,7 @@ const ReadBook = () => {
             ? recentReads.filter((entry) => String(entry.book_id) !== String(id))
             : [];
           filtered.unshift(nextEntry);
-          localStorage.setItem("bookNest_recent_reads", JSON.stringify(filtered.slice(0, 8)));
+          localStorage.setItem("bookNest_recent_reads", JSON.stringify(filtered.slice(0, 10)));
 
           await analyticsService.trackVisit({
             visitor_id: analyticsService.getVisitorId(),
@@ -112,7 +168,7 @@ const ReadBook = () => {
     };
 
     if (id) initReader();
-  }, [id]);
+  }, [id, targetPageQuery]);
 
   if (loading) {
     return (
@@ -174,6 +230,8 @@ const ReadBook = () => {
   }
 
   // Use Same-Origin Proxy Stream endpoints for Zero CORS issues + fallback to direct URLs
+  const directPdfUrl = book?.pdf_url || book?.pdf_file || null;
+  const directTxtUrl = book?.txt_file_url || book?.txt_file || null;
   const pdfUrl = hasPdf ? `${API_BASE_URL}/api/books/${book.id}/stream-pdf` : null;
   const txtUrl = hasTxt ? `${API_BASE_URL}/api/books/${book.id}/stream-text` : null;
 
@@ -183,11 +241,13 @@ const ReadBook = () => {
       bookId={book?.id}
       bookTitle={book?.title}
       pdfUrl={pdfUrl}
+      directPdfUrl={directPdfUrl}
+      fallbackPdfUrl={directPdfUrl}
       txtUrl={txtUrl}
-      directTxtUrl={book?.txt_file_url || book?.txt_file}
+      directTxtUrl={directTxtUrl}
       onClose={() => navigate(-1)}
       onBackToSearch={() => navigate('/books')}
-      initialPage={targetPage}
+      initialPage={startPage}
       initialSearchText={targetQuery}
     />
   );
