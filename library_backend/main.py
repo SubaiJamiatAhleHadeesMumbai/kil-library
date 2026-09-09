@@ -169,6 +169,21 @@ def sync_database_schema():
         "ALTER TABLE book_permissions ADD COLUMN IF NOT EXISTS expires_at TIMESTAMP;",
         "ALTER TABLE access_requests_user ADD COLUMN IF NOT EXISTS expires_at TIMESTAMP;",
         "ALTER TABLE access_requests_user ADD COLUMN IF NOT EXISTS duration_days INTEGER;",
+        # Ensure any bulk imported books that have not been explicitly approved are NOT public
+        """
+        INSERT INTO upload_requests (book_id, status, submitted_at, remarks)
+        SELECT b.id, 'Pending', NOW(), 'Bulk upload awaiting Admin approval'
+        FROM books b
+        LEFT JOIN upload_requests ur ON ur.book_id = b.id
+        WHERE ur.id IS NULL AND b.deleted_at IS NULL;
+        """,
+        """
+        UPDATE books b
+        SET is_approved = FALSE
+        WHERE id IN (
+            SELECT book_id FROM upload_requests WHERE status IN ('Pending', 'Rejected')
+        );
+        """,
         # comments system
         """
         CREATE TABLE IF NOT EXISTS comments (

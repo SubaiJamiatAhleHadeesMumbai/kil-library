@@ -327,7 +327,7 @@ const UserLibrary = () => {
 
       if (requestId === activeRequestRef.current) {
         const rawList = Array.isArray(data) ? data : data?.books || [];
-        const list = rawList.filter(b => b.is_approved !== false);
+        const list = rawList.filter(b => b.is_approved === true);
         setBooks(list);
       }
     } catch (error) {
