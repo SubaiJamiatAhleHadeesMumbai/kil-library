@@ -43,6 +43,8 @@ def global_omni_search(
     # 1. 📚 BOOKS SEARCH
     try:
         books_query = db.query(Book).filter(
+            Book.deleted_at.is_(None),
+            Book.is_approved == True,
             or_(
                 Book.title.ilike(pattern),
                 Book.author.ilike(pattern),
@@ -50,7 +52,7 @@ def global_omni_search(
                 Book.description.ilike(pattern),
                 Book.translator.ilike(pattern)
             )
-        ).limit(limit).all()
+        ).order_by(desc(Book.id)).limit(limit).all()
 
         for b in books_query:
             results["books"].append({
