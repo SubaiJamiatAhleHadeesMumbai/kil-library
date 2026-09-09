@@ -610,26 +610,45 @@ async def update_book(
             if old_txt and old_txt != new_txt:
                 smart_delete(old_txt)
 
-    # Approval Logic - Admin updates remain approved
-    db_book.is_approved = True 
+    # Approval Logic - Admin updates auto-approve; Staff updates require review
+    is_admin = bool(current_user and hasattr(current_user, 'role') and current_user.role and current_user.role.name.lower() in ['admin', 'superadmin'])
     
     existing_req = db.query(request_model.UploadRequest).filter(
         request_model.UploadRequest.book_id == book_id
     ).first()
 
-    if existing_req:
-        existing_req.status = 'Approved'
-        existing_req.remarks = f"Auto: Book updated by {current_user.username}."
-        existing_req.reviewed_by_id = current_user.id
-        existing_req.reviewed_at = datetime.utcnow()
+    if is_admin:
+        db_book.is_approved = True 
+        if existing_req:
+            existing_req.status = 'Approved'
+            existing_req.remarks = f"Auto: Book updated by {current_user.username}."
+            existing_req.reviewed_by_id = current_user.id
+            existing_req.reviewed_at = datetime.utcnow()
+        else:
+            new_req = request_model.UploadRequest(
+                book_id=book_id,
+                submitted_by_id=current_user.id,
+                reviewed_by_id=current_user.id,
+                reviewed_at=datetime.utcnow(),
+                status='Approved',
+                remarks=f"Auto: Book updated by {current_user.username}"
+            )
+            db.add(new_req)
     else:
-        new_req = request_model.UploadRequest(
-            book_id=book_id,
-            submitted_by_id=current_user.id,
-            status='Pending',
-            remarks="Auto: Book updated"
-        )
-        db.add(new_req)
+        db_book.is_approved = False
+        if existing_req:
+            existing_req.status = 'Pending'
+            existing_req.remarks = f"Book updated by staff {current_user.username}, awaiting approval."
+            existing_req.reviewed_by_id = None
+            existing_req.reviewed_at = None
+        else:
+            new_req = request_model.UploadRequest(
+                book_id=book_id,
+                submitted_by_id=current_user.id,
+                status='Pending',
+                remarks=f"Book updated by staff {current_user.username}"
+            )
+            db.add(new_req)
 
     create_log(
         db=db, user=current_user, action_type="BOOK_UPDATED",

@@ -21,7 +21,7 @@ except ImportError:
 logger = logging.getLogger(__name__)
 
 # --- Imports ---
-from models import book_model, user_model, book_permission_model, request_user_model, interaction_model, language_model
+from models import book_model, user_model, book_permission_model, request_user_model, request_model, interaction_model, language_model
 from schemas import book_schema
 from auth import get_current_user_optional 
 from database import get_db
@@ -352,10 +352,13 @@ def read_books(
         joinedload(book_model.Book.language)
     ).filter(book_model.Book.deleted_at.is_(None))
 
-    # 2. Approval filter: only admins can see unapproved books
+    # 2. Approval filter: only admins can see unapproved or pending books
     is_admin = bool(current_user and hasattr(current_user, 'role') and current_user.role and current_user.role.name.lower() in ['admin', 'superadmin'])
     if not is_admin or approved_only:
-        query = query.filter(book_model.Book.is_approved == True)
+        query = query.filter(
+            book_model.Book.is_approved == True,
+            ~book_model.Book.upload_request.has(request_model.UploadRequest.status.in_(['Pending', 'Rejected']))
+        )
     
     # 3. Filters
     if search and search.strip():
@@ -807,7 +810,8 @@ def read_book(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Book not found")
 
     # 1. Approval Check
-    if not db_book.is_approved:
+    is_unapproved = not db_book.is_approved or bool(db_book.upload_request and db_book.upload_request.status in ['Pending', 'Rejected'])
+    if is_unapproved:
         if not current_user or (current_user.role.name.lower() not in ['admin', 'superadmin']):
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Book not found.")
             
@@ -891,7 +895,8 @@ async def stream_book_pdf(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="PDF not found for this book")
 
     # 1. Approval Check
-    if not db_book.is_approved:
+    is_unapproved = not db_book.is_approved or bool(db_book.upload_request and db_book.upload_request.status in ['Pending', 'Rejected'])
+    if is_unapproved:
         if not current_user or (current_user.role.name.lower() not in ['admin', 'superadmin']):
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Book not found.")
 
