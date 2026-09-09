@@ -183,7 +183,7 @@ async def create_book(
             download_price=float(download_price) if download_price is not None else 0.0,
             download_upi_id=download_upi_id.strip() if download_upi_id else None,
             is_digital=bool(is_digital) or bool(pdf_url or txt_file_url),
-            is_approved=True, 
+            is_approved=False, 
             
             # Saved URLs
             cover_image_url=cover_image_url,
@@ -196,14 +196,13 @@ async def create_book(
         db.add(new_book)
         db.flush()
 
-        # 7. Create Upload Approval Record safely
+        # 7. Create Upload Approval Record safely (Strict governance: Pending until Admin review)
         try:
             upload_request = request_model.UploadRequest(
                 book_id=new_book.id,
                 submitted_by_id=current_user.id,
-                reviewed_by_id=current_user.id,
-                status='Approved',
-                remarks='Auto-approved book uploaded by Admin.'
+                status='Pending',
+                remarks='Newly uploaded book awaiting Admin approval.'
             )
             db.add(upload_request)
             db.flush()
@@ -357,11 +356,25 @@ def bulk_import_books(
                 extra_data=item.extra_data or item.raw_data,
                 published_date=parsed_pub_date,
                 is_digital=True,
-                is_approved=True,
+                is_approved=False,
                 is_restricted=False
             )
             db.add(new_book)
             created_books.append(new_book)
+
+        db.flush()
+
+        for book in created_books:
+            try:
+                upload_req = request_model.UploadRequest(
+                    book_id=book.id,
+                    submitted_by_id=current_user.id,
+                    status='Pending',
+                    remarks='Imported via Excel bulk upload. Awaiting Admin review and approval.'
+                )
+                db.add(upload_req)
+            except Exception as ur_err:
+                print(f"Warning: UploadRequest for book {book.id} skipped: {ur_err}")
 
         db.commit()
 

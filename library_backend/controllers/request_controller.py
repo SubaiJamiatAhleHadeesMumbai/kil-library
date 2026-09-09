@@ -232,6 +232,33 @@ def review_access_request(
         req.rejection_reason = update_data.rejection_reason
     
     req.updated_at = datetime.utcnow()
+
+    # Sync BookPermission so user gains/loses access
+    from models.book_permission_model import BookPermission
+    from datetime import timedelta
+    normalized_status = str(update_data.status).lower().strip()
+    if normalized_status == 'approved':
+        days = getattr(req, 'requested_days', None) or 7
+        computed_expires_at = datetime.utcnow() + timedelta(days=int(days))
+        try:
+            perm = db.query(BookPermission).filter(
+                BookPermission.book_id == req.book_id,
+                BookPermission.user_id == req.user_id
+            ).first()
+            if perm:
+                perm.expires_at = computed_expires_at
+            else:
+                db.add(BookPermission(book_id=req.book_id, user_id=req.user_id, expires_at=computed_expires_at))
+        except Exception as e:
+            print(f"⚠️ Failed to sync BookPermission in request_controller: {e}")
+    elif normalized_status in ['rejected', 'cancelled']:
+        try:
+            db.query(BookPermission).filter(
+                BookPermission.book_id == req.book_id,
+                BookPermission.user_id == req.user_id
+            ).delete()
+        except Exception as e:
+            print(f"⚠️ Failed to delete BookPermission in request_controller: {e}")
     
     create_log(db, current_user, "ACCESS_REVIEW", f"Access Request {request_id} set to {update_data.status}", "BookRequest", request_id)
     

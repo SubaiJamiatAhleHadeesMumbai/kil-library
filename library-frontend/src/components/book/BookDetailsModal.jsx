@@ -84,6 +84,7 @@ const BookDetailsModal = ({
   book, 
   onClose, 
   onBackToSearch,
+  onRequestAccess,
   startView = "details",
   autoOpenReader = false,       // Deep search se aaya hai toh true hoga
   initialPage = 1,              // Deep search ka page number
@@ -95,6 +96,7 @@ const BookDetailsModal = ({
   // âœ… Initialize SmartReader state based on Deep Search prop
   const [showSmartReader, setShowSmartReader] = useState(autoOpenReader);
   const [showPurchaseModal, setShowPurchaseModal] = useState(false);
+  const [activeTab, setActiveTab] = useState("overview"); // 'overview' | 'reviews'
   
   const [textContent, setTextContent] = useState("");
   const [isLoadingText, setIsLoadingText] = useState(false);
@@ -156,7 +158,11 @@ const BookDetailsModal = ({
   };
 
   const handleRequestClick = (e) => {
-    e.preventDefault();
+    e?.preventDefault?.();
+    if (onRequestAccess) {
+      onRequestAccess(book);
+      return;
+    }
     if (book?.id) {
       localStorage.setItem("pendingRestrictedBookId", String(book.id));
     }
@@ -305,7 +311,7 @@ const BookDetailsModal = ({
           exit={{ scale: 0.9, opacity: 0, y: 20 }}
           transition={{ type: "spring", stiffness: 300, damping: 30 }}
           onClick={(e) => e.stopPropagation()}
-          className="bg-white rounded-3xl shadow-2xl w-full max-w-6xl overflow-hidden relative max-h-[92vh] border border-white/30 flex flex-col"
+          className="bg-white rounded-3xl shadow-2xl w-full max-w-5xl overflow-hidden relative h-[90vh] max-h-[780px] border border-slate-200/80 flex flex-col"
         >
           {/* âœ… PREMIUM STICKY HEADER */}
           <motion.div 
@@ -388,23 +394,15 @@ const BookDetailsModal = ({
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="flex-1 overflow-y-auto"
+                className="flex-1 flex flex-col min-h-0 overflow-hidden"
               >
-                <div className="grid grid-cols-1 md:grid-cols-12 min-h-full">
-                  {/* LEFT: PREMIUM COVER SECTION */}
-                  <motion.div 
-                    className="md:col-span-5 bg-gradient-to-b from-slate-50 via-slate-100/50 to-blue-50/20 border-b md:border-b-0 md:border-r border-slate-100 p-5 sm:p-7 flex flex-col items-center justify-start md:justify-center"
-                    initial={{ x: -20, opacity: 0 }}
-                    animate={{ x: 0, opacity: 1 }}
-                  >
+                {/* 1. DESKTOP VIEW (Two-column: Left cover + sticky actions dock; Right: tabs + content) */}
+                <div className="hidden md:grid md:grid-cols-12 flex-1 min-h-0 overflow-hidden">
+                  {/* LEFT: FIXED COVER & QUICK ACTION DOCK (ZERO SCROLL) */}
+                  <div className="md:col-span-5 h-full flex flex-col justify-between bg-gradient-to-b from-slate-50 via-slate-100/50 to-blue-50/20 border-r border-slate-200/80 p-6 overflow-hidden">
                     {/* Cover Wrapper */}
-                    <div className="relative group my-auto flex flex-col items-center">
-                      <div className="absolute -inset-2 bg-gradient-to-r from-blue-500/20 to-emerald-500/20 rounded-3xl blur-xl opacity-60 group-hover:opacity-100 transition duration-500" />
-                      <motion.div 
-                        className="relative w-[180px] sm:w-[210px] md:w-[230px] lg:w-[260px] aspect-[2/3] rounded-2xl overflow-hidden shadow-xl bg-white border border-slate-200/80"
-                        whileHover={{ scale: 1.03 }}
-                        transition={{ type: "spring", stiffness: 350, damping: 25 }}
-                      >
+                    <div className="flex-1 flex flex-col items-center justify-center min-h-0 py-2">
+                      <div className="relative max-h-[300px] w-auto aspect-[2/3] rounded-2xl overflow-hidden shadow-2xl bg-white border border-slate-200/80 group">
                         <img
                           src={coverUrl}
                           alt={title}
@@ -414,208 +412,322 @@ const BookDetailsModal = ({
                             e.currentTarget.src = FALLBACK_COVER;
                           }}
                         />
-                      </motion.div>
-                    </div>
+                      </div>
 
-                    {/* MOBILE QUICK ACTION STRIP (Right below cover for instant 1-tap read) */}
-                    <div className="w-full mt-5 md:hidden space-y-2">
-                      {isRestricted && !userHasAccess ? (
-                        <button
-                          type="button"
-                          onClick={handleRequestClick}
-                          className="w-full py-3 px-4 rounded-xl font-extrabold text-xs transition-all flex items-center justify-center gap-2 bg-[#002147] text-white shadow-md cursor-pointer"
-                        >
-                          <LockClosedIcon className="w-4 h-4" /> Request Digital Access
-                        </button>
-                      ) : (
-                        <>
-                          {pdfUrl && (
-                            <button
-                              type="button"
-                              onClick={handleReadPdfClick}
-                              className="w-full py-3.5 px-4 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2 bg-gradient-to-r from-emerald-600 to-[#002147] text-white shadow-lg shadow-emerald-600/25 active:scale-98 cursor-pointer"
-                            >
-                              <BookOpenIcon className="w-5 h-5" />
-                              <span>{getSavedPage() ? `Resume Reading (Page ${getSavedPage()})` : 'Read Free Online / سمارٹ ریڈر'}</span>
-                            </button>
-                          )}
-                          <div className="grid grid-cols-2 gap-2">
-                            {pdfUrl && (
-                              <button
-                                type="button"
-                                onClick={() => setShowPurchaseModal(true)}
-                                className="py-2.5 px-3 rounded-xl font-bold text-xs bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-200 flex items-center justify-center gap-1.5 transition cursor-pointer"
-                              >
-                                <ArrowDownTrayIcon className="w-3.5 h-3.5 text-slate-600" />
-                                <span>{book.is_download_paid ? `Download (₹${book.download_price || 49})` : 'Download PDF'}</span>
-                              </button>
-                            )}
-                            {txtUrl && (
-                              <button
-                                type="button"
-                                onClick={handleReadTextClick}
-                                className="py-2.5 px-3 rounded-xl font-bold text-xs bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-200 flex items-center justify-center gap-1.5 transition cursor-pointer"
-                              >
-                                <DocumentTextIcon className="w-3.5 h-3.5 text-slate-600" />
-                                <span>Text Mode</span>
-                              </button>
-                            )}
-                          </div>
-                        </>
-                      )}
-                    </div>
-                  </motion.div>
-
-                  {/* RIGHT: CONTENT SECTION */}
-                  <div className="md:col-span-7 flex flex-col relative h-full">
-                    {/* Scrollable content */}
-                    <div className="flex-1 px-5 sm:px-8 py-6 pb-28 overflow-y-auto space-y-6">
-                      
-                      {/* Title & Author Header */}
-                      <div>
-                        {/* Badges */}
-                        <div className="flex gap-1.5 flex-wrap mb-3">
-                          <span className="bg-emerald-50 text-emerald-800 text-[11px] font-extrabold px-3 py-1 rounded-full uppercase border border-emerald-100 flex items-center gap-1">
-                            <span>🏷️</span> {category}
+                      {/* Cover Badges underneath */}
+                      <div className="flex gap-2 flex-wrap justify-center mt-3">
+                        <span className="bg-white text-slate-700 text-[10px] font-bold px-2.5 py-1 rounded-full border border-slate-200 shadow-2xs">
+                          {pdfUrl ? 'Digital PDF' : 'E-Book'}
+                        </span>
+                        <span className="bg-white text-slate-700 text-[10px] font-bold px-2.5 py-1 rounded-full border border-slate-200 shadow-2xs">
+                          {language}
+                        </span>
+                        {isRestricted && (
+                          <span className={`text-[10px] font-extrabold px-2.5 py-1 rounded-full border shadow-2xs flex items-center gap-1 ${
+                            userHasAccess
+                              ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                              : "bg-red-50 text-red-700 border-red-200"
+                          }`}>
+                            {userHasAccess ? <LockOpenIcon className="w-3 h-3 text-emerald-600" /> : <LockClosedIcon className="w-3 h-3 text-red-600" />}
+                            <span>{userHasAccess ? "UNLOCKED" : "RESTRICTED"}</span>
                           </span>
-                          <span className="bg-blue-50 text-blue-800 text-[11px] font-extrabold px-3 py-1 rounded-full uppercase border border-blue-100 flex items-center gap-1">
-                            <span>🌐</span> {language}
-                          </span>
-                          {isRestricted && (
-                            <span className={`text-[11px] font-extrabold px-3 py-1 rounded-full uppercase flex items-center gap-1 ${
-                              userHasAccess
-                                ? "bg-indigo-50 text-indigo-700 border border-indigo-100"
-                                : "bg-red-50 text-red-700 border border-red-100"
-                            }`}>
-                              {userHasAccess ? <LockOpenIcon className="w-3.5 h-3.5" /> : <LockClosedIcon className="w-3.5 h-3.5" />}
-                              {userHasAccess ? "UNLOCKED" : "RESTRICTED"}
-                            </span>
-                          )}
-                        </div>
-
-                        {/* Title */}
-                        <h2 className="text-xl sm:text-2xl lg:text-3xl font-black text-[#002147] leading-tight tracking-tight">
-                          {title}
-                        </h2>
-
-                        {/* Author */}
-                        <div className="mt-3 flex items-center gap-2">
-                          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-slate-100 text-slate-700 text-xs font-bold border border-slate-200">
-                            <UserIcon className="w-3.5 h-3.5 text-blue-600" />
-                            <span className="text-slate-400 font-semibold">Author:</span>
-                            <span className="text-slate-900">{author}</span>
-                          </div>
-                          {book?.publisher && (
-                            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-slate-100 text-slate-700 text-xs font-bold border border-slate-200">
-                              <span className="text-slate-400 font-semibold">Pub:</span>
-                              <span className="text-slate-900">{getSafeName(book.publisher)}</span>
-                            </div>
-                          )}
-                        </div>
+                        )}
                       </div>
-
-                      {/* 4 Quick Spec Cards Grid */}
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-                        <div className="bg-slate-50 border border-slate-200/70 p-3 rounded-2xl flex flex-col text-center justify-center">
-                          <span className="text-[10px] uppercase font-extrabold text-slate-400 tracking-wider">Format</span>
-                          <span className="text-xs font-black text-[#002147] mt-0.5">{pdfUrl ? 'Digital PDF' : 'E-Book'}</span>
-                        </div>
-                        <div className="bg-slate-50 border border-slate-200/70 p-3 rounded-2xl flex flex-col text-center justify-center">
-                          <span className="text-[10px] uppercase font-extrabold text-slate-400 tracking-wider">Language</span>
-                          <span className="text-xs font-black text-[#002147] mt-0.5">{language}</span>
-                        </div>
-                        <div className="bg-slate-50 border border-slate-200/70 p-3 rounded-2xl flex flex-col text-center justify-center">
-                          <span className="text-[10px] uppercase font-extrabold text-slate-400 tracking-wider">Access</span>
-                          <span className="text-xs font-black text-emerald-700 mt-0.5">{isRestricted ? 'Restricted' : 'Free Public'}</span>
-                        </div>
-                        <div className="bg-slate-50 border border-slate-200/70 p-3 rounded-2xl flex flex-col text-center justify-center">
-                          <span className="text-[10px] uppercase font-extrabold text-slate-400 tracking-wider">Reader</span>
-                          <span className="text-xs font-black text-blue-700 mt-0.5">Smart Reader</span>
-                        </div>
-                      </div>
-
-                      {/* Description Box */}
-                      <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4 sm:p-5">
-                        <div className="flex items-center gap-2 mb-2 text-slate-800 font-extrabold text-sm">
-                          <SparklesIcon className="w-4 h-4 text-emerald-600" />
-                          <span>About this Book</span>
-                        </div>
-                        <p className="text-slate-700 text-xs sm:text-sm leading-relaxed whitespace-pre-line">
-                          {description}
-                        </p>
-                      </div>
-
-                      {/* Comments & Reviews Section */}
-                      {book?.id && (
-                        <div className="border-t border-slate-200 pt-6">
-                          <CommentSection entityType="book" entityId={book.id} isRTL={isRTL} />
-                        </div>
-                      )}
                     </div>
 
-                    {/* âœ… DESKTOP STICKY BOTTOM ACTION BAR */}
-                    <div className="hidden md:block absolute bottom-0 left-0 right-0 bg-gradient-to-t from-white via-white to-white/80 border-t border-slate-200 px-6 sm:px-8 py-4 z-20">
+                    {/* PINNED ACTION DOCK (Always visible on desktop, zero scroll needed!) */}
+                    <div className="pt-4 border-t border-slate-200/80 shrink-0 space-y-2.5">
                       {isRestricted && !userHasAccess ? (
                         <motion.button
                           onClick={handleRequestClick}
-                          whileHover={{ scale: 1.01 }}
+                          whileHover={{ scale: 1.02 }}
                           whileTap={{ scale: 0.98 }}
-                          className="w-full bg-[#002147] text-white py-3.5 px-6 rounded-2xl font-extrabold hover:shadow-lg transition-all flex items-center justify-center gap-3 shadow-md cursor-pointer"
+                          className="w-full bg-[#002147] hover:bg-[#003166] text-white py-3.5 px-4 rounded-xl font-bold text-xs flex items-center justify-center gap-2 shadow-md cursor-pointer transition"
                         >
-                          <LockClosedIcon className="w-5 h-5" />
-                          Request Digital Access
+                          <LockClosedIcon className="w-4 h-4" />
+                          <span>Request Digital Access</span>
                         </motion.button>
                       ) : (
-                        <div className="flex items-center gap-3">
-                          {/* Read PDF Button (Free Online) */}
+                        <>
                           {pdfUrl && (
                             <motion.button
                               onClick={handleReadPdfClick}
                               whileHover={{ scale: 1.02 }}
                               whileTap={{ scale: 0.98 }}
-                              className="flex-[2] py-3.5 px-5 rounded-2xl font-bold text-sm transition-all flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/20 bg-gradient-to-r from-emerald-600 to-[#002147] text-white cursor-pointer"
+                              className="w-full py-3.5 px-4 rounded-xl font-bold text-xs flex items-center justify-center gap-2 shadow-md shadow-emerald-600/20 bg-gradient-to-r from-emerald-600 to-[#002147] text-white cursor-pointer transition"
                             >
-                              <BookOpenIcon className="w-5 h-5" />
-                              <span>{getSavedPage() ? `Resume Reading (Page ${getSavedPage()})` : 'Read Free Online / سمارٹ ریڈر'}</span>
+                              <BookOpenIcon className="w-4 h-4" />
+                              <span>{getSavedPage() ? `Resume Reading (Page ${getSavedPage()})` : 'Read Free Online'}</span>
                             </motion.button>
                           )}
 
-                          {/* Download PDF Button */}
-                          {pdfUrl && (
-                            <motion.button
-                              type="button"
-                              onClick={() => setShowPurchaseModal(true)}
-                              whileHover={{ scale: 1.01 }}
-                              whileTap={{ scale: 0.98 }}
-                              className="flex-1 py-3.5 px-4 rounded-2xl font-bold text-xs transition-all flex items-center justify-center gap-1.5 border border-slate-200 bg-slate-100 hover:bg-slate-200 text-slate-800 cursor-pointer shadow-xs"
-                            >
-                              <ArrowDownTrayIcon className="w-4 h-4 text-slate-600" />
-                              <span>{book.is_download_paid ? `Download (₹${book.download_price || 49})` : 'Download PDF'}</span>
-                            </motion.button>
-                          )}
+                          <div className="grid grid-cols-2 gap-2">
+                            {pdfUrl && (
+                              <motion.button
+                                type="button"
+                                onClick={() => setShowPurchaseModal(true)}
+                                whileHover={{ scale: 1.02 }}
+                                whileTap={{ scale: 0.98 }}
+                                className="py-2.5 px-3 rounded-xl font-bold text-xs bg-slate-900 hover:bg-slate-800 text-amber-300 border border-slate-700 flex items-center justify-center gap-1.5 transition cursor-pointer shadow-xs"
+                              >
+                                <ArrowDownTrayIcon className="w-3.5 h-3.5 text-amber-300" />
+                                <span>{book.is_download_paid ? `Download (₹${book.download_price || 49})` : 'Download PDF'}</span>
+                              </motion.button>
+                            )}
 
-                          {/* Read Text Button */}
-                          {txtUrl && (
-                            <motion.button
-                              onClick={handleReadTextClick}
-                              whileHover={{ scale: 1.01 }}
-                              whileTap={{ scale: 0.98 }}
-                              className="py-3.5 px-4 rounded-2xl font-bold text-xs transition-all flex items-center justify-center gap-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 cursor-pointer"
-                            >
-                              <DocumentTextIcon className="w-4 h-4" />
-                              <span>Text</span>
-                            </motion.button>
-                          )}
-
-                          {/* Fallback */}
-                          {!pdfUrl && !txtUrl && (
-                            <div className="w-full py-3.5 px-4 rounded-2xl font-semibold text-xs bg-slate-100 text-slate-400 border border-slate-200 text-center cursor-not-allowed">
-                              No Digital Formats Available
-                            </div>
-                          )}
-                        </div>
+                            {txtUrl && (
+                              <motion.button
+                                type="button"
+                                onClick={handleReadTextClick}
+                                whileHover={{ scale: 1.02 }}
+                                whileTap={{ scale: 0.98 }}
+                                className="py-2.5 px-3 rounded-xl font-bold text-xs bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 flex items-center justify-center gap-1.5 transition cursor-pointer shadow-xs"
+                              >
+                                <DocumentTextIcon className="w-3.5 h-3.5 text-slate-500" />
+                                <span>Text Mode</span>
+                              </motion.button>
+                            )}
+                          </div>
+                        </>
                       )}
                     </div>
+                  </div>
+
+                  {/* RIGHT: TABS & METADATA SECTION */}
+                  <div className="md:col-span-7 h-full flex flex-col min-h-0 bg-white overflow-hidden">
+                    {/* Header Area */}
+                    <div className="px-6 pt-5 pb-3 border-b border-slate-100 shrink-0">
+                      <div className="flex gap-2 flex-wrap items-center mb-1">
+                        <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200 uppercase">
+                          {category}
+                        </span>
+                        {language && (
+                          <span className="text-[10px] font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-200 uppercase">
+                            {language}
+                          </span>
+                        )}
+                      </div>
+
+                      <h2 className="text-xl lg:text-2xl font-black text-[#002147] leading-tight line-clamp-2 mt-1">
+                        {title}
+                      </h2>
+
+                      <div className="mt-2 flex items-center gap-2 flex-wrap">
+                        <span className="text-xs text-slate-500 font-semibold">
+                          By <strong className="text-slate-800 font-bold">{author}</strong>
+                        </span>
+                        {book?.publisher && (
+                          <>
+                            <span className="text-slate-300">•</span>
+                            <span className="text-xs text-slate-500 font-medium">
+                              Pub: <span className="text-slate-700 font-semibold">{getSafeName(book.publisher)}</span>
+                            </span>
+                          </>
+                        )}
+                      </div>
+
+                      {/* TABS SELECTOR */}
+                      <div className="flex gap-2 mt-4">
+                        <button
+                          type="button"
+                          onClick={() => setActiveTab("overview")}
+                          className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
+                            activeTab === "overview"
+                              ? "bg-[#002147] text-white shadow-xs"
+                              : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                          }`}
+                        >
+                          <InformationCircleIcon className="w-3.5 h-3.5" />
+                          <span>Overview & Details</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => setActiveTab("reviews")}
+                          className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
+                            activeTab === "reviews"
+                              ? "bg-[#002147] text-white shadow-xs"
+                              : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                          }`}
+                        >
+                          <StarIcon className="w-3.5 h-3.5" />
+                          <span>Reviews & Comments</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* TAB CONTENT (INDIVIDUAL SCROLL) */}
+                    <div className="flex-1 overflow-y-auto p-6 space-y-4 min-h-0">
+                      {activeTab === "overview" ? (
+                        <>
+                          {/* 4 Quick Spec Cards Grid */}
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                            <div className="bg-slate-50 border border-slate-200/70 p-3 rounded-2xl flex flex-col text-center justify-center">
+                              <span className="text-[10px] uppercase font-extrabold text-slate-400 tracking-wider">Format</span>
+                              <span className="text-xs font-black text-[#002147] mt-0.5">{pdfUrl ? 'Digital PDF' : 'E-Book'}</span>
+                            </div>
+                            <div className="bg-slate-50 border border-slate-200/70 p-3 rounded-2xl flex flex-col text-center justify-center">
+                              <span className="text-[10px] uppercase font-extrabold text-slate-400 tracking-wider">Language</span>
+                              <span className="text-xs font-black text-[#002147] mt-0.5">{language}</span>
+                            </div>
+                            <div className="bg-slate-50 border border-slate-200/70 p-3 rounded-2xl flex flex-col text-center justify-center">
+                              <span className="text-[10px] uppercase font-extrabold text-slate-400 tracking-wider">Access</span>
+                              <span className="text-xs font-black text-emerald-700 mt-0.5">{isRestricted ? (userHasAccess ? 'Approved' : 'Restricted') : 'Free Public'}</span>
+                            </div>
+                            <div className="bg-slate-50 border border-slate-200/70 p-3 rounded-2xl flex flex-col text-center justify-center">
+                              <span className="text-[10px] uppercase font-extrabold text-slate-400 tracking-wider">Reader</span>
+                              <span className="text-xs font-black text-blue-700 mt-0.5">Smart Reader</span>
+                            </div>
+                          </div>
+
+                          {/* Description Box */}
+                          <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4 sm:p-5">
+                            <div className="flex items-center gap-2 mb-2 text-slate-800 font-extrabold text-sm">
+                              <SparklesIcon className="w-4 h-4 text-emerald-600" />
+                              <span>About this Book</span>
+                            </div>
+                            <p className="text-slate-700 text-xs sm:text-sm leading-relaxed whitespace-pre-line">
+                              {description}
+                            </p>
+                          </div>
+                        </>
+                      ) : (
+                        book?.id && (
+                          <CommentSection entityType="book" entityId={book.id} isRTL={isRTL} />
+                        )
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* 2. MOBILE VIEW (Scrollable middle + Sticky Bottom Bar with Payment & Read Online) */}
+                <div className="md:hidden flex flex-col flex-1 min-h-0 overflow-hidden">
+                  {/* Middle Scrollable Section */}
+                  <div className="flex-1 overflow-y-auto p-4 space-y-4 min-h-0">
+                    {/* Compact Book Card */}
+                    <div className="flex gap-3.5 items-center bg-slate-50 p-3 rounded-2xl border border-slate-200/80">
+                      <img
+                        src={coverUrl}
+                        alt={title}
+                        className="w-20 h-28 object-contain rounded-xl shadow-md bg-white shrink-0 border border-slate-200"
+                        onError={(e) => {
+                          e.currentTarget.onerror = null;
+                          e.currentTarget.src = FALLBACK_COVER;
+                        }}
+                      />
+                      <div className="min-w-0 flex-1">
+                        <div className="flex gap-1.5 flex-wrap">
+                          <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200 uppercase">
+                            {category}
+                          </span>
+                          {isRestricted && (
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                              userHasAccess ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-red-50 text-red-700 border-red-200"
+                            }`}>
+                              {userHasAccess ? "Unlocked" : "Restricted"}
+                            </span>
+                          )}
+                        </div>
+                        <h3 className="font-bold text-slate-900 text-sm line-clamp-2 mt-1 leading-snug">
+                          {title}
+                        </h3>
+                        <p className="text-xs text-slate-500 line-clamp-1 mt-0.5">By {author}</p>
+                      </div>
+                    </div>
+
+                    {/* Mobile Tabs */}
+                    <div className="flex gap-2 border-b border-slate-100 pb-2">
+                      <button
+                        type="button"
+                        onClick={() => setActiveTab("overview")}
+                        className={`flex-1 py-2 rounded-xl text-xs font-bold transition text-center cursor-pointer ${
+                          activeTab === "overview" ? "bg-[#002147] text-white shadow-xs" : "bg-slate-100 text-slate-600"
+                        }`}
+                      >
+                        Overview
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setActiveTab("reviews")}
+                        className={`flex-1 py-2 rounded-xl text-xs font-bold transition text-center cursor-pointer ${
+                          activeTab === "reviews" ? "bg-[#002147] text-white shadow-xs" : "bg-slate-100 text-slate-600"
+                        }`}
+                      >
+                        Comments
+                      </button>
+                    </div>
+
+                    {/* Tab Contents on Mobile */}
+                    {activeTab === "overview" ? (
+                      <div className="space-y-3">
+                        <div className="grid grid-cols-2 gap-2 text-center text-xs">
+                          <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+                            <span className="text-[10px] text-slate-400 font-bold block uppercase">Format</span>
+                            <span className="font-bold text-slate-800">{pdfUrl ? 'Digital PDF' : 'E-Book'}</span>
+                          </div>
+                          <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+                            <span className="text-[10px] text-slate-400 font-bold block uppercase">Language</span>
+                            <span className="font-bold text-slate-800">{language}</span>
+                          </div>
+                        </div>
+
+                        <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-100">
+                          <span className="text-xs font-bold text-slate-700 block mb-1">Description</span>
+                          <p className="text-xs text-slate-600 leading-relaxed whitespace-pre-line">{description}</p>
+                        </div>
+                      </div>
+                    ) : (
+                      book?.id && <CommentSection entityType="book" entityId={book.id} isRTL={isRTL} />
+                    )}
+                  </div>
+
+                  {/* STICKY BOTTOM ACTION BAR ON MOBILE (PAYMENT & READ NOW PINNED) */}
+                  <div className="p-3 bg-white/95 backdrop-blur-md border-t border-slate-200 z-40 shrink-0 shadow-lg">
+                    {isRestricted && !userHasAccess ? (
+                      <button
+                        type="button"
+                        onClick={handleRequestClick}
+                        className="w-full py-3.5 bg-[#002147] text-white font-bold text-xs rounded-xl shadow-md flex items-center justify-center gap-2 cursor-pointer active:scale-98"
+                      >
+                        <LockClosedIcon className="w-4 h-4" />
+                        <span>Request Digital Access</span>
+                      </button>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        {pdfUrl && (
+                          <button
+                            type="button"
+                            onClick={handleReadPdfClick}
+                            className="flex-1 py-3.5 bg-gradient-to-r from-emerald-600 to-[#002147] text-white font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 shadow-md shadow-emerald-600/20 active:scale-98 cursor-pointer"
+                          >
+                            <BookOpenIcon className="w-4 h-4" />
+                            <span>{getSavedPage() ? `Resume (P.${getSavedPage()})` : 'Read Online'}</span>
+                          </button>
+                        )}
+
+                        {pdfUrl && (
+                          <button
+                            type="button"
+                            onClick={() => setShowPurchaseModal(true)}
+                            className="px-4 py-3.5 bg-slate-900 hover:bg-slate-800 text-amber-300 font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 shadow-md shrink-0 border border-slate-700 active:scale-98 cursor-pointer"
+                          >
+                            <ArrowDownTrayIcon className="w-4 h-4 text-amber-300" />
+                            <span>{book.is_download_paid ? `₹${book.download_price || 49}` : 'Download'}</span>
+                          </button>
+                        )}
+
+                        {txtUrl && (
+                          <button
+                            type="button"
+                            onClick={handleReadTextClick}
+                            className="p-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl border border-slate-200 shrink-0 cursor-pointer"
+                            title="Text Mode"
+                          >
+                            <DocumentTextIcon className="w-4 h-4" />
+                          </button>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
               </motion.div>

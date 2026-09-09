@@ -24,6 +24,8 @@ import {
     BookOpenIcon,
     LockClosedIcon,
     CheckCircleIcon,
+    XCircleIcon,
+    ClockIcon,
     NoSymbolIcon,
     XMarkIcon,
     ComputerDesktopIcon,
@@ -152,8 +154,9 @@ const BookManagement = () => {
             if (!book) return false;
 
             // Status Filter Check
+            if (statusFilter === 'UNAPPROVED' && book.is_approved) return false;
             if (statusFilter === 'RESTRICTED' && !book.is_restricted) return false;
-            if (statusFilter === 'PUBLIC' && book.is_restricted) return false;
+            if (statusFilter === 'PUBLIC' && (book.is_restricted || !book.is_approved)) return false;
             if (statusFilter === 'DIGITAL' && !book.is_digital) return false;
 
             // Search Term Check
@@ -412,6 +415,7 @@ const BookManagement = () => {
                 <div className="flex items-center gap-1.5 overflow-x-auto w-full md:w-auto pb-1 md:pb-0 scrollbar-none">
                     {[
                         { key: 'ALL', label: 'All Books' },
+                        { key: 'UNAPPROVED', label: '⏳ Pending Approval' },
                         { key: 'PUBLIC', label: 'Public Access' },
                         { key: 'RESTRICTED', label: 'Restricted' },
                         { key: 'DIGITAL', label: 'Digital Only' },
@@ -438,11 +442,17 @@ const BookManagement = () => {
                 
                 {/* Bulk Actions Toolbar */}
                 {selectedBooks.size > 0 && (
-                  <div className="flex flex-wrap items-center gap-3 px-6 py-4 bg-indigo-50 border-b border-indigo-100">
-                    <span className="text-sm font-bold text-indigo-700">{selectedBooks.size} selected</span>
-                    <button disabled={bulkActionLoading} onClick={() => handleBulkAction('delete')} className="px-3 py-1.5 text-xs font-bold bg-red-100 text-red-700 rounded-xl hover:bg-red-200 transition disabled:opacity-50">Delete Selected</button>
+                  <div className="flex flex-wrap items-center gap-2 sm:gap-3 px-6 py-4 bg-indigo-50 border-b border-indigo-100">
+                    <span className="text-sm font-bold text-indigo-700 mr-1">{selectedBooks.size} selected</span>
+                    <button disabled={bulkActionLoading} onClick={() => handleBulkAction('approve')} className="px-3.5 py-1.5 text-xs font-bold bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition disabled:opacity-50 shadow-xs flex items-center gap-1.5">
+                      <CheckCircleIcon className="w-4 h-4" /> Approve Selected
+                    </button>
+                    <button disabled={bulkActionLoading} onClick={() => handleBulkAction('reject')} className="px-3.5 py-1.5 text-xs font-bold bg-amber-600 text-white rounded-xl hover:bg-amber-700 transition disabled:opacity-50 shadow-xs flex items-center gap-1.5">
+                      <XCircleIcon className="w-4 h-4" /> Reject Selected
+                    </button>
                     <button disabled={bulkActionLoading} onClick={() => handleBulkAction('restrict')} className="px-3 py-1.5 text-xs font-bold bg-amber-100 text-amber-700 rounded-xl hover:bg-amber-200 transition disabled:opacity-50">Restrict</button>
                     <button disabled={bulkActionLoading} onClick={() => handleBulkAction('unrestrict')} className="px-3 py-1.5 text-xs font-bold bg-emerald-100 text-emerald-700 rounded-xl hover:bg-emerald-200 transition disabled:opacity-50">Unrestrict</button>
+                    <button disabled={bulkActionLoading} onClick={() => handleBulkAction('delete')} className="px-3 py-1.5 text-xs font-bold bg-red-100 text-red-700 rounded-xl hover:bg-red-200 transition disabled:opacity-50">Delete</button>
                     <button disabled={bulkActionLoading} onClick={() => setSelectedBooks(new Set())} className="ml-auto px-3 py-1.5 text-xs font-bold bg-slate-100 text-slate-600 rounded-xl hover:bg-slate-200 transition disabled:opacity-50">Clear</button>
                   </div>
                 )}
@@ -606,22 +616,28 @@ const BookManagement = () => {
 
                                         {/* Status Badges */}
                                         <td className="px-6 py-4 whitespace-nowrap text-center">
-                                            <div className="flex flex-col items-center gap-1">
-                                                <span className={`
-                                                    inline-flex items-center gap-1 px-2.5 py-1 text-[10px] font-extrabold rounded-full border shadow-2xs uppercase tracking-wider
-                                                    ${book.is_restricted 
-                                                        ? 'bg-amber-50 text-amber-700 border-amber-200/80' 
-                                                        : 'bg-emerald-50 text-emerald-700 border-emerald-200/80'
-                                                    }
-                                                `}>
-                                                    <span className={`w-1.5 h-1.5 rounded-full ${book.is_restricted ? 'bg-amber-500' : 'bg-emerald-500'}`} />
-                                                    {book.is_restricted ? 'Restricted' : 'Public Access'}
-                                                </span>
-                                                {book.is_digital && (
-                                                    <span className="text-[9px] font-bold text-indigo-600 uppercase tracking-widest">
-                                                        Digital Only
+                                            <div className="flex flex-col items-center gap-1.5">
+                                                {book.is_approved ? (
+                                                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 text-[10px] font-extrabold rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                                        <CheckCircleIcon className="w-3 h-3 text-emerald-600 stroke-[2.5]" />
+                                                        Approved
+                                                    </span>
+                                                ) : (
+                                                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 text-[10px] font-extrabold rounded-full bg-amber-50 text-amber-800 border border-amber-300 animate-pulse">
+                                                        <ClockIcon className="w-3 h-3 text-amber-600 stroke-[2.5]" />
+                                                        Pending Approval
                                                     </span>
                                                 )}
+                                                <span className={`
+                                                    inline-flex items-center gap-1 px-2.5 py-0.5 text-[9px] font-bold rounded-full border uppercase tracking-wider
+                                                    ${book.is_restricted 
+                                                        ? 'bg-slate-50 text-slate-700 border-slate-200' 
+                                                        : 'bg-blue-50 text-blue-700 border-blue-200'
+                                                    }
+                                                `}>
+                                                    <span className={`w-1 h-1 rounded-full ${book.is_restricted ? 'bg-amber-500' : 'bg-blue-500'}`} />
+                                                    {book.is_restricted ? 'Restricted' : 'Public Catalog'}
+                                                </span>
                                             </div>
                                         </td>
 

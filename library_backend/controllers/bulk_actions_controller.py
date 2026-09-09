@@ -8,7 +8,7 @@ import auth
 from schemas.bulk_action_schema import BulkBookAction, BulkUserAction, BulkRequestAction, BulkActionResponse
 from models.book_model import Book
 from models.user_model import User
-from models.request_model import BookRequest
+from models.request_model import BookRequest, UploadRequest
 
 router = APIRouter()
 
@@ -21,7 +21,7 @@ def bulk_books(
     if not action_data.book_ids:
         raise HTTPException(status_code=400, detail="No book IDs provided")
     
-    valid_actions = {"delete", "restrict", "unrestrict", "approve"}
+    valid_actions = {"delete", "restrict", "unrestrict", "approve", "reject"}
     if action_data.action not in valid_actions:
         raise HTTPException(status_code=400, detail=f"Invalid action. Allowed actions: {valid_actions}")
         
@@ -38,6 +38,40 @@ def bulk_books(
                 book.is_restricted = False
             elif action_data.action == "approve":
                 book.is_approved = True
+                upload_req = db.query(UploadRequest).filter(UploadRequest.book_id == book.id).first()
+                if upload_req:
+                    upload_req.status = "Approved"
+                    upload_req.reviewed_by_id = current_user.id
+                    upload_req.reviewed_at = datetime.utcnow()
+                    upload_req.remarks = "Approved via bulk action."
+                else:
+                    new_req = UploadRequest(
+                        book_id=book.id,
+                        submitted_by_id=current_user.id,
+                        reviewed_by_id=current_user.id,
+                        status="Approved",
+                        remarks="Approved via bulk action.",
+                        reviewed_at=datetime.utcnow()
+                    )
+                    db.add(new_req)
+            elif action_data.action == "reject":
+                book.is_approved = False
+                upload_req = db.query(UploadRequest).filter(UploadRequest.book_id == book.id).first()
+                if upload_req:
+                    upload_req.status = "Rejected"
+                    upload_req.reviewed_by_id = current_user.id
+                    upload_req.reviewed_at = datetime.utcnow()
+                    upload_req.remarks = "Rejected via bulk action."
+                else:
+                    new_req = UploadRequest(
+                        book_id=book.id,
+                        submitted_by_id=current_user.id,
+                        reviewed_by_id=current_user.id,
+                        status="Rejected",
+                        remarks="Rejected via bulk action.",
+                        reviewed_at=datetime.utcnow()
+                    )
+                    db.add(new_req)
             affected_count += 1
             
         db.commit()

@@ -146,7 +146,7 @@
     "upi_id": "kokanislamiclibrary@upi",
     "instructions": "Scan QR code or use UPI ID to pay. Enter UTR reference to verify and download.",
     "qr_image_url": "https://res.cloudinary.com/dhlfaiijj/image/upload/v1788106527/booknest/qr_codes/uwtwflgolcusgkbun83n.png",
-    "master_enabled": false,
+    "master_enabled": true,
     "default_upi_id": "kokanislamiclibrary@upi"
   },
   "deep_search": {

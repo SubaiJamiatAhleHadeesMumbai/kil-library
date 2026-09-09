@@ -229,11 +229,13 @@ const ReadBook = () => {
     );
   }
 
-  // Use Same-Origin Proxy Stream endpoints for Zero CORS issues + fallback to direct URLs
+  // Use Same-Origin Proxy Stream endpoints with token query parameter for authenticated worker streaming
+  const authToken = localStorage.getItem("access_token") || sessionStorage.getItem("access_token");
+  const tokenQuery = authToken ? `?token=${encodeURIComponent(authToken)}` : "";
   const directPdfUrl = book?.pdf_url || book?.pdf_file || null;
   const directTxtUrl = book?.txt_file_url || book?.txt_file || null;
-  const pdfUrl = hasPdf ? `${API_BASE_URL}/api/books/${book.id}/stream-pdf` : null;
-  const txtUrl = hasTxt ? `${API_BASE_URL}/api/books/${book.id}/stream-text` : null;
+  const pdfUrl = hasPdf ? `${API_BASE_URL}/api/books/${book.id}/stream-pdf${tokenQuery}` : null;
+  const txtUrl = hasTxt ? `${API_BASE_URL}/api/books/${book.id}/stream-text${tokenQuery}` : null;
 
   return (
     <SmartReader

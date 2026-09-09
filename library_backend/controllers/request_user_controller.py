@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from sqlalchemy import desc, func
+from datetime import datetime, timedelta
 from typing import List, Optional
 from database import get_db
 from models.request_user_model import AccessRequest
@@ -23,7 +24,7 @@ def ensure_admin(user: User):
     raise HTTPException(status_code=403, detail="Sirf Admin hi is page ko access kar sakte hain.")
 
 def populate_book_metadata(req: AccessRequest, book: Optional[Book]):
-    """Populates book title, cover, and detailed metadata on AccessRequest instance."""
+    """Populates book title, cover, detailed metadata, and deadline tracking on AccessRequest instance."""
     if book:
         setattr(req, "book_title", book.title)
         setattr(req, "book_cover", book.cover_image_url)
@@ -44,6 +45,22 @@ def populate_book_metadata(req: AccessRequest, book: Optional[Book]):
         setattr(req, "book_pages", "N/A")
         setattr(req, "book_price", "N/A")
         setattr(req, "book_location", "N/A")
+
+    # ⏱️ Compute Deadline Expiry & Remaining Days
+    is_expired = False
+    days_remaining = None
+    if getattr(req, 'expires_at', None):
+        now = datetime.utcnow()
+        if now > req.expires_at:
+            is_expired = True
+            days_remaining = 0
+        else:
+            is_expired = False
+            delta = req.expires_at - now
+            days_remaining = max(0, delta.days) + (1 if delta.seconds > 0 else 0)
+
+    setattr(req, "is_expired", is_expired)
+    setattr(req, "days_remaining", days_remaining)
     return req
 
 # ---------------------------------------------------------
@@ -141,20 +158,55 @@ def check_status(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """Returns status for a specific book."""
+    """Returns status for a specific book with deadline and expiry details."""
     request_entry = db.query(AccessRequest).filter(
         AccessRequest.book_id == book_id, 
         AccessRequest.user_id == current_user.id
     ).first()
     
-    if not request_entry:
-        return {"status": "not_requested", "can_read": False, "rejection_reason": None}
+    # Also check direct BookPermission
+    now = datetime.utcnow()
+    direct_perm = db.query(BookPermission).filter(
+        BookPermission.book_id == book_id,
+        BookPermission.user_id == current_user.id
+    ).first()
+
+    if not request_entry and not direct_perm:
+        return {
+            "status": "not_requested",
+            "can_read": False,
+            "rejection_reason": None,
+            "expires_at": None,
+            "is_expired": False,
+            "days_remaining": None
+        }
+
+    status_val = request_entry.status if request_entry else "approved"
+    expires_at = getattr(request_entry, 'expires_at', None) or getattr(direct_perm, 'expires_at', None)
     
+    is_expired = False
+    days_remaining = None
+    can_read = status_val.lower() == "approved"
+
+    if expires_at:
+        if now > expires_at:
+            is_expired = True
+            days_remaining = 0
+            can_read = False
+            status_val = "expired"
+        else:
+            delta = expires_at - now
+            days_remaining = max(0, delta.days) + (1 if delta.seconds > 0 else 0)
+
     return {
-        "status": request_entry.status, 
-        "can_read": request_entry.status == "approved",
-        "rejection_reason": request_entry.rejection_reason, 
-        "submitted_at": request_entry.created_at
+        "status": status_val,
+        "can_read": can_read,
+        "rejection_reason": request_entry.rejection_reason if request_entry else None,
+        "submitted_at": request_entry.created_at if request_entry else None,
+        "expires_at": expires_at.isoformat() if expires_at else None,
+        "is_expired": is_expired,
+        "days_remaining": days_remaining,
+        "duration_days": getattr(request_entry, 'duration_days', None)
     }
 
 # ---------------------------------------------------------
@@ -243,10 +295,12 @@ def update_request_status(
     request_id: int, 
     status_update: str, 
     rejection_reason: Optional[str] = None, 
+    duration_days: Optional[int] = None,
+    expires_at: Optional[datetime] = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user) # Admin check needed
 ):
-    """Admin Only: Approve/Reject request."""
+    """Admin Only: Approve/Reject request with deadline support."""
     ensure_admin(current_user) # 🔐 Security Check
 
     db_request = db.query(AccessRequest).filter(AccessRequest.id == request_id).first()
@@ -264,22 +318,60 @@ def update_request_status(
     
     if normalized_status == "rejected":
         db_request.rejection_reason = rejection_reason or "No reason provided."
+        db_request.expires_at = None
+        db_request.duration_days = None
+        # Revoke existing BookPermission if any
+        try:
+            db.query(BookPermission).filter(
+                BookPermission.book_id == db_request.book_id,
+                BookPermission.user_id == db_request.user_id
+            ).delete()
+        except Exception as e:
+            print(f"⚠️ Failed to remove BookPermission on reject: {e}")
+
+    elif normalized_status == "pending":
+        db_request.rejection_reason = None
+        db_request.expires_at = None
+        db_request.duration_days = None
+        try:
+            db.query(BookPermission).filter(
+                BookPermission.book_id == db_request.book_id,
+                BookPermission.user_id == db_request.user_id
+            ).delete()
+        except Exception as e:
+            print(f"⚠️ Failed to remove BookPermission on reset: {e}")
+
     elif normalized_status == "approved":
         db_request.rejection_reason = None # Clear reason if approved
-        # When a request is approved, create a BookPermission so the user gains direct access
+        
+        # Calculate expiration
+        computed_expires_at = None
+        if expires_at:
+            computed_expires_at = expires_at
+        elif duration_days and int(duration_days) > 0:
+            computed_expires_at = datetime.utcnow() + timedelta(days=int(duration_days))
+
+        db_request.expires_at = computed_expires_at
+        db_request.duration_days = int(duration_days) if duration_days and int(duration_days) > 0 else None
+
+        # When a request is approved, create or update BookPermission so the user gains direct access
         try:
-            # Check if permission already exists
             existing_perm = db.query(BookPermission).filter(
                 BookPermission.book_id == db_request.book_id,
                 BookPermission.user_id == db_request.user_id
             ).first()
 
-            if not existing_perm:
-                perm = BookPermission(book_id=db_request.book_id, user_id=db_request.user_id)
+            if existing_perm:
+                existing_perm.expires_at = computed_expires_at
+            else:
+                perm = BookPermission(
+                    book_id=db_request.book_id,
+                    user_id=db_request.user_id,
+                    expires_at=computed_expires_at
+                )
                 db.add(perm)
-                # Do not commit here; will commit after status update
         except Exception as e:
-            print(f"⚠️ Failed to create BookPermission: {e}")
+            print(f"⚠️ Failed to sync BookPermission: {e}")
 
     try:
         db.commit()

@@ -87,5 +87,31 @@
     "noResults": "No results found",
     "success": "Operation completed successfully",
     "error": "Something went wrong"
+  },
+  "history": {
+    "title": "My Request History",
+    "subtitle": "Track the status of your restricted book access requests.",
+    "refresh": "Refresh",
+    "searchPlaceholder": "Search by book title, reason, or ID...",
+    "filterAll": "All",
+    "filterPending": "Pending",
+    "filterApproved": "Approved",
+    "filterRejected": "Rejected",
+    "requestsCount": "Requests",
+    "emptyTitle": "No Requests Found",
+    "emptySubtitle": "You haven't submitted any book requests yet, or no records match your filter.",
+    "browseLibrary": "Browse Library",
+    "requestDate": "Request Date",
+    "bookId": "Book ID",
+    "reason": "Reason",
+    "readNow": "Read Now",
+    "waitingApproval": "Awaiting Admin Review",
+    "accessDenied": "Access Denied",
+    "expired": "Expired",
+    "reapply": "Re-apply Access",
+    "daysLeft": "days left",
+    "lifetimeAccess": "Lifetime Access",
+    "validUntil": "Valid until",
+    "accessExpired": "Access Expired"
   }
 }

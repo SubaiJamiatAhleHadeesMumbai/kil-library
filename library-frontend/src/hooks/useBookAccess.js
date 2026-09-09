@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import axios from 'axios';
+import apiClient from '../api/apiClient';
 
 export const useBookAccess = (books, isAuth) => {
     const [accessStatuses, setAccessStatuses] = useState({});
@@ -16,8 +16,12 @@ export const useBookAccess = (books, isAuth) => {
             setIsChecking(true);
             const statusMap = {};
             
-            // Token LocalStorage se uthayenge
-            const token = localStorage.getItem('token'); 
+            const token = localStorage.getItem('access_token') || sessionStorage.getItem('access_token'); 
+            if (!token) {
+                setAccessStatuses({});
+                setIsChecking(false);
+                return;
+            }
 
             try {
                 // Sirf restricted books ko filter karein
@@ -27,23 +31,10 @@ export const useBookAccess = (books, isAuth) => {
                 await Promise.all(
                     restrictedBooks.map(async (book) => {
                         try {
-                            // ðŸ”‘ API Call with Token
-                            const res = await axios.get(
-                                `${import.meta.env.VITE_API_BASE_URL || (import.meta.env.PROD ? "" : "http://127.0.0.1:8000")}/api/restricted-requests/check-status?book_id=${book.id}`,
-                                {
-                                    headers: {
-                                        Authorization: `Bearer ${token}` // Token bhej rahe hain
-                                    }
-                                }
-                            );
-                            
-                            // Backend se jo data aaya use save karein
+                            const res = await apiClient.get(`/api/restricted-requests/check-status?book_id=${book.id}`);
                             statusMap[book.id] = res.data; 
-                            // Expected: { status: "approved", can_read: true, rejection_reason: null }
-
                         } catch (err) {
                             console.error(`Status check failed for book ${book.id}`, err);
-                            // Agar error aaye (e.g. 401), to maan lein ke request nahi hui
                             statusMap[book.id] = { status: 'not_requested', can_read: false };
                         }
                     })
@@ -58,7 +49,7 @@ export const useBookAccess = (books, isAuth) => {
         };
 
         fetchAllStatuses();
-    }, [books, isAuth]); // Jab bhi Books ya Login status badle, dobara check karo
+    }, [books, isAuth]);
 
     return { accessStatuses, isChecking };
 };

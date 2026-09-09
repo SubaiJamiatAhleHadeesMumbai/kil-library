@@ -13,6 +13,7 @@ import useAuth from "../hooks/useAuth";
 import RestrictedAccessFlow from "../components/book/RestrictedAccessFlow";
 import SuccessScreen from "../components/RestrictedAccess/SuccessScreen";
 import LibrarySearchStrip from "../components/public/LibrarySearchStrip";
+import BookDetailsModal from "../components/book/BookDetailsModal";
 import { getBookCover } from "../utils/cover";
 
 // --- Icons ---
@@ -21,6 +22,8 @@ import {
   XMarkIcon,
   BookOpenIcon,
   LockClosedIcon as LockOutline,
+  LockOpenIcon as LockOpenOutline,
+  CheckCircleIcon,
   ChevronRightIcon,
   ChevronLeftIcon,
   ChevronDownIcon,
@@ -34,6 +37,7 @@ import {
 
 import {
   LockClosedIcon as LockSolid,
+  LockOpenIcon as LockOpenSolid,
   BookmarkIcon as BookmarkSolid,
 } from "@heroicons/react/24/solid";
 
@@ -99,6 +103,7 @@ const PublicBookCard = ({
   const title = useMemo(() => safeText(book?.title, "Untitled Book"), [book]);
   const author = useMemo(() => safeText(book?.author, "Unknown Author"), [book]);
   const isRestricted = !!book?.is_restricted;
+  const userHasAccess = !!book?.user_has_access;
   const hasDigitalPdf = Boolean(book?.pdf_url || book?.pdf_file || book?.txt_file_url || book?.txt_file);
 
   useEffect(() => {
@@ -145,10 +150,17 @@ const PublicBookCard = ({
       {/* Badges - Only Restricted or Upcoming */}
       <div className="absolute top-2 left-2 z-20 flex flex-col gap-1 sm:top-3 sm:left-3">
         {isRestricted && (
-          <div className="flex items-center gap-1 rounded-full bg-red-600 px-2.5 py-1 text-[10px] font-extrabold text-white shadow-md sm:px-3 sm:py-1.5 sm:text-[11px]">
-            <LockSolid className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-            Restricted
-          </div>
+          userHasAccess ? (
+            <div className="flex items-center gap-1 rounded-full bg-emerald-600 px-2.5 py-1 text-[10px] font-extrabold text-white shadow-md sm:px-3 sm:py-1.5 sm:text-[11px]">
+              <LockOpenSolid className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+              <span>Unlocked</span>
+            </div>
+          ) : (
+            <div className="flex items-center gap-1 rounded-full bg-red-600 px-2.5 py-1 text-[10px] font-extrabold text-white shadow-md sm:px-3 sm:py-1.5 sm:text-[11px]">
+              <LockSolid className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+              <span>Restricted</span>
+            </div>
+          )
         )}
 
         {!hasDigitalPdf && (
@@ -366,7 +378,7 @@ const UserLibrary = () => {
     }, 350);
 
     return () => window.clearTimeout(handler);
-  }, [searchTerm]);
+  }, [searchTerm, isAuth]);
 
   useEffect(() => {
     const handleScroll = () => setShowScrollTop(window.scrollY > 400);
@@ -644,12 +656,18 @@ const UserLibrary = () => {
 
         {/* LOADING STATE */}
         {loading ? (
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-6">
+          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 sm:gap-6 animate-pulse">
             {[...Array(10)].map((_, i) => (
               <div
                 key={i}
-                className="aspect-[2/3] bg-slate-200 rounded-2xl animate-pulse"
-              />
+                className="bg-white rounded-2xl border border-slate-200/90 p-3 space-y-3 shadow-2xs"
+              >
+                <div className="aspect-[2/3] rounded-xl bg-slate-200" />
+                <div className="space-y-2">
+                  <div className="h-3.5 bg-slate-200 rounded-md w-4/5" />
+                  <div className="h-2.5 bg-slate-100 rounded-md w-1/2" />
+                </div>
+              </div>
             ))}
           </div>
         ) : paginatedBooks.length > 0 ? (
@@ -707,7 +725,14 @@ const UserLibrary = () => {
                               {safeCategory(book)}
                             </span>
                             {book.is_restricted && (
-                              <LockOutline className="w-4 h-4 text-red-500" />
+                              book.user_has_access ? (
+                                <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                                  <LockOpenOutline className="w-3.5 h-3.5" />
+                                  <span>Unlocked</span>
+                                </span>
+                              ) : (
+                                <LockOutline className="w-4 h-4 text-red-500" />
+                              )
                             )}
                           </div>
 
@@ -944,118 +969,14 @@ const UserLibrary = () => {
         )}
       </AnimatePresence>
 
-      {/* QUICK VIEW MODAL */}
-      <AnimatePresence>
-        {selectedBook && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm"
-            onClick={() => setSelectedBook(null)}
-          >
-            <motion.div
-              initial={{ scale: 0.95, y: 20 }}
-              animate={{ scale: 1, y: 0 }}
-              className="bg-white w-full max-w-3xl rounded-3xl shadow-2xl overflow-hidden flex flex-col md:flex-row max-h-[85vh]"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="w-full md:w-5/12 bg-slate-50 flex items-center justify-center p-8">
-                <img
-                  src={getBookCover(selectedBook)}
-                  alt={selectedBook.title}
-                  className="w-40 shadow-2xl rounded-lg"
-                />
-              </div>
-
-              <div className="w-full md:w-7/12 p-8 flex flex-col overflow-y-auto">
-                <div className="flex justify-between items-center">
-                  <span className="text-xs font-bold text-emerald-600 uppercase bg-emerald-50 px-2.5 py-1 rounded-full">
-                    {safeCategory(selectedBook)}
-                  </span>
-                  <button onClick={() => setSelectedBook(null)} className="p-1 hover:bg-slate-100 rounded-lg">
-                    <XMarkIcon className="w-6 h-6 text-slate-400" />
-                  </button>
-                </div>
-
-                <h2 className="text-2xl md:text-3xl font-serif font-bold mt-4 mb-2 text-slate-900 leading-tight">
-                  {selectedBook.title}
-                </h2>
-
-                <p className="text-slate-500 text-sm mb-4">
-                  By {safeText(selectedBook.author, "Unknown")}
-                  {selectedBook.translator && ` (ترجمہ: ${selectedBook.translator})`}
-                  {selectedBook.publisher && ` — ${selectedBook.publisher}`}
-                </p>
-
-                <p className="text-slate-600 text-sm mb-6 flex-grow">
-                  {selectedBook.description || "No description provided."}
-                </p>
-
-                {/* ACTION BUTTONS */}
-                <div className="flex flex-col gap-3 pt-4 border-t border-slate-100 mt-auto">
-                  {selectedBook.is_restricted ? (
-                    <button
-                      onClick={() => handleRequestAccess(selectedBook)}
-                      className="w-full bg-slate-800 text-white py-3 rounded-xl font-bold flex justify-center gap-2 hover:bg-slate-900 transition-colors"
-                    >
-                      <LockOutline className="w-5 h-5" /> Request Access
-                    </button>
-                  ) : (
-                    <div className="flex gap-2">
-                      {selectedBook.pdf_url || selectedBook.txt_file_url ? (
-                        (() => {
-                          let savedPage = null;
-                          try {
-                            const rawLast = localStorage.getItem('kil_last_read_book');
-                            if (rawLast) {
-                              const p = JSON.parse(rawLast);
-                              if (String(p?.bookId) === String(selectedBook.id) && Number(p?.page) > 1) {
-                                savedPage = Number(p.page);
-                              }
-                            }
-                            if (!savedPage) {
-                              const rawRec = localStorage.getItem('bookNest_recent_reads');
-                              if (rawRec) {
-                                const parsedRec = JSON.parse(rawRec);
-                                const match = Array.isArray(parsedRec) && parsedRec.find(r => String(r.book_id) === String(selectedBook.id));
-                                if (match && Number(match.last_page_read) > 1) {
-                                  savedPage = Number(match.last_page_read);
-                                }
-                              }
-                            }
-                          } catch {}
-
-                          return (
-                            <button
-                              onClick={() => {
-                                navigate(savedPage ? `/read/${selectedBook.id}?page=${savedPage}` : `/read/${selectedBook.id}`);
-                              }}
-                              className="flex-1 bg-emerald-600 text-white py-3 rounded-xl font-bold flex justify-center items-center gap-2 hover:bg-emerald-700 transition-colors shadow-sm cursor-pointer"
-                            >
-                              <BookOpenIcon className="w-5 h-5" />
-                              {savedPage ? `Resume (Page ${savedPage})` : 'Read Now'}
-                            </button>
-                          );
-                        })()
-                      ) : (
-                        <button
-                          onClick={() => {
-                            showUpcomingToast();
-                          }}
-                          className="flex-1 bg-slate-900 text-amber-300 py-3 rounded-xl font-bold flex justify-center items-center gap-2 hover:bg-slate-800 transition-colors shadow-sm text-base"
-                        >
-                          <span>⏳</span> <span>عنقریب...</span>
-                        </button>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* QUICK VIEW / BOOK DETAILS MODAL */}
+      {selectedBook && (
+        <BookDetailsModal
+          book={selectedBook}
+          onClose={() => setSelectedBook(null)}
+          onRequestAccess={(b) => handleRequestAccess(b)}
+        />
+      )}
 
       {isAccessFlowOpen && (
         <RestrictedAccessFlow

@@ -42,6 +42,10 @@ class AccessRequest(Base):
     # Agar Admin reject kare to wajah yahan save hogi
     rejection_reason = Column(Text, nullable=True) 
     
+    # ⏱️ DEADLINE & EXPIRY (Time-bound Access)
+    expires_at = Column(DateTime, nullable=True) # None means Unlimited / Lifetime access
+    duration_days = Column(Integer, nullable=True) # e.g. 7, 15, 30, 90
+    
     created_at = Column(DateTime, server_default=func.now())
     # Jab Admin approve/reject karega to ye time update hoga
     updated_at = Column(DateTime, onupdate=func.now()) 

@@ -11,6 +11,7 @@ pdfjs.GlobalWorkerOptions.workerSrc = '/pdf.worker.classic.js';
 
 import 'react-pdf/dist/Page/AnnotationLayer.css';
 import 'react-pdf/dist/Page/TextLayer.css';
+import BookReaderLoader, { SinglePageSkeleton } from './BookReaderLoader';
 
 const PdfViewer = ({ 
   pdfUrl, 
@@ -79,7 +80,15 @@ const PdfViewer = ({
   // Stable memoized file source so <Document> does NOT reload on every re-render (e.g. on scroll/page change)
   const fileSource = useMemo(() => {
     if (!activePdfUrl) return null;
-    return typeof activePdfUrl === 'string' ? { url: activePdfUrl, withCredentials: false } : activePdfUrl;
+    const token = localStorage.getItem("access_token") || sessionStorage.getItem("access_token");
+    if (typeof activePdfUrl === 'string') {
+      return {
+        url: activePdfUrl,
+        withCredentials: false,
+        httpHeaders: token ? { Authorization: `Bearer ${token}` } : {}
+      };
+    }
+    return activePdfUrl;
   }, [activePdfUrl]);
 
   // Handle responsive width for mobile and desktop containers
@@ -328,15 +337,15 @@ const PdfViewer = ({
                 setActivePdfUrl(fallbackPdfUrl);
                 return;
               }
-              setLoadError(err?.message || 'Unknown error while loading PDF.');
+              const errMsg = err?.message || '';
+              if (errMsg.includes('InvalidPDFException') || errMsg.includes('Invalid PDF structure')) {
+                setLoadError('Access to this document is restricted or your session has expired. Please check your permissions or re-login.');
+              } else {
+                setLoadError(errMsg || 'Unknown error while loading PDF.');
+              }
               onDocumentError?.(err);
             }}
-            loading={
-              <div className="flex flex-col items-center justify-center gap-4 h-full mt-20">
-                <div className="w-12 h-12 border-4 border-indigo-100 border-t-indigo-600 rounded-full animate-spin"></div>
-                <p className="text-slate-500 font-medium animate-pulse">Optimizing Pages...</p>
-              </div>
-            }
+            loading={<BookReaderLoader />}
           >
             
             {/* 1. SCROLL VIEW (VERTICAL UPPER SE NICHE SCROLL) */}
@@ -371,6 +380,7 @@ const PdfViewer = ({
                       renderTextLayer={true} 
                       renderAnnotationLayer={true} 
                       customTextRenderer={renderHighlightedText}
+                      loading={<SinglePageSkeleton scale={dynamicScale} pageNumber={index + 1} />}
                     />
                   </div>
                 </div>
@@ -386,6 +396,7 @@ const PdfViewer = ({
                   renderTextLayer={true} 
                   renderAnnotationLayer={true} 
                   customTextRenderer={renderHighlightedText}
+                  loading={<SinglePageSkeleton scale={dynamicScale * 1.1} pageNumber={currentPage} />}
                 />
               </div>
             )}
@@ -394,12 +405,26 @@ const PdfViewer = ({
             {viewMode === 'dual' && (
               <div className="flex gap-0 shadow-2xl rounded-sm overflow-hidden border border-slate-300 animate-in slide-in-from-bottom-4 duration-500">
                 <div className={`bg-white border-r relative ${currentPage ? 'border-indigo-200 ring-2 ring-indigo-100' : 'border-slate-100'}`}>
-                  <Page pageNumber={currentPage} scale={dynamicScale * 0.9} renderTextLayer={true} renderAnnotationLayer={true} customTextRenderer={renderHighlightedText} />
+                  <Page 
+                    pageNumber={currentPage} 
+                    scale={dynamicScale * 0.9} 
+                    renderTextLayer={true} 
+                    renderAnnotationLayer={true} 
+                    customTextRenderer={renderHighlightedText} 
+                    loading={<SinglePageSkeleton scale={dynamicScale * 0.9} pageNumber={currentPage} />}
+                  />
                   <div className="absolute inset-y-0 right-0 w-8 bg-gradient-to-r from-transparent to-black/5" /> {/* Book Spine Shadow */}
                 </div>
                 {currentPage + 1 <= totalPages && (
                   <div className={`bg-white relative ${currentPage + 1 === currentPage ? 'ring-2 ring-indigo-100' : ''}`}>
-                    <Page pageNumber={currentPage + 1} scale={dynamicScale * 0.9} renderTextLayer={true} renderAnnotationLayer={true} customTextRenderer={renderHighlightedText} />
+                    <Page 
+                      pageNumber={currentPage + 1} 
+                      scale={dynamicScale * 0.9} 
+                      renderTextLayer={true} 
+                      renderAnnotationLayer={true} 
+                      customTextRenderer={renderHighlightedText} 
+                      loading={<SinglePageSkeleton scale={dynamicScale * 0.9} pageNumber={currentPage + 1} />}
+                    />
                     <div className="absolute inset-y-0 left-0 w-8 bg-gradient-to-l from-transparent to-black/5" />
                   </div>
                 )}
@@ -423,6 +448,7 @@ const PdfViewer = ({
                       width={180} 
                       renderTextLayer={false} 
                       renderAnnotationLayer={false} 
+                      loading={<div className="w-[180px] h-[240px] bg-slate-100 animate-pulse rounded" />}
                     />
                   </div>
                   <div className="mt-3 text-center">

@@ -87,5 +87,31 @@
     "noResults": "لم يتم العثور على نتائج",
     "success": "تمت العملية بنجاح",
     "error": "حدث خطأ ما"
+  },
+  "history": {
+    "title": "سجل طلبات الوصول",
+    "subtitle": "تابع حالة طلباتك للوصول إلى الكتب المقيدة هنا.",
+    "refresh": "تحديث",
+    "searchPlaceholder": "البحث باسم الكتاب، السبب، أو الرقم...",
+    "filterAll": "الكل",
+    "filterPending": "قيد الانتظار",
+    "filterApproved": "مقبول",
+    "filterRejected": "مرفوض",
+    "requestsCount": "طلبات",
+    "emptyTitle": "لم يتم العثور على طلبات",
+    "emptySubtitle": "لم تقم بتقديم أي طلب حتى الآن أو لا توجد نتائج مطابقة للبحث.",
+    "browseLibrary": "تصفح المكتبة",
+    "requestDate": "تاريخ الطلب",
+    "bookId": "رقم الكتاب",
+    "reason": "السبب",
+    "readNow": "اقرأ الآن",
+    "waitingApproval": "في انتظار موافقة الإدارة...",
+    "accessDenied": "تم رفض الطلب",
+    "expired": "منتهي الصلاحية",
+    "reapply": "إعادة طلب الإذن",
+    "daysLeft": "أيام متبقية",
+    "lifetimeAccess": "وصول دائم",
+    "validUntil": "صالح حتى",
+    "accessExpired": "انتهت فترة الصلاحية"
   }
 }

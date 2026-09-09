@@ -42,6 +42,12 @@ class AccessRequestResponse(AccessRequestBase):
     # 🆕 Future Proofing: Rejection Reason add kiya
     rejection_reason: Optional[str] = None 
     
+    # ⏱️ DEADLINE & EXPIRY (Time-bound Access)
+    expires_at: Optional[datetime] = None
+    duration_days: Optional[int] = None
+    is_expired: Optional[bool] = None
+    days_remaining: Optional[int] = None
+    
     created_at: datetime
     updated_at: Optional[datetime] = None
     

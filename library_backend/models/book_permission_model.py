@@ -15,5 +15,6 @@ class BookPermission(Base):
     
     role_id = Column(Integer, ForeignKey('roles.id', ondelete="CASCADE"), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    expires_at = Column(DateTime, nullable=True) # None means Unlimited / Lifetime access
     
     __table_args__ = {'mysql_engine': 'InnoDB'}

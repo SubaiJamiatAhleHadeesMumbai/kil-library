@@ -42,6 +42,18 @@ def run_migrations():
             error_msg = result.stderr[:500]  # Truncate long errors
             print(f"⚠️ Migration Notice: {error_msg}")
             
+        # ✅ Safety fallback: ensure deadline columns exist regardless of alembic state
+        try:
+            from database import engine
+            from sqlalchemy import text
+            with engine.connect() as conn:
+                conn.execute(text("ALTER TABLE book_permissions ADD COLUMN IF NOT EXISTS expires_at TIMESTAMP;"))
+                conn.execute(text("ALTER TABLE access_requests_user ADD COLUMN IF NOT EXISTS expires_at TIMESTAMP;"))
+                conn.execute(text("ALTER TABLE access_requests_user ADD COLUMN IF NOT EXISTS duration_days INTEGER;"))
+                conn.commit()
+        except Exception as col_err:
+            pass
+            
     except subprocess.TimeoutExpired:
         print("⚠️ Migrations Timeout (120s) - DB might be slow, will retry on next startup")
     except FileNotFoundError:

@@ -173,22 +173,28 @@ const getRequestsCount = async () => {
  * Backend endpoint:
  * - PATCH /api/restricted-requests/{id}/status?status_update=approved
  */
-const updateRequestStatus = async (requestId, status, reason = null) => {
+const updateRequestStatus = async (requestId, status, reason = null, durationDays = null, expiresAt = null) => {
   try {
     ensureLoggedIn();
 
     if (!requestId) throw new Error("Request ID is missing");
     if (!status) throw new Error("Status is required");
 
+    const params = {
+      status_update: status,
+      rejection_reason: reason,
+    };
+    if (durationDays !== null && durationDays !== undefined && durationDays !== "") {
+      params.duration_days = durationDays;
+    }
+    if (expiresAt) {
+      params.expires_at = expiresAt;
+    }
+
     const res = await apiClient.patch(
       `${REQUEST_URL}/${requestId}/status`,
       null,
-      {
-        params: {
-          status_update: status,
-          rejection_reason: reason,
-        },
-      }
+      { params }
     );
 
     return res.data;

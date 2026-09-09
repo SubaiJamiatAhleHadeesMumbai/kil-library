@@ -2,7 +2,7 @@ import os
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
 import bcrypt as _bcrypt
@@ -200,27 +200,32 @@ async def get_user_from_token(token: str, db: Session) -> Optional[user_model.Us
 # ==========================================================
 
 async def get_current_user_optional(
+    request: Request,
     token: str | None = Depends(oauth2_scheme),
     db: Session = Depends(get_db)
 ) -> Optional[user_model.User]:
     """
     ✅ PUBLIC ACCESS
-    Returns user if logged in else None
+    Returns user if logged in else None.
+    Supports Authorization: Bearer <token>, ?token=<token>, or cookie.
     """
-    if not token:
+    actual_token = token or request.query_params.get("token") or request.cookies.get("access_token")
+    if not actual_token:
         return None
 
-    user = await get_user_from_token(token, db)
+    user = await get_user_from_token(actual_token, db)
     return user
 
 
 async def get_current_user(
+    request: Request,
     token: str | None = Depends(oauth2_scheme),
     db: Session = Depends(get_db)
 ) -> user_model.User:
     """
     🔒 PRIVATE/PROTECTED ACCESS
-    Returns 401 if not logged in or invalid token
+    Returns 401 if not logged in or invalid token.
+    Supports Authorization: Bearer <token>, ?token=<token>, or cookie.
     """
     auth_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
@@ -228,10 +233,11 @@ async def get_current_user(
         headers={"WWW-Authenticate": "Bearer"},
     )
 
-    if not token:
+    actual_token = token or request.query_params.get("token") or request.cookies.get("access_token")
+    if not actual_token:
         raise auth_exception
 
-    user = await get_user_from_token(token, db)
+    user = await get_user_from_token(actual_token, db)
 
     if user is None:
         raise auth_exception

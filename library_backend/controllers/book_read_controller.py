@@ -1,4 +1,5 @@
 import os
+from datetime import datetime
 import re
 import math
 import logging
@@ -55,17 +56,41 @@ def _get_accessible_book_ids(db: Session, user: Optional[user_model.User]) -> se
         return set()
 
     accessible_book_ids = set()
+    now = datetime.utcnow()
 
+    # 1. Direct permissions (respecting expires_at)
     direct_perms = db.query(book_permission_model.BookPermission).filter(
-        book_permission_model.BookPermission.user_id == user.id
+        book_permission_model.BookPermission.user_id == user.id,
+        or_(
+            book_permission_model.BookPermission.expires_at.is_(None),
+            book_permission_model.BookPermission.expires_at > now
+        )
     ).all()
     accessible_book_ids.update([p.book_id for p in direct_perms])
 
-    approved_reqs = db.query(request_user_model.AccessRequest).filter(
-        request_user_model.AccessRequest.user_id == user.id,
-        func.lower(request_user_model.AccessRequest.status) == "approved"
-    ).all()
-    accessible_book_ids.update([r.book_id for r in approved_reqs])
+    # 2. Approved user requests (respecting expires_at)
+    try:
+        approved_reqs = db.query(request_user_model.AccessRequest).filter(
+            request_user_model.AccessRequest.user_id == user.id,
+            func.lower(request_user_model.AccessRequest.status) == "approved",
+            or_(
+                request_user_model.AccessRequest.expires_at.is_(None),
+                request_user_model.AccessRequest.expires_at > now
+            )
+        ).all()
+        accessible_book_ids.update([r.book_id for r in approved_reqs])
+    except Exception as e:
+        logger.warning(f"Error checking access requests for user {user.id}: {e}")
+
+    # 3. Legacy BookRequests if any
+    try:
+        approved_legacy = db.query(request_model.BookRequest).filter(
+            request_model.BookRequest.user_id == user.id,
+            func.lower(request_model.BookRequest.status) == "approved"
+        ).all()
+        accessible_book_ids.update([lr.book_id for lr in approved_legacy])
+    except Exception:
+        pass
 
     return accessible_book_ids
 
@@ -219,7 +244,10 @@ def get_smart_recommendations(
     )
 
     if not is_admin:
-        all_books = all_books.filter(book_model.Book.is_approved == True)
+        all_books = all_books.filter(
+            book_model.Book.is_approved == True,
+            ~book_model.Book.upload_request.has(request_model.UploadRequest.status.in_(['Pending', 'Rejected']))
+        )
 
     candidate_books = all_books.all()
 
@@ -420,21 +448,7 @@ def read_books(
         books = query.order_by(book_model.Book.id.desc()).offset(offset).limit(page_limit).all()
 
     # 5. Access Permission Check
-    accessible_book_ids = set()
-    if current_user:
-        direct_perms = db.query(book_permission_model.BookPermission.book_id).filter(
-            book_permission_model.BookPermission.user_id == current_user.id
-        ).all()
-        accessible_book_ids.update([p[0] for p in direct_perms])
-
-        try:
-            approved_reqs = db.query(request_user_model.AccessRequest.book_id).filter(
-                request_user_model.AccessRequest.user_id == current_user.id,
-                func.lower(request_user_model.AccessRequest.status) == "approved"
-            ).all()
-            accessible_book_ids.update([req[0] for req in approved_reqs])
-        except Exception as e:
-            logger.warning(f"Error checking access requests for user {current_user.id}: {e}")
+    accessible_book_ids = _get_accessible_book_ids(db, current_user) if current_user else set()
 
     for book in books:
         has_access = False
@@ -713,7 +727,8 @@ def deep_search_all_books(
     query_filters = [
         book_model.Book.txt_file_url.isnot(None),
         book_model.Book.deleted_at.is_(None),
-        book_model.Book.is_approved.is_(True)
+        book_model.Book.is_approved.is_(True),
+        ~book_model.Book.upload_request.has(request_model.UploadRequest.status.in_(['Pending', 'Rejected']))
     ]
 
     if enable_scopes:
@@ -887,9 +902,14 @@ def _is_safe_remote_url(url: str) -> bool:
 async def stream_book_pdf(
     book_id: int,
     request: Request,
+    token: Optional[str] = Query(None),
     db: Session = Depends(get_db),
     current_user: Optional[user_model.User] = Depends(get_current_user_optional)
 ):
+    if not current_user and token:
+        from auth import get_user_from_token
+        current_user = await get_user_from_token(token, db)
+
     db_book = get_book_by_id_internal(db, book_id)
     if not db_book or not db_book.pdf_url:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="PDF not found for this book")
@@ -1029,9 +1049,14 @@ async def stream_book_pdf(
 async def stream_book_text(
     book_id: int,
     request: Request,
+    token: Optional[str] = Query(None),
     db: Session = Depends(get_db),
     current_user: Optional[user_model.User] = Depends(get_current_user_optional)
 ):
+    if not current_user and token:
+        from auth import get_user_from_token
+        current_user = await get_user_from_token(token, db)
+
     db_book = get_book_by_id_internal(db, book_id)
     if not db_book:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Book not found")
@@ -1041,7 +1066,8 @@ async def stream_book_text(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Text content not found for this book")
 
     # 1. Approval Check
-    if not db_book.is_approved:
+    is_unapproved = not db_book.is_approved or bool(db_book.upload_request and db_book.upload_request.status in ['Pending', 'Rejected'])
+    if is_unapproved:
         if not current_user or (current_user.role.name.lower() not in ['admin', 'superadmin']):
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Book not found.")
 

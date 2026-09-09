@@ -100,8 +100,8 @@ const ExcelImportModal = ({ isOpen, onClose, onStagedUpdated }) => {
 
       toast.success(
         isReplace
-          ? `🎉 Successfully replaced catalog with ${savedBooks.length} new books from ${file.name}!`
-          : `🎉 Successfully added ${savedBooks.length} books to MySQL Database!`,
+          ? `🎉 Successfully replaced catalog with ${savedBooks.length} books! Status: Pending Admin Approval.`
+          : `🎉 Successfully imported ${savedBooks.length} books! Status: Pending Admin Approval.`,
         { id: toastId, duration: 6000 }
       );
 
@@ -325,10 +325,10 @@ const ExcelImportModal = ({ isOpen, onClose, onStagedUpdated }) => {
                 </div>
                 <div>
                   <h4 className="text-sm sm:text-base font-black">
-                    🎉 {booksList.length} Books Successfully Saved in MySQL Database!
+                    🎉 {booksList.length} Books Successfully Imported (Pending Approval)
                   </h4>
                   <p className="text-xs text-emerald-100 mt-0.5">
-                    Data is now 100% permanent. Refresh karein ya kisi bhi mobile/laptop se login karein, sabhi books hamesha visible rahengi.
+                    Books database me save ho chuki hain. Security rule ke mutabiq Admin ke approve karne ke baad hi yeh public me dikhengi.
                   </p>
                 </div>
               </div>
