@@ -1,7 +1,11 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
-import { Search, X, Loader2, BookOpen, ChevronRight, FileText, AlertCircle, Copy, Download, Lock } from 'lucide-react';
+import { 
+  Search, X, Loader2, BookOpen, ChevronRight, FileText, 
+  AlertCircle, Copy, Download, Lock, ChevronDown, ChevronUp, 
+  Maximize2, Minimize2, ExternalLink 
+} from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useLanguage } from '../../context/LanguageContext';
 
@@ -12,6 +16,9 @@ const SEARCH_I18N = {
     page: "Page",
     copyCitation: "Copy Citation",
     citationCopied: "Citation copied to clipboard!",
+    expandContext: "Expand Context",
+    collapseContext: "Collapse",
+    readInBook: "Read in Book",
     exportReport: "Export Research Report",
     recentSearches: "Recent Searches",
     clear: "Clear",
@@ -38,6 +45,9 @@ const SEARCH_I18N = {
     page: "صفحہ",
     copyCitation: "اقتباس بمع حوالہ",
     citationCopied: "اقتباس بمع حوالہ کاپی ہو گیا!",
+    expandContext: "پورا سیاق دیکھیں",
+    collapseContext: "چھوٹا کریں",
+    readInBook: "کتاب میں پڑھیں",
     exportReport: "تحقیقی رپورٹ ایکسپورٹ",
     recentSearches: "حالیہ تلاش",
     clear: "صاف کریں",
@@ -64,6 +74,9 @@ const SEARCH_I18N = {
     page: "صفحة",
     copyCitation: "نسخ الاقتباس مع المرجع",
     citationCopied: "تم نسخ الاقتباس مع المرجع بنجاح!",
+    expandContext: "عرض النص كاملاً",
+    collapseContext: "طي النص",
+    readInBook: "قراءة في الكتاب",
     exportReport: "تصدير التقرير البحثي",
     recentSearches: "عمليات البحث الأخيرة",
     clear: "مسح",
@@ -159,6 +172,16 @@ const GlobalSearchModal = ({ isOpen, onClose, onResultClick, initialQuery = '' }
   const [isMobile, setIsMobile] = useState(() => 
     typeof window !== 'undefined' ? window.matchMedia('(max-width: 639px)').matches : false
   );
+  const [expandedResults, setExpandedResults] = useState({});
+
+  const toggleExpand = (resultKey, e) => {
+    e?.stopPropagation?.();
+    e?.preventDefault?.();
+    setExpandedResults((prev) => ({
+      ...prev,
+      [resultKey]: !prev[resultKey],
+    }));
+  };
 
   const navigate = useNavigate();
   const inputRef = useRef(null);
@@ -284,6 +307,7 @@ const GlobalSearchModal = ({ isOpen, onClose, onResultClick, initialQuery = '' }
       document.body.style.overflow = 'auto';
       setQuery('');
       setResults([]);
+      setExpandedResults({});
       setHasSearched(false);
       setError(null);
       if (activeRequestRef.current) {
@@ -396,7 +420,7 @@ const GlobalSearchModal = ({ isOpen, onClose, onResultClick, initialQuery = '' }
 
   const modalContent = (
     <div 
-      className="fixed inset-0 z-[10050] flex items-end justify-center bg-slate-900/60 backdrop-blur-sm sm:items-start sm:pt-[10vh] px-0 sm:px-4"
+      className="fixed inset-0 z-[10050] flex items-start justify-center bg-slate-900/60 backdrop-blur-sm pt-2 sm:pt-6 md:pt-10 px-2 sm:px-4"
       onClick={onClose}
       role="dialog"
       aria-modal="true"
@@ -404,9 +428,7 @@ const GlobalSearchModal = ({ isOpen, onClose, onResultClick, initialQuery = '' }
     >
       {/* Search Modal Container */}
       <div 
-        className={`bg-white shadow-2xl w-full max-w-3xl overflow-hidden flex flex-col max-h-[92vh] sm:max-h-[80vh] animate-in fade-in zoom-in-95 duration-200 ${
-          isMobile ? 'rounded-t-[1.5rem]' : 'rounded-2xl'
-        }`}
+        className="bg-white shadow-2xl w-full max-w-3xl overflow-hidden flex flex-col max-h-[94vh] sm:max-h-[85vh] rounded-2xl sm:rounded-3xl border border-slate-200/80 animate-in fade-in zoom-in-95 duration-200"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Search Input Header */}
@@ -486,76 +508,147 @@ const GlobalSearchModal = ({ isOpen, onClose, onResultClick, initialQuery = '' }
                 )}
               </div>
               
-              {results.map((result, index) => (
-                <div
-                  key={`${result.book_id}-${result.page_number}-${index}`}
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => handleCardClick(result)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') handleCardClick(result);
-                  }}
-                  className="group flex w-full text-left gap-3 rounded-2xl border border-transparent bg-white p-3 shadow-sm transition-all hover:border-indigo-100 hover:bg-indigo-50/60 focus:outline-none focus:ring-2 focus:ring-indigo-500 sm:gap-4 cursor-pointer"
-                >
-                  {/* Book Cover Thumbnail */}
-                  <img 
-                    src={getMediaUrl(result.cover_image)} 
-                    alt={result.title} 
-                    onError={(e) => { e.target.src = FALLBACK_COVER; }}
-                    className="h-16 w-12 shrink-0 rounded-xl border border-gray-100 object-cover shadow-sm sm:h-18 sm:w-14"
-                  />
-                  
-                  {/* Book Info & Snippet */}
-                  <div className="flex-1 min-w-0 flex flex-col justify-center">
-                    <div className="mb-1 flex items-start justify-between gap-2">
-                      <h4 className="truncate text-sm font-bold text-slate-800 transition-colors group-hover:text-indigo-700">
-                        {highlightQueryText(result.title, query)}
-                      </h4>
-                      <div className="flex items-center gap-1.5 shrink-0">
-                        <span className="whitespace-nowrap rounded-full bg-indigo-100 px-2 py-0.5 text-[11px] font-bold text-indigo-700">
-                          {loc.page} {result.page_number}
-                        </span>
-                        {result.is_restricted && (
-                          <span className="whitespace-nowrap rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-800 flex items-center gap-1">
-                            <Lock size={10} />
-                            <span>{loc.restrictedBadge}</span>
-                          </span>
-                        )}
+              {results.map((result, index) => {
+                const resultKey = `${result.book_id}-${result.page_number}-${index}`;
+                const isExpanded = !!expandedResults[resultKey];
+
+                return (
+                  <div
+                    key={resultKey}
+                    className={`group flex flex-col w-full text-left rounded-2xl border transition-all duration-200 bg-white p-3 sm:p-4 shadow-2xs ${
+                      isExpanded
+                        ? 'border-indigo-300 ring-2 ring-indigo-100/80 bg-indigo-50/20'
+                        : 'border-slate-100 hover:border-indigo-100 hover:bg-indigo-50/40'
+                    }`}
+                  >
+                    {/* Header Row: Thumbnail + Title/Author + Page Badge + Open Arrow */}
+                    <div 
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => handleCardClick(result)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') handleCardClick(result);
+                      }}
+                      className="flex items-start gap-3 sm:gap-4 cursor-pointer focus:outline-none"
+                    >
+                      {/* Book Cover Thumbnail */}
+                      <img 
+                        src={getMediaUrl(result.cover_image)} 
+                        alt={result.title} 
+                        onError={(e) => { e.target.src = FALLBACK_COVER; }}
+                        className="h-16 w-12 shrink-0 rounded-xl border border-gray-100 object-cover shadow-sm sm:h-18 sm:w-14"
+                      />
+                      
+                      {/* Book Info */}
+                      <div className="flex-1 min-w-0">
+                        <div className="mb-1 flex items-start justify-between gap-2">
+                          <h4 className="truncate text-sm sm:text-base font-bold text-slate-800 transition-colors group-hover:text-indigo-700">
+                            {highlightQueryText(result.title, query)}
+                          </h4>
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            <span className="whitespace-nowrap rounded-full bg-indigo-100 px-2.5 py-0.5 text-[11px] font-bold text-indigo-700">
+                              {loc.page} {result.page_number}
+                            </span>
+                            {result.is_restricted && (
+                              <span className="whitespace-nowrap rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-800 flex items-center gap-1">
+                                <Lock size={10} />
+                                <span>{loc.restrictedBadge}</span>
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        
+                        <p className="truncate text-xs text-slate-500">
+                          {highlightQueryText(result.author || loc.unknownAuthor, query)}
+                          {result.publisher ? ` — ${result.publisher}` : ''}
+                        </p>
+                      </div>
+
+                      {/* Open Book Arrow */}
+                      <div className={`flex shrink-0 items-center justify-center pl-1 text-slate-300 transition-colors group-hover:text-indigo-600 ${isRTL ? 'rotate-180' : ''}`}>
+                        <ChevronRight size={18} />
                       </div>
                     </div>
-                    
-                    <p className="mb-1 truncate text-xs text-slate-500">
-                      {highlightQueryText(result.author || loc.unknownAuthor, query)}
-                    </p>
-                    
-                    {/* Matching text snippet with highlight tags (<mark>) */}
-                    <div 
-                      className="line-clamp-2 rounded-xl border border-gray-100 bg-slate-50 p-2 text-sm italic text-slate-600 group-hover:border-transparent group-hover:bg-white [&>mark]:bg-amber-200 [&>mark]:font-semibold [&>mark]:text-slate-900 [&>mark]:px-0.5 [&>mark]:rounded"
-                      dangerouslySetInnerHTML={{ __html: result.snippet }}
-                    />
 
-                    {/* 1-Click Citation Tool */}
-                    {searchSettings.citation_enabled && (
-                      <div className="mt-2 flex items-center justify-end">
+                    {/* Middle: Snippet Display (Collapsed 2-lines vs Expanded full paragraph) */}
+                    <div className="mt-2.5">
+                      {isExpanded ? (
+                        <div className="rounded-xl border border-indigo-200/80 bg-gradient-to-br from-indigo-50/50 to-white p-3 sm:p-4 text-sm sm:text-[15px] leading-relaxed text-slate-800 shadow-inner">
+                          <div 
+                            className="font-normal [&>mark]:bg-amber-300 [&>mark]:font-bold [&>mark]:text-slate-950 [&>mark]:px-1 [&>mark]:rounded"
+                            dangerouslySetInnerHTML={{ __html: result.full_context || result.snippet }}
+                          />
+                          
+                          {/* Direct Action inside Expanded View */}
+                          <div className="mt-3 pt-2.5 border-t border-indigo-100 flex items-center justify-between gap-2">
+                            <span className="text-xs text-indigo-900/70 font-semibold">
+                              📄 {loc.page} {result.page_number}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleCardClick(result);
+                              }}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-[#002147] hover:bg-slate-900 text-white transition shadow-xs cursor-pointer"
+                            >
+                              <BookOpen size={13} />
+                              <span>{loc.readInBook}</span>
+                              <ExternalLink size={12} />
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div 
+                          onClick={() => handleCardClick(result)}
+                          className="line-clamp-2 rounded-xl border border-slate-100 bg-slate-50/80 p-2 text-sm italic text-slate-600 group-hover:border-transparent group-hover:bg-slate-100/70 transition cursor-pointer [&>mark]:bg-amber-200 [&>mark]:font-semibold [&>mark]:text-slate-900 [&>mark]:px-0.5 [&>mark]:rounded"
+                          dangerouslySetInnerHTML={{ __html: result.snippet }}
+                        />
+                      )}
+                    </div>
+
+                    {/* Bottom Action Bar: Expand Toggle + Copy Citation */}
+                    <div className="mt-2.5 flex items-center justify-between gap-2 pt-2 border-t border-slate-100">
+                      {/* Left: Expand Context Toggle Button */}
+                      <button
+                        type="button"
+                        onClick={(e) => toggleExpand(resultKey, e)}
+                        className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold transition shadow-2xs cursor-pointer ${
+                          isExpanded
+                            ? 'bg-slate-200 hover:bg-slate-300 text-slate-700'
+                            : 'bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200/80'
+                        }`}
+                        title={isExpanded ? loc.collapseContext : loc.expandContext}
+                      >
+                        {isExpanded ? (
+                          <>
+                            <ChevronUp size={13} />
+                            <span>{loc.collapseContext}</span>
+                          </>
+                        ) : (
+                          <>
+                            <Maximize2 size={13} />
+                            <span>{loc.expandContext}</span>
+                          </>
+                        )}
+                      </button>
+
+                      {/* Right: Copy Citation */}
+                      {searchSettings.citation_enabled && (
                         <button
                           type="button"
                           onClick={(e) => copyCitation(result, e)}
-                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-bold text-slate-600 hover:text-indigo-700 hover:bg-white border border-slate-200 bg-slate-50/80 transition shadow-2xs cursor-pointer"
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold text-slate-600 hover:text-indigo-700 hover:bg-slate-100 border border-slate-200 bg-white transition shadow-2xs cursor-pointer"
                           title={loc.copyCitation}
                         >
                           <Copy size={12} />
                           <span>{loc.copyCitation}</span>
                         </button>
-                      </div>
-                    )}
+                      )}
+                    </div>
                   </div>
-                  
-                  {/* Navigation Arrow */}
-                  <div className={`flex shrink-0 items-center justify-center pl-1 text-gray-300 transition-colors group-hover:text-indigo-500 ${isRTL ? 'rotate-180' : ''}`}>
-                    <ChevronRight size={20} />
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
 

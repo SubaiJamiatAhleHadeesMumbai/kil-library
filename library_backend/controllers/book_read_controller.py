@@ -778,6 +778,23 @@ def deep_search_all_books(
                 
                 snippet = f"...{before_text} <mark class='bg-amber-300 text-slate-950 font-bold px-1 rounded'>{matched_word}</mark> {after_text}..."
 
+                # Generate extended context (~350 characters before & after match)
+                ctx_start = max(0, match.start() - 350)
+                ctx_end = min(len(page_text), match.end() + 350)
+                raw_ctx = page_text[ctx_start:ctx_end].strip()
+                prefix = "..." if ctx_start > 0 else ""
+                suffix = "..." if ctx_end < len(page_text) else ""
+                full_context_text = f"{prefix}{raw_ctx}{suffix}"
+                try:
+                    full_context_text = re.sub(
+                        re.escape(matched_word),
+                        f"<mark class='bg-amber-300 text-slate-950 font-bold px-1 rounded'>{matched_word}</mark>",
+                        full_context_text,
+                        flags=re.IGNORECASE
+                    )
+                except Exception:
+                    pass
+
                 results.append({
                     "book_id": book.id,
                     "title": book.title,
@@ -786,6 +803,7 @@ def deep_search_all_books(
                     "cover_image": book.cover_image_url,
                     "page_number": page_idx + 1,
                     "snippet": snippet,
+                    "full_context": full_context_text,
                     "matched_text": matched_word,
                     "is_restricted": bool(book.is_restricted)
                 })
