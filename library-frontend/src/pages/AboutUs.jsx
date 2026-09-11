@@ -1,605 +1,257 @@
-import StandardFormattedText from "../components/common/StandardFormattedText";
-import React, { useEffect, useMemo, useState, useCallback } from 'react';
+import React, { useEffect, useState, useContext, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  ChevronLeftIcon,
+  HomeIcon,
   ChevronRightIcon,
-  XMarkIcon,
-  ExclamationTriangleIcon,
-  PhotoIcon,
-  UserCircleIcon,
+  PencilSquareIcon,
   ArrowPathIcon,
-  SparklesIcon,
-  BookOpenIcon,
-  ArrowRightIcon,
-  ChatBubbleBottomCenterTextIcon,
+  ExclamationCircleIcon,
+  GlobeAltIcon,
 } from '@heroicons/react/24/outline';
 import aboutService from '../api/aboutService';
-import settingsService from '../api/settingsService';
+import { AuthContext } from '../context/AuthProvider';
+import { isAdminRole } from '../config/accessControl';
+import { useLanguage } from '../context/LanguageContext';
 
-// Constants & Utilities
-const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL ||
-  (import.meta.env.PROD ? '' : 'http://127.0.0.1:8000');
+const LANG_PILLS = [
+  { code: 'ur', label: 'اردو', flag: '🇵🇰', dir: 'rtl' },
+  { code: 'en', label: 'English', flag: '🇬🇧', dir: 'ltr' },
+  { code: 'ar', label: 'العربية', flag: '🇸🇦', dir: 'rtl' },
+];
 
-const PUBLIC_GALLERY_PREVIEW = 4;
-const PUBLIC_ULMA_PREVIEW = 4;
-const PUBLIC_ULMA_PAGE_SIZE = 9;
+// Helper to convert legacy plain text to formatted HTML if content_html is empty
+const formatLegacyTextToHtml = (raw) => {
+  if (!raw || typeof raw !== 'string') return '<p class="text-slate-500 italic">No content has been published yet.</p>';
+  const lines = raw.split(/\r?\n/);
+  const formatted = [];
+  let inList = false;
 
-const resolveImageUrl = (value) => {
-  if (!value || typeof value !== 'string') return '';
-  if (value.startsWith('http://') || value.startsWith('https://')) return value;
-  const cleanPath = value.startsWith('/') ? value : `/${value}`;
-  return `${API_BASE_URL}${cleanPath}`;
-};
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed) {
+      if (inList) {
+        formatted.push('</ul>');
+        inList = false;
+      }
+      formatted.push('<p class="my-2"><br/></p>');
+      continue;
+    }
 
-const emptySettings = {
-  hero: {
-    title: 'About the Markaz Library',
-    subtitle: '',
-    description: '',
-    cta_label: 'Explore the collection',
-    cta_url: '/books',
-    image_url: '',
-  },
-  intro: {
-    title: 'Introduction',
-    description: '',
-    paragraphs: [],
-  },
-  display: {
-    gallery_preview_count: PUBLIC_GALLERY_PREVIEW,
-    ulma_preview_count: PUBLIC_ULMA_PREVIEW,
-  },
-  ulma_quotes: [],
-  gallery: [],
-};
-
-// Sub-component: Image with Graceful Fallback State
-const ImageWithFallback = ({ src, alt, className, fallbackIcon: FallbackIcon = PhotoIcon }) => {
-  const [hasError, setHasError] = useState(false);
-
-  useEffect(() => {
-    setHasError(false);
-  }, [src]);
-
-  if (!src || hasError) {
-    return (
-      <div className={`flex items-center justify-center bg-slate-100 text-slate-400 ${className}`}>
-        <FallbackIcon className="h-8 w-8 opacity-40" />
-      </div>
-    );
+    if (trimmed.startsWith('✺') || trimmed.startsWith('◈')) {
+      if (inList) {
+        formatted.push('</ul>');
+        inList = false;
+      }
+      formatted.push(`<h3 class="text-2xl font-bold text-emerald-800 dark:text-emerald-400 mt-8 mb-4">${trimmed}</h3>`);
+    } else if (trimmed.startsWith('❶') || trimmed.startsWith('❷') || trimmed.startsWith('❸') || trimmed.startsWith('❹') || trimmed.startsWith('❺') || trimmed.startsWith('❻') || trimmed.startsWith('❼') || trimmed.startsWith('❽') || trimmed.startsWith('❾') || trimmed.startsWith('❿')) {
+      if (inList) {
+        formatted.push('</ul>');
+        inList = false;
+      }
+      formatted.push(`<div class="font-semibold my-2.5 pl-3 border-l-3 border-emerald-500 text-slate-800 dark:text-slate-200">${trimmed}</div>`);
+    } else if (trimmed.startsWith('•') || trimmed.startsWith('-')) {
+      if (!inList) {
+        formatted.push('<ul class="list-disc list-inside space-y-1.5 my-3 text-slate-700 dark:text-slate-300">');
+        inList = true;
+      }
+      formatted.push(`<li>${trimmed.replace(/^[•-]\s*/, '')}</li>`);
+    } else {
+      if (inList) {
+        formatted.push('</ul>');
+        inList = false;
+      }
+      formatted.push(`<p class="leading-relaxed my-3.5 text-base sm:text-lg text-slate-700 dark:text-slate-300">${trimmed}</p>`);
+    }
   }
 
-  return (
-    <img
-      src={src}
-      alt={alt}
-      loading="lazy"
-      decoding="async"
-      onError={() => setHasError(true)}
-      className={className}
-    />
-  );
+  if (inList) formatted.push('</ul>');
+  return formatted.join('\n');
 };
 
-// Sub-component: Skeleton Loader (Premium Layout Matching)
-const AboutSkeleton = () => (
-  <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 space-y-10 animate-pulse">
-    <div className="grid gap-8 overflow-hidden rounded-[2.5rem] border border-slate-200 bg-white p-8 lg:grid-cols-[1.1fr_0.9fr]">
-      <div className="space-y-5 flex flex-col justify-center">
-        <div className="h-4 w-28 rounded-full bg-slate-200" />
-        <div className="h-9 w-3/4 rounded-xl bg-slate-200" />
-        <div className="h-20 w-full rounded-2xl bg-slate-100" />
-        <div className="grid gap-4 sm:grid-cols-2 pt-2">
-          <div className="h-24 rounded-2xl bg-slate-100" />
-          <div className="h-24 rounded-2xl bg-slate-100" />
-        </div>
-      </div>
-      <div className="h-80 lg:h-full min-h-[320px] rounded-3xl bg-slate-200" />
-    </div>
+export default function AboutUs() {
+  const auth = useContext(AuthContext);
+  const isAdmin = auth?.role && isAdminRole(auth.role);
 
-    <div className="rounded-[2.5rem] border border-slate-200 bg-white p-8 space-y-6">
-      <div className="flex justify-between items-center">
-        <div className="space-y-2">
-          <div className="h-3 w-36 bg-slate-200 rounded-full" />
-          <div className="h-7 w-48 bg-slate-200 rounded-lg" />
-        </div>
-        <div className="h-10 w-40 bg-slate-200 rounded-full" />
-      </div>
-      <div className="grid gap-5 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
-        {[...Array(4)].map((_, i) => (
-          <div key={i} className="rounded-[1.75rem] border border-slate-200 overflow-hidden">
-            <div className="h-48 bg-slate-200" />
-            <div className="p-4 space-y-2">
-              <div className="h-4 w-3/4 bg-slate-200 rounded" />
-              <div className="h-3 w-full bg-slate-100 rounded" />
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  </div>
-);
+  const { currentLang, changeLanguage } = useLanguage();
 
-// Sub-component: Error Banner
-const ErrorState = ({ onRetry }) => (
-  <div className="mx-auto max-w-4xl px-4 py-16 text-center">
-    <div className="rounded-[2.5rem] border border-red-200/80 bg-gradient-to-b from-red-50/80 to-white p-8 sm:p-12 shadow-sm">
-      <div className="mx-auto h-16 w-16 rounded-full bg-red-100 text-red-500 flex items-center justify-center mb-4">
-        <ExclamationTriangleIcon className="h-8 w-8" />
-      </div>
-      <h3 className="text-xl font-black text-slate-900">Unable to load information</h3>
-      <p className="mt-2 text-sm text-slate-600 max-w-md mx-auto">
-        We encountered a network issue while retrieving the library details. Please try refreshing.
-      </p>
-      {onRetry && (
-        <button
-          onClick={onRetry}
-          className="mt-6 inline-flex items-center gap-2 rounded-full bg-[#002147] px-7 py-3 text-sm font-bold text-white shadow-md transition-all hover:bg-[#12315a] hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-[#002147] focus:ring-offset-2"
-        >
-          <ArrowPathIcon className="h-4 w-4" /> Try Again
-        </button>
-      )}
-    </div>
-  </div>
-);
-
-// Sub-component: Hero & Introduction Section (Clean Full-Width HD Makhtota without Image)
-const IntroSection = ({ settings }) => (
-  <section className="w-full max-w-5xl mx-auto overflow-hidden rounded-[2.5rem] border-2 border-[#E2D4BE] bg-[#FAF6EE] p-8 sm:p-12 lg:p-16 shadow-[inset_0_0_50px_rgba(180,140,75,0.04),0_10px_30px_rgba(0,0,0,0.03)] ring-1 ring-[#D8C6A5]">
-    <div className="flex flex-col text-right max-w-4xl mx-auto" dir="rtl">
-      <div className="flex items-center justify-between border-b border-[#E2D4BE] pb-4 mb-6">
-        <div className="inline-flex items-center gap-2 rounded-full bg-[#8B6E32]/10 px-4 py-1.5 text-xs font-bold uppercase tracking-[0.2em] text-[#8B6E32] w-fit">
-          📜 تعارف و پس منظر
-        </div>
-        <span className="text-sm font-serif text-[#8B6E32] tracking-widest">
-          ✦ ✦ ✦
-        </span>
-      </div>
-
-      <h2
-        className="text-2xl sm:text-3xl lg:text-4xl font-black text-[#002147] mb-6 leading-[2.2]"
-        style={{ fontFamily: "'Jameel Noori Nastaleeq', 'JameelNoori', 'Gulzar', 'Noto Nastaliq Urdu', serif" }}
-      >
-        {settings.hero?.title || settings.intro?.title || 'مرکز الدعوۃ الاسلامیۃ والخیریہ (سونس، کھیڈ - رتناگری)'}
-      </h2>
-
-      {(settings.hero?.description || settings.intro?.description) && (
-        <StandardFormattedText
-          text={settings.hero?.description || settings.intro?.description}
-          makhtotaPaper={false}
-          showZoomControls={true}
-        />
-      )}
-    </div>
-  </section>
-);
-
-// Sub-component: Gallery Preview Section
-const GalleryPreviewSection = ({ galleryVisible, gallery, galleryPreview, galleryPreviewLimit }) => (
-  <section className="mt-10 rounded-[2.5rem] border border-slate-200/80 bg-white/90 p-6 sm:p-10 shadow-sm backdrop-blur-sm">
-    <div className="mb-8 flex flex-wrap items-end justify-between gap-4 border-b border-slate-100 pb-5">
-      <div>
-        <p className="text-xs font-bold uppercase tracking-[0.25em] text-slate-400">Markaz Gallery Preview</p>
-        <h2 className="mt-1.5 text-2xl sm:text-3xl font-black text-slate-900">Gallery highlights</h2>
-      </div>
-      {!galleryVisible || gallery.length === 0 ? (
-        <button
-          type="button"
-          disabled
-          className="rounded-full bg-slate-200 px-5 py-2.5 text-xs font-bold text-slate-400 cursor-not-allowed uppercase tracking-wider"
-        >
-          Gallery Unavailable
-        </button>
-      ) : (
-        <Link
-          to="/gallery"
-          className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-[#002147] to-[#0f4c81] px-6 py-2.5 text-sm font-bold text-white shadow-sm transition-all hover:opacity-95 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-[#002147] focus:ring-offset-2"
-        >
-          Explore Full Gallery <ArrowRightIcon className="h-4 w-4" />
-        </Link>
-      )}
-    </div>
-
-    <div className="grid gap-5 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-      {galleryPreview.length > 0 ? (
-        galleryPreview.map((item, index) => {
-          const imageUrl = resolveImageUrl(item.image_url);
-          return (
-            <article
-              key={`${item.title || 'gallery'}-${index}`}
-              className="group overflow-hidden rounded-[1.75rem] border border-slate-200/90 bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-md hover:border-slate-300 flex flex-col justify-between"
-            >
-              <div className="aspect-[4/3] bg-slate-100 overflow-hidden relative">
-                <ImageWithFallback
-                  src={imageUrl}
-                  alt={item.title || 'Markaz gallery'}
-                  className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                />
-                <span className="absolute top-3 right-3 rounded-full bg-slate-950/60 backdrop-blur-md px-2.5 py-1 text-[10px] font-bold text-white">
-                  #{String(index + 1).padStart(2, '0')}
-                </span>
-              </div>
-              <div className="p-5">
-                <h3 className="text-sm font-bold text-slate-900 group-hover:text-[#002147] transition-colors">
-                  {item.title || 'Markaz view'}
-                </h3>
-                <p className="mt-1.5 text-xs leading-6 text-slate-500 line-clamp-2">
-                  {item.caption || 'Image from the Markaz introduction gallery.'}
-                </p>
-              </div>
-            </article>
-          );
-        })
-      ) : (
-        <div className="col-span-full rounded-[1.75rem] border border-dashed border-slate-300 bg-slate-50/50 p-10 text-center text-sm font-medium text-slate-500">
-          Gallery images will appear here once uploaded by the administration.
-        </div>
-      )}
-    </div>
-
-    {galleryVisible && gallery.length > galleryPreviewLimit && (
-      <div className="mt-8 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200/80 bg-slate-50/80 px-5 py-3.5">
-        <p className="text-sm text-slate-600">
-          Showing <span className="font-bold text-slate-900">{galleryPreview.length}</span> preview images out of{' '}
-          <span className="font-bold text-slate-900">{gallery.length}</span>.
-        </p>
-        <span className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">
-          Use top button for complete gallery
-        </span>
-      </div>
-    )}
-  </section>
-);
-
-// Sub-component: Ulma Preview Section (Scholar Quotes)
-const UlmaPreviewSection = ({ quotes, ulmaPreview, ulmaPreviewLimit, onOpenModal }) => (
-  <section className="mt-10 rounded-[2.5rem] border border-slate-200/80 bg-white/90 p-6 sm:p-10 shadow-sm backdrop-blur-sm">
-    <div className="flex flex-wrap items-end justify-between gap-4 border-b border-slate-100 pb-5">
-      <div>
-        <div className="inline-flex items-center gap-2 rounded-full bg-cyan-50 px-3 py-1 text-xs font-bold uppercase tracking-[0.25em] text-cyan-800">
-          <ChatBubbleBottomCenterTextIcon className="h-3.5 w-3.5 text-cyan-700" /> Ulma ki ray
-        </div>
-        <h2 className="mt-2 text-2xl sm:text-3xl font-black text-slate-900">Praise & guidance about the library</h2>
-      </div>
-              <button
-          onClick={onOpenModal}
-          disabled={quotes.length === 0}
-          className="inline-flex items-center gap-2 rounded-full bg-[#002147] px-6 py-2.5 text-sm font-bold text-white shadow-sm transition-all hover:bg-[#12315a] disabled:cursor-not-allowed disabled:bg-slate-300 focus:outline-none focus:ring-2 focus:ring-[#002147] focus:ring-offset-2"
-        >
-          Open Ulma Gallery <ArrowRightIcon className="h-4 w-4" />
-        </button>
-      </div>
-
-      <div className="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-      {ulmaPreview.length > 0 ? (
-        ulmaPreview.map((item, index) => {
-          const imageUrl = resolveImageUrl(item.image_url);
-          return (
-            <article
-              key={`${item.name || 'ulma-preview'}-${index}`}
-              className="group flex flex-col justify-between rounded-2xl border border-slate-200/90 bg-gradient-to-b from-slate-50/60 to-white p-5 shadow-sm transition-all duration-300 hover:shadow-md hover:border-slate-300 relative overflow-hidden"
-            >
-              <div className="absolute top-2 right-4 text-slate-200 text-6xl font-serif select-none pointer-events-none opacity-40">
-                “
-              </div>
-              <div className="relative z-10">
-                <div className="flex items-center gap-4">
-                  <div className="h-14 w-14 shrink-0 overflow-hidden rounded-2xl bg-slate-200 ring-2 ring-white shadow-sm">
-                    <ImageWithFallback
-                      src={imageUrl}
-                      alt={item.name || 'Scholar'}
-                      fallbackIcon={UserCircleIcon}
-                      className="h-full w-full object-cover"
-                    />
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-black text-slate-900 group-hover:text-[#002147] transition-colors">
-                      {item.name || 'Scholar name'}
-                    </h3>
-                    <p className="text-[11px] font-bold uppercase tracking-[0.15em] text-slate-500 mt-0.5">
-                      {item.designation || 'Scholar'}
-                    </p>
-                  </div>
-                </div>
-
-                <p className="mt-4 line-clamp-4 text-sm leading-6 text-slate-700 italic">
-                  “{item.quote || 'Add a quote from the admin panel.'}”
-                </p>
-              </div>
-
-              {item.source_url ? (
-                <a
-                  href={item.source_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="mt-4 inline-flex items-center gap-1 text-xs font-bold text-[#002147] hover:underline focus:outline-none focus:ring-1 focus:ring-[#002147]"
-                >
-                  {item.source_text || 'Visit source'} <ArrowRightIcon className="h-3 w-3" />
-                </a>
-              ) : item.source_text ? (
-                <p className="mt-4 text-xs font-bold text-[#002147]">{item.source_text}</p>
-              ) : null}
-            </article>
-          );
-        })
-      ) : (
-        <div className="rounded-[1.75rem] border border-dashed border-slate-300 bg-slate-50/50 p-10 text-sm font-medium text-slate-500 sm:col-span-2 xl:col-span-4 text-center">
-          Scholar reviews and quotes will appear here once added by the administration.
-        </div>
-      )}
-    </div>
-
-    {quotes.length > ulmaPreviewLimit && (
-      <div className="mt-8 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200/80 bg-slate-50/80 px-5 py-3.5">
-        <p className="text-sm text-slate-600">
-          Showing <span className="font-bold text-slate-900">{ulmaPreview.length}</span> preview quotes out of{' '}
-          <span className="font-bold text-slate-900">{quotes.length}</span>.
-        </p>
-        <span className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">
-          Click button above to open full modal
-        </span>
-      </div>
-    )}
-  </section>
-);
-
-// Sub-component: Accessible Ulma Gallery Modal Dialog
-const UlmaModal = ({ isOpen, onClose, quotes, page, setPage, totalPages }) => {
-  useEffect(() => {
-    if (!isOpen) return;
-
-    document.body.style.overflow = 'hidden';
-
-    const handleKeyDown = (e) => {
-      if (e.key === 'Escape') onClose();
-    };
-    window.addEventListener('keydown', handleKeyDown);
-
-    return () => {
-      document.body.style.overflow = '';
-      window.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [isOpen, onClose]);
-
-  if (!isOpen) return null;
-
-  return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/75 px-4 py-6 backdrop-blur-md transition-all duration-300"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="ulma-modal-title"
-      onClick={onClose}
-    >
-      <div
-        className="flex max-h-[90vh] w-full max-w-6xl flex-col overflow-hidden rounded-[2.5rem] bg-white shadow-2xl animate-in fade-in zoom-in-95 duration-200 border border-slate-200/80"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Modal Header */}
-        <div className="flex items-center justify-between border-b border-slate-100 px-6 py-5 sm:px-8 bg-slate-50/50">
-          <div>
-            <span className="text-xs font-bold uppercase tracking-[0.3em] text-[#002147]">Ulma Gallery</span>
-            <h3 id="ulma-modal-title" className="text-2xl font-black text-slate-900 mt-0.5">
-              Ulma ki ray
-            </h3>
-          </div>
-          <button
-            onClick={onClose}
-            aria-label="Close modal"
-            className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 text-slate-600 transition hover:border-[#002147] hover:bg-[#002147] hover:text-white focus:outline-none focus:ring-2 focus:ring-[#002147]"
-          >
-            <XMarkIcon className="h-5 w-5" />
-          </button>
-        </div>
-
-        {/* Modal Body */}
-        <div className="flex-1 overflow-y-auto px-6 py-6 sm:px-8">
-          <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-            {quotes.map((item, index) => {
-              const imageUrl = resolveImageUrl(item.image_url);
-              return (
-                <article
-                  key={`${item.name || 'ulma-modal'}-${index}`}
-                  className="flex flex-col justify-between rounded-[1.75rem] border border-slate-200/90 bg-slate-50/70 p-6 shadow-sm transition hover:shadow-md"
-                >
-                  <div>
-                    <div className="flex items-start gap-4">
-                      <div className="h-16 w-16 shrink-0 overflow-hidden rounded-2xl bg-slate-200 ring-2 ring-white">
-                        <ImageWithFallback
-                          src={imageUrl}
-                          alt={item.name || 'Scholar'}
-                          fallbackIcon={UserCircleIcon}
-                          className="h-full w-full object-cover"
-                        />
-                      </div>
-                      <div>
-                        <h4 className="text-base font-black text-slate-900">{item.name || 'Scholar name'}</h4>
-                        <p className="text-xs font-bold uppercase tracking-[0.15em] text-slate-500 mt-0.5">
-                          {item.designation || 'Scholar'}
-                        </p>
-                      </div>
-                    </div>
-                    <p className="mt-4 text-sm leading-7 text-slate-700 italic">“{item.quote || 'No quote provided.'}”</p>
-                  </div>
-
-                  {item.source_url ? (
-                    <a
-                      href={item.source_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="mt-5 inline-flex items-center gap-1 text-xs font-bold text-[#002147] hover:underline focus:outline-none focus:ring-1 focus:ring-[#002147]"
-                    >
-                      {item.source_text || 'Visit source'} <ArrowRightIcon className="h-3 w-3" />
-                    </a>
-                  ) : item.source_text ? (
-                    <p className="mt-5 text-xs font-bold text-[#002147]">{item.source_text}</p>
-                  ) : null}
-                </article>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Modal Footer / Pagination */}
-        <div className="flex flex-wrap items-center justify-between gap-4 border-t border-slate-100 px-6 py-4 sm:px-8 bg-slate-50/80">
-          <p className="text-sm text-slate-600">
-            Page <span className="font-bold text-slate-900">{page}</span> of{' '}
-            <span className="font-bold text-slate-900">{totalPages}</span>
-          </p>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setPage((prev) => Math.max(1, prev - 1))}
-              disabled={page <= 1}
-              className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-5 py-2 text-sm font-bold text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-[#002147]"
-            >
-              <ChevronLeftIcon className="h-4 w-4" /> Prev
-            </button>
-            <button
-              onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
-              disabled={page >= totalPages}
-              className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-5 py-2 text-sm font-bold text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-[#002147]"
-            >
-              Next <ChevronRightIcon className="h-4 w-4" />
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// Main Component
-const AboutUs = () => {
-  const [settings, setSettings] = useState(emptySettings);
-  const [homepageSettings, setHomepageSettings] = useState(null);
+  const [settings, setSettings] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const [ulmaModalOpen, setUlmaModalOpen] = useState(false);
-  const [ulmaPage, setUlmaPage] = useState(1);
-
-  // Parallel API Loading with Error Recovery
-  const loadData = useCallback(async () => {
-    setLoading(true);
-    setError(null);
+  const fetchSettings = async () => {
     try {
-      const [aboutRes, homepageRes] = await Promise.allSettled([
-        aboutService.getAboutSettings(),
-        settingsService.getHomepageSettings(),
-      ]);
-
-      if (aboutRes.status === 'fulfilled' && aboutRes.value) {
-        setSettings({ ...emptySettings, ...aboutRes.value });
-      } else {
-        setSettings(emptySettings);
-      }
-
-      if (homepageRes.status === 'fulfilled') {
-        setHomepageSettings(homepageRes.value || {});
-      } else {
-        setHomepageSettings({});
-      }
-
-      if (aboutRes.status === 'rejected' && homepageRes.status === 'rejected') {
-        setError('Failed to load library settings.');
-      }
+      setLoading(true);
+      setError(null);
+      const data = await aboutService.getAboutSettings();
+      setSettings(data || {});
     } catch (err) {
-      console.error('Unexpected error loading about page data', err);
-      setError('An unexpected error occurred.');
+      console.error(err);
+      setError('Unable to load About page information. Please try again.');
     } finally {
       setLoading(false);
     }
-  }, []);
+  };
 
   useEffect(() => {
-    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
-    loadData();
-  }, [loadData]);
-
-  // Derived Values
-  const heroImage = useMemo(() => resolveImageUrl(settings.hero?.image_url), [settings.hero?.image_url]);
-
-  const quotes = useMemo(() => {
-    return Array.isArray(settings.ulma_quotes)
-      ? settings.ulma_quotes.filter((item) => item?.quote || item?.name || item?.image_url)
-      : [];
-  }, [settings.ulma_quotes]);
-
-  const gallery = useMemo(() => {
-    return Array.isArray(settings.gallery)
-      ? settings.gallery.filter((item) => item?.image_url || item?.title || item?.caption)
-      : [];
-  }, [settings.gallery]);
-
-  const galleryVisible = homepageSettings?.sections?.gallery?.enabled !== false;
-
-  const galleryPreviewLimit = useMemo(() => {
-    return Math.min(24, Math.max(1, Number(settings.display?.gallery_preview_count ?? PUBLIC_GALLERY_PREVIEW)));
-  }, [settings.display?.gallery_preview_count]);
-
-  const ulmaPreviewLimit = useMemo(() => {
-    return Math.min(24, Math.max(1, Number(settings.display?.ulma_preview_count ?? PUBLIC_ULMA_PREVIEW)));
-  }, [settings.display?.ulma_preview_count]);
-
-  const galleryPreview = useMemo(() => gallery.slice(0, galleryPreviewLimit), [gallery, galleryPreviewLimit]);
-  const ulmaPreview = useMemo(() => quotes.slice(0, ulmaPreviewLimit), [quotes, ulmaPreviewLimit]);
-
-  const totalUlmaPages = useMemo(() => Math.max(1, Math.ceil(quotes.length / PUBLIC_ULMA_PAGE_SIZE)), [quotes.length]);
-
-  const pagedUlma = useMemo(() => {
-    const start = (ulmaPage - 1) * PUBLIC_ULMA_PAGE_SIZE;
-    return quotes.slice(start, start + PUBLIC_ULMA_PAGE_SIZE);
-  }, [quotes, ulmaPage]);
-
-  const handleOpenUlmaModal = useCallback(() => {
-    setUlmaPage(1);
-    setUlmaModalOpen(true);
+    fetchSettings();
   }, []);
 
-  const handleCloseUlmaModal = useCallback(() => {
-    setUlmaModalOpen(false);
-  }, []);
+  // Determine active language data with graceful fallback
+  const activeContent = useMemo(() => {
+    if (!settings) return { title: 'About Us', subtitle: '', content_html: '', dir: 'ltr' };
 
-  if (loading) {
-    return <AboutSkeleton />;
-  }
+    const langs = settings.languages || {};
+    const selected = langs[currentLang];
 
-  if (error) {
-    return <ErrorState onRetry={loadData} />;
-  }
+    // If current language has title or content, use it
+    if (selected && (selected.title?.trim() || selected.content_html?.trim())) {
+      return {
+        title: selected.title || 'About Us',
+        subtitle: selected.subtitle || '',
+        content_html: selected.content_html || '',
+        dir: currentLang === 'en' ? 'ltr' : 'rtl',
+      };
+    }
+
+    // Fallback 1: Urdu primary
+    if (langs.ur && (langs.ur.title?.trim() || langs.ur.content_html?.trim())) {
+      return {
+        title: langs.ur.title || settings.title || 'About Us',
+        subtitle: langs.ur.subtitle || settings.subtitle || '',
+        content_html: langs.ur.content_html || settings.content_html || '',
+        dir: 'rtl',
+      };
+    }
+
+    // Fallback 2: Top-level settings
+    return {
+      title: settings.title || settings.hero?.title || 'About Us',
+      subtitle: settings.subtitle || settings.hero?.subtitle || '',
+      content_html: settings.content_html || '',
+      dir: 'rtl',
+    };
+  }, [settings, currentLang]);
+
+  const rawHtml = activeContent.content_html;
+  const renderedHtml = rawHtml && rawHtml.trim() ? rawHtml : formatLegacyTextToHtml(settings?.hero?.description);
 
   return (
-    <div className="bg-[radial-gradient(circle_at_top,_rgba(0,33,71,0.06),_transparent_40%),linear-gradient(180deg,_#f8fbff_0%,_#ffffff_50%,_#f8fafc_100%)] min-h-screen">
-      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        <IntroSection settings={settings} />
+    <div className="min-h-screen bg-slate-50/50 dark:bg-slate-950 py-6 sm:py-10">
+      <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 space-y-6">
+        {/* ================= BREADCRUMBS & TOP BAR ================= */}
+        <div className="flex flex-wrap items-center justify-between gap-3 text-xs sm:text-sm">
+          <nav className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400">
+            <Link to="/" className="flex items-center gap-1 hover:text-emerald-600 transition">
+              <HomeIcon className="h-4 w-4" />
+              <span>Home</span>
+            </Link>
+            <ChevronRightIcon className="h-3 w-3 opacity-60" />
+            <span className="font-semibold text-slate-800 dark:text-slate-200">About Us</span>
+          </nav>
 
-        <GalleryPreviewSection
-          galleryVisible={galleryVisible}
-          gallery={gallery}
-          galleryPreview={galleryPreview}
-          galleryPreviewLimit={galleryPreviewLimit}
-        />
+          <div className="flex items-center gap-2">
+            {/* Quick Language Switcher Pills */}
+            <div className="inline-flex items-center rounded-xl bg-white dark:bg-slate-900 p-1 border border-slate-200 dark:border-slate-800 shadow-2xs">
+              <GlobeAltIcon className="w-3.5 h-3.5 text-slate-400 ml-1 mr-0.5" />
+              {LANG_PILLS.map((pill) => {
+                const isActive = currentLang === pill.code;
+                return (
+                  <button
+                    key={pill.code}
+                    type="button"
+                    onClick={() => changeLanguage(pill.code)}
+                    className={`px-2.5 py-1 text-xs font-bold rounded-lg transition cursor-pointer ${
+                      isActive
+                        ? 'bg-emerald-600 text-white shadow-xs'
+                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                    }`}
+                  >
+                    <span>{pill.label}</span>
+                  </button>
+                );
+              })}
+            </div>
 
-        <UlmaPreviewSection
-          quotes={quotes}
-          ulmaPreview={ulmaPreview}
-          ulmaPreviewLimit={ulmaPreviewLimit}
-          onOpenModal={handleOpenUlmaModal}
-        />
+            {isAdmin && (
+              <Link
+                to="/admin/about-settings"
+                className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-300 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-950/40 px-3 py-1.5 text-xs font-semibold text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 transition shadow-2xs"
+              >
+                <PencilSquareIcon className="h-3.5 w-3.5" />
+                <span>Edit in CMS</span>
+              </Link>
+            )}
+          </div>
+        </div>
+
+        {/* ================= LOADING SKELETON ================= */}
+        {loading && (
+          <div className="space-y-6 animate-pulse">
+            <div className="rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-8 sm:p-12 text-center space-y-4">
+              <div className="h-10 w-2/3 mx-auto rounded-2xl bg-slate-200 dark:bg-slate-800" />
+              <div className="h-5 w-1/2 mx-auto rounded-xl bg-slate-100 dark:bg-slate-800" />
+            </div>
+            <div className="rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-8 sm:p-12 space-y-6">
+              <div className="h-4 w-full rounded bg-slate-100 dark:bg-slate-800" />
+              <div className="h-4 w-5/6 rounded bg-slate-100 dark:bg-slate-800" />
+              <div className="h-4 w-4/6 rounded bg-slate-100 dark:bg-slate-800" />
+              <div className="h-64 w-full rounded-2xl bg-slate-100 dark:bg-slate-800" />
+              <div className="h-4 w-full rounded bg-slate-100 dark:bg-slate-800" />
+            </div>
+          </div>
+        )}
+
+        {/* ================= ERROR STATE ================= */}
+        {!loading && error && (
+          <div className="rounded-3xl border border-red-200 dark:border-red-900/40 bg-red-50 dark:bg-red-950/20 p-8 text-center space-y-4">
+            <ExclamationCircleIcon className="mx-auto h-12 w-12 text-red-500" />
+            <h3 className="text-lg font-bold text-red-800 dark:text-red-300">{error}</h3>
+            <button
+              type="button"
+              onClick={fetchSettings}
+              className="inline-flex items-center gap-2 rounded-xl bg-red-600 px-4 py-2 text-xs font-semibold text-white shadow-sm hover:bg-red-500 transition cursor-pointer"
+            >
+              <ArrowPathIcon className="h-4 w-4" />
+              <span>Retry</span>
+            </button>
+          </div>
+        )}
+
+        {/* ================= MAIN CONTENT CARD ================= */}
+        {!loading && !error && (
+          <article className="space-y-6">
+            {/* Top Page Header Banner */}
+            <header className="rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-8 sm:p-12 text-center shadow-xs transition-colors">
+              <span className="inline-block rounded-full bg-emerald-100 dark:bg-emerald-950/60 px-3.5 py-1 text-xs font-bold text-emerald-800 dark:text-emerald-300 mb-3 tracking-wide">
+                Markaz & Library
+              </span>
+              <h1
+                dir={activeContent.dir}
+                className="text-3xl sm:text-5xl font-extrabold tracking-tight text-slate-900 dark:text-white"
+              >
+                {activeContent.title}
+              </h1>
+              {activeContent.subtitle && (
+                <p
+                  dir={activeContent.dir}
+                  className="mt-3 sm:mt-4 text-base sm:text-xl font-medium text-slate-600 dark:text-slate-400 max-w-3xl mx-auto leading-relaxed"
+                >
+                  {activeContent.subtitle}
+                </p>
+              )}
+            </header>
+
+            {/* Dynamic Rich Text Body */}
+            <section className="rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 sm:p-10 lg:p-14 shadow-sm transition-colors">
+              <div
+                dir={activeContent.dir}
+                className="about-rich-content prose prose-slate max-w-none dark:prose-invert prose-headings:font-bold prose-headings:text-slate-900 dark:prose-headings:text-white prose-a:text-emerald-600 dark:prose-a:text-emerald-400 prose-img:rounded-2xl prose-img:shadow-md prose-img:mx-auto prose-img:max-w-full text-slate-800 dark:text-slate-200 leading-relaxed text-base sm:text-lg"
+                dangerouslySetInnerHTML={{ __html: renderedHtml }}
+              />
+            </section>
+          </article>
+        )}
       </div>
-
-      <UlmaModal
-        isOpen={ulmaModalOpen}
-        onClose={handleCloseUlmaModal}
-        quotes={pagedUlma}
-        page={ulmaPage}
-        setPage={setUlmaPage}
-        totalPages={totalUlmaPages}
-      />
     </div>
   );
-};
-
-export default AboutUs;
+}

@@ -298,9 +298,17 @@ const QuestionRow = ({ question, open, onToggle, currentLang }) => {
           {/* Detailed Answer Text */}
           {question.answer_text ? (
             <div className="rounded-xl border border-slate-200 bg-white p-4 sm:p-5 shadow-2xs text-slate-800">
-              <div className="text-sm leading-relaxed whitespace-pre-line font-normal text-slate-800">
-                {question.answer_text}
-              </div>
+              {/<[a-z][\s\S]*>/i.test(question.answer_text) ? (
+                <div
+                  dir="auto"
+                  className="prose prose-slate max-w-none dark:prose-invert text-sm sm:text-base leading-relaxed text-slate-800 dark:text-slate-200 prose-headings:font-bold prose-a:text-emerald-600 prose-img:rounded-xl prose-img:shadow-md"
+                  dangerouslySetInnerHTML={{ __html: question.answer_text }}
+                />
+              ) : (
+                <div dir="auto" className="text-sm leading-relaxed whitespace-pre-line font-normal text-slate-800">
+                  {question.answer_text}
+                </div>
+              )}
             </div>
           ) : (
             <div className="rounded-xl border border-dashed border-slate-300 bg-white p-6 text-center text-slate-500 text-xs">

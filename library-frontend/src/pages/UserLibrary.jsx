@@ -6,8 +6,10 @@ import { useNavigate, useLocation, useSearchParams } from "react-router-dom";
 // --- Services + Hooks ---
 import { bookService } from "../api/bookService";
 import { categoryService } from "../api/categoryService";
+import settingsService from "../api/settingsService";
 import { useBookSearch } from "../hooks/useBookSearch";
 import useAuth from "../hooks/useAuth";
+import { useTheme } from "../context/ThemeContext";
 
 // --- Components ---
 import RestrictedAccessFlow from "../components/book/RestrictedAccessFlow";
@@ -32,6 +34,7 @@ import {
   ListBulletIcon,
   ArrowUpIcon,
   ArrowsUpDownIcon,
+  MagnifyingGlassIcon,
   BookmarkIcon as BookmarkOutline,
 } from "@heroicons/react/24/outline";
 
@@ -243,7 +246,50 @@ const UserLibrary = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams] = useSearchParams();
-  const { isAuth } = useAuth();
+  const { isAuth, user } = useAuth();
+  const isAdmin = Boolean(user && (user.role === 'admin' || user.is_superuser || user.is_staff || user.role === 'ADMIN'));
+
+  // --- THEME & SEARCH BAR LAYOUT OPTIONS (1, 2, 3) ---
+  const themeContext = useTheme?.();
+  const uiSettings = themeContext?.uiSettings;
+  const updatePreview = themeContext?.updatePreview;
+
+  const [activeLayout, setActiveLayout] = useState(() => {
+    return localStorage.getItem("kil_library_search_layout") || uiSettings?.library_search_layout || "option1";
+  });
+
+  useEffect(() => {
+    if (uiSettings?.library_search_layout) {
+      setActiveLayout(uiSettings.library_search_layout);
+    }
+  }, [uiSettings?.library_search_layout]);
+
+  const handleAdminLayoutChange = async (newLayout) => {
+    setActiveLayout(newLayout);
+    try {
+      localStorage.setItem("kil_library_search_layout", newLayout);
+      if (updatePreview) {
+        updatePreview({ library_search_layout: newLayout });
+      }
+      await settingsService.updateUiSettings({
+        ...(uiSettings || {}),
+        library_search_layout: newLayout,
+      });
+      toast.success(`Active Search Layout: ${newLayout === 'option1' ? 'Option 1 (Sticky Unified)' : newLayout === 'option2' ? 'Option 2 (Catalog Header)' : 'Option 3 (Classic + Floating)'}`);
+    } catch {
+      toast.success(`Active Search Layout: ${newLayout.toUpperCase()}`);
+    }
+  };
+
+  // Scroll tracking to trigger sticky bar or floating pill
+  const [isScrolledPastHero, setIsScrolledPastHero] = useState(false);
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolledPastHero(window.scrollY > 280);
+    };
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   // --- STATE ---
   const [books, setBooks] = useState([]);
@@ -478,59 +524,162 @@ const UserLibrary = () => {
 
   return (
     <div className="min-h-screen bg-[#F8F9FC] font-sans text-slate-800 pb-24 relative">
-      {/* HERO SECTION */}
-      <div className="relative bg-[#0F172A] pt-12 pb-32 px-4 rounded-b-[2.5rem] shadow-xl overflow-hidden">
-        <div className="absolute inset-0 opacity-20 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] mix-blend-overlay" />
-        <div className="absolute top-0 right-0 w-96 h-96 bg-emerald-500/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+      {/* 🛠️ ADMIN REALTIME LAYOUT CONTROLLER */}
+      {isAdmin && (
+        <div className="bg-slate-900 text-white px-3 py-2 border-b border-slate-800 text-xs flex flex-wrap items-center justify-between gap-2 z-40 relative">
+          <div className="flex items-center gap-2">
+            <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse"></span>
+            <span className="font-bold text-slate-200">Admin Live Control:</span>
+            <span className="text-slate-400 hidden sm:inline">Search Layout Mode (/books)</span>
+          </div>
+          <div className="flex items-center gap-1.5 flex-wrap">
+            {[
+              { id: "option1", label: "Option 1 (Sticky Unified)" },
+              { id: "option2", label: "Option 2 (Catalog Header)" },
+              { id: "option3", label: "Option 3 (Classic + Floating)" },
+            ].map((opt) => (
+              <button
+                key={opt.id}
+                type="button"
+                onClick={() => handleAdminLayoutChange(opt.id)}
+                className={`px-2.5 py-1 rounded-lg font-bold text-[11px] transition cursor-pointer ${
+                  activeLayout === opt.id
+                    ? "bg-emerald-500 text-slate-950 shadow-sm"
+                    : "bg-slate-800 text-slate-300 hover:bg-slate-700"
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
-        <div className="relative z-10 max-w-4xl mx-auto text-center">
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7 }}
-          >
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-bold uppercase tracking-wider mb-4">
+      {/* ========================================================
+          HERO SECTION: DYNAMIC ACCORDING TO ACTIVE LAYOUT
+      ======================================================== */}
+      {activeLayout === "option2" ? (
+        /* OPTION 2: MINIMALIST COMPACT BANNER (NO SEARCH IN HERO) */
+        <div className="relative bg-[#0F172A] pt-6 pb-8 sm:pt-10 sm:pb-12 px-4 rounded-b-[2rem] shadow-xl overflow-hidden text-center">
+          <div className="absolute inset-0 opacity-20 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] mix-blend-overlay" />
+          <div className="absolute top-0 right-0 w-96 h-96 bg-emerald-500/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+          <div className="relative z-10 max-w-4xl mx-auto">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-bold uppercase tracking-wider mb-2 sm:mb-3">
               <SparklesIcon className="w-4 h-4" /> Digital Library
             </div>
-
-            <h1 className="text-4xl md:text-6xl font-extrabold text-white mb-6 leading-tight">
+            <h1 className="text-2xl sm:text-4xl md:text-5xl font-extrabold text-white leading-tight">
               Discover Islamic{" "}
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400">
                 Knowledge
               </span>
             </h1>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.2 }}
-            className="mx-auto mt-8 max-w-4xl"
-          >
-            <LibrarySearchStrip
-              searchTerm={searchTerm}
-              onSearchChange={setSearchTerm}
-              title="Library Search"
-              subtitle="Search the library collection"
-              description="Search by title, author, language, category, and deep-book content with a premium discovery experience."
-              placeholder="Search by title, author, or ISBN..."
-              showHint={true}
-            />
-          </motion.div>
+          </div>
         </div>
-      </div>
+      ) : (
+        /* OPTION 1 & OPTION 3: CLASSIC/STICKY HERO (WITH SINGLE SEARCH STRIP) */
+        <div className="relative bg-[#0F172A] pt-8 pb-14 sm:pt-12 sm:pb-24 px-4 rounded-b-[2rem] sm:rounded-b-[2.5rem] shadow-xl overflow-hidden">
+          <div className="absolute inset-0 opacity-20 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] mix-blend-overlay" />
+          <div className="absolute top-0 right-0 w-96 h-96 bg-emerald-500/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
 
-      {/* FILTER BAR */}
-      <div className="relative z-30 max-w-7xl mx-auto px-4 mt-4 md:sticky md:top-16 md:mt-4">
+          <div className="relative z-10 max-w-4xl mx-auto text-center">
+            <motion.div
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.7 }}
+            >
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-bold uppercase tracking-wider mb-3 sm:mb-4">
+                <SparklesIcon className="w-4 h-4" /> Digital Library
+              </div>
+
+              <h1 className="text-2xl sm:text-4xl md:text-6xl font-extrabold text-white mb-4 sm:mb-6 leading-tight">
+                Discover Islamic{" "}
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400">
+                  Knowledge
+                </span>
+              </h1>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.2 }}
+              className="mx-auto mt-4 sm:mt-8 max-w-4xl"
+            >
+              <LibrarySearchStrip
+                searchTerm={searchTerm}
+                onSearchChange={setSearchTerm}
+                title="Library Search"
+                subtitle="Search the library collection"
+                description="Search by title, author, language, category, and deep-book content with a premium discovery experience."
+                placeholder="Search by title, author, or ISBN..."
+                showHint={true}
+              />
+            </motion.div>
+          </div>
+        </div>
+      )}
+
+      {/* OPTION 2: SEARCH BAR DIRECTLY ABOVE CATALOG */}
+      {activeLayout === "option2" && (
+        <div className="max-w-7xl mx-auto px-2 sm:px-4 mt-4">
+          <LibrarySearchStrip
+            searchTerm={searchTerm}
+            onSearchChange={setSearchTerm}
+            title="Library Search"
+            subtitle="Search the library collection"
+            placeholder="Search by title, author, or ISBN..."
+            showHint={false}
+          />
+        </div>
+      )}
+
+      {/* ========================================================
+          FILTER BAR (STICKY ON SCROLL)
+      ======================================================== */}
+      <div className="sticky top-14 sm:top-16 z-30 max-w-7xl mx-auto px-2 sm:px-4 mt-2 sm:mt-4">
         <motion.div
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
-          className="rounded-2xl border border-white/60 bg-white/85 p-2.5 shadow-[0_12px_35px_-24px_rgba(15,23,42,0.4)] backdrop-blur-xl flex flex-col gap-2.5 justify-between items-stretch md:p-3 xl:flex-row xl:items-center xl:gap-3"
+          className="rounded-2xl border border-white/70 bg-white/95 p-2 sm:p-2.5 shadow-[0_12px_35px_-24px_rgba(15,23,42,0.4)] backdrop-blur-xl flex flex-col gap-2 justify-between items-stretch md:flex-row md:items-center md:gap-3"
         >
-          {/* Filters */}
-          <div className="flex flex-wrap items-center gap-2 w-full xl:w-auto justify-start">
+          {/* OPTION 1: LIVE SEARCH SLIDES IN ONLY WHEN SCROLLED PAST HERO (ZERO DUPLICATE AT TOP) */}
+          <AnimatePresence>
+            {activeLayout === "option1" && isScrolledPastHero && (
+              <motion.div
+                initial={{ opacity: 0, width: 0 }}
+                animate={{ opacity: 1, width: "auto" }}
+                exit={{ opacity: 0, width: 0 }}
+                transition={{ duration: 0.2 }}
+                className="relative flex-1 min-w-[200px]"
+              >
+                <div className="relative flex items-center rounded-xl bg-slate-100/90 border border-slate-200/90 focus-within:border-emerald-500 focus-within:bg-white focus-within:ring-2 focus-within:ring-emerald-500/20 transition-all px-3 py-1.5">
+                  <MagnifyingGlassIcon className="w-4 h-4 text-slate-400 flex-shrink-0" />
+                  <input
+                    type="text"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    placeholder="Quick search books..."
+                    className="w-full bg-transparent px-2 py-0.5 text-xs sm:text-sm text-slate-800 outline-none placeholder:text-slate-400 font-medium"
+                  />
+                  {searchTerm && (
+                    <button
+                      type="button"
+                      onClick={() => setSearchTerm("")}
+                      className="p-1 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-200/70 transition cursor-pointer"
+                      title="Clear search"
+                    >
+                      <XMarkIcon className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Filters (Language & Category) */}
+          <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap sm:flex-nowrap flex-1">
             <select
-              className="min-w-[140px] rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-sm font-medium outline-none transition hover:border-emerald-500 cursor-pointer"
+              className="flex-1 sm:flex-initial min-w-[120px] rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs sm:text-sm font-medium outline-none transition hover:border-emerald-500 cursor-pointer"
               value={selectedLanguage}
               onChange={(e) => setSelectedLanguage(e.target.value)}
             >
@@ -542,7 +691,7 @@ const UserLibrary = () => {
             </select>
 
             <select
-              className="max-w-[220px] rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-sm font-medium outline-none transition hover:border-emerald-500 cursor-pointer"
+              className="flex-1 sm:flex-initial max-w-[200px] rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs sm:text-sm font-medium outline-none transition hover:border-emerald-500 cursor-pointer"
               value={selectedCategory}
               onChange={(e) => setSelectedCategory(e.target.value)}
             >
@@ -554,40 +703,40 @@ const UserLibrary = () => {
             </select>
           </div>
 
-          {/* Controls */}
-          <div className="flex w-full items-center justify-between gap-3 border-t border-slate-100 pt-2.5 xl:w-auto xl:justify-end xl:border-t-0 xl:pt-0">
+          {/* Controls (View Toggle & Sort) */}
+          <div className="flex items-center justify-between sm:justify-end gap-2 border-t border-slate-100 pt-1.5 md:border-t-0 md:pt-0">
             {/* View Toggle */}
             <div className="flex rounded-xl bg-slate-100 p-0.5">
               <button
                 onClick={() => setViewMode("grid")}
-                className={`p-1.5 rounded-md transition-all ${
+                className={`p-1.5 rounded-md transition-all cursor-pointer ${
                   viewMode === "grid"
                     ? "bg-white shadow text-emerald-600"
                     : "text-slate-400 hover:text-slate-600"
                 }`}
                 title="Grid view"
               >
-                <Squares2X2Icon className="w-5 h-5" />
+                <Squares2X2Icon className="w-4 h-4 sm:w-5 sm:h-5" />
               </button>
 
               <button
                 onClick={() => setViewMode("list")}
-                className={`p-1.5 rounded-md transition-all ${
+                className={`p-1.5 rounded-md transition-all cursor-pointer ${
                   viewMode === "list"
                     ? "bg-white shadow text-emerald-600"
                     : "text-slate-400 hover:text-slate-600"
                 }`}
                 title="List view"
               >
-                <ListBulletIcon className="w-5 h-5" />
+                <ListBulletIcon className="w-4 h-4 sm:w-5 sm:h-5" />
               </button>
             </div>
 
             {/* Sort */}
-            <div className="flex items-center gap-1.5 whitespace-nowrap rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5">
-              <ArrowsUpDownIcon className="h-4 w-4 text-slate-400" />
+            <div className="flex items-center gap-1.5 whitespace-nowrap rounded-lg border border-slate-200 bg-slate-50 px-2 py-1.5 sm:px-2.5">
+              <ArrowsUpDownIcon className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-slate-400" />
               <select
-                className="bg-transparent text-sm font-medium text-slate-700 outline-none cursor-pointer"
+                className="bg-transparent text-xs sm:text-sm font-medium text-slate-700 outline-none cursor-pointer"
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
               >
@@ -600,6 +749,30 @@ const UserLibrary = () => {
           </div>
         </motion.div>
       </div>
+
+      {/* ========================================================
+          OPTION 3: FLOATING SEARCH JUMP PILL ON SCROLL
+      ======================================================== */}
+      <AnimatePresence>
+        {activeLayout === "option3" && isScrolledPastHero && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.8, y: 20 }}
+            className="fixed bottom-20 right-4 sm:right-8 z-40"
+          >
+            <button
+              type="button"
+              onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-full bg-[#002147] hover:bg-[#003366] text-white font-bold text-xs shadow-2xl border border-white/20 transition-all hover:scale-105 cursor-pointer active:scale-95"
+              title="Jump to Search"
+            >
+              <MagnifyingGlassIcon className="w-4 h-4 text-emerald-400" />
+              <span>Search Books (Top)</span>
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* MAIN CONTENT CONTAINER */}
       <div id="book-grid-container" className="max-w-7xl mx-auto px-4 mt-6 md:mt-12 space-y-8">

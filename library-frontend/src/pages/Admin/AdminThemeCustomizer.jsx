@@ -5,6 +5,7 @@
  * density, site branding, and enabled languages live without code deploys.
  */
 import React, { useState, useEffect } from "react";
+import { Link, useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import { toast } from "react-hot-toast";
 import {
@@ -16,6 +17,9 @@ import {
   CheckBadgeIcon,
   GlobeAltIcon,
   BookOpenIcon,
+  MagnifyingGlassIcon,
+  ArrowTopRightOnSquareIcon,
+  CheckCircleIcon,
 } from "@heroicons/react/24/outline";
 import { useTheme, DEFAULT_UI_SETTINGS } from "../../context/ThemeContext";
 import settingsService from "../../api/settingsService";
@@ -55,7 +59,26 @@ const AdminThemeCustomizer = () => {
   const { uiSettings, setUiSettings, updatePreview, applyThemeToDOM } = useTheme();
   const [form, setForm] = useState(uiSettings);
   const [saving, setSaving] = useState(false);
-  const [activeTab, setActiveTab] = useState("colors"); // "colors" | "layout" | "typography" | "languages" | "branding"
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  const initialTab = searchParams.get("tab") || "colors";
+  const [activeTab, setActiveTab] = useState(initialTab);
+
+  useEffect(() => {
+    const tabParam = searchParams.get("tab");
+    if (tabParam && ["colors", "layout", "search_layout", "typography", "languages"].includes(tabParam)) {
+      setActiveTab(tabParam);
+    }
+  }, [searchParams]);
+
+  const handleTabChange = (tabId) => {
+    setActiveTab(tabId);
+    setSearchParams((prev) => {
+      const p = new URLSearchParams(prev);
+      p.set("tab", tabId);
+      return p;
+    });
+  };
 
   useEffect(() => {
     setForm(uiSettings);
@@ -172,6 +195,7 @@ const AdminThemeCustomizer = () => {
             {[
               { id: "colors", label: "Color Tokens", icon: SwatchIcon },
               { id: "layout", label: "Shape & Density", icon: AdjustmentsHorizontalIcon },
+              { id: "search_layout", label: "Library Search", icon: MagnifyingGlassIcon },
               { id: "typography", label: "Typography", icon: LanguageIcon },
               { id: "languages", label: "Multilingual", icon: GlobeAltIcon },
             ].map((tab) => {
@@ -180,7 +204,7 @@ const AdminThemeCustomizer = () => {
               return (
                 <button
                   key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
+                  onClick={() => handleTabChange(tab.id)}
                   className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
                     isActive
                       ? "bg-slate-900 text-white shadow-xs"
@@ -359,6 +383,151 @@ const AdminThemeCustomizer = () => {
                     </button>
                   ))}
                 </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB: LIBRARY SEARCH & DISCOVERY LAYOUT (/books) */}
+          {activeTab === "search_layout" && (
+            <div className="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-xs space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-5">
+                <div>
+                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200/80 text-emerald-800 text-xs font-bold uppercase tracking-wider mb-2">
+                    <MagnifyingGlassIcon className="w-4 h-4 text-emerald-600" />
+                    Library UX Experience
+                  </div>
+                  <h3 className="text-lg font-black text-slate-900 tracking-tight">
+                    Library Search Layout Mode (/books)
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-1 max-w-xl leading-relaxed">
+                    Select how the book search bar behaves on the public Library page. You can switch between all 3 models instantly and test them live.
+                  </p>
+                </div>
+                <a
+                  href="/books"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-bold transition shadow-2xs shrink-0"
+                >
+                  <span>Open Live Library</span>
+                  <ArrowTopRightOnSquareIcon className="w-4 h-4 text-slate-400" />
+                </a>
+              </div>
+
+              {/* 3 Layout Option Cards */}
+              <div className="grid grid-cols-1 gap-4">
+                {[
+                  {
+                    id: "option1",
+                    badge: "Option 1 • Recommended",
+                    title: "Sticky Unified Search (Spotify / Google Books Style)",
+                    desc: "Hero banner me single search bar rehta hai. Jab user niche scroll karta hai, to wahi live search bar top par stick ho jata hai. Screen par kabhi bhi 2 search bars ek sath nahi aate!",
+                    points: [
+                      "Zero duplicate search bars on screen",
+                      "Smooth sticky morph when scrolling past hero",
+                      "Full access to Voice search 🎙 and Deep search 📄",
+                    ],
+                    activeStyle: "border-emerald-600 bg-emerald-50/40 ring-2 ring-emerald-500/20",
+                  },
+                  {
+                    id: "option2",
+                    badge: "Option 2 • E-Commerce Style",
+                    title: "Catalog Header Search (Amazon / Flipkart Style)",
+                    desc: "Dark hero banner bilkul compact aur clean ho jata hai (hero me koi search input nahi hota). Single search bar books aur filters ke theek upar rehta hai.",
+                    points: [
+                      "Mobile par books 200px upar dikhti hain",
+                      "Hero banner takes minimal space",
+                      "Search bar directly precedes the catalog",
+                    ],
+                    activeStyle: "border-indigo-600 bg-indigo-50/40 ring-2 ring-indigo-500/20",
+                  },
+                  {
+                    id: "option3",
+                    badge: "Option 3 • Minimalist",
+                    title: "Classic Hero + Floating Quick-Jump Pill",
+                    desc: "Hero banner me single classic search bar rehta hai aur filter bar me koi search input nahi hota. Jab user scroll karta hai to floating 'Search Books' pill show hota hai.",
+                    points: [
+                      "Classic clean hero search layout",
+                      "Filter bar stays 100% focused on language/category",
+                      "1-tap floating pill to jump straight back to search",
+                    ],
+                    activeStyle: "border-amber-600 bg-amber-50/40 ring-2 ring-amber-500/20",
+                  },
+                ].map((opt) => {
+                  const isSelected = (form.library_search_layout || "option1") === opt.id;
+                  return (
+                    <div
+                      key={opt.id}
+                      onClick={() => handleFieldChange("library_search_layout", opt.id)}
+                      className={`p-5 rounded-2xl border transition-all cursor-pointer relative ${
+                        isSelected
+                          ? opt.activeStyle
+                          : "border-slate-200 hover:border-slate-300 hover:bg-slate-50/60"
+                      }`}
+                    >
+                      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+                        <div className="space-y-1.5 flex-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-[10px] font-extrabold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-slate-900 text-white">
+                              {opt.badge}
+                            </span>
+                            {isSelected && (
+                              <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-md">
+                                <CheckCircleIcon className="w-3.5 h-3.5 text-emerald-600" />
+                                Active Selection
+                              </span>
+                            )}
+                          </div>
+                          <h4 className="text-sm sm:text-base font-extrabold text-slate-900">
+                            {opt.title}
+                          </h4>
+                          <p className="text-xs text-slate-600 leading-relaxed">
+                            {opt.desc}
+                          </p>
+                          <ul className="mt-2 space-y-1">
+                            {opt.points.map((pt, idx) => (
+                              <li key={idx} className="text-[11px] text-slate-500 flex items-center gap-1.5">
+                                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
+                                <span>{pt}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+
+                        <div className="shrink-0 self-end sm:self-center">
+                          <button
+                            type="button"
+                            className={`px-4 py-2 rounded-xl text-xs font-bold transition shadow-2xs ${
+                              isSelected
+                                ? "bg-slate-900 text-white"
+                                : "bg-white border border-slate-300 text-slate-700 hover:bg-slate-100"
+                            }`}
+                          >
+                            {isSelected ? "Selected" : "Activate"}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Quick Tip Banner */}
+              <div className="p-4 rounded-2xl bg-indigo-50/70 border border-indigo-100 text-xs text-indigo-900 flex items-center justify-between gap-3">
+                <div className="space-y-0.5">
+                  <p className="font-bold">Pro Tip for Admin:</p>
+                  <p className="text-[11px] text-indigo-700">
+                    You can also switch and preview these 3 layouts directly on the <code>/books</code> page using the Admin top toolbar.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleSave}
+                  disabled={saving}
+                  className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition shadow-xs shrink-0"
+                >
+                  {saving ? "Saving..." : "Save & Publish"}
+                </button>
               </div>
             </div>
           )}

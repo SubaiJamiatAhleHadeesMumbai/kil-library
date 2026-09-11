@@ -168,6 +168,12 @@ const AdminSidebar = ({ mobileClose = () => {} }) => {
                     icon: SparklesIcon,
                     requiredPerm: null,
                 },
+                {
+                    name: 'Library Search Layout',
+                    path: '/admin/theme-settings?tab=search_layout',
+                    icon: MagnifyingGlassIcon,
+                    requiredPerm: null,
+                },
             ]
         }
     ], [pendingCount]);

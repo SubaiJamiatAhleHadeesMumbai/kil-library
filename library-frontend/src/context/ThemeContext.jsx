@@ -28,6 +28,7 @@ export const DEFAULT_UI_SETTINGS = {
   site_subtitle: "Markaz Ahle Hadees Kokan",
   logo_url: "/static/images/MarkazLogo.png",
   favicon_url: "/favicon.ico",
+  library_search_layout: "option1", // "option1" | "option2" | "option3"
 };
 
 export const ThemeProvider = ({ children }) => {

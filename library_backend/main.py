@@ -355,21 +355,19 @@ app.add_middleware(
 # 3. GZip Compression (Faster Responses)
 app.add_middleware(GZipMiddleware, minimum_size=1000)
 
-# 4. CORS (Allowed Origins) - ✅ FIXED: Whitelist-based (Issue #5)
-_cors_env = os.getenv("CORS_ORIGINS", "")
-origins = [o.strip() for o in _cors_env.split(",") if o.strip()] if _cors_env else [
+# 4. CORS (Allowed Origins)
+_default_origins = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
     "http://localhost:3000",
     "http://127.0.0.1:3000",
-    "https://yourdomain.com",
-    "https://kil-2-9yz1-five.vercel.app",  # ✅ Production Vercel frontend
-    "https://kil-2-3ouk.vercel.app",  # ✅ Current Vercel frontend in browser screenshot
-    "https://kil2.pages.dev",  # ✅ Cloudflare Pages (optional)
+    "https://kil-2-9yz1-five.vercel.app",  # Production Vercel frontend
+    "https://kil-2-3ouk.vercel.app",      # Current Vercel frontend
+    "https://kil2.pages.dev",             # Cloudflare Pages
 ]
-
-# SECURITY FIX: Removed cors_origin_regex = r".*" which allowed ANY origin with credentials.
-# Now uses strict whitelist-only matching via allow_origins above.
+_cors_env = os.getenv("CORS_ORIGINS", "")
+_env_origins = [o.strip() for o in _cors_env.split(",") if o.strip()]
+origins = list(dict.fromkeys(_default_origins + _env_origins))
 
 app.add_middleware(
     CORSMiddleware,
@@ -444,9 +442,13 @@ def _get_cors_headers(request: Request) -> dict:
             "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, PATCH, OPTIONS",
             "Access-Control-Allow-Headers": "*",
         }
-    return {
-        "Access-Control-Allow-Origin": "*",
-    }
+    elif origin:
+        return {
+            "Access-Control-Allow-Origin": origin,
+            "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, PATCH, OPTIONS",
+            "Access-Control-Allow-Headers": "*",
+        }
+    return {}
 
 # 1. Validation Error Handler (Detailed)
 @app.exception_handler(RequestValidationError)

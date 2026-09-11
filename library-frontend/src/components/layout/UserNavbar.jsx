@@ -330,12 +330,13 @@ const UserNavbar = () => {
               {/* DESKTOP NAV */}
               <div className="hidden md:flex items-center gap-1">
                 {showHomeLink && <NavItem to="/" label={t("home")} icon={HomeIcon} />}
+                {showAboutLink && <NavItem to="/about" label={t("about")} icon={InformationCircleIcon} />}
                 {showLibraryLink && <NavItem to="/books" label={t("library")} icon={BookOpenIcon} />}
                 {showFatawaLink && <NavItem to="/fatawa" label={t("fatawa")} icon={BookOpenIcon} />}
                 {showGalleryLink && <NavItem to="/gallery" label={t("gallery")} icon={PhotoIcon} />}
 
-                {/* MORE DROPDOWN (Contains About, Activities, Welfare, Clippings, Updates) */}
-                {(showAboutLink || showActivitiesLink || showUpdatesLink) && (
+                {/* MORE DROPDOWN (Contains Activities, Welfare, Clippings, Updates) */}
+                {(showActivitiesLink || showUpdatesLink) && (
                   <div
                     ref={socialDropdownRef}
                     className="relative"
@@ -371,26 +372,6 @@ const UserNavbar = () => {
                           className="absolute start-0 mt-1.5 w-64 bg-white/95 backdrop-blur-xl rounded-2xl shadow-xl border border-slate-100/90 p-2 z-50 overflow-hidden ring-1 ring-black/5"
                         >
                           <div className="space-y-1">
-                            {/* 1. About Us */}
-                            {showAboutLink && (
-                              <Link
-                                to="/about"
-                                onClick={() => setIsSocialDropdownOpen(false)}
-                                className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-slate-100 transition-all duration-200 group"
-                              >
-                                <div className="h-9 w-9 rounded-xl bg-slate-100 text-slate-700 flex items-center justify-center flex-shrink-0 group-hover:scale-105 group-hover:bg-[#002147] group-hover:text-white transition-all shadow-sm">
-                                  <InformationCircleIcon className="h-5 w-5" />
-                                </div>
-                                <div className="flex flex-col text-start">
-                                  <span className="text-xs font-bold text-slate-800 group-hover:text-slate-950 transition-colors">
-                                    {t("about")}
-                                  </span>
-                                  <span className="text-[10px] text-slate-400 font-medium">
-                                    History & Mission
-                                  </span>
-                                </div>
-                              </Link>
-                            )}
 
                             {/* 2. Education (taleem) */}
                             <Link
@@ -722,8 +703,8 @@ const UserNavbar = () => {
                 {/* Mobile Links */}
                 <div className="space-y-1">
                   <NavItem to="/" label={t("home")} icon={HomeIcon} onClick={() => setIsMobileMenuOpen(false)} />
-                  <NavItem to="/books" label={t("library")} icon={BookOpenIcon} onClick={() => setIsMobileMenuOpen(false)} />
                   {showAboutLink ? <NavItem to="/about" label={t("about")} icon={InformationCircleIcon} onClick={() => setIsMobileMenuOpen(false)} /> : null}
+                  <NavItem to="/books" label={t("library")} icon={BookOpenIcon} onClick={() => setIsMobileMenuOpen(false)} />
                   <NavItem to="/gallery" label={t("gallery")} icon={PhotoIcon} onClick={() => setIsMobileMenuOpen(false)} />
                   {showFatawaLink ? <NavItem to="/fatawa" label={t("fatawa")} icon={BookOpenIcon} onClick={() => setIsMobileMenuOpen(false)} /> : null}
                   

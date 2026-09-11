@@ -186,9 +186,16 @@ const MarkazFeed = () => {
                     </h2>
 
                     {post.content && (
-                      <p className="mt-3 body-copy whitespace-pre-wrap">
-                        {post.content}
-                      </p>
+                      /<[a-z][\s\S]*>/i.test(post.content) ? (
+                        <div
+                          className="mt-3 prose prose-slate max-w-none dark:prose-invert text-sm sm:text-base leading-relaxed text-slate-800"
+                          dangerouslySetInnerHTML={{ __html: post.content }}
+                        />
+                      ) : (
+                        <p className="mt-3 body-copy whitespace-pre-wrap">
+                          {post.content}
+                        </p>
+                      )
                     )}
                   </div>
 

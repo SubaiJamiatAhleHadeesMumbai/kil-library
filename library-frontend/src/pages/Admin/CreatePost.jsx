@@ -10,6 +10,7 @@ import {
   ArrowPathIcon
 } from "@heroicons/react/24/outline";
 import postService from "../../api/postService";
+import RichTextEditor from "../../components/common/RichTextEditor";
 
 const MAX_FILE_SIZE_MB = 10;
 const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
@@ -299,14 +300,12 @@ const CreatePost = () => {
 
                 {/* Content */}
                 <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2">
-                    Description / Message
-                  </label>
-                  <textarea
+                  <RichTextEditor
                     value={content}
-                    onChange={(e) => setContent(e.target.value)}
-                    placeholder="Write the detailed announcement here..."
-                    className="w-full px-4 py-3 rounded-xl border border-gray-300 min-h-[160px] focus:ring-2 focus:ring-[#002147] focus:border-transparent outline-none transition-all resize-y"
+                    onChange={setContent}
+                    label="Post Description / Message"
+                    placeholder="Write the detailed announcement or article here..."
+                    minHeight="260px"
                   />
                 </div>
 

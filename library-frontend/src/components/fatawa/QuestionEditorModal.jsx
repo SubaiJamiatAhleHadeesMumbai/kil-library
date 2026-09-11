@@ -11,6 +11,7 @@ import {
 } from '@heroicons/react/24/outline';
 import { toast } from 'react-hot-toast';
 import { fatawaService } from '../../api/fatawaService';
+import RichTextEditor from '../common/RichTextEditor';
 
 const DEFAULT_VERDICTS = [
   'Jaaiz (جائز)',
@@ -87,6 +88,26 @@ const QuestionEditorModal = ({ open, onClose, question, categories = [], onSave,
     const updated = verdictChips.filter((c) => c !== chipToRemove);
     setVerdictChips(updated);
     localStorage.setItem('kil_verdict_chips', JSON.stringify(updated));
+  };
+
+  // Add Quick Islamic Template into Answer Editor
+  const handleInsertIslamicTemplate = (type) => {
+    let snippet = '';
+    if (type === 'bismillah') {
+      snippet = '<p class="text-center font-serif text-2xl font-bold text-emerald-900 my-4" dir="rtl">بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ</p><p><br/></p>';
+    } else if (type === 'hamd') {
+      snippet = '<p class="font-serif text-base font-semibold text-slate-800 my-3" dir="rtl">الحمد لله رب العالمين، والصلاة والسلام على خير خلقه محمد وعلى آله وصحبه أجمعين، أما بعد:</p><p><br/></p>';
+    } else if (type === 'ayah') {
+      snippet = '<div class="my-4 p-4 rounded-xl border-r-4 border-emerald-600 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-950 dark:text-emerald-200 font-serif text-lg leading-relaxed text-right" dir="rtl">﴿ وَمَا آتَاكُمُ الرَّسُولُ فَخُذُوهُ وَمَا نَهَاكُمْ عَنْهُ فَانْتَهُوا ﴾ <span class="text-xs text-emerald-700 block mt-1 font-sans">[سورة الحشر: 7]</span></div><p><br/></p>';
+    } else if (type === 'khatima') {
+      snippet = '<p class="font-serif text-base font-bold text-emerald-800 my-4 text-right" dir="rtl">والله تعالى أعلم بالصواب، وعلمه أتم وأحكم.</p><p><br/></p>';
+    }
+
+    setForm((prev) => ({
+      ...prev,
+      answer_text: prev.answer_text ? prev.answer_text + snippet : snippet,
+    }));
+    toast.success('Inserted Islamic template into answer');
   };
 
   // Handle PDF Upload
@@ -366,17 +387,57 @@ const QuestionEditorModal = ({ open, onClose, question, categories = [], onSave,
             </div>
           </div>
 
-          {/* 4. Tafseeli Jawab / Detailed Answer */}
-          <div className="space-y-1.5">
-            <span className="text-xs font-bold text-slate-700">
-              Tafseeli Jawab / Detailed Scholarly Answer
-            </span>
-            <textarea
+          {/* 4. Tafseeli Jawab / Detailed Scholarly Answer (Rich WYSIWYG Editor) */}
+          <div className="space-y-2">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <span className="text-xs font-bold text-slate-700">
+                Tafseeli Jawab / Detailed Scholarly Answer
+              </span>
+
+              {/* Islamic Quick Templates */}
+              <div className="flex flex-wrap items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => handleInsertIslamicTemplate('bismillah')}
+                  className="px-2 py-0.5 rounded-md bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-[11px] font-bold transition cursor-pointer"
+                  title="Insert ﷽ Bismillah"
+                >
+                  ﷽ Bismillah
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleInsertIslamicTemplate('hamd')}
+                  className="px-2 py-0.5 rounded-md bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-[11px] font-bold transition cursor-pointer"
+                  title="Insert Hamd & Salawat"
+                >
+                  + Hamd
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleInsertIslamicTemplate('ayah')}
+                  className="px-2 py-0.5 rounded-md bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-[11px] font-bold transition cursor-pointer"
+                  title="Insert Quranic Verse Box"
+                >
+                  + Ayah Box
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleInsertIslamicTemplate('khatima')}
+                  className="px-2 py-0.5 rounded-md bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-[11px] font-bold transition cursor-pointer"
+                  title="Insert والله أعلم بالصواب"
+                >
+                  + Khatima
+                </button>
+              </div>
+            </div>
+
+            <RichTextEditor
               value={form.answer_text}
-              onChange={(e) => setForm((prev) => ({ ...prev, answer_text: e.target.value }))}
-              rows={6}
-              placeholder="Write the complete answer with Quranic verses, Hadith citations, and explanation..."
-              className="w-full rounded-xl border border-slate-200 bg-white p-3 text-xs font-normal outline-none focus:border-[#002147] resize-y leading-relaxed"
+              onChange={(html) => setForm((prev) => ({ ...prev, answer_text: html }))}
+              label="Scholarly Answer Editor"
+              placeholder="Write the complete answer with Quranic verses, Hadith citations, headings, and images..."
+              initialRTL={true}
+              minHeight="280px"
             />
           </div>
 

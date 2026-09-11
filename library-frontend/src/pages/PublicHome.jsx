@@ -1,5 +1,5 @@
 import StandardFormattedText from "../components/common/StandardFormattedText";
-import React, { useEffect, useMemo, useState, useCallback } from "react";
+import React, { useEffect, useMemo, useState, useCallback, lazy, Suspense } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from '../context/AuthProvider';
 import settingsService from '../api/settingsService';
@@ -37,7 +37,7 @@ import PublicBookCard from "../components/public/PublicBookCard";
 import BookDetailsModal from "../components/book/BookDetailsModal";
 import RestrictedAccessFlow from "../components/book/RestrictedAccessFlow";
 import SuccessScreen from "../components/RestrictedAccess/SuccessScreen";
-import AskQuestionModal from "../components/fatawa/AskQuestionModal";
+const AskQuestionModal = lazy(() => import("../components/fatawa/AskQuestionModal"));
 import AppPageLoader from "../components/common/loaders/AppPageLoader";
 import KokanHubBento from "../components/public/KokanHubBento";
 import NewspaperClippingsHomeSection from "../components/public/NewspaperClippingsHomeSection";
@@ -1349,14 +1349,18 @@ const PublicHome = () => {
       )}
 
       {/* ASK QUESTION MODAL */}
-      <AskQuestionModal
-        open={askQuestionOpen}
-        onClose={() => setAskQuestionOpen(false)}
-        categories={fatawaCategories}
-        user={user}
-        loading={createQuestionLoading}
-        onSubmit={handleCreateQuestion}
-      />
+      {askQuestionOpen && (
+        <Suspense fallback={null}>
+          <AskQuestionModal
+            open={askQuestionOpen}
+            onClose={() => setAskQuestionOpen(false)}
+            categories={fatawaCategories}
+            user={user}
+            loading={createQuestionLoading}
+            onSubmit={handleCreateQuestion}
+          />
+        </Suspense>
+      )}
 
       {/* ACTIVITY DETAIL MODAL */}
       {selectedActivity && (

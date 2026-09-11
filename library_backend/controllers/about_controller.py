@@ -16,6 +16,26 @@ SETTINGS_FILE = Path(__file__).resolve().parent.parent / "static" / "about_setti
 
 def get_default_about_settings():
     return {
+        "title": "مرکز الدعوۃ الاسلامیۃ والخیریہ (سونس، کھیڈ - رتناگری)",
+        "subtitle": "شعبے • سرگرمیاں • کارکردگی • مستقبل کے عزائم",
+        "content_html": "",
+        "languages": {
+            "ur": {
+                "title": "مرکز الدعوۃ الاسلامیۃ والخیریہ (سونس، کھیڈ - رتناگری)",
+                "subtitle": "شعبے • سرگرمیاں • کارکردگی • مستقبل کے عزائم",
+                "content_html": "",
+            },
+            "en": {
+                "title": "Markaz Dawah Al-Islamiyyah wal-Khayriyyah",
+                "subtitle": "Departments • Activities • Achievements • Future Goals",
+                "content_html": "",
+            },
+            "ar": {
+                "title": "مركز الدعوة الإسلامية والخيرية",
+                "subtitle": "الأقسام • الأنشطة • الإنجازات • المشاريع المستقبلية",
+                "content_html": "",
+            },
+        },
         "hero": {
             "enabled": True,
             "title": "About the Markaz Library",
@@ -67,7 +87,46 @@ def _load_settings_from_disk():
 
     try:
         with SETTINGS_FILE.open("r", encoding="utf-8") as handle:
-            return json.load(handle)
+            data = json.load(handle)
+            if not isinstance(data, dict):
+                return get_default_about_settings()
+            if "title" not in data and "hero" in data:
+                data["title"] = data["hero"].get("title", "")
+            if "subtitle" not in data and "hero" in data:
+                data["subtitle"] = data["hero"].get("subtitle", "")
+            if "content_html" not in data:
+                data["content_html"] = ""
+
+            if "languages" not in data or not isinstance(data["languages"], dict):
+                data["languages"] = {
+                    "ur": {
+                        "title": data.get("title", "مرکز الدعوۃ الاسلامیۃ والخیریہ (سونس، کھیڈ - رتناگری)"),
+                        "subtitle": data.get("subtitle", "شعبے • سرگرمیاں • کارکردگی • مستقبل کے عزائم"),
+                        "content_html": data.get("content_html", ""),
+                    },
+                    "en": {
+                        "title": "Markaz Dawah Al-Islamiyyah wal-Khayriyyah",
+                        "subtitle": "Departments • Activities • Achievements • Future Goals",
+                        "content_html": "",
+                    },
+                    "ar": {
+                        "title": "مركز الدعوة الإسلامية والخيرية",
+                        "subtitle": "الأقسام • الأنشطة • الإنجازات • المشاريع المستقبلية",
+                        "content_html": "",
+                    },
+                }
+            else:
+                for lang in ["ur", "en", "ar"]:
+                    if lang not in data["languages"] or not isinstance(data["languages"][lang], dict):
+                        data["languages"][lang] = {"title": "", "subtitle": "", "content_html": ""}
+                if not data["languages"]["ur"].get("title") and data.get("title"):
+                    data["languages"]["ur"]["title"] = data["title"]
+                if not data["languages"]["ur"].get("subtitle") and data.get("subtitle"):
+                    data["languages"]["ur"]["subtitle"] = data["subtitle"]
+                if not data["languages"]["ur"].get("content_html") and data.get("content_html"):
+                    data["languages"]["ur"]["content_html"] = data["content_html"]
+
+            return data
     except (json.JSONDecodeError, OSError):
         return get_default_about_settings()
 
@@ -86,6 +145,19 @@ def _merge_about_settings(payload: dict):
     for key, value in payload.items():
         if key in {"hero", "intro", "display"} and isinstance(value, dict):
             merged[key] = {**merged.get(key, {}), **value}
+        elif key == "languages" and isinstance(value, dict):
+            merged_langs = merged.get("languages", {})
+            for l_code, l_val in value.items():
+                if isinstance(l_val, dict):
+                    merged_langs[l_code] = {**merged_langs.get(l_code, {}), **l_val}
+            merged["languages"] = merged_langs
+            if "ur" in merged_langs and isinstance(merged_langs["ur"], dict):
+                if merged_langs["ur"].get("title"):
+                    merged["title"] = merged_langs["ur"]["title"]
+                if merged_langs["ur"].get("subtitle"):
+                    merged["subtitle"] = merged_langs["ur"]["subtitle"]
+                if merged_langs["ur"].get("content_html"):
+                    merged["content_html"] = merged_langs["ur"]["content_html"]
         elif key in {"ulma_quotes", "gallery"} and isinstance(value, list):
             merged[key] = value
         else:

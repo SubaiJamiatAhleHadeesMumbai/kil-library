@@ -67,8 +67,7 @@ export default defineConfig({
           'vendor-excel': ['xlsx'],
 
           // Icon libraries
-          'vendor-icons-heroicons': ['@heroicons/react'],
-          'vendor-icons-lucide': ['lucide-react'],
+          'vendor-icons': ['lucide-react'],
 
           // Auth & HTTP
           'vendor-utils': ['axios', 'jwt-decode'],

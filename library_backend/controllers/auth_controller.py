@@ -99,7 +99,7 @@ async def login_for_access_token(
             )
             db.commit()
         except Exception:
-            pass
+            db.rollback()
 
         # Return 401 to Frontend
         raise HTTPException(
@@ -123,7 +123,7 @@ async def login_for_access_token(
             )
             db.commit()
         except Exception:
-            pass
+            db.rollback()
 
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -157,7 +157,7 @@ async def login_for_access_token(
         )
         db.commit()
     except Exception:
-        pass
+        db.rollback()
 
     print(f"✅ Login Success: {user.username}")
 
@@ -256,6 +256,7 @@ async def logout(
             print(f"✅ Token blacklisted for user: {current_user.username}")
             
         except Exception as e:
+            db.rollback()
             print(f"⚠️ Logout warning (token validation issue): {e}")
     
     # ✅ Log the logout if we have user info
@@ -271,6 +272,7 @@ async def logout(
             )
             db.commit()
         except Exception as e:
+            db.rollback()
             print(f"⚠️ Logout logging error: {e}")
     
     return {"message": "Logged out successfully"}

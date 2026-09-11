@@ -166,7 +166,7 @@
     "primary_light": "#EEF4FF",
     "secondary_color": "#0F766E",
     "accent_color": "#38BDF8",
-    "border_radius": "rounded",
+    "border_radius": "sharp",
     "spacing_density": "compact",
     "font_scale": "normal",
     "arabic_font": "Noto Naskh Arabic",
@@ -182,7 +182,8 @@
     "site_title": "Kokan Islamic Library",
     "site_subtitle": "Markaz Ahle Hadees Kokan",
     "logo_url": "/static/images/MarkazLogo.png",
-    "favicon_url": "/favicon.ico"
+    "favicon_url": "/favicon.ico",
+    "library_search_layout": "option1"
   },
   "loader_config": {
     "loader_style": "hybrid",
