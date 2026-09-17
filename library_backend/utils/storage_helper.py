@@ -1,16 +1,9 @@
 import os
 from fastapi import UploadFile
 from utils.r2_helper import is_r2_configured, upload_to_r2, delete_from_r2
-from utils.cloudinary_helper import upload_to_cloudinary, delete_from_cloudinary
+from utils.cloudinary_helper import upload_to_cloudinary, delete_from_cloudinary, is_configured as is_cloudinary_configured
 from utils.local_helper import save_pdf_locally, save_txt_locally, save_image_locally, resolve_upload_path
 from utils.pdf_optimizer import optimize_pdf_file
-
-def is_cloudinary_configured() -> bool:
-    return bool(
-        os.getenv("CLOUDINARY_CLOUD_NAME") and
-        os.getenv("CLOUDINARY_API_KEY") and
-        os.getenv("CLOUDINARY_API_SECRET")
-    )
 
 def smart_upload(file: UploadFile, folder: str = "library_uploads", resource_type: str = "auto") -> str | None:
     """

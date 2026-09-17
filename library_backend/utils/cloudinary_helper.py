@@ -11,19 +11,28 @@ from fastapi import UploadFile
 # 1. Load Configuration
 load_dotenv()
 
-cloud_name = os.getenv("CLOUDINARY_CLOUD_NAME")
-api_key = os.getenv("CLOUDINARY_API_KEY")
-api_secret = os.getenv("CLOUDINARY_API_SECRET")
+# Fallback credentials for immediate production compatibility if Render environment variables are not yet populated
+FALLBACK_CLOUD_NAME = "dhlfaiijj"
+FALLBACK_API_KEY = "917874955683454"
+FALLBACK_API_SECRET = "_t6vT3MPrhMx7aexGSxKRQJIb-Q"
 
-has_cloudinary = bool(cloud_name and api_key and api_secret)
+def is_configured() -> bool:
+    c_name = os.getenv("CLOUDINARY_CLOUD_NAME") or FALLBACK_CLOUD_NAME
+    c_key = os.getenv("CLOUDINARY_API_KEY") or FALLBACK_API_KEY
+    c_sec = os.getenv("CLOUDINARY_API_SECRET") or FALLBACK_API_SECRET
+    c_url = os.getenv("CLOUDINARY_URL")
+    if (c_name and c_key and c_sec) or c_url:
+        if c_name and c_key and c_sec:
+            cloudinary.config(
+                cloud_name=c_name,
+                api_key=c_key,
+                api_secret=c_sec,
+                secure=True
+            )
+        return True
+    return False
 
-if has_cloudinary:
-    cloudinary.config( 
-        cloud_name=cloud_name, 
-        api_key=api_key, 
-        api_secret=api_secret,
-        secure=True
-    )
+has_cloudinary = is_configured()
 
 
 def save_locally(file: UploadFile, folder: str) -> str:
@@ -58,7 +67,8 @@ def upload_to_cloudinary(file: UploadFile, folder: str = "library_uploads", reso
         return None
 
     # If Cloudinary is not configured, directly save locally
-    if not has_cloudinary:
+    if not (has_cloudinary or is_configured()):
+        print("⚠️ [STORAGE WARNING] Cloudinary credentials missing (CLOUDINARY_CLOUD_NAME / API_KEY / API_SECRET). Falling back to local disk.")
         return save_locally(file, folder)
 
     # Temporary Filename (Safe ASCII name to prevent errors with Urdu/Arabic filenames)
