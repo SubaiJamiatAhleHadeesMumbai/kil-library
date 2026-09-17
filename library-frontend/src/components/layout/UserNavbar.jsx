@@ -264,7 +264,16 @@ const UserNavbar = () => {
     }
     return t("markaz_title") || "Markaz Ahle Hadees Kokan";
   })();
-  const brandSub = homepageSettings?.site_subtitle || t("markaz_sub");
+  const brandSub = (() => {
+    const raw = homepageSettings?.site_subtitle;
+    if (raw && typeof raw === "object") {
+      return raw[language] || raw.en || raw.ur || raw.ar || t("markaz_sub") || "";
+    }
+    if (typeof raw === "string" && raw.trim()) {
+      return raw;
+    }
+    return t("markaz_sub") || "";
+  })();
   const showSiteSubtitle = navbarConfig.show_subtitle !== false && homepageSettings?.show_site_subtitle !== false;
 
   return (

@@ -102,6 +102,19 @@ export const bookService = {
     },
 
     /**
+     * ✅ 1-Click Toggle to Hide or Unhide a book from public view
+     */
+    async toggleBookVisibility(bookId) {
+        try {
+            const response = await apiClient.patch(`/api/books/${bookId}/toggle-visibility`);
+            return response.data;
+        } catch (error) {
+            console.error(`Error toggling book visibility for ${bookId}:`, error);
+            throw error;
+        }
+    },
+
+    /**
      * ✅ Uploads large files (100MB up to 1GB+) in 15MB chunks to prevent Cloudflare/Nginx 413 errors.
      * Slices file, sends chunks to /api/upload/chunk, then completes at /api/upload/chunk/complete.
      */

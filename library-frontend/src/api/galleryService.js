@@ -57,6 +57,18 @@ const galleryService = {
     return response.data;
   },
 
+  // Public: Get featured photos for homepage showcase
+  getHomeFeaturedGallery: async (limit = 8) => {
+    const response = await api.get('/api/gallery/public/home', { params: { limit } });
+    return response.data;
+  },
+
+  // Admin: 1-Click toggle show on home page
+  toggleShowOnHome: async (itemId) => {
+    const response = await api.put(`/api/gallery/item/${itemId}/toggle-home`);
+    return response.data;
+  },
+
   reorderItems: async (itemIds) => {
     const response = await api.put('/api/gallery/reorder', {
       item_ids: itemIds,

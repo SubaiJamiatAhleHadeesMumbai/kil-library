@@ -12,6 +12,7 @@ from auth import get_current_user
 from database import get_db
 from models import user_model
 from models.gallery_model import GalleryAlbum, GalleryItem
+from utils.storage_helper import smart_upload
 
 router = APIRouter(prefix="", tags=["Gallery"])
 
@@ -60,11 +61,12 @@ def _ensure_default_album(db: Session):
 def get_public_gallery(
     album_id: Optional[str] = Query(None),
     year: Optional[str] = Query(None),
+    home_only: bool = Query(False),
     db: Session = Depends(get_db)
 ):
     """
     Returns active albums and active gallery items from DB.
-    Can be optionally filtered by album_id and/or year.
+    Can be optionally filtered by album_id, year, and/or home_only.
     """
     _ensure_default_album(db)
 
@@ -78,6 +80,9 @@ def get_public_gallery(
         GalleryItem.deleted_at.is_(None),
         GalleryItem.is_active.is_(True)
     )
+
+    if home_only:
+        query = query.filter(GalleryItem.show_on_home.is_(True))
 
     if album_id and album_id != "all":
         query = query.filter(GalleryItem.album_id == album_id)
@@ -100,6 +105,34 @@ def get_public_gallery(
         "items": active_items,
         "available_years": available_years,
         "total_count": len(active_items),
+    }
+
+
+@router.get("/public/home")
+def get_home_featured_gallery(
+    limit: int = Query(8, ge=1, le=24),
+    db: Session = Depends(get_db)
+):
+    """
+    Returns only photos marked with show_on_home=True for display on the Homepage.
+    """
+    _ensure_default_album(db)
+    items_db = db.query(GalleryItem).filter(
+        GalleryItem.deleted_at.is_(None),
+        GalleryItem.is_active.is_(True),
+        GalleryItem.show_on_home.is_(True)
+    ).order_by(GalleryItem.sort_order.asc(), GalleryItem.created_at.desc()).limit(limit).all()
+
+    # Fallback: If no photos are explicitly pinned, automatically display the latest active gallery photos
+    if not items_db:
+        items_db = db.query(GalleryItem).filter(
+            GalleryItem.deleted_at.is_(None),
+            GalleryItem.is_active.is_(True)
+        ).order_by(GalleryItem.sort_order.asc(), GalleryItem.created_at.desc()).limit(limit).all()
+
+    return {
+        "items": [i.to_dict() for i in items_db],
+        "total_count": len(items_db),
     }
 
 
@@ -152,13 +185,17 @@ def save_album(
     """
     cover_url = ""
     if cover_image and cover_image.filename:
-        UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
-        ext = Path(cover_image.filename).suffix or ".jpg"
-        file_name = f"album_cover_{uuid.uuid4().hex[:8]}{ext}"
-        target_path = UPLOAD_DIR / file_name
-        with target_path.open("wb") as buffer:
-            shutil.copyfileobj(cover_image.file, buffer)
-        cover_url = f"/static/gallery_uploads/{file_name}"
+        uploaded_url = smart_upload(cover_image, folder="booknest/gallery_covers", resource_type="image")
+        if uploaded_url:
+            cover_url = uploaded_url
+        else:
+            UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+            ext = Path(cover_image.filename).suffix or ".jpg"
+            file_name = f"album_cover_{uuid.uuid4().hex[:8]}{ext}"
+            target_path = UPLOAD_DIR / file_name
+            with target_path.open("wb") as buffer:
+                shutil.copyfileobj(cover_image.file, buffer)
+            cover_url = f"/static/gallery_uploads/{file_name}"
 
     album = None
     if album_id:
@@ -238,11 +275,13 @@ def batch_upload_photos(
     files: List[UploadFile] = File(...),
     album_id: str = Form("general"),
     year: str = Form("2026"),
+    show_on_home: bool = Form(True),
     db: Session = Depends(get_db),
     current_user=Depends(_require_admin),
 ):
     """
     Upload multiple photos at once and insert records into DB.
+    Uses smart_upload (Cloudinary/R2) with local fallback.
     """
     _ensure_default_album(db)
     UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
@@ -258,10 +297,13 @@ def batch_upload_photos(
         if ext not in [".jpg", ".jpeg", ".png", ".webp", ".gif"]:
             continue
 
-        file_name = f"gallery_{uuid.uuid4().hex[:10]}{ext}"
-        dest_path = UPLOAD_DIR / file_name
-        with dest_path.open("wb") as buffer:
-            shutil.copyfileobj(f.file, buffer)
+        img_url = smart_upload(f, folder="booknest/gallery", resource_type="image")
+        if not img_url:
+            file_name = f"gallery_{uuid.uuid4().hex[:10]}{ext}"
+            dest_path = UPLOAD_DIR / file_name
+            with dest_path.open("wb") as buffer:
+                shutil.copyfileobj(f.file, buffer)
+            img_url = f"/static/gallery_uploads/{file_name}"
 
         raw_name = Path(f.filename).stem.replace("_", " ").replace("-", " ")
         cleaned_title = " ".join(word.capitalize() for word in raw_name.split()) or "Gallery Photo"
@@ -269,7 +311,7 @@ def batch_upload_photos(
         new_item = GalleryItem(
             id=f"photo_{uuid.uuid4().hex[:8]}",
             album_id=album_id.strip() or "general",
-            image_url=f"/static/gallery_uploads/{file_name}",
+            image_url=img_url,
             video_url="",
             title_en=cleaned_title,
             title_ur=cleaned_title,
@@ -279,7 +321,8 @@ def batch_upload_photos(
             caption_ar="",
             year=year.strip() or "2026",
             sort_order=current_max_sort + idx + 1,
-            is_active=True
+            is_active=True,
+            show_on_home=show_on_home,
         )
         db.add(new_item)
         uploaded_items.append(new_item)
@@ -311,11 +354,12 @@ def update_gallery_item(
     year: str = Form("2026"),
     video_url: str = Form(""),
     is_active: bool = Form(True),
+    show_on_home: bool = Form(False),
     db: Session = Depends(get_db),
     current_user=Depends(_require_admin),
 ):
     """
-    Update trilingual metadata, album assignment, or video link in DB.
+    Update trilingual metadata, album assignment, homepage feature status, or video link in DB.
     """
     item = db.query(GalleryItem).filter(
         GalleryItem.id == item_id,
@@ -329,6 +373,7 @@ def update_gallery_item(
     item.year = year.strip() or "2026"
     item.video_url = video_url.strip()
     item.is_active = is_active
+    item.show_on_home = show_on_home
     item.title_en = title_en.strip() or item.title_en
     item.title_ur = title_ur.strip() or title_en.strip() or item.title_ur
     item.title_ar = title_ar.strip() or title_en.strip() or item.title_ar
@@ -339,6 +384,33 @@ def update_gallery_item(
     db.commit()
     db.refresh(item)
     return {"message": "Item updated successfully", "item": item.to_dict()}
+
+
+@router.put("/item/{item_id}/toggle-home")
+def toggle_item_home(
+    item_id: str,
+    db: Session = Depends(get_db),
+    current_user=Depends(_require_admin),
+):
+    """
+    1-Click toggle for Show on Home Page status.
+    """
+    item = db.query(GalleryItem).filter(
+        GalleryItem.id == item_id,
+        GalleryItem.deleted_at.is_(None)
+    ).first()
+
+    if not item:
+        raise HTTPException(status_code=404, detail="Gallery item not found")
+
+    item.show_on_home = not bool(item.show_on_home)
+    db.commit()
+    db.refresh(item)
+    return {
+        "message": f"Photo {'featured on Homepage' if item.show_on_home else 'removed from Homepage'}",
+        "show_on_home": item.show_on_home,
+        "item": item.to_dict()
+    }
 
 
 @router.delete("/item/{item_id}")

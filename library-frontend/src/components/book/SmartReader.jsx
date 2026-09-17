@@ -7,6 +7,7 @@ import {
 import Toolbar from './Toolbar';
 import PdfViewer from './PdfViewer';
 import interactionService from '../../api/interactionService';
+import analyticsService, { getVisitorId } from '../../api/analyticsService';
 
 const LANDING_UNLOCK_DELAY_MS = 200;
 const SEARCH_DEBOUNCE_MS = 400;
@@ -69,6 +70,68 @@ const SmartReader = ({
       document.body.style.overflow = previousOverflow;
     };
   }, []);
+
+  // ---------------------------------------------------------
+  // Background Analytics Session & Heartbeat Tracker
+  // ---------------------------------------------------------
+  const activeBookId = bookId || book?.id;
+  const currentPageRef = useRef(currentPage);
+  const totalPagesRef = useRef(totalPages);
+
+  useEffect(() => {
+    currentPageRef.current = currentPage;
+  }, [currentPage]);
+
+  useEffect(() => {
+    totalPagesRef.current = totalPages;
+  }, [totalPages]);
+
+  useEffect(() => {
+    if (!activeBookId) return;
+
+    const sId = `session_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+    const vId = getVisitorId();
+    const devType = window.innerWidth < 768 ? 'mobile' : window.innerWidth < 1024 ? 'tablet' : 'desktop';
+
+    // 1. Initial Ping on Reader Mount
+    analyticsService.pingReadingSession({
+      sessionId: sId,
+      visitorId: vId,
+      bookId: activeBookId,
+      pageNo: currentPageRef.current || 1,
+      totalPages: totalPagesRef.current || 0,
+      durationIncrementSeconds: 5,
+      deviceType: devType,
+    });
+
+    // 2. Periodic Heartbeat Ping (every 25 seconds)
+    const interval = setInterval(() => {
+      analyticsService.pingReadingSession({
+        sessionId: sId,
+        visitorId: vId,
+        bookId: activeBookId,
+        pageNo: currentPageRef.current || 1,
+        totalPages: totalPagesRef.current || 0,
+        durationIncrementSeconds: 25,
+        deviceType: devType,
+      });
+    }, 25000);
+
+    // 3. Final Exit Beacon on Reader Close
+    return () => {
+      clearInterval(interval);
+      analyticsService.sendBeaconReadingExit({
+        sessionId: sId,
+        visitorId: vId,
+        bookId: activeBookId,
+        pageNo: currentPageRef.current || 1,
+        totalPages: totalPagesRef.current || 0,
+        durationIncrementSeconds: 5,
+        deviceType: devType,
+      });
+    };
+  }, [activeBookId]);
+
 
   useEffect(() => {
     const shouldLock = initialPage > 1 || Boolean(initialSearchText);

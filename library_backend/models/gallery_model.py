@@ -63,6 +63,7 @@ class GalleryItem(Base):
     year = Column(String(20), default="2026", nullable=True)
     sort_order = Column(Integer, default=0, nullable=False)
     is_active = Column(Boolean, default=True, nullable=False)
+    show_on_home = Column(Boolean, default=False, nullable=False, index=True)
 
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
@@ -89,5 +90,6 @@ class GalleryItem(Base):
             "year": self.year or "2026",
             "sort_order": self.sort_order,
             "is_active": self.is_active,
+            "show_on_home": bool(self.show_on_home),
             "created_at": self.created_at.isoformat() if self.created_at else None,
         }

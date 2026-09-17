@@ -6,7 +6,7 @@ import {
   DocumentTextIcon, PhotoIcon, DocumentIcon,
   BookOpenIcon, AdjustmentsHorizontalIcon, TagIcon,
   CloudArrowUpIcon, ShieldCheckIcon, LockClosedIcon,
-  ComputerDesktopIcon, BanknotesIcon, CheckIcon, ChevronDownIcon,
+  ComputerDesktopIcon, BanknotesIcon, CheckIcon, ChevronDownIcon, EyeSlashIcon,
 } from '@heroicons/react/24/outline';
 import SubcategorySelect from './SubcategorySelect';
 import GoogleDocsEditorModal from './GoogleDocsEditorModal';
@@ -450,7 +450,11 @@ const BookFormUI = ({
           {/* 5. ACCESS CONTROL & PAID DOWNLOAD */}
           <section>
             <SectionHeader step="5" icon={ShieldCheckIcon} title="Access Control & Download Pricing" subtitle="Configure reading permissions and paid download fees" color="rose" />
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <ToggleCard id="is_hidden" checked={formData.is_hidden || false}
+                onChange={onChange} disabled={isLoading}
+                icon={EyeSlashIcon} title="Hide from Public (چھپائیں)"
+                desc="Disappear from public library, search and home. Accessible only to Admin." />
               <ToggleCard id="is_restricted" checked={formData.is_restricted || false}
                 onChange={onChange} disabled={isLoading}
                 icon={LockClosedIcon} title="Restricted Access"

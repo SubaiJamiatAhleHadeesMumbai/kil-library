@@ -50,6 +50,7 @@ const BookForm = ({ initialData, isEditing, onBookAdded, onBookUpdated, onCancel
         extra_data: "",
         
         is_restricted: false,
+        is_hidden: false,
         is_digital: false,
         is_download_paid: false,
         download_price: 0,
@@ -151,6 +152,7 @@ const BookForm = ({ initialData, isEditing, onBookAdded, onBookUpdated, onCancel
                 total_copies: initialData.quantity ?? initialData.total_copies ?? prev.total_copies ?? 1,
                 extra_data: initialData.extra_data ?? prev.extra_data ?? "",
                 is_restricted: initialData.is_restricted ?? prev.is_restricted,
+                is_hidden: initialData.is_hidden ?? prev.is_hidden ?? false,
                 is_digital: initialData.is_digital ?? prev.is_digital,
                 is_download_paid: initialData.is_download_paid ?? prev.is_download_paid,
                 download_price: initialData.download_price ?? prev.download_price,

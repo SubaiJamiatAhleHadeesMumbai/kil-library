@@ -75,6 +75,7 @@ const NewspaperClippingsManager = lazy(() => import("./pages/Admin/NewspaperClip
 const SystemHealthPage = lazy(() => import("./pages/Admin/SystemHealthPage"));
 const CommentsModeration = lazy(() => import("./pages/CommentsModeration"));
 const AdminThemeCustomizer = lazy(() => import("./pages/Admin/AdminThemeCustomizer"));
+const ReaderAnalyticsPage = lazy(() => import("./pages/Admin/ReaderAnalyticsPage"));
 
 // ✅ TEST / URDU EDITOR
 const UrduEditor = lazy(() => import("./components/UrduEditor/UrduEditor"));
@@ -196,6 +197,8 @@ function App() {
             <Route path="posters" element={<PosterManagementPage />} />
             <Route path="gallery" element={<GalleryManagementPage />} />
             <Route path="about-settings" element={<AboutSettingsPage />} />
+            <Route path="reader-analytics" element={<ReaderAnalyticsPage />} />
+            <Route path="analytics" element={<ReaderAnalyticsPage />} />
             <Route path="fatawa" element={<FatawaManager />} />
             <Route path="system-health" element={<SystemHealthPage />} />
             <Route path="translations" element={<AdminTranslationsPage />} />

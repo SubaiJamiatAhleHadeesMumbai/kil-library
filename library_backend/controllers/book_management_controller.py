@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session, joinedload
 # --- Imports ---
 from models import book_model, language_model, user_model, request_model, request_user_model, fatawa_model
 from schemas import book_schema
-from auth import require_permission, get_current_user_optional 
+from auth import require_permission, get_current_user_optional
 from database import get_db
 from utils import create_log
 
@@ -53,6 +53,7 @@ async def create_book(
     book_number: Optional[str] = Form(None),
     price: Optional[float] = Form(None),
     is_restricted: bool = Form(False),
+    is_hidden: bool = Form(False),
     is_download_paid: bool = Form(False),
     download_price: Optional[float] = Form(0.0),
     download_upi_id: Optional[str] = Form(None),
@@ -63,15 +64,15 @@ async def create_book(
     total_copies: Optional[int] = Form(1),
     extra_data: Optional[str] = Form(None),
     subcategory_ids: List[int] = Form([]),
-    
+
     # 📂 FILES & PRE-UPLOADED CHUNK URLS
     cover_image: Optional[UploadFile] = File(None),
     pdf_file: Optional[UploadFile] = File(None),
     txt_file: Optional[UploadFile] = File(None),
     cover_image_url: Optional[str] = Form(None),
     pdf_url: Optional[str] = Form(None),
-    txt_file_url: Optional[str] = Form(None), 
-      
+    txt_file_url: Optional[str] = Form(None),
+
     db: Session = Depends(get_db),
     current_user: user_model.User = Depends(require_permission("BOOK_MANAGE"))
 ):
@@ -98,7 +99,7 @@ async def create_book(
         clean_isbn = isbn.strip() if isbn and str(isbn).strip() else None
         if clean_isbn:
             existing = db.query(book_model.Book).filter(
-                book_model.Book.isbn == clean_isbn, 
+                book_model.Book.isbn == clean_isbn,
                 book_model.Book.deleted_at.is_(None)
             ).first()
             if existing:
@@ -129,7 +130,7 @@ async def create_book(
                 cover_image_url = smart_upload(cover_image, folder="booknest/covers", resource_type="image")
             except Exception as e:
                 print(f"Cover upload error (non-fatal): {e}")
-        
+
         if not pdf_url and pdf_file and hasattr(pdf_file, 'filename') and pdf_file.filename:
             try:
                 pdf_url = smart_upload(pdf_file, folder="booknest/pdfs")
@@ -179,18 +180,19 @@ async def create_book(
             available_copies=clean_copies,
             extra_data=extra_data,
             is_restricted=bool(is_restricted),
+            is_hidden=bool(is_hidden),
             is_download_paid=bool(is_download_paid),
             download_price=float(download_price) if download_price is not None else 0.0,
             download_upi_id=download_upi_id.strip() if download_upi_id else None,
             is_digital=bool(is_digital) or bool(pdf_url or txt_file_url),
-            is_approved=False, 
-            
+            is_approved=False,
+
             # Saved URLs
             cover_image_url=cover_image_url,
             pdf_url=pdf_url,
-            txt_file_url=txt_file_url 
+            txt_file_url=txt_file_url
         )
-        
+
         new_book.subcategories = db_subcategories
 
         db.add(new_book)
@@ -257,7 +259,7 @@ def bulk_import_books(
 
         languages = db.query(language_model.Language).filter(language_model.Language.deleted_at.is_(None)).all()
         default_lang = languages[0] if languages else None
-        
+
         LANGUAGE_MAP = {
             'urdu': 'Urdu', 'اردو': 'Urdu',
             'english': 'English', 'eng': 'English', 'انگریزی': 'English', 'انگريزي': 'English', 'انگلش': 'English',
@@ -320,9 +322,9 @@ def bulk_import_books(
         for item in payload:
             if not item.title and not item.author and not item.book_number:
                 continue
-                
+
             lang_id = resolve_language_id(item.language_name)
-            
+
             parsed_pub_date = None
             if item.publication_year:
                 try:
@@ -331,7 +333,7 @@ def bulk_import_books(
                         parsed_pub_date = date(clean_y, 1, 1)
                 except Exception:
                     pass
-                    
+
             qty = safe_int(item.quantity, min_val=1, max_val=10000, default=1)
             pages = safe_int(item.page_count, min_val=1, max_val=50000, default=None)
             price_val = safe_float(item.price, min_val=0.0, max_val=10000000.0, default=None)
@@ -510,19 +512,20 @@ async def update_book(
     total_copies: Optional[int] = Form(None),
     extra_data: Optional[str] = Form(None),
     is_restricted: Optional[bool] = Form(None),
+    is_hidden: Optional[bool] = Form(None),
     is_download_paid: Optional[bool] = Form(None),
     download_price: Optional[float] = Form(None),
     download_upi_id: Optional[str] = Form(None),
     subcategory_ids: List[int] = Form(None),
-    
+
     # 📂 FILES UPDATE & PRE-UPLOADED CHUNK URLS
     cover_image: Optional[UploadFile] = File(None),
     pdf_file: Optional[UploadFile] = File(None),
     txt_file: Optional[UploadFile] = File(None),
     cover_image_url: Optional[str] = Form(None),
     pdf_url: Optional[str] = Form(None),
-    txt_file_url: Optional[str] = Form(None), 
-    
+    txt_file_url: Optional[str] = Form(None),
+
     db: Session = Depends(get_db),
     current_user: user_model.User = Depends(require_permission("BOOK_MANAGE"))
 ):
@@ -556,13 +559,14 @@ async def update_book(
     if book_number is not None: db_book.book_number = book_number
     if description is not None: db_book.description = description
     if is_restricted is not None: db_book.is_restricted = is_restricted
+    if is_hidden is not None: db_book.is_hidden = is_hidden
     if is_download_paid is not None: db_book.is_download_paid = is_download_paid
     if download_price is not None: db_book.download_price = download_price
     if download_upi_id is not None: db_book.download_upi_id = download_upi_id.strip() if download_upi_id else None
 
     if publication_year is not None:
         db_book.published_date = date(publication_year, 1, 1)
-    
+
     if language_id is not None:
          if not db.query(language_model.Language).filter(language_model.Language.id == language_id).first():
              raise HTTPException(status_code=400, detail="Invalid Language ID")
@@ -575,7 +579,7 @@ async def update_book(
         ).first():
             raise HTTPException(status_code=400, detail="Invalid Fatawa category ID")
         db_book.fatawa_category_id = fatawa_category_id
-    
+
     if isbn is not None and isbn != db_book.isbn:
          if db.query(book_model.Book).filter(book_model.Book.isbn == isbn, book_model.Book.id != book_id).first():
              raise HTTPException(status_code=409, detail="ISBN already exists.")
@@ -625,13 +629,13 @@ async def update_book(
 
     # Approval Logic - Admin updates auto-approve; Staff updates require review
     is_admin = bool(current_user and hasattr(current_user, 'role') and current_user.role and current_user.role.name.lower() in ['admin', 'superadmin'])
-    
+
     existing_req = db.query(request_model.UploadRequest).filter(
         request_model.UploadRequest.book_id == book_id
     ).first()
 
     if is_admin:
-        db_book.is_approved = True 
+        db_book.is_approved = True
         if existing_req:
             existing_req.status = 'Approved'
             existing_req.remarks = f"Auto: Book updated by {current_user.username}."
@@ -668,10 +672,50 @@ async def update_book(
         description=f"Book '{db_book.title}' updated.",
         target_type="Book", target_id=book_id
     )
-    
+
     db.commit()
     db.refresh(db_book)
     return get_book_by_id_internal(db, book_id)
+
+
+@router.patch("/{book_id}/toggle-visibility")
+@router.post("/{book_id}/toggle-visibility")
+def toggle_book_visibility(
+    book_id: int,
+    db: Session = Depends(get_db),
+    current_user: user_model.User = Depends(require_permission("BOOK_MANAGE"))
+):
+    """
+    1-Click Toggle for Admin to Hide or Unhide a book from the public.
+    Hidden books remain in DB and Admin panel, but disappear from public pages.
+    """
+    db_book = db.query(book_model.Book).filter(
+        book_model.Book.id == book_id,
+        book_model.Book.deleted_at.is_(None)
+    ).first()
+
+    if not db_book:
+        raise HTTPException(status_code=404, detail="Book not found")
+
+    db_book.is_hidden = not bool(db_book.is_hidden)
+
+    action_type = "BOOK_HIDDEN" if db_book.is_hidden else "BOOK_UNHIDDEN"
+    status_str = "Hidden" if db_book.is_hidden else "Visible"
+    create_log(
+        db=db, user=current_user, action_type=action_type,
+        description=f"Book '{db_book.title}' set to {status_str} by {current_user.username}.",
+        target_type="Book", target_id=book_id
+    )
+
+    db.commit()
+    db.refresh(db_book)
+    return {
+        "id": db_book.id,
+        "title": db_book.title,
+        "is_hidden": db_book.is_hidden,
+        "status": status_str,
+        "message": f"Book is now {'hidden from public' if db_book.is_hidden else 'visible to public'}."
+    }
 
 
 @router.delete("/{book_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -685,12 +729,12 @@ def delete_book(
         book_model.Book.id == book_id,
         book_model.Book.deleted_at.is_(None)
     ).first()
-    
+
     if not db_book:
         raise HTTPException(status_code=404, detail="Book not found")
 
     db_book.deleted_at = datetime.utcnow()
-    
+
     create_log(
         db=db, user=current_user, action_type="BOOK_DELETED",
         description=f"Book '{db_book.title}' soft-deleted.",
@@ -734,4 +778,4 @@ async def bulk_update_paid_download(
         target_type="Book"
     )
     db.commit()
-    return {"message": f"Successfully updated {updated_count} books.", "updated_count": updated_count}
+    return {"message": f"Successfully updated {updated_count} books.", "updated_count": updated_count}

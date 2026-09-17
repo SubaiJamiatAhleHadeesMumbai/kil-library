@@ -17,6 +17,7 @@ import {
     PencilSquareIcon, 
     TrashIcon, 
     EyeIcon, 
+    EyeSlashIcon,
     MagnifyingGlassIcon, 
     ArrowPathIcon,
     DocumentTextIcon,
@@ -142,9 +143,10 @@ const BookManagement = () => {
         const books = Array.isArray(allBooks) ? allBooks : [];
         const total = books.length;
         const restricted = books.filter(b => b && b.is_restricted).length;
-        const publicAccess = total - restricted;
+        const hidden = books.filter(b => b && b.is_hidden).length;
+        const publicAccess = books.filter(b => b && !b.is_restricted && !b.is_hidden && b.is_approved).length;
         const digitalOnly = books.filter(b => b && b.is_digital).length;
-        return { total, restricted, publicAccess, digitalOnly };
+        return { total, restricted, hidden, publicAccess, digitalOnly };
     }, [allBooks, serverStats]);
 
     // --- Filtering & Pagination ---
@@ -154,9 +156,10 @@ const BookManagement = () => {
             if (!book) return false;
 
             // Status Filter Check
+            if (statusFilter === 'HIDDEN' && !book.is_hidden) return false;
             if (statusFilter === 'UNAPPROVED' && book.is_approved) return false;
             if (statusFilter === 'RESTRICTED' && !book.is_restricted) return false;
-            if (statusFilter === 'PUBLIC' && (book.is_restricted || !book.is_approved)) return false;
+            if (statusFilter === 'PUBLIC' && (book.is_restricted || !book.is_approved || book.is_hidden)) return false;
             if (statusFilter === 'DIGITAL' && !book.is_digital) return false;
 
             // Search Term Check
@@ -204,6 +207,20 @@ const BookManagement = () => {
     const handleViewClick = (book) => {
         setSelectedBookForView(book);
         setIsViewModalOpen(true);
+    };
+
+    const handleToggleVisibility = async (book) => {
+        const nextHidden = !book.is_hidden;
+        // Optimistic UI update
+        setAllBooks(prev => prev.map(b => b.id === book.id ? { ...b, is_hidden: nextHidden } : b));
+        try {
+            const res = await bookService.toggleBookVisibility(book.id);
+            toast.success(res.message || (nextHidden ? "Book hidden from public" : "Book is now visible"));
+        } catch (err) {
+            // Revert on failure
+            setAllBooks(prev => prev.map(b => b.id === book.id ? { ...b, is_hidden: !nextHidden } : b));
+            toast.error("Could not update book visibility");
+        }
     };
 
     const confirmDelete = async () => {
@@ -354,7 +371,7 @@ const BookManagement = () => {
             )}
 
             {/* --- STATS SUMMARY CARDS --- */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
                 <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs space-y-1">
                     <div className="flex items-center justify-between text-slate-400">
                         <span className="text-xs font-bold uppercase tracking-wider">Total Books</span>
@@ -365,10 +382,18 @@ const BookManagement = () => {
 
                 <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs space-y-1">
                     <div className="flex items-center justify-between text-slate-400">
-                        <span className="text-xs font-bold uppercase tracking-wider">Public Catalog</span>
+                        <span className="text-xs font-bold uppercase tracking-wider">Public Live</span>
                         <CheckCircleIcon className="w-5 h-5 text-emerald-500" />
                     </div>
                     <p className="text-2xl font-black text-emerald-600">{stats.publicAccess}</p>
+                </div>
+
+                <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs space-y-1">
+                    <div className="flex items-center justify-between text-slate-400">
+                        <span className="text-xs font-bold uppercase tracking-wider">Hidden</span>
+                        <EyeSlashIcon className="w-5 h-5 text-rose-500" />
+                    </div>
+                    <p className="text-2xl font-black text-rose-600">{stats.hidden || 0}</p>
                 </div>
 
                 <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs space-y-1">
@@ -415,8 +440,9 @@ const BookManagement = () => {
                 <div className="flex items-center gap-1.5 overflow-x-auto w-full md:w-auto pb-1 md:pb-0 scrollbar-none">
                     {[
                         { key: 'ALL', label: 'All Books' },
+                        { key: 'PUBLIC', label: 'Live / Public' },
+                        { key: 'HIDDEN', label: '🙈 Hidden (چھپی ہوئی)' },
                         { key: 'UNAPPROVED', label: '⏳ Pending Approval' },
-                        { key: 'PUBLIC', label: 'Public Access' },
                         { key: 'RESTRICTED', label: 'Restricted' },
                         { key: 'DIGITAL', label: 'Digital Only' },
                     ].map(tab => (
@@ -614,30 +640,52 @@ const BookManagement = () => {
                                             </div>
                                         </td>
 
-                                        {/* Status Badges */}
+                                        {/* Status & Visibility Badges */}
                                         <td className="px-6 py-4 whitespace-nowrap text-center">
                                             <div className="flex flex-col items-center gap-1.5">
+                                                {/* 1-Click Visibility Toggle */}
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleToggleVisibility(book)}
+                                                    title={book.is_hidden ? "Click to make Live for public" : "Click to Hide from public"}
+                                                    className={`
+                                                        inline-flex items-center gap-1 px-2.5 py-0.5 text-[10px] font-extrabold rounded-full border transition-all cursor-pointer active:scale-95 shadow-2xs
+                                                        ${book.is_hidden
+                                                            ? 'bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100 hover:border-rose-300'
+                                                            : 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100 hover:border-emerald-300'
+                                                        }
+                                                    `}
+                                                >
+                                                    {book.is_hidden ? (
+                                                        <>
+                                                            <EyeSlashIcon className="w-3.5 h-3.5 text-rose-600 stroke-[2.5]" />
+                                                            <span>Hidden (چھپی ہوئی)</span>
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <EyeIcon className="w-3.5 h-3.5 text-emerald-600 stroke-[2.5]" />
+                                                            <span>Live (پبلک)</span>
+                                                        </>
+                                                    )}
+                                                </button>
+
                                                 {book.is_approved ? (
-                                                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 text-[10px] font-extrabold rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
-                                                        <CheckCircleIcon className="w-3 h-3 text-emerald-600 stroke-[2.5]" />
+                                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[9px] font-bold rounded-full bg-slate-100 text-slate-600 border border-slate-200">
+                                                        <CheckCircleIcon className="w-2.5 h-2.5 text-slate-500 stroke-[2.5]" />
                                                         Approved
                                                     </span>
                                                 ) : (
-                                                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 text-[10px] font-extrabold rounded-full bg-amber-50 text-amber-800 border border-amber-300 animate-pulse">
-                                                        <ClockIcon className="w-3 h-3 text-amber-600 stroke-[2.5]" />
+                                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[9px] font-bold rounded-full bg-amber-50 text-amber-800 border border-amber-300 animate-pulse">
+                                                        <ClockIcon className="w-2.5 h-2.5 text-amber-600 stroke-[2.5]" />
                                                         Pending Approval
                                                     </span>
                                                 )}
-                                                <span className={`
-                                                    inline-flex items-center gap-1 px-2.5 py-0.5 text-[9px] font-bold rounded-full border uppercase tracking-wider
-                                                    ${book.is_restricted 
-                                                        ? 'bg-slate-50 text-slate-700 border-slate-200' 
-                                                        : 'bg-blue-50 text-blue-700 border-blue-200'
-                                                    }
-                                                `}>
-                                                    <span className={`w-1 h-1 rounded-full ${book.is_restricted ? 'bg-amber-500' : 'bg-blue-500'}`} />
-                                                    {book.is_restricted ? 'Restricted' : 'Public Catalog'}
-                                                </span>
+                                                {book.is_restricted && (
+                                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[9px] font-bold rounded-full bg-amber-50 text-amber-800 border border-amber-200">
+                                                        <LockClosedIcon className="w-2.5 h-2.5 text-amber-600 stroke-[2.5]" />
+                                                        Restricted
+                                                    </span>
+                                                )}
                                             </div>
                                         </td>
 

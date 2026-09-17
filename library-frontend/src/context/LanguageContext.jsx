@@ -420,34 +420,59 @@ export const LanguageProvider = ({ children }) => {
 
   // ✅ ENHANCED SMART TRANSLATION HELPER (Nested Path + Flat Key + Dynamic CMS Fallback)
   const t = (key, fallbackText) => {
-    if (!key) return '';
+    if (!key) return typeof fallbackText === 'string' ? fallbackText : '';
+    if (typeof key !== 'string') {
+      if (typeof key === 'object') {
+        return key[currentLang] || key.ur || key.en || key.ar || '';
+      }
+      return String(key);
+    }
 
+    let val = null;
     // 1. Direct dynamic lookup in current language
     if (dynamicTranslations?.[currentLang]?.[key]) {
-      return dynamicTranslations[currentLang][key];
+      val = dynamicTranslations[currentLang][key];
+    } else {
+      // 2. Short key lookup if key has namespace (e.g. 'navbar.home' -> 'home')
+      const shortKey = key.includes('.') ? key.split('.').pop() : null;
+      if (shortKey && dynamicTranslations?.[currentLang]?.[shortKey]) {
+        val = dynamicTranslations[currentLang][shortKey];
+      } else {
+        // 3. Static dictionary lookup for current language
+        const dict = TRANSLATIONS[currentLang] || TRANSLATIONS.en;
+        if (dict?.[key]) {
+          val = dict[key];
+        } else if (shortKey && dict?.[shortKey]) {
+          val = dict[shortKey];
+        } else if (dynamicTranslations?.en?.[key]) {
+          val = dynamicTranslations.en[key];
+        } else if (shortKey && dynamicTranslations?.en?.[shortKey]) {
+          val = dynamicTranslations.en[shortKey];
+        } else if (TRANSLATIONS.en?.[key]) {
+          val = TRANSLATIONS.en[key];
+        } else if (shortKey && TRANSLATIONS.en?.[shortKey]) {
+          val = TRANSLATIONS.en[shortKey];
+        }
+      }
     }
 
-    // 2. Short key lookup if key has namespace (e.g. 'navbar.home' -> 'home')
-    const shortKey = key.includes('.') ? key.split('.').pop() : null;
-    if (shortKey && dynamicTranslations?.[currentLang]?.[shortKey]) {
-      return dynamicTranslations[currentLang][shortKey];
+    if (val !== null && val !== undefined) {
+      if (typeof val === 'string') return val;
+      if (typeof val === 'object') {
+        return val[currentLang] || val.ur || val.en || val.ar || '';
+      }
+      return String(val);
     }
 
-    // 3. Static dictionary lookup for current language
-    const dict = TRANSLATIONS[currentLang] || TRANSLATIONS.en;
-    if (dict?.[key]) return dict[key];
-    if (shortKey && dict?.[shortKey]) return dict[shortKey];
+    if (fallbackText !== undefined) {
+      if (typeof fallbackText === 'string') return fallbackText;
+      if (typeof fallbackText === 'object') {
+        return fallbackText[currentLang] || fallbackText.ur || fallbackText.en || fallbackText.ar || '';
+      }
+      return String(fallbackText);
+    }
 
-    // 4. Fallback to English dynamic
-    if (dynamicTranslations?.en?.[key]) return dynamicTranslations.en[key];
-    if (shortKey && dynamicTranslations?.en?.[shortKey]) return dynamicTranslations.en[shortKey];
-
-    // 5. Fallback to English static
-    if (TRANSLATIONS.en?.[key]) return TRANSLATIONS.en[key];
-    if (shortKey && TRANSLATIONS.en?.[shortKey]) return TRANSLATIONS.en[shortKey];
-
-    // 6. Return fallbackText or key
-    return fallbackText || key;
+    return key;
   };
 
   const formatDate = (date, options) => formatLocalizedDate(date, currentLang, options);
@@ -456,6 +481,7 @@ export const LanguageProvider = ({ children }) => {
   return (
     <LanguageContext.Provider value={{
       currentLang,
+      language: currentLang,
       currentLanguage: activeLangObj,
       languages: LANGUAGES,
       changeLanguage,

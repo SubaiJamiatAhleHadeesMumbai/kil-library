@@ -68,3 +68,4 @@ pypdf>=5.0.0
 pillow>=10.0.0
 psutil>=5.9.0
 httpx>=0.25.0
+razorpay>=2.0.0

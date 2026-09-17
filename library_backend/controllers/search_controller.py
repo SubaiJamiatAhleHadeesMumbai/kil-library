@@ -45,6 +45,7 @@ def global_omni_search(
         books_query = db.query(Book).filter(
             Book.deleted_at.is_(None),
             Book.is_approved == True,
+            Book.is_hidden.is_(False),
             or_(
                 Book.title.ilike(pattern),
                 Book.author.ilike(pattern),

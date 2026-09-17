@@ -22,6 +22,8 @@ import {
   ShieldCheckIcon,
   LockClosedIcon,
   CheckBadgeIcon,
+  PhotoIcon,
+  XMarkIcon,
 } from "@heroicons/react/24/outline";
 import { useLanguage } from "../context/LanguageContext";
 import { Swiper, SwiperSlide } from "swiper/react";
@@ -50,6 +52,7 @@ import { categoryService } from "../api/categoryService";
 import { fatawaService } from "../api/fatawaService";
 import aboutService from "../api/aboutService";
 import socialWorkService from "../api/socialWorkService";
+import galleryService from "../api/galleryService";
 import SocialWorkCard from "../components/social_work/SocialWorkCard";
 import SocialWorkItemDetailModal from "../components/social_work/SocialWorkItemDetailModal";
 import { useBookSearch, deduplicateBooks } from "../hooks/useBookSearch";
@@ -235,6 +238,29 @@ const PublicHome = () => {
     return urText || arText || enText;
   }, [currentLang]);
 
+  // Fail-safe helper for extracting localized strings from multilingual objects or strings
+  const resolveMultilingualText = useCallback((val, fallback = '') => {
+    if (!val) return fallback;
+    if (typeof val === 'string') return val.trim() || fallback;
+    if (typeof val === 'object') {
+      const preferred = currentLang === 'ar'
+        ? (val.ar || val.ur || val.en)
+        : currentLang === 'en'
+        ? (val.en || val.ur || val.ar)
+        : (val.ur || val.ar || val.en);
+      if (typeof preferred === 'string' && preferred.trim()) {
+        return preferred.trim();
+      }
+      for (const k of ['ur', 'ar', 'en', ...Object.keys(val)]) {
+        if (typeof val[k] === 'string' && val[k].trim()) {
+          return val[k].trim();
+        }
+      }
+      return fallback;
+    }
+    return String(val);
+  }, [currentLang]);
+
   // Data States
   const [books, setBooks] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -243,6 +269,8 @@ const PublicHome = () => {
   const [homepageSettingsLoaded, setHomepageSettingsLoaded] = useState(false);
   const [dynamicCategories, setDynamicCategories] = useState([]);
   const [galleryImages, setGalleryImages] = useState([]);
+  const [homeGallery, setHomeGallery] = useState([]);
+  const [activeLightboxImage, setActiveLightboxImage] = useState(null);
   const [aboutContent, setAboutContent] = useState({ hero: {}, intro: {}, display: {} });
   const [isAboutExpanded, setIsAboutExpanded] = useState(false);
   const [activitiesItems, setActivitiesItems] = useState([]);
@@ -299,13 +327,14 @@ const PublicHome = () => {
   const loadAllData = useCallback(async () => {
     setLoading(true);
     try {
-      const [booksRes, catRes, settingsRes, aboutRes, activitiesRes, fatawaRes] = await Promise.allSettled([
+      const [booksRes, catRes, settingsRes, aboutRes, activitiesRes, fatawaRes, galleryRes] = await Promise.allSettled([
         bookService.getAllBooks({ approved_only: true, sort_order: 'desc' }, 200),
         categoryService.getAllCategories(),
         settingsService.getHomepageSettings(),
         aboutService.getAboutSettings(),
         socialWorkService.getPublicItems('', '', 6),
         fatawaService.getQuestions({ status: 'answered', limit: 3 }),
+        galleryService.getHomeFeaturedGallery(8),
       ]);
 
       // 1. Process Books - only approved books should appear on public homepage
@@ -357,6 +386,14 @@ const PublicHome = () => {
         setRecentFatawa(qList);
       } else {
         setRecentFatawa([]);
+      }
+
+      // 7. Process Curated Homepage Gallery (Only photos marked show_on_home: true)
+      if (galleryRes.status === 'fulfilled' && galleryRes.value) {
+        const items = Array.isArray(galleryRes.value?.items) ? galleryRes.value.items : [];
+        setHomeGallery(items);
+      } else {
+        setHomeGallery([]);
       }
     } catch (error) {
       console.error("âŒ PublicHome Master Load Error:", error);
@@ -744,16 +781,10 @@ const PublicHome = () => {
           );
         }
 
-        // GALLERY SECTION
-        if (key === 'gallery' && getSectionConfig('gallery', { enabled: false }).enabled !== false) {
+        // GALLERY SECTION (Live Dynamic Gallery - only photos marked show_on_home by admin)
+        if (key === 'gallery' && getSectionConfig('gallery', { enabled: true }).enabled !== false) {
           const galleryConfig = getSectionConfig('gallery', {});
-          const displayImages =
-            galleryImages.length > 0
-              ? galleryImages
-              : [
-                  { image_url: "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='600' height='400' viewBox='0 0 600 400'><rect width='600' height='400' fill='%230f172a'/><text x='50%' y='50%' font-family='sans-serif' font-size='20' font-weight='bold' fill='%2338bdf8' text-anchor='middle'>Markaz Islamic Library</text></svg>", title: 'Markaz Gallery 1' },
-                  { image_url: "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='600' height='400' viewBox='0 0 600 400'><rect width='600' height='400' fill='%231e293b'/><text x='50%' y='50%' font-family='sans-serif' font-size='20' font-weight='bold' fill='%2310b981' text-anchor='middle'>Research & Manuscript Archives</text></svg>", title: 'Markaz Gallery 2' },
-                ];
+          if (!homeGallery || homeGallery.length === 0) return null;
 
           return (
             <div key="gallery" className="app-shell-container pb-6 sm:pb-12">
@@ -764,12 +795,12 @@ const PublicHome = () => {
                       {galleryConfig.title || 'Gallery'}
                     </p>
                     <h3 className="section-title text-2xl font-black text-slate-900 mt-1">
-                      {galleryConfig.subtitle || 'Visual collections'}
+                      {galleryConfig.subtitle || 'Photo & Event Gallery'}
                     </h3>
                   </div>
                   <button
-                    onClick={() => navigateToTop('/about/gallery')}
-                    className="inline-flex items-center gap-2 rounded-full px-6 py-3 text-sm font-bold text-white transition-all shadow-lg hover:shadow-xl hover:opacity-95 focus:outline-none focus:ring-2 focus:ring-offset-2 whitespace-nowrap"
+                    onClick={() => navigateToTop('/gallery')}
+                    className="inline-flex items-center gap-2 rounded-full px-6 py-3 text-sm font-bold text-white transition-all shadow-lg hover:shadow-xl hover:opacity-95 focus:outline-none focus:ring-2 focus:ring-offset-2 whitespace-nowrap cursor-pointer"
                     style={{ backgroundColor: accentColor, outlineColor: accentColor }}
                   >
                     View Gallery <ArrowRightIcon className="h-4 w-4" />
@@ -778,7 +809,7 @@ const PublicHome = () => {
                 <Swiper
                   modules={[Autoplay, Navigation]}
                   spaceBetween={16}
-                  loop={displayImages.length > 3}
+                  loop={homeGallery.length > 3}
                   autoplay={{
                     delay: 4000,
                     disableOnInteraction: false,
@@ -791,28 +822,42 @@ const PublicHome = () => {
                   }}
                   className="rounded-2xl overflow-hidden"
                 >
-                  {displayImages.map((image, idx) => (
-                    <SwiperSlide key={idx}>
-                      <div className="relative group overflow-hidden rounded-xl bg-slate-100 shadow-md hover:shadow-xl transition-all h-64 sm:h-72">
-                        <img
-                          src={resolveImageUrl(image.image_url)}
-                          alt={image.title || `Gallery image ${idx + 1}`}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                          loading="lazy"
-                        />
-                        {image.title && (
-                          <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent p-4">
-                            <p className="text-white font-bold text-sm line-clamp-2">{image.title}</p>
+                  {homeGallery.map((item, idx) => {
+                    const title = resolveMultilingualText(item.title, 'Gallery Photo');
+                    const caption = resolveMultilingualText(item.caption, '');
+                    const imageUrl = resolveImageUrl(item.image_url);
+
+                    return (
+                      <SwiperSlide key={item.id || idx}>
+                        <div
+                          onClick={() => setActiveLightboxImage(item)}
+                          className="relative group overflow-hidden rounded-xl bg-slate-900 shadow-md hover:shadow-xl transition-all h-64 sm:h-72 cursor-pointer"
+                        >
+                          <img
+                            src={imageUrl}
+                            alt={title}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                            loading="lazy"
+                            onError={(e) => {
+                              e.currentTarget.onerror = null;
+                              e.currentTarget.style.display = 'none';
+                            }}
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent p-4 flex flex-col justify-end">
+                            {item.year && (
+                              <span className="inline-block px-2 py-0.5 rounded-md bg-white/20 backdrop-blur-md text-[10px] font-bold text-amber-300 mb-1 w-fit border border-white/10">
+                                {item.year}
+                              </span>
+                            )}
+                            <p className="text-white font-bold text-sm line-clamp-2">{title}</p>
+                            {caption ? (
+                              <p className="text-white/80 text-xs line-clamp-1 mt-0.5">{caption}</p>
+                            ) : null}
                           </div>
-                        )}
-                        {image.caption && (
-                          <div className="absolute top-0 left-0 right-0 bg-gradient-to-b from-black/50 to-transparent p-3">
-                            <p className="text-white/90 text-xs line-clamp-2">{image.caption}</p>
-                          </div>
-                        )}
-                      </div>
-                    </SwiperSlide>
-                  ))}
+                        </div>
+                      </SwiperSlide>
+                    );
+                  })}
                 </Swiper>
               </div>
             </div>
@@ -1058,7 +1103,8 @@ const PublicHome = () => {
                         // ABOUT SECTION PREVIEW (Home page initial intro preview in Makhtota format)
         if (key === 'about' && getSectionConfig('about', { enabled: false }).enabled !== false) {
           const aboutConfig = getSectionConfig('about', {});
-          const fullDesc = (aboutContent?.hero?.description || aboutContent?.intro?.description || "").trim();
+          const rawDesc = aboutContent?.hero?.description || aboutContent?.intro?.description || "";
+          const fullDesc = resolveMultilingualText(rawDesc, '').trim();
           
           // Show initial intro on Home Page (up to first few sections / paragraphs)
           let homeIntroText = fullDesc;
@@ -1073,13 +1119,13 @@ const PublicHome = () => {
                 <div className="mb-4 flex flex-col sm:flex-row items-start sm:items-end justify-between gap-4">
                   <div className="flex-1">
                     <p className="eyebrow text-xs font-extrabold uppercase tracking-widest" style={{ color: accentColor }}>
-                      {aboutConfig.title || 'مرکز کا تعارف'}
+                      {resolveMultilingualText(aboutConfig.title, 'مرکز کا تعارف')}
                     </p>
                     <h3
                       className="section-title text-xl sm:text-2xl font-extrabold text-slate-900 mt-1"
                       style={{ fontFamily: "'Noto Nastaliq Urdu', 'JameelNoori', serif" }}
                     >
-                      {aboutContent?.hero?.title || 'مرکز الدعوۃ الاسلامیۃ والخیریہ (سونس، کھیڈ - رتناگری)'}
+                      {resolveMultilingualText(aboutContent?.hero?.title, 'مرکز الدعوۃ الاسلامیۃ والخیریہ (سونس، کھیڈ - رتناگری)')}
                     </h3>
                   </div>
                   <button
@@ -1297,6 +1343,8 @@ const PublicHome = () => {
 
 
 
+
+
         // POSTS & DONATIONS
         if (key === 'posts' || key === 'donation') {
           const showPosts = getSectionConfig('posts', { enabled: true }).enabled !== false;
@@ -1369,6 +1417,63 @@ const PublicHome = () => {
           isOpen={!!selectedActivity}
           onClose={() => setSelectedActivity(null)}
         />
+      )}
+
+      {/* GALLERY LIGHTBOX MODAL */}
+      {activeLightboxImage && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/90 backdrop-blur-md animate-in fade-in duration-200"
+          onClick={() => setActiveLightboxImage(null)}
+        >
+          <div
+            className="relative max-w-4xl w-full bg-slate-900 rounded-3xl overflow-hidden shadow-2xl border border-white/10"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              type="button"
+              onClick={() => setActiveLightboxImage(null)}
+              className="absolute top-4 right-4 z-20 w-9 h-9 rounded-full bg-black/60 text-white flex items-center justify-center hover:bg-black/80 transition cursor-pointer"
+            >
+              <XMarkIcon className="w-5 h-5" />
+            </button>
+
+            <div className="max-h-[75vh] flex items-center justify-center bg-black">
+              <img
+                src={
+                  activeLightboxImage.image_url?.startsWith('http')
+                    ? activeLightboxImage.image_url
+                    : `${import.meta.env.VITE_API_BASE_URL || ''}${activeLightboxImage.image_url?.startsWith('/') ? activeLightboxImage.image_url : `/${activeLightboxImage.image_url}`}`
+                }
+                alt="Enlarged gallery photo"
+                className="max-h-[75vh] w-auto max-w-full object-contain"
+              />
+            </div>
+
+            <div className="p-4 bg-slate-900 text-white flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <h4 className="text-sm font-bold">
+                  {resolveMultilingualText(activeLightboxImage.title, 'Gallery Photo')}
+                </h4>
+                {resolveMultilingualText(activeLightboxImage.caption, '') ? (
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    {resolveMultilingualText(activeLightboxImage.caption, '')}
+                  </p>
+                ) : null}
+              </div>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveLightboxImage(null);
+                  navigateToTop('/gallery');
+                }}
+                className="px-4 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 text-xs font-bold transition shrink-0 cursor-pointer shadow-md"
+              >
+                View Full Gallery
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

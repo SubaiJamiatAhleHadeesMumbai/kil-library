@@ -245,6 +245,7 @@ def get_smart_recommendations(
 
     if not is_admin:
         all_books = all_books.filter(
+            book_model.Book.is_hidden.is_(False),
             book_model.Book.is_approved == True,
             ~book_model.Book.upload_request.has(request_model.UploadRequest.status.in_(['Pending', 'Rejected']))
         )
@@ -380,10 +381,11 @@ def read_books(
         joinedload(book_model.Book.language)
     ).filter(book_model.Book.deleted_at.is_(None))
 
-    # 2. Approval filter: only admins can see unapproved or pending books
+    # 2. Approval & Hidden filter: only admins can see hidden, unapproved, or pending books
     is_admin = bool(current_user and hasattr(current_user, 'role') and current_user.role and current_user.role.name.lower() in ['admin', 'superadmin'])
     if not is_admin or approved_only:
         query = query.filter(
+            book_model.Book.is_hidden.is_(False),
             book_model.Book.is_approved == True,
             ~book_model.Book.upload_request.has(request_model.UploadRequest.status.in_(['Pending', 'Rejected']))
         )
@@ -842,11 +844,13 @@ def read_book(
     if not db_book:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Book not found")
 
-    # 1. Approval Check
+    # 1. Approval & Visibility Check
+    is_admin = bool(current_user and hasattr(current_user, 'role') and current_user.role and current_user.role.name.lower() in ['admin', 'superadmin'])
     is_unapproved = not db_book.is_approved or bool(db_book.upload_request and db_book.upload_request.status in ['Pending', 'Rejected'])
-    if is_unapproved:
-        if not current_user or (current_user.role.name.lower() not in ['admin', 'superadmin']):
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Book not found.")
+    is_hidden = bool(getattr(db_book, 'is_hidden', False))
+
+    if (is_unapproved or is_hidden) and not is_admin:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Book not found.")
             
     # 2. Restricted Access Check Logic
     has_access = False

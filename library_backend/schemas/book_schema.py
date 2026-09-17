@@ -20,6 +20,7 @@ class BookBase(BaseModel):
     description: Optional[str] = None
     language_id: int = Field(...) 
     is_restricted: bool = Field(False)
+    is_hidden: bool = Field(False)
     is_download_paid: bool = Field(False)
     download_price: Optional[float] = Field(0.0, ge=0)
     download_upi_id: Optional[str] = Field(None, max_length=100)
@@ -71,6 +72,7 @@ class BookUpdate(BaseModel):
     description: Optional[str] = None
     language_id: Optional[int] = None
     is_restricted: Optional[bool] = None
+    is_hidden: Optional[bool] = None
     is_download_paid: Optional[bool] = None
     download_price: Optional[float] = Field(None, ge=0)
     download_upi_id: Optional[str] = Field(None, max_length=100)
@@ -111,6 +113,7 @@ class BookSummary(BaseModel):
     total_copies: Optional[int] = 1
     is_digital: bool = True
     is_approved: bool = True
+    is_hidden: bool = False
 
     class Config:
         from_attributes = True

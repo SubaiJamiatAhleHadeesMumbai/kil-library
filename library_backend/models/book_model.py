@@ -80,7 +80,8 @@ class Book(Base):
     description = Column(Text, nullable=True)
 
     # 4. Access Control
-    is_approved = Column(Boolean, default=False)   
+    is_approved = Column(Boolean, default=False)
+    is_hidden = Column(Boolean, default=False, nullable=False, index=True)
     is_restricted = Column(Boolean, default=False) 
     is_download_paid = Column(Boolean, default=False, nullable=False)
     download_price = Column(Float, default=0.0, nullable=True)

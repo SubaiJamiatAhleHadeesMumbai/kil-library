@@ -82,7 +82,55 @@ export const bookOrderService = {
   // Helper: Build download URL
   getDownloadUrl: (token) => {
     return `${API_BASE_URL}/api/book-orders/download/${token}`;
-  }
+  },
+
+  // ============================================================
+  // Online Payment (Razorpay) — Instant Book Access
+  // ============================================================
+
+  // Get Razorpay Key ID for frontend checkout
+  getPaymentConfig: async () => {
+    const res = await apiClient.get("/api/payment/config");
+    return res.data;
+  },
+
+  // Create Razorpay order (call before opening checkout popup)
+  createPaymentOrder: async (data) => {
+    const res = await apiClient.post("/api/payment/create-order", data);
+    return res.data;
+  },
+
+  // Verify payment after successful Razorpay checkout
+  verifyPayment: async (data) => {
+    const res = await apiClient.post("/api/payment/verify", data);
+    return res.data;
+  },
+
+  // Open Razorpay Checkout popup and return a promise
+  openRazorpayCheckout: (options) => {
+    return new Promise((resolve, reject) => {
+      if (!window.Razorpay) {
+        reject(new Error("Razorpay SDK not loaded. Please refresh the page."));
+        return;
+      }
+
+      const rzp = new window.Razorpay({
+        ...options,
+        handler: (response) => resolve(response),
+        modal: {
+          ondismiss: () => reject(new Error("Payment cancelled by user.")),
+          escape: true,
+          animation: true,
+        },
+      });
+
+      rzp.on("payment.failed", (response) => {
+        reject(new Error(response.error?.description || "Payment failed."));
+      });
+
+      rzp.open();
+    });
+  },
 };
 
 export default bookOrderService;

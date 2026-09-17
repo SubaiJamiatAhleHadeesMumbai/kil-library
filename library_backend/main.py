@@ -34,7 +34,7 @@ from migration_runner import run_migrations
 
 # --- Import Database & Models ---
 from database import engine, Base, get_db
-from models import user_model, permission_model, library_management_models, token_blacklist_model
+from models import user_model, permission_model, library_management_models, token_blacklist_model, analytics_model
 import auth
 
 # --- Import Controllers ---
@@ -80,6 +80,7 @@ from controllers import (
     gallery_controller,
     comment_controller,
     admin_comment_controller,
+    payment_controller,
 )
 
 def sync_database_schema():
@@ -93,6 +94,7 @@ def sync_database_schema():
         "ALTER TABLE books ADD COLUMN IF NOT EXISTS extra_data TEXT;",
         "ALTER TABLE books ADD COLUMN IF NOT EXISTS is_digital BOOLEAN DEFAULT FALSE;",
         "ALTER TABLE books ADD COLUMN IF NOT EXISTS is_approved BOOLEAN DEFAULT FALSE;",
+        "ALTER TABLE books ADD COLUMN IF NOT EXISTS is_hidden BOOLEAN DEFAULT FALSE;",
         "ALTER TABLE books ADD COLUMN IF NOT EXISTS is_restricted BOOLEAN DEFAULT FALSE;",
         "ALTER TABLE books ADD COLUMN IF NOT EXISTS total_copies INTEGER DEFAULT 1;",
         "ALTER TABLE books ADD COLUMN IF NOT EXISTS available_copies INTEGER DEFAULT 1;",
@@ -237,6 +239,8 @@ def sync_database_schema():
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
         );
         """,
+        # gallery_items show_on_home column
+        "ALTER TABLE gallery_items ADD COLUMN IF NOT EXISTS show_on_home BOOLEAN DEFAULT FALSE;",
     ]
     
     try:
@@ -592,6 +596,7 @@ api_router.include_router(gallery_controller.router, prefix="/gallery", tags=["G
 # Comments & Feedback
 api_router.include_router(comment_controller.router, prefix="/comments", tags=["Comments"])
 api_router.include_router(admin_comment_controller.router, prefix="/admin/comments", tags=["Admin Comments"])
+api_router.include_router(payment_controller.router, tags=["Online Payment (Razorpay)"])
 
 # Register Main Router
 app.include_router(api_router)

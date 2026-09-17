@@ -60,6 +60,7 @@ const GalleryManagementPage = () => {
     year: '2026',
     video_url: '',
     is_active: true,
+    show_on_home: true,
   });
   const [itemSaving, setItemSaving] = useState(false);
 
@@ -121,6 +122,7 @@ const GalleryManagementPage = () => {
       validFiles.forEach((file) => payload.append('files', file));
       payload.append('album_id', uploadAlbumId);
       payload.append('year', uploadYear);
+      payload.append('show_on_home', 'true');
 
       await galleryService.batchUploadPhotos(payload);
       showNotification(`Uploaded ${validFiles.length} photo(s) successfully!`);
@@ -161,6 +163,20 @@ const GalleryManagementPage = () => {
       showNotification(`Photo ${newStatus ? 'activated' : 'hidden'}.`);
     } catch {
       showNotification('Could not update status.', true);
+    }
+  };
+
+  // --- 1-CLICK TOGGLE SHOW ON HOMEPAGE ---
+  const handleToggleHome = async (itemId, e) => {
+    e?.stopPropagation();
+    try {
+      const res = await galleryService.toggleShowOnHome(itemId);
+      showNotification(res.message || 'Updated homepage status.');
+      setItems((prev) =>
+        prev.map((it) => (it.id === itemId ? { ...it, show_on_home: res.show_on_home } : it))
+      );
+    } catch {
+      showNotification('Failed to toggle homepage status.', true);
     }
   };
 
@@ -245,6 +261,7 @@ const GalleryManagementPage = () => {
       year: item.year || '2026',
       video_url: item.video_url || '',
       is_active: item.is_active !== false,
+      show_on_home: Boolean(item.show_on_home),
     });
   };
 
@@ -262,6 +279,7 @@ const GalleryManagementPage = () => {
       payload.append('year', itemForm.year);
       payload.append('video_url', itemForm.video_url);
       payload.append('is_active', String(itemForm.is_active));
+      payload.append('show_on_home', String(itemForm.show_on_home));
 
       await galleryService.updateGalleryItem(editingItem.id, payload);
       showNotification('Photo details saved successfully.');
@@ -358,6 +376,7 @@ const GalleryManagementPage = () => {
 
   // Filtered Photos for Admin Grid
   const filteredItems = useMemo(() => {
+    if (albumFilter === 'home') return items.filter((i) => Boolean(i.show_on_home));
     if (albumFilter === 'all') return items;
     return items.filter((i) => i.album_id === albumFilter);
   }, [items, albumFilter]);
@@ -531,6 +550,7 @@ const GalleryManagementPage = () => {
                   className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-bold text-slate-700 focus:outline-indigo-500"
                 >
                   <option value="all">All Albums ({items.length})</option>
+                  <option value="home">⭐ On Homepage ({items.filter((i) => i.show_on_home).length})</option>
                   {albums.map((alb) => (
                     <option key={alb.id} value={alb.id}>
                       {alb.title?.ur || alb.title?.en || alb.id}
@@ -612,6 +632,21 @@ const GalleryManagementPage = () => {
                           }}
                           className="absolute top-2 left-2 z-20 h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
                         />
+
+                        {/* 1-Click Show on Homepage Toggle Badge */}
+                        <button
+                          type="button"
+                          onClick={(e) => handleToggleHome(item.id, e)}
+                          className={`absolute top-2 right-2 z-20 flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold shadow-md transition cursor-pointer border ${
+                            item.show_on_home
+                              ? 'bg-amber-400 text-slate-900 border-amber-300 ring-2 ring-amber-300/40'
+                              : 'bg-black/60 text-white/80 border-white/20 hover:bg-black/80 hover:text-white'
+                          }`}
+                          title={item.show_on_home ? 'Featured on Homepage (Click to remove)' : 'Click to feature on Homepage'}
+                        >
+                          <SparklesIcon className={`w-3 h-3 ${item.show_on_home ? 'text-amber-900' : 'text-white/70'}`} />
+                          <span>{item.show_on_home ? 'On Home' : 'Home?'}</span>
+                        </button>
 
                         {/* Ambient Glow */}
                         <div
@@ -952,7 +987,32 @@ const GalleryManagementPage = () => {
                   }`}
                 >
                   <span className={`w-1.5 h-1.5 rounded-full ${itemForm.is_active ? 'bg-emerald-500' : 'bg-slate-400'}`} />
-                  {itemForm.is_active ? 'Active' : 'Hidden'}
+                  <span>{itemForm.is_active ? 'Active' : 'Hidden'}</span>
+                </button>
+              </div>
+
+              {/* Show on Homepage Switch */}
+              <div className="flex items-center justify-between p-3 rounded-xl bg-amber-50/70 border border-amber-200">
+                <div>
+                  <span className="text-xs font-bold text-amber-950 flex items-center gap-1.5">
+                    <SparklesIcon className="w-4 h-4 text-amber-600" />
+                    Show on Homepage (ہوم پیج پر دکھائیں)
+                  </span>
+                  <p className="text-[11px] text-amber-700 mt-0.5">
+                    Only photos with this checked will be displayed on the landing homepage.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setItemForm({ ...itemForm, show_on_home: !itemForm.show_on_home })}
+                  className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold border transition cursor-pointer ${
+                    itemForm.show_on_home
+                      ? 'bg-amber-400 text-slate-900 border-amber-300 ring-2 ring-amber-300/40'
+                      : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-50'
+                  }`}
+                >
+                  <SparklesIcon className={`w-3.5 h-3.5 ${itemForm.show_on_home ? 'text-amber-900' : 'text-slate-400'}`} />
+                  <span>{itemForm.show_on_home ? '⭐ On Home' : 'Not on Home'}</span>
                 </button>
               </div>
             </div>
