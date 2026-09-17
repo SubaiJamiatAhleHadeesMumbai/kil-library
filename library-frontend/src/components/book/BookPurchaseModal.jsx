@@ -45,7 +45,7 @@ const BookPurchaseModal = ({ book, pdfUrl, isOpen, onClose }) => {
 
   // Razorpay Instant Pay states
   const [rzpLoading, setRzpLoading] = useState(false);
-  const [paymentMode, setPaymentMode] = useState('instant'); // 'instant' | 'manual'
+  const [paymentMode, setPaymentMode] = useState('manual'); // 'manual' | 'instant'
 
   // Standard UPI URI for UPI apps & QR generation
   const encodedTitle = encodeURIComponent(`KIL Book: ${bookTitle}`.slice(0, 40));
@@ -438,31 +438,32 @@ const BookPurchaseModal = ({ book, pdfUrl, isOpen, onClose }) => {
                     </div>
                   </div>
 
-                  {/* Payment Mode Selector: Instant Online vs Manual UTR */}
+                  {/* Payment Mode Selector: Manual UPI (Default) vs Instant Online (Coming Soon) */}
                   <div className="grid grid-cols-2 gap-2 p-1 bg-slate-100 rounded-xl">
                     <button
                       type="button"
-                      onClick={() => setPaymentMode('instant')}
-                      className={`py-2 px-3 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition ${
-                        paymentMode === 'instant'
-                          ? 'bg-white text-emerald-700 shadow-xs'
-                          : 'text-slate-500 hover:text-slate-800'
-                      }`}
-                    >
-                      <SparklesIcon className="w-3.5 h-3.5 text-emerald-600" />
-                      Instant Pay (Auto Unlock)
-                    </button>
-                    <button
-                      type="button"
                       onClick={() => setPaymentMode('manual')}
-                      className={`py-2 px-3 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition ${
+                      className={`py-2 px-3 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition cursor-pointer ${
                         paymentMode === 'manual'
                           ? 'bg-white text-[#002147] shadow-xs'
                           : 'text-slate-500 hover:text-slate-800'
                       }`}
                     >
                       <QrCodeIcon className="w-3.5 h-3.5 text-slate-600" />
-                      Manual UPI / UTR
+                      UPI QR / UTR
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        toast("Online payment gateway is coming soon! Please scan the UPI QR code to pay instantly.", { icon: "ℹ️" });
+                      }}
+                      className="py-2 px-3 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 text-slate-400 hover:text-slate-600 transition cursor-pointer"
+                    >
+                      <SparklesIcon className="w-3.5 h-3.5 text-amber-500" />
+                      <span>Instant Pay</span>
+                      <span className="px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-800 text-[9px] font-extrabold uppercase tracking-wider">
+                        Coming Soon
+                      </span>
                     </button>
                   </div>
 
