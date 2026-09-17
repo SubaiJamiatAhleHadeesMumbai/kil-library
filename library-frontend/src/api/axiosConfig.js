@@ -73,8 +73,14 @@ api.interceptors.response.use(
       });
     }
 
-    // âœ… Handle 401 - Token Expired (Issue #1 Fix)
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    const isAuthEndpoint =
+      requestUrl.includes("/api/token") ||
+      requestUrl.includes("/api/auth/google") ||
+      requestUrl.includes("/api/refresh") ||
+      requestUrl.includes("/api/public/register");
+
+    // âœ… Handle 401 - Token Expired (Issue #1 Fix) - only for authenticated requests, never login/auth
+    if (error.response?.status === 401 && !originalRequest._retry && !isAuthEndpoint) {
       if (isRefreshing) {
         // âœ… NEW: Queue request while refresh in progress
         return new Promise(function(resolve, reject) {

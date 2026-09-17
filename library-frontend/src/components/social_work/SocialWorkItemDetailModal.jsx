@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   XMarkIcon, 
@@ -65,15 +66,20 @@ const SocialWorkItemDetailModal = ({ isOpen, item, onClose }) => {
 
   return (
     <>
-      <AnimatePresence>
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 sm:p-6">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.96, y: 12 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.96, y: 12 }}
-            transition={{ duration: 0.2, ease: "easeOut" }}
-            className="relative w-full max-w-4xl bg-white rounded-3xl shadow-2xl border border-slate-100 overflow-hidden my-8 max-h-[90vh] flex flex-col"
-          >
+      {typeof document !== 'undefined' &&
+        createPortal(
+          <AnimatePresence>
+            <div
+              style={{ zIndex: 100000 }}
+              className="fixed inset-0 overflow-y-auto bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 sm:p-6"
+            >
+              <motion.div
+                initial={{ opacity: 0, scale: 0.96, y: 12 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.96, y: 12 }}
+                transition={{ duration: 0.2, ease: "easeOut" }}
+                className="relative w-full max-w-4xl bg-white rounded-3xl shadow-2xl border border-slate-100 overflow-hidden my-8 max-h-[90vh] flex flex-col"
+              >
             {/* Header Sticky */}
             <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50/80 backdrop-blur-md sticky top-0 z-20">
               <div className="flex items-center gap-2">
@@ -247,7 +253,9 @@ const SocialWorkItemDetailModal = ({ isOpen, item, onClose }) => {
             </div>
           </motion.div>
         </div>
-      </AnimatePresence>
+      </AnimatePresence>,
+      document.body
+    )}
 
       {/* Lightbox for full-size viewing */}
       <ImageLightbox

@@ -95,8 +95,6 @@ const LatestPosts = () => {
     setBrokenImages((prev) => ({ ...prev, [postId]: true }));
   };
 
-  const totalPosts = useMemo(() => posts.length, [posts]);
-
   return (
     <div className="min-h-screen bg-[#F3F6F9] py-12 px-4 sm:px-6 font-sans">
       {/* --- HEADER SECTION --- */}
@@ -111,10 +109,6 @@ const LatestPosts = () => {
 
         <p className="body-copy max-w-2xl mx-auto">
           Stay updated with the latest news, events, and official circulars from the Library.
-        </p>
-
-        <p className="mt-3 text-sm text-slate-400">
-          Total Posts: <b className="text-slate-600">{totalPosts}</b>
         </p>
       </div>
 

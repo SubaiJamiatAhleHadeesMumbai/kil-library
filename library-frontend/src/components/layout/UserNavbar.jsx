@@ -301,8 +301,8 @@ const UserNavbar = () => {
             <div className="flex items-center justify-between min-h-[4.25rem] py-2 gap-2">
               
               {/* LOGO & BRAND */}
-              <div className="flex items-center min-w-0 flex-1 md:flex-none">
-                <Link to="/" className="flex items-center gap-2 sm:gap-3 group min-w-0 flex-1 md:flex-none" onClick={() => setIsMobileMenuOpen(false)}>
+              <div className="flex items-center min-w-0 flex-1 lg:flex-none">
+                <Link to="/" className="flex items-center gap-2 sm:gap-3 group min-w-0 flex-1 lg:flex-none" onClick={() => setIsMobileMenuOpen(false)}>
                   <div className="relative shrink-0 flex-shrink-0">
                     <div className="absolute inset-0 rounded-full bg-blue-400/20 blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                     <img
@@ -337,7 +337,7 @@ const UserNavbar = () => {
               </div>
 
               {/* DESKTOP NAV */}
-              <div className="hidden md:flex items-center gap-1">
+              <div className="hidden lg:flex items-center gap-1">
                 {showHomeLink && <NavItem to="/" label={t("home")} icon={HomeIcon} />}
                 {showAboutLink && <NavItem to="/about" label={t("about")} icon={InformationCircleIcon} />}
                 {showLibraryLink && <NavItem to="/books" label={t("library")} icon={BookOpenIcon} />}
@@ -489,7 +489,7 @@ const UserNavbar = () => {
               </div>
 
               {/* RIGHT ACTIONS: CONSOLIDATED CLUSTER */}
-              <div className="hidden md:flex items-center justify-end gap-2 min-w-0 md:flex-1 lg:flex-none">
+              <div className="hidden lg:flex items-center justify-end gap-2 min-w-0 lg:flex-none">
                 
                 {/* Compact Icon-Only Search Trigger (Expand-on-click via modal) */}
                 {showSearchPill && (
@@ -626,7 +626,7 @@ const UserNavbar = () => {
           </div>
 
             {/* MOBILE TOGGLE, SEARCH & LANGUAGE */}
-            <div className="flex items-center gap-1 sm:gap-1.5 md:hidden shrink-0">
+            <div className="flex items-center gap-1 sm:gap-1.5 lg:hidden shrink-0">
               <LanguageSwitcher />
               <button
                 type="button"
@@ -662,7 +662,7 @@ const UserNavbar = () => {
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: "auto" }}
               exit={{ opacity: 0, height: 0 }}
-              className="md:hidden bg-white border-t border-slate-100 overflow-hidden shadow-2xl"
+              className="lg:hidden bg-white border-t border-slate-100 overflow-hidden shadow-2xl"
             >
               <div className="px-4 py-6 space-y-1">
                 

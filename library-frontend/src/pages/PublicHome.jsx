@@ -1,5 +1,6 @@
 import StandardFormattedText from "../components/common/StandardFormattedText";
 import React, { useEffect, useMemo, useState, useCallback, lazy, Suspense } from "react";
+import { createPortal } from "react-dom";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from '../context/AuthProvider';
 import settingsService from '../api/settingsService';
@@ -13,10 +14,10 @@ import {
   AcademicCapIcon,
   UserGroupIcon,
   ChevronRightIcon,
+  ChevronLeftIcon,
   ArrowRightIcon,
   ChevronDownIcon,
   ChevronUpIcon,
-  MagnifyingGlassIcon,
   FunnelIcon,
   PlusIcon,
   ShieldCheckIcon,
@@ -57,9 +58,11 @@ import SocialWorkCard from "../components/social_work/SocialWorkCard";
 import SocialWorkItemDetailModal from "../components/social_work/SocialWorkItemDetailModal";
 import { useBookSearch, deduplicateBooks } from "../hooks/useBookSearch";
 import LandingPostsPreview from "../components/public/LandingPostsPreview";
+import AnnouncementModal from "../components/public/AnnouncementModal";
 import HomepagePostersCarousel from "../components/public/HomepagePostersCarousel";
 import DonationPanel from "../components/donation/DonationPanel";
 import { getErrorMessage } from "../utils/errorMessage";
+import { cleanExcerpt, formatCategoryName } from "../utils/i18nFormatters";
 
 // --- API & IMAGE HELPERS ---
 const API_BASE_URL =
@@ -271,12 +274,12 @@ const PublicHome = () => {
   const [galleryImages, setGalleryImages] = useState([]);
   const [homeGallery, setHomeGallery] = useState([]);
   const [activeLightboxImage, setActiveLightboxImage] = useState(null);
+  const [selectedAnnouncementPost, setSelectedAnnouncementPost] = useState(null);
   const [aboutContent, setAboutContent] = useState({ hero: {}, intro: {}, display: {} });
   const [isAboutExpanded, setIsAboutExpanded] = useState(false);
   const [activitiesItems, setActivitiesItems] = useState([]);
   const [selectedActivity, setSelectedActivity] = useState(null);
   const [recentFatawa, setRecentFatawa] = useState([]);
-  const [fatawaSearchInput, setFatawaSearchInput] = useState("");
 
   // Filters & State
   const [sortBy, setSortBy] = useState("newest");
@@ -798,29 +801,55 @@ const PublicHome = () => {
                       {galleryConfig.subtitle || 'Photo & Event Gallery'}
                     </h3>
                   </div>
-                  <button
-                    onClick={() => navigateToTop('/gallery')}
-                    className="inline-flex items-center gap-2 rounded-full px-6 py-3 text-sm font-bold text-white transition-all shadow-lg hover:shadow-xl hover:opacity-95 focus:outline-none focus:ring-2 focus:ring-offset-2 whitespace-nowrap cursor-pointer"
-                    style={{ backgroundColor: accentColor, outlineColor: accentColor }}
-                  >
-                    View Gallery <ArrowRightIcon className="h-4 w-4" />
-                  </button>
+                  <div className="flex items-center gap-3">
+                    {/* Gallery Prev/Next Navigation Controls */}
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        className="swiper-prev-gallery w-9 h-9 rounded-full border border-slate-200 bg-white hover:bg-slate-100 flex items-center justify-center text-slate-700 transition shadow-2xs cursor-pointer active:scale-95"
+                        aria-label="Previous Slide"
+                      >
+                        <ChevronLeftIcon className="w-4 h-4" />
+                      </button>
+                      <button
+                        type="button"
+                        className="swiper-next-gallery w-9 h-9 rounded-full border border-slate-200 bg-white hover:bg-slate-100 flex items-center justify-center text-slate-700 transition shadow-2xs cursor-pointer active:scale-95"
+                        aria-label="Next Slide"
+                      >
+                        <ChevronRightIcon className="w-4 h-4" />
+                      </button>
+                    </div>
+
+                    <button
+                      onClick={() => navigateToTop('/gallery')}
+                      className="inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-xs sm:text-sm font-bold text-white transition-all shadow-md hover:shadow-lg hover:opacity-95 focus:outline-none focus:ring-2 focus:ring-offset-2 whitespace-nowrap cursor-pointer"
+                      style={{ backgroundColor: accentColor, outlineColor: accentColor }}
+                    >
+                      <span>View Gallery</span>
+                      <ArrowRightIcon className="h-4 w-4" />
+                    </button>
+                  </div>
                 </div>
+
                 <Swiper
                   modules={[Autoplay, Navigation]}
-                  spaceBetween={16}
+                  spaceBetween={20}
                   loop={homeGallery.length > 3}
                   autoplay={{
-                    delay: 4000,
+                    delay: 4500,
                     disableOnInteraction: false,
+                    pauseOnMouseEnter: true,
                   }}
-                  navigation
+                  navigation={{
+                    prevEl: '.swiper-prev-gallery',
+                    nextEl: '.swiper-next-gallery',
+                  }}
                   breakpoints={{
-                    320: { slidesPerView: 1 },
-                    640: { slidesPerView: 2 },
-                    1024: { slidesPerView: 3 },
+                    320: { slidesPerView: 1.1, spaceBetween: 12 },
+                    640: { slidesPerView: 2.1, spaceBetween: 16 },
+                    1024: { slidesPerView: 3, spaceBetween: 20 },
                   }}
-                  className="rounded-2xl overflow-hidden"
+                  className="rounded-2xl !pb-2"
                 >
                   {homeGallery.map((item, idx) => {
                     const title = resolveMultilingualText(item.title, 'Gallery Photo');
@@ -831,27 +860,27 @@ const PublicHome = () => {
                       <SwiperSlide key={item.id || idx}>
                         <div
                           onClick={() => setActiveLightboxImage(item)}
-                          className="relative group overflow-hidden rounded-xl bg-slate-900 shadow-md hover:shadow-xl transition-all h-64 sm:h-72 cursor-pointer"
+                          className="relative group overflow-hidden rounded-2xl bg-slate-900 border border-slate-200/80 shadow-sm hover:shadow-xl transition-all duration-300 h-64 sm:h-72 cursor-pointer"
                         >
                           <img
                             src={imageUrl}
                             alt={title}
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                            className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
                             loading="lazy"
                             onError={(e) => {
                               e.currentTarget.onerror = null;
                               e.currentTarget.style.display = 'none';
                             }}
                           />
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent p-4 flex flex-col justify-end">
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/25 to-transparent p-5 flex flex-col justify-end transition-opacity">
                             {item.year && (
-                              <span className="inline-block px-2 py-0.5 rounded-md bg-white/20 backdrop-blur-md text-[10px] font-bold text-amber-300 mb-1 w-fit border border-white/10">
+                              <span className="inline-block px-2.5 py-0.5 rounded-full bg-white/20 backdrop-blur-md text-[10px] font-bold text-amber-300 mb-1.5 w-fit border border-white/15 shadow-2xs">
                                 {item.year}
                               </span>
                             )}
-                            <p className="text-white font-bold text-sm line-clamp-2">{title}</p>
+                            <p className="text-white font-bold text-sm sm:text-base line-clamp-2 leading-snug drop-shadow-sm">{title}</p>
                             {caption ? (
-                              <p className="text-white/80 text-xs line-clamp-1 mt-0.5">{caption}</p>
+                              <p className="text-white/80 text-xs line-clamp-1 mt-1 font-normal">{caption}</p>
                             ) : null}
                           </div>
                         </div>
@@ -874,33 +903,12 @@ const PublicHome = () => {
             return urText;
           };
 
-          const handleFatawaSearch = (e) => {
-            e.preventDefault();
-            if (fatawaSearchInput.trim()) {
-              navigateToTop(`/fatawa?search=${encodeURIComponent(fatawaSearchInput.trim())}`);
-            } else {
-              navigateToTop('/fatawa');
-            }
-          };
-
-          const quickTopics = [
-            { label: getLangText('طہارت و نماز', 'الطهارة والصلاة', 'Prayer & Purity'), query: 'نماز' },
-            { label: getLangText('روزہ و زکوٰۃ', 'الصيام والزكاة', 'Fasting & Zakat'), query: 'زکوٰۃ' },
-            { label: getLangText('نکاح و خاندان', 'النكاح والأسرة', 'Marriage & Family'), query: 'نکاح' },
-            { label: getLangText('مالی معاملات', 'المعاملات المالية', 'Commerce & Finance'), query: 'تجارت' },
-            { label: getLangText('عقائد و ایمانیات', 'العقيدة والإيمان', 'Creed & Beliefs'), query: 'عقیدہ' },
-          ];
-
           return (
             <div key="fatawa" className="app-shell-container pb-6 sm:pb-12" dir={isRTL ? "rtl" : "ltr"}>
               <div className={sectionFrameClass}>
                 {/* Clean Scholarly Header */}
                 <div className="mb-6 flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-slate-200/80 pb-5">
                   <div>
-                    <div className="inline-flex items-center gap-2 text-xs font-bold text-emerald-800 tracking-wider uppercase mb-1.5">
-                      <span className="w-2 h-2 rounded-full bg-emerald-600"></span>
-                      <span>{getLangText('دار الافتاء والارشاد', 'دار الإفتاء والإرشاد', 'Dar-ul-Ifta & Islamic Guidance')}</span>
-                    </div>
                     <h3
                       className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight"
                       style={{ fontFamily: isRTL ? (currentLang === 'ar' ? "'Noto Naskh Arabic', serif" : "'Noto Nastaliq Urdu', 'JameelNoori', serif") : "inherit" }}
@@ -937,92 +945,49 @@ const PublicHome = () => {
                   </div>
                 </div>
 
-                {/* Search & Topic Filters Bar */}
-                <div className="bg-slate-50/80 rounded-2xl border border-slate-200/80 p-4 sm:p-5 mb-6">
-                  <form onSubmit={handleFatawaSearch} className="mb-3.5">
-                    <div className="relative flex items-center bg-white rounded-xl border border-slate-300 focus-within:border-emerald-600 focus-within:ring-2 focus-within:ring-emerald-500/20 transition-all shadow-2xs">
-                      <MagnifyingGlassIcon className={`w-5 h-5 text-slate-400 absolute ${isRTL ? 'right-3.5' : 'left-3.5'} pointer-events-none`} />
-                      <input
-                        type="text"
-                        value={fatawaSearchInput}
-                        onChange={(e) => setFatawaSearchInput(e.target.value)}
-                        placeholder={getLangText(
-                          'شرعی مسئلہ یا فتویٰ تلاش کریں... (مثال: نماز، روزہ، زکوٰۃ، وراثت، تجارت)',
-                          'ابحث في الفتاوى... (الصلاة، الصيام، الزكاة، الميراث، المعاملات)',
-                          'Search rulings by keyword (e.g. Prayer, Fasting, Zakat, Inheritance)...'
-                        )}
-                        className={`w-full py-3 text-xs sm:text-sm text-slate-800 placeholder-slate-400 bg-transparent outline-none ${isRTL ? 'pr-11 pl-24 text-right' : 'pl-11 pr-24 text-left'}`}
-                      />
-                      <button
-                        type="submit"
-                        className={`absolute ${isRTL ? 'left-1.5' : 'right-1.5'} px-4 py-2 rounded-lg text-xs font-semibold text-white transition hover:opacity-95 cursor-pointer`}
-                        style={{ backgroundColor: accentColor }}
-                      >
-                        {getLangText('تلاش کریں', 'بحث', 'Search')}
-                      </button>
-                    </div>
-                  </form>
-
-                  {/* Clean Topic Pills (Clean scholarly tags without tacky emojis) */}
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mr-1 ml-1">
-                      {getLangText('موضوعات:', 'المواضيع:', 'Topics:')}
-                    </span>
-                    {quickTopics.map((topic, idx) => (
-                      <button
-                        key={idx}
-                        type="button"
-                        onClick={() => navigateToTop(`/fatawa?search=${encodeURIComponent(topic.query)}`)}
-                        className="px-3 py-1.5 rounded-lg text-xs font-medium bg-white text-slate-700 border border-slate-200 hover:border-emerald-500 hover:text-emerald-800 hover:bg-emerald-50/50 transition shadow-2xs cursor-pointer"
-                      >
-                        {topic.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
                 {/* Main Content Area: Recent Answered Cards or Dignified Notice */}
                 {recentFatawa && recentFatawa.length > 0 ? (
                   <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                    {recentFatawa.map((item) => (
-                      <div
-                        key={item.id}
-                        onClick={() => navigateToTop('/fatawa')}
-                        className="group flex flex-col justify-between p-4 sm:p-5 rounded-xl bg-white border border-slate-200 hover:border-emerald-400 hover:shadow-md transition-all cursor-pointer"
-                      >
-                        <div>
-                          <div className="flex items-center justify-between gap-2 mb-2.5">
-                            <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-800 bg-emerald-50 px-2.5 py-0.5 rounded-md border border-emerald-200/60">
-                              <CheckBadgeIcon className="w-3.5 h-3.5 text-emerald-600" />
-                              {getLangText('مستند جواب', 'تمت الإجابة', 'Answered')}
-                            </span>
-                            {item.category && (
-                              <span className="text-[11px] font-medium text-slate-500">
-                                {typeof item.category === 'object' ? item.category.name : item.category}
-                              </span>
+                    {recentFatawa.map((item) => {
+                      const displayCategory = formatCategoryName(item.category, currentLang);
+                      const cleanAnswer = cleanExcerpt(item.answer_text, 140);
+
+                      return (
+                        <div
+                          key={item.id}
+                          onClick={() => navigateToTop(`/fatawa?id=${item.id}`)}
+                          className="group flex flex-col justify-between p-4 sm:p-5 rounded-xl bg-white border border-slate-200 hover:border-emerald-400 hover:shadow-md transition-all cursor-pointer"
+                        >
+                          <div>
+                            <div className="flex items-center justify-between gap-2 mb-2.5">
+                              {displayCategory && (
+                                <span className="text-[11px] font-medium text-slate-500">
+                                  {displayCategory}
+                                </span>
+                              )}
+                            </div>
+                            <h4 className="text-sm font-bold text-slate-900 group-hover:text-emerald-800 line-clamp-2 transition leading-snug">
+                              {item.question_text}
+                            </h4>
+                            {cleanAnswer && (
+                              <p className="text-xs text-slate-600 mt-2 line-clamp-3 leading-relaxed">
+                                {cleanAnswer}
+                              </p>
                             )}
                           </div>
-                          <h4 className="text-sm font-bold text-slate-900 group-hover:text-emerald-800 line-clamp-2 transition leading-snug">
-                            {item.question_text}
-                          </h4>
-                          {item.answer_text && (
-                            <p className="text-xs text-slate-600 mt-2 line-clamp-3 leading-relaxed">
-                              {item.answer_text}
-                            </p>
-                          )}
-                        </div>
 
-                        <div className="pt-3 mt-4 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
-                          <span className="font-medium text-slate-700 truncate max-w-[160px]">
-                            {item.mufti_name ? `${getLangText('مفتی:', 'المفتي:', 'Mufti:')} ${item.mufti_name}` : getLangText('دار الافتاء', 'دار الإفتاء', 'Dar-ul-Ifta')}
-                          </span>
-                          <span className="text-emerald-700 group-hover:underline font-semibold flex items-center gap-1">
-                            {getLangText('تفصیل دیکھیں', 'عرض الفتوى', 'Read More')}
-                            <ArrowRightIcon className={`w-3 h-3 ${isRTL ? 'rotate-180' : ''}`} />
-                          </span>
+                          <div className="pt-3 mt-4 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+                            <span className="font-medium text-slate-700 truncate max-w-[160px]">
+                              {item.mufti_name ? `${getLangText('مفتی:', 'المفتي:', 'Mufti:')} ${item.mufti_name}` : getLangText('دار الافتاء', 'دار الإفتاء', 'Dar-ul-Ifta')}
+                            </span>
+                            <span className="text-emerald-700 group-hover:underline font-semibold flex items-center gap-1">
+                              {getLangText('تفصیل دیکھیں', 'عرض الفتوى', 'Read More')}
+                              <ArrowRightIcon className={`w-3 h-3 ${isRTL ? 'rotate-180' : ''}`} />
+                            </span>
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 ) : (
                   <div className="p-6 sm:p-8 rounded-2xl bg-gradient-to-br from-emerald-950 via-slate-900 to-slate-950 text-white shadow-sm flex flex-col md:flex-row items-center justify-between gap-6">
@@ -1060,22 +1025,6 @@ const PublicHome = () => {
                     </div>
                   </div>
                 )}
-
-                {/* Subtle Scholarly Trust Assurance Strip */}
-                <div className="mt-5 pt-4 border-t border-slate-200/70 grid grid-cols-1 sm:grid-cols-3 gap-3 text-slate-600 text-xs">
-                  <div className="flex items-center gap-2">
-                    <ShieldCheckIcon className="w-4 h-4 text-emerald-600 flex-shrink-0" />
-                    <span className="font-medium text-slate-700">{getLangText('قرآن و سنت کے مستند دلائل', 'أدلة موثقة من الكتاب والسنة', 'Evidence from Quran & Sunnah')}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <LockClosedIcon className="w-4 h-4 text-emerald-600 flex-shrink-0" />
-                    <span className="font-medium text-slate-700">{getLangText('مکمل صیغۂ راز اور پرائیویسی', 'خصوصية وسرية تامة', 'Strict Confidentiality')}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <BookOpenIcon className="w-4 h-4 text-emerald-600 flex-shrink-0" />
-                    <span className="font-medium text-slate-700">{getLangText('لائبریری کی معتبر کتب سے مآخذ', 'مراجع موثقة من أمهات الكتب', 'Verified Library References')}</span>
-                  </div>
-                </div>
               </div>
             </div>
           );
@@ -1340,7 +1289,7 @@ const PublicHome = () => {
               <div className="grid grid-cols-1 gap-6 lg:grid-cols-3 lg:gap-10">
                 {showPosts && (
                   <div className="lg:col-span-2">
-                    <LandingPostsPreview />
+                    <LandingPostsPreview onSelectPost={setSelectedAnnouncementPost} />
                   </div>
                 )}
                 {showDonation && (
@@ -1357,6 +1306,13 @@ const PublicHome = () => {
       })}
 
       {/* MODALS */}
+      {selectedAnnouncementPost && (
+        <AnnouncementModal
+          post={selectedAnnouncementPost}
+          onClose={() => setSelectedAnnouncementPost(null)}
+        />
+      )}
+
       {selectedBook && (
         <BookDetailsModal
           book={selectedBook}
@@ -1402,22 +1358,25 @@ const PublicHome = () => {
       )}
 
       {/* GALLERY LIGHTBOX MODAL */}
-      {activeLightboxImage && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/90 backdrop-blur-md animate-in fade-in duration-200"
-          onClick={() => setActiveLightboxImage(null)}
-        >
+      {activeLightboxImage &&
+        typeof document !== 'undefined' &&
+        createPortal(
           <div
-            className="relative max-w-4xl w-full bg-slate-900 rounded-3xl overflow-hidden shadow-2xl border border-white/10"
-            onClick={(e) => e.stopPropagation()}
+            style={{ zIndex: 100000 }}
+            className="fixed inset-0 flex items-center justify-center p-4 bg-slate-950/90 backdrop-blur-md animate-in fade-in duration-200"
+            onClick={() => setActiveLightboxImage(null)}
           >
-            <button
-              type="button"
-              onClick={() => setActiveLightboxImage(null)}
-              className="absolute top-4 right-4 z-20 w-9 h-9 rounded-full bg-black/60 text-white flex items-center justify-center hover:bg-black/80 transition cursor-pointer"
+            <div
+              className="relative max-w-4xl w-full bg-slate-900 rounded-3xl overflow-hidden shadow-2xl border border-white/10"
+              onClick={(e) => e.stopPropagation()}
             >
-              <XMarkIcon className="w-5 h-5" />
-            </button>
+              <button
+                type="button"
+                onClick={() => setActiveLightboxImage(null)}
+                className="absolute top-4 right-4 z-20 w-9 h-9 rounded-full bg-black/60 text-white flex items-center justify-center hover:bg-black/80 transition cursor-pointer"
+              >
+                <XMarkIcon className="w-5 h-5" />
+              </button>
 
             <div className="max-h-[75vh] flex items-center justify-center bg-black">
               <img
@@ -1455,7 +1414,8 @@ const PublicHome = () => {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

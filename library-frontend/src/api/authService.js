@@ -53,7 +53,7 @@ export const authService = {
                 user,
             };
         } catch (error) {
-            this.logout();
+            this.clearTokens();
             console.error("Login Flow Failed:", error.response?.data || error.message);
             throw error;
         }

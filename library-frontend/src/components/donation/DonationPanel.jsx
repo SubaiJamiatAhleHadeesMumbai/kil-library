@@ -58,10 +58,6 @@ const DonationPanel = () => {
     <div className="overflow-hidden rounded-[2rem] border border-slate-200/20 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-850 text-white shadow-[0_20px_70px_-35px_rgba(15,23,42,0.6)]">
       {/* Header */}
       <div className="border-b border-white/10 p-5 sm:p-6 text-center sm:text-left">
-        <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-emerald-400/20 bg-emerald-500/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.3em] text-emerald-300">
-          <HeartIcon className="h-4 w-4" />
-          Community support
-        </div>
         <h2 className="text-xl font-black text-white sm:text-2xl">
           Support the Library & Markaz
         </h2>

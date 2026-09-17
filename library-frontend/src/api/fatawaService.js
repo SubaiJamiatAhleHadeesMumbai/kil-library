@@ -38,6 +38,11 @@ export const fatawaService = {
     return response.data;
   },
 
+  async getQuestionById(questionId) {
+    const response = await apiClient.get(`/api/fatawa/questions/${questionId}`);
+    return response.data;
+  },
+
   async getMyQuestions() {
     const response = await apiClient.get('/api/fatawa/questions/my-questions');
     return response.data;

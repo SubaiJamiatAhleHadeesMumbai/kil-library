@@ -275,6 +275,15 @@ def my_questions(
     ).order_by(desc(FatawaQuestion.created_at)).all()
 
 
+@router.get("/questions/{question_id}", response_model=schemas.FatawaQuestion)
+def get_single_question(
+    question_id: int,
+    db: Session = Depends(get_db),
+):
+    return get_question_or_404(db, question_id)
+
+
+
 @router.post("/questions", response_model=schemas.FatawaQuestion, status_code=status.HTTP_201_CREATED)
 def create_question(
     payload: schemas.FatawaQuestionCreate,

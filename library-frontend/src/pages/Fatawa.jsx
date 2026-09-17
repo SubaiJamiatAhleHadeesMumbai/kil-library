@@ -1,6 +1,6 @@
-import React, { Suspense, lazy, useDeferredValue, useMemo, useState } from 'react';
+import React, { Suspense, lazy, useDeferredValue, useMemo, useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
 import {
   ArrowPathIcon,
@@ -171,11 +171,16 @@ const QuestionRow = ({ question, open, onToggle, currentLang }) => {
   const cleanedVerdict = cleanTextByLanguage(question.verdict_summary, currentLang);
 
   return (
-    <article className="group overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xs transition-all duration-200 hover:border-slate-300">
+    <article
+      id={`fatawa-${question.id}`}
+      className={`group overflow-hidden rounded-2xl border transition-all duration-200 ${
+        open ? 'border-emerald-500 shadow-md ring-2 ring-emerald-500/20 bg-white' : 'border-slate-200 bg-white shadow-2xs hover:border-slate-300'
+      }`}
+    >
       <button
         type="button"
         onClick={onToggle}
-        className="w-full p-4 sm:p-5 text-left transition-colors hover:bg-slate-50/60 focus:outline-none"
+        className="w-full p-4 sm:p-5 text-left transition-colors hover:bg-slate-50/60 focus:outline-none cursor-pointer"
       >
         <div className="flex items-start justify-between gap-3">
           <div className="space-y-2.5 flex-1 min-w-0">
@@ -427,6 +432,9 @@ const QuestionRow = ({ question, open, onToggle, currentLang }) => {
 const Fatawa = () => {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const targetQuestionId = searchParams.get('id') || searchParams.get('questionId');
+
   const { user, isAuth } = useAuth();
   const { currentLang, t } = useLanguage();
   const isRTL = currentLang === 'ur' || currentLang === 'ar';
@@ -434,6 +442,7 @@ const Fatawa = () => {
   const [searchInput, setSearchInput] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
   const [activeQuestionId, setActiveQuestionId] = useState(null);
+  const [extraTargetQuestion, setExtraTargetQuestion] = useState(null);
   const [askOpen, setAskOpen] = useState(false);
   const [mobileTab, setMobileTab] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
@@ -488,7 +497,47 @@ const Fatawa = () => {
   const rawQuestions = Array.isArray(responseData) ? responseData : responseData?.items || [];
   const totalQuestions = responseData?.total !== undefined ? responseData.total : rawQuestions.length;
   const totalPages = responseData?.total_pages !== undefined ? responseData.total_pages : (Math.ceil(totalQuestions / ITEMS_PER_PAGE) || 1);
-  const paginatedQuestions = rawQuestions;
+
+  // Handle URL param targeting ?id=X or ?questionId=X
+  React.useEffect(() => {
+    if (!targetQuestionId) return;
+
+    const parsedId = Number(targetQuestionId);
+    const existing = rawQuestions.find((q) => q.id === parsedId);
+    if (existing) {
+      setActiveQuestionId(parsedId);
+      setTimeout(() => {
+        const el = document.getElementById(`fatawa-${parsedId}`);
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }, 250);
+    } else {
+      // Fetch specifically if not in currently loaded paginated chunk
+      fatawaService.getQuestionById(parsedId)
+        .then((q) => {
+          if (q && q.id) {
+            setExtraTargetQuestion(q);
+            setActiveQuestionId(q.id);
+            setTimeout(() => {
+              const el = document.getElementById(`fatawa-${q.id}`);
+              if (el) {
+                el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              }
+            }, 300);
+          }
+        })
+        .catch(() => {});
+    }
+  }, [targetQuestionId, rawQuestions]);
+
+  // If extraTargetQuestion exists and is not already in rawQuestions, prepend it
+  const paginatedQuestions = React.useMemo(() => {
+    if (extraTargetQuestion && !rawQuestions.some((q) => q.id === extraTargetQuestion.id)) {
+      return [extraTargetQuestion, ...rawQuestions];
+    }
+    return rawQuestions;
+  }, [extraTargetQuestion, rawQuestions]);
 
   // Reset pagination on filter/search change
   React.useEffect(() => {

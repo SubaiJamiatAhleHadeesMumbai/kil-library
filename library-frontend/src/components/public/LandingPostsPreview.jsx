@@ -7,21 +7,45 @@ import {
     PhotoIcon,
     SparklesIcon,
     EyeIcon,
-    ArrowDownTrayIcon,
-    XMarkIcon,
 } from "@heroicons/react/24/outline";
 import postService from "../../api/postService";
 import { useNavigate } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
+import { cleanExcerpt } from "../../utils/i18nFormatters";
+
+import AnnouncementModal from "./AnnouncementModal";
 
 import "swiper/css";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || (import.meta.env.PROD ? "" : "http://127.0.0.1:8000");
 
-const LandingPostsPreview = () => {
+const LandingPostsPreview = ({ onSelectPost = null }) => {
     const [selectedPost, setSelectedPost] = useState(null);
     const [posts, setPosts] = useState([]);
     const navigate = useNavigate();
+
+    const handleSelectPost = (p) => {
+        if (onSelectPost) {
+            onSelectPost(p);
+        } else {
+            setSelectedPost(p);
+        }
+    };
+
+    // Lock body scroll and handle Escape key when popup/modal is open
+    useEffect(() => {
+        if (!selectedPost) return;
+        document.body.style.overflow = "hidden";
+        const handleKeyDown = (e) => {
+            if (e.key === "Escape") {
+                setSelectedPost(null);
+            }
+        };
+        window.addEventListener("keydown", handleKeyDown);
+        return () => {
+            document.body.style.overflow = "";
+            window.removeEventListener("keydown", handleKeyDown);
+        };
+    }, [selectedPost]);
 
     useEffect(() => {
         (async () => {
@@ -46,16 +70,9 @@ const LandingPostsPreview = () => {
         <section className="overflow-hidden rounded-[2rem] border border-slate-200 bg-gradient-to-br from-white via-slate-50 to-cyan-50/70 p-3 shadow-[0_20px_60px_-35px_rgba(15,23,42,0.25)] sm:p-5 lg:p-7">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
                 <div>
-                    <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-cyan-200 bg-cyan-50 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.25em] text-cyan-700 sm:text-xs">
-                        <SparklesIcon className="h-4 w-4" />
-                        Latest updates
-                    </div>
                     <h2 className="text-xl font-extrabold text-[#002147] sm:text-3xl">
                         Latest Announcements
                     </h2>
-                    <p className="mt-1.5 max-w-2xl text-xs leading-relaxed text-slate-600 sm:mt-2 sm:text-base">
-                        Stay informed with the newest library news, events, and important updates.
-                    </p>
                 </div>
                 <button
                     onClick={() => navigate("/posts")}
@@ -84,11 +101,13 @@ const LandingPostsPreview = () => {
                             return (
                                 <SwiperSlide key={post.id || i}>
                                     <div
-                                        onClick={() => setSelectedPost(post)}
-                                        className="group w-full cursor-pointer overflow-hidden rounded-[1.75rem] border border-slate-200 bg-white shadow-md transition-all duration-300 hover:shadow-xl grid grid-cols-1 lg:grid-cols-[1.2fr_1fr] items-stretch"
+                                        className="group w-full overflow-hidden rounded-[1.75rem] border border-slate-200 bg-white shadow-md transition-all duration-300 hover:shadow-xl grid grid-cols-1 lg:grid-cols-[1.2fr_1fr] items-stretch"
                                     >
                                         {/* Left / Top Canvas: 100% Full Uncropped Poster Frame */}
-                                        <div className="relative min-h-[320px] sm:min-h-[440px] lg:min-h-[500px] flex items-center justify-center bg-slate-950 p-3 sm:p-6 overflow-hidden">
+                                        <div 
+                                            onClick={() => handleSelectPost(post)}
+                                            className="relative min-h-[320px] sm:min-h-[440px] lg:min-h-[500px] flex items-center justify-center bg-slate-950 p-3 sm:p-6 overflow-hidden cursor-pointer"
+                                        >
                                             {imageUrl ? (
                                                 <>
                                                     {/* Soft Ambient Blurred Background */}
@@ -139,20 +158,27 @@ const LandingPostsPreview = () => {
                                                     </span>
                                                 </div>
 
-                                                <h3 className="text-xl sm:text-2xl lg:text-3xl font-extrabold text-[#002147] leading-snug group-hover:text-blue-700 transition-colors">
+                                                <h3 
+                                                    onClick={() => handleSelectPost(post)}
+                                                    className="text-xl sm:text-2xl lg:text-3xl font-extrabold text-[#002147] leading-snug hover:text-blue-700 transition-colors cursor-pointer"
+                                                >
                                                     {post?.title || "Untitled Announcement"}
                                                 </h3>
 
                                                 <p className="text-sm leading-relaxed text-slate-600 whitespace-pre-line line-clamp-6 sm:line-clamp-none font-medium">
-                                                    {post?.content || "Click to view complete details and download announcement artwork."}
+                                                    {cleanExcerpt(post?.content, 350) || "Click to view complete details and download announcement artwork."}
                                                 </p>
                                             </div>
 
                                             <div className="mt-6 pt-4 border-t border-slate-200 flex items-center justify-between">
-                                                <span className="inline-flex items-center gap-1.5 text-xs font-bold text-blue-700 group-hover:underline">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleSelectPost(post)}
+                                                    className="inline-flex items-center gap-1.5 text-xs font-bold text-blue-700 hover:text-blue-900 transition-colors cursor-pointer"
+                                                >
                                                     <EyeIcon className="w-4 h-4" />
-                                                    View Full Details & Download
-                                                </span>
+                                                    <span>View Full Details & Download</span>
+                                                </button>
                                                 <span className="text-xs text-slate-400 font-semibold">
                                                     Markaz Ahle Hadees Kokan
                                                 </span>
@@ -170,85 +196,13 @@ const LandingPostsPreview = () => {
                 )}
             </div>
 
-            {/* FULL-SCREEN POSTER LIGHTBOX MODAL */}
-            <AnimatePresence>
-                {selectedPost && (
-                    <motion.div
-                        className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 p-2 sm:p-4 backdrop-blur-md"
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        onClick={() => setSelectedPost(null)}
-                    >
-                        <motion.div
-                            initial={{ scale: 0.95, opacity: 0 }}
-                            animate={{ scale: 1, opacity: 1 }}
-                            exit={{ scale: 0.95, opacity: 0 }}
-                            transition={{ duration: 0.2 }}
-                            onClick={(e) => e.stopPropagation()}
-                            className="relative w-full max-w-4xl max-h-[92vh] overflow-y-auto rounded-2xl bg-white shadow-2xl flex flex-col"
-                        >
-                            {/* Modal Header */}
-                            <div className="sticky top-0 z-30 flex items-center justify-between bg-[#002147] text-white px-5 py-4 shrink-0 rounded-t-2xl shadow-sm">
-                                <h3 className="text-base sm:text-lg font-bold truncate pr-4">
-                                    {selectedPost?.title}
-                                </h3>
-                                <button
-                                    onClick={() => setSelectedPost(null)}
-                                    className="p-1.5 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors"
-                                    aria-label="Close"
-                                >
-                                    <XMarkIcon className="w-6 h-6" />
-                                </button>
-                            </div>
-
-                            {/* Full Poster Image View */}
-                            <div className="bg-slate-950 p-4 sm:p-6 flex items-center justify-center min-h-[300px]">
-                                {getFileUrl(selectedPost?.file_url) ? (
-                                    <img
-                                        src={getFileUrl(selectedPost.file_url)}
-                                        alt={selectedPost.title}
-                                        className="max-h-[75vh] w-auto max-w-full object-contain rounded-xl shadow-2xl"
-                                    />
-                                ) : (
-                                    <div className="h-64 flex items-center justify-center text-slate-400">
-                                        <PhotoIcon className="w-16 h-16 opacity-40" />
-                                    </div>
-                                )}
-                            </div>
-
-                            {/* Content & Actions */}
-                            <div className="p-5 sm:p-8 bg-white space-y-4">
-                                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-4">
-                                    <div className="flex items-center gap-2 text-xs font-bold text-slate-500">
-                                        <CalendarDaysIcon className="w-4 h-4 text-blue-600" />
-                                        {selectedPost?.created_at
-                                            ? new Date(selectedPost.created_at).toLocaleDateString()
-                                            : "N/A"}
-                                    </div>
-
-                                    {getFileUrl(selectedPost?.file_url) && (
-                                        <a
-                                            href={getFileUrl(selectedPost.file_url)}
-                                            download
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-full shadow-sm transition"
-                                        >
-                                            <ArrowDownTrayIcon className="w-4 h-4" />
-                                            Download Poster
-                                        </a>
-                                    )}
-                                </div>
-
-                                <p className="text-slate-700 text-sm sm:text-base leading-relaxed whitespace-pre-wrap font-medium">
-                                    {selectedPost?.content}
-                                </p>
-                            </div>
-                        </motion.div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
+            {/* Fallback Standalone Modal if not handled by parent */}
+            {!onSelectPost && selectedPost && (
+                <AnnouncementModal
+                    post={selectedPost}
+                    onClose={() => setSelectedPost(null)}
+                />
+            )}
         </section>
     );
 };

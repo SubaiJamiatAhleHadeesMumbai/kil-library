@@ -112,7 +112,6 @@ const Footer = () => {
             <li><a href="#" className="hover:text-white transition-colors">Excel File Download</a></li>
             <li><a href="#" className="hover:text-white transition-colors">Our Other Projects</a></li>
             {showAbout ? <li><Link to="/about" className="hover:text-white transition-colors">About Us</Link></li> : null}
-            {showFatawa ? <li><Link to="/fatawa" className="hover:text-white transition-colors">Fatawa Q&A</Link></li> : null}
           </ul>
         </div>
 
