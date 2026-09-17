@@ -14,12 +14,25 @@ const categoryColorStyles = {
   other: { badge: 'bg-purple-50 text-purple-700 border-purple-200', accent: 'group-hover:text-purple-700' },
 };
 
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL ||
+  (import.meta.env.PROD ? '' : 'http://127.0.0.1:8000');
+
+const resolveImageUrl = (value) => {
+  if (!value || typeof value !== 'string') return '';
+  if (value.startsWith('http://') || value.startsWith('https://')) return value;
+  const path = String(value);
+  const cleanPath = path.startsWith('/') ? path : `/${path}`;
+  return `${API_BASE_URL}${cleanPath}`;
+};
+
 const SocialWorkCard = ({ item, onSelect }) => {
   const images = Array.isArray(item.images) && item.images.length > 0
     ? item.images
     : (item.featured_image ? [{ url: item.featured_image }] : []);
 
-  const featuredUrl = item.featured_image || (images[0]?.url || images[0]);
+  const rawFeaturedUrl = item.featured_image || (images[0]?.url || images[0]);
+  const featuredUrl = resolveImageUrl(rawFeaturedUrl);
   const style = categoryColorStyles[item.category] || categoryColorStyles.social_work;
 
   const formattedDate = item.event_date 
@@ -44,6 +57,10 @@ const SocialWorkCard = ({ item, onSelect }) => {
             alt={item.title}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
             loading="lazy"
+            onError={(e) => {
+              e.currentTarget.onerror = null;
+              e.currentTarget.style.display = 'none';
+            }}
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center bg-slate-100 text-slate-400">
@@ -98,14 +115,23 @@ const SocialWorkCard = ({ item, onSelect }) => {
         {images.length > 1 && (
           <div className="flex items-center gap-2 pt-2">
             {images.slice(0, 4).map((img, idx) => {
-              const url = typeof img === 'string' ? img : img?.url;
+              const rawUrl = typeof img === 'string' ? img : img?.url;
+              const url = resolveImageUrl(rawUrl);
               return (
                 <div 
                   key={idx} 
                   onClick={() => onSelect(item)}
-                  className="h-10 w-10 rounded-lg overflow-hidden border border-slate-200 flex-shrink-0 cursor-pointer hover:opacity-80 transition-opacity"
+                  className="h-10 w-10 rounded-lg overflow-hidden border border-slate-200 flex-shrink-0 cursor-pointer hover:opacity-80 transition-opacity bg-slate-100"
                 >
-                  <img src={url} alt="Gallery thumb" className="w-full h-full object-cover" />
+                  <img
+                    src={url}
+                    alt="Gallery thumb"
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      e.currentTarget.onerror = null;
+                      e.currentTarget.style.display = 'none';
+                    }}
+                  />
                 </div>
               );
             })}

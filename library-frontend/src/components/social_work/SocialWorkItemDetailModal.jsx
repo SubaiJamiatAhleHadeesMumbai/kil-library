@@ -19,6 +19,18 @@ const categoryLabels = {
   other: { name: 'Other Activities', badgeClass: 'bg-purple-50 text-purple-700 border-purple-200' },
 };
 
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL ||
+  (import.meta.env.PROD ? '' : 'http://127.0.0.1:8000');
+
+const resolveImageUrl = (value) => {
+  if (!value || typeof value !== 'string') return '';
+  if (value.startsWith('http://') || value.startsWith('https://')) return value;
+  const path = String(value);
+  const cleanPath = path.startsWith('/') ? path : `/${path}`;
+  return `${API_BASE_URL}${cleanPath}`;
+};
+
 const SocialWorkItemDetailModal = ({ isOpen, item, onClose }) => {
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
@@ -26,9 +38,19 @@ const SocialWorkItemDetailModal = ({ isOpen, item, onClose }) => {
 
   if (!isOpen || !item) return null;
 
-  const imagesList = Array.isArray(item.images) && item.images.length > 0 
+  const rawImages = Array.isArray(item.images) && item.images.length > 0 
     ? item.images 
     : (item.featured_image ? [{ url: item.featured_image, caption: item.title }] : []);
+
+  const imagesList = rawImages.map((img) => {
+    if (typeof img === 'string') {
+      return resolveImageUrl(img);
+    }
+    return {
+      ...img,
+      url: resolveImageUrl(img?.url),
+    };
+  });
 
   const categoryInfo = categoryLabels[item.category] || categoryLabels.social_work;
 
@@ -129,6 +151,10 @@ const SocialWorkItemDetailModal = ({ isOpen, item, onClose }) => {
                       src={typeof imagesList[activeGalleryIndex] === 'string' ? imagesList[activeGalleryIndex] : imagesList[activeGalleryIndex]?.url} 
                       alt={item.title} 
                       className="w-full h-full object-cover group-hover:scale-102 transition-transform duration-500"
+                      onError={(e) => {
+                        e.currentTarget.onerror = null;
+                        e.currentTarget.style.display = 'none';
+                      }}
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-4">
                       <p className="text-white text-xs font-semibold">Click to expand fullscreen</p>
@@ -175,13 +201,21 @@ const SocialWorkItemDetailModal = ({ isOpen, item, onClose }) => {
                           <button
                             key={idx}
                             onClick={() => setActiveGalleryIndex(idx)}
-                            className={`relative h-16 sm:h-20 rounded-xl overflow-hidden border-2 transition-all cursor-pointer ${
+                            className={`relative h-16 sm:h-20 rounded-xl overflow-hidden border-2 transition-all cursor-pointer bg-slate-100 ${
                               idx === activeGalleryIndex 
                                 ? 'border-blue-600 ring-2 ring-blue-100 scale-102' 
                                 : 'border-transparent opacity-70 hover:opacity-100'
                             }`}
                           >
-                            <img src={url} alt={`Thumbnail ${idx + 1}`} className="w-full h-full object-cover" />
+                            <img
+                              src={url}
+                              alt={`Thumbnail ${idx + 1}`}
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                e.currentTarget.onerror = null;
+                                e.currentTarget.style.display = 'none';
+                              }}
+                            />
                           </button>
                         );
                       })}

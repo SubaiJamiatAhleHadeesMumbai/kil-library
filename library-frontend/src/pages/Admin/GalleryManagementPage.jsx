@@ -658,6 +658,10 @@ const GalleryManagementPage = () => {
                           src={toAbsoluteUrl(item.image_url)}
                           alt={item.title?.en || 'Gallery'}
                           className="relative z-10 w-full h-full object-contain"
+                          onError={(e) => {
+                            e.currentTarget.onerror = null;
+                            e.currentTarget.style.display = 'none';
+                          }}
                         />
 
                         {/* Video Badge */}

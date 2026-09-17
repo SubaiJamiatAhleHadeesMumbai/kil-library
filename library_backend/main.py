@@ -34,6 +34,7 @@ from migration_runner import run_migrations
 
 # --- Import Database & Models ---
 from database import engine, Base, get_db
+import models  # Registers all models with Base.metadata
 from models import user_model, permission_model, library_management_models, token_blacklist_model, analytics_model
 import auth
 
@@ -241,6 +242,68 @@ def sync_database_schema():
         """,
         # gallery_items show_on_home column
         "ALTER TABLE gallery_items ADD COLUMN IF NOT EXISTS show_on_home BOOLEAN DEFAULT FALSE;",
+        # fatawa system tables & columns guarantee
+        """
+        CREATE TABLE IF NOT EXISTS fatawa_categories (
+            id SERIAL PRIMARY KEY,
+            name VARCHAR(150) NOT NULL UNIQUE,
+            slug VARCHAR(180) NOT NULL UNIQUE,
+            description TEXT,
+            sort_order INTEGER DEFAULT 0 NOT NULL,
+            is_active BOOLEAN DEFAULT TRUE NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+            deleted_at TIMESTAMP
+        );
+        """,
+        """
+        CREATE TABLE IF NOT EXISTS fatawa_questions (
+            id SERIAL PRIMARY KEY,
+            slug VARCHAR(255) NOT NULL UNIQUE,
+            category_id INTEGER REFERENCES fatawa_categories(id) ON DELETE SET NULL,
+            user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+            question_text TEXT NOT NULL,
+            answer_text TEXT,
+            display_name VARCHAR(255),
+            guest_email VARCHAR(255),
+            asked_by_name VARCHAR(255),
+            asked_by_email VARCHAR(255),
+            reference_link TEXT,
+            answered_by VARCHAR(255),
+            pdf_url VARCHAR(500),
+            images JSON,
+            verdict_summary VARCHAR(255),
+            mufti_name VARCHAR(255),
+            darul_ifta_reference_no VARCHAR(100),
+            is_anonymous BOOLEAN DEFAULT FALSE NOT NULL,
+            visibility VARCHAR(20) DEFAULT 'public' NOT NULL,
+            status VARCHAR(20) DEFAULT 'pending' NOT NULL,
+            answered_by_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+            answered_at TIMESTAMP,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+            deleted_at TIMESTAMP,
+            published_at TIMESTAMP
+        );
+        """,
+        "ALTER TABLE fatawa_questions ADD COLUMN IF NOT EXISTS user_id INTEGER REFERENCES users(id) ON DELETE SET NULL;",
+        "ALTER TABLE fatawa_questions ADD COLUMN IF NOT EXISTS display_name VARCHAR(255);",
+        "ALTER TABLE fatawa_questions ADD COLUMN IF NOT EXISTS guest_email VARCHAR(255);",
+        "ALTER TABLE fatawa_questions ADD COLUMN IF NOT EXISTS asked_by_name VARCHAR(255);",
+        "ALTER TABLE fatawa_questions ADD COLUMN IF NOT EXISTS asked_by_email VARCHAR(255);",
+        "ALTER TABLE fatawa_questions ADD COLUMN IF NOT EXISTS answered_by VARCHAR(255);",
+        "ALTER TABLE fatawa_questions ADD COLUMN IF NOT EXISTS pdf_url VARCHAR(500);",
+        "ALTER TABLE fatawa_questions ADD COLUMN IF NOT EXISTS images JSON;",
+        "ALTER TABLE fatawa_questions ADD COLUMN IF NOT EXISTS verdict_summary VARCHAR(255);",
+        "ALTER TABLE fatawa_questions ADD COLUMN IF NOT EXISTS mufti_name VARCHAR(255);",
+        "ALTER TABLE fatawa_questions ADD COLUMN IF NOT EXISTS darul_ifta_reference_no VARCHAR(100);",
+        "ALTER TABLE fatawa_questions ADD COLUMN IF NOT EXISTS is_anonymous BOOLEAN DEFAULT FALSE;",
+        "ALTER TABLE fatawa_questions ADD COLUMN IF NOT EXISTS visibility VARCHAR(20) DEFAULT 'public';",
+        "ALTER TABLE fatawa_questions ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'pending';",
+        "ALTER TABLE fatawa_questions ADD COLUMN IF NOT EXISTS answered_by_id INTEGER REFERENCES users(id) ON DELETE SET NULL;",
+        "ALTER TABLE fatawa_questions ADD COLUMN IF NOT EXISTS answered_at TIMESTAMP;",
+        "ALTER TABLE fatawa_questions ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP;",
+        "ALTER TABLE fatawa_questions ADD COLUMN IF NOT EXISTS published_at TIMESTAMP;",
     ]
     
     try:
@@ -392,10 +455,13 @@ app.add_middleware(
 static_path = Path("static")
 static_path.mkdir(parents=True, exist_ok=True)
 
+(static_path / "gallery_uploads").mkdir(parents=True, exist_ok=True)
+
 uploads_path = static_path / "uploads"
 uploads_path.mkdir(parents=True, exist_ok=True)
 
 (uploads_path / "posts").mkdir(parents=True, exist_ok=True)
+(uploads_path / "markaz_social_work").mkdir(parents=True, exist_ok=True)
 # ✅ Added these two lines for Local PDFs and Texts
 (uploads_path / "pdfs").mkdir(parents=True, exist_ok=True)
 (uploads_path / "texts").mkdir(parents=True, exist_ok=True)

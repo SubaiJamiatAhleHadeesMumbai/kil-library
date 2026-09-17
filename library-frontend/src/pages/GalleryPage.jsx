@@ -353,6 +353,10 @@ const GalleryPage = () => {
                       loading="lazy"
                       decoding="async"
                       className="absolute inset-0 w-full h-full object-cover transition duration-500 group-hover:scale-105"
+                      onError={(e) => {
+                        e.currentTarget.onerror = null;
+                        e.currentTarget.style.display = 'none';
+                      }}
                     />
 
                     {/* Dark Gradient Overlay for text contrast */}
@@ -497,6 +501,10 @@ const GalleryPage = () => {
                   src={toAbsoluteUrl(activeLightboxItem.image_url)}
                   alt={getLocalized(activeLightboxItem.title, currentLanguage)}
                   className="max-h-[72vh] max-w-full object-contain p-1 rounded-xl"
+                  onError={(e) => {
+                    e.currentTarget.onerror = null;
+                    e.currentTarget.style.display = 'none';
+                  }}
                 />
               )}
             </div>

@@ -44,7 +44,7 @@ class FatawaQuestion(Base):
     asked_by_name = Column(String(255), nullable=True)
     asked_by_email = Column(String(255), nullable=True)
     reference_link = Column(Text, nullable=True)
-    answered_by = Column(String(255), nullable=True)
+    answered_by_name = Column("answered_by", String(255), nullable=True)
 
     # Rich Answer & Document Attachments
     pdf_url = Column(String(500), nullable=True)

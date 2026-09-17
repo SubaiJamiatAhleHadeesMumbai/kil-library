@@ -1439,13 +1439,13 @@ const PublicHome = () => {
 
             <div className="max-h-[75vh] flex items-center justify-center bg-black">
               <img
-                src={
-                  activeLightboxImage.image_url?.startsWith('http')
-                    ? activeLightboxImage.image_url
-                    : `${import.meta.env.VITE_API_BASE_URL || ''}${activeLightboxImage.image_url?.startsWith('/') ? activeLightboxImage.image_url : `/${activeLightboxImage.image_url}`}`
-                }
+                src={resolveImageUrl(activeLightboxImage.image_url)}
                 alt="Enlarged gallery photo"
                 className="max-h-[75vh] w-auto max-w-full object-contain"
+                onError={(e) => {
+                  e.currentTarget.onerror = null;
+                  e.currentTarget.style.display = 'none';
+                }}
               />
             </div>
 
