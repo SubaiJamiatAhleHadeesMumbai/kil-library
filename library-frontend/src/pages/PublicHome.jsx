@@ -884,42 +884,43 @@ const PublicHome = () => {
           };
 
           const quickTopics = [
-            { label: getLangText('نماز و طہارت', 'الصلاة والطهارة', 'Prayer & Purity'), icon: '🕌', query: 'نماز' },
-            { label: getLangText('روزہ و زکوٰۃ', 'الصيام والزكاة', 'Fasting & Zakat'), icon: '🌙', query: 'زکوٰۃ' },
-            { label: getLangText('نکاح و خاندان', 'النكاح والأسرة', 'Marriage & Family'), icon: '💍', query: 'نکاح' },
-            { label: getLangText('معاملات و معیشت', 'المعاملات والتجارة', 'Business & Finance'), icon: '💼', query: 'تجارت' },
+            { label: getLangText('طہارت و نماز', 'الطهارة والصلاة', 'Prayer & Purity'), query: 'نماز' },
+            { label: getLangText('روزہ و زکوٰۃ', 'الصيام والزكاة', 'Fasting & Zakat'), query: 'زکوٰۃ' },
+            { label: getLangText('نکاح و خاندان', 'النكاح والأسرة', 'Marriage & Family'), query: 'نکاح' },
+            { label: getLangText('مالی معاملات', 'المعاملات المالية', 'Commerce & Finance'), query: 'تجارت' },
+            { label: getLangText('عقائد و ایمانیات', 'العقيدة والإيمان', 'Creed & Beliefs'), query: 'عقیدہ' },
           ];
 
           return (
             <div key="fatawa" className="app-shell-container pb-6 sm:pb-12" dir={isRTL ? "rtl" : "ltr"}>
               <div className={sectionFrameClass}>
-                {/* Header Strip */}
-                <div className="mb-6 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+                {/* Clean Scholarly Header */}
+                <div className="mb-6 flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-slate-200/80 pb-5">
                   <div>
-                    <div className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3.5 py-1 text-xs font-bold text-emerald-800 border border-emerald-200 mb-2">
-                      <ShieldCheckIcon className="w-4 h-4 text-emerald-600" />
-                      <span>{getLangText('دار الافتاء والارشاد • شرعی فتاویٰ', 'دار الإفتاء والإرشاد • أحكام شرعية', 'DAR-UL-IFTA & ISLAMIC GUIDANCE')}</span>
+                    <div className="inline-flex items-center gap-2 text-xs font-bold text-emerald-800 tracking-wider uppercase mb-1.5">
+                      <span className="w-2 h-2 rounded-full bg-emerald-600"></span>
+                      <span>{getLangText('دار الافتاء والارشاد', 'دار الإفتاء والإرشاد', 'Dar-ul-Ifta & Islamic Guidance')}</span>
                     </div>
                     <h3
-                      className="section-title text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight"
+                      className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight"
                       style={{ fontFamily: isRTL ? (currentLang === 'ar' ? "'Noto Naskh Arabic', serif" : "'Noto Nastaliq Urdu', 'JameelNoori', serif") : "inherit" }}
                     >
-                      {fatawaConfig.title || getLangText('قرآن و سنت کی روشنی میں مستند شرعی رہنمائی', 'فتاوى شرعية موثقة وفق الكتاب والسنة', 'Authentic Islamic Guidance Based on Quran & Sunnah')}
+                      {fatawaConfig.title || getLangText('شرعی مسائل اور مستند رہنمائی', 'الفتاوى الشرعية والاستشارات', 'Authentic Islamic Rulings & Inquiries')}
                     </h3>
-                    <p className="text-xs sm:text-sm text-slate-600 mt-1 max-w-2xl">
+                    <p className="text-xs sm:text-sm text-slate-600 mt-1 max-w-2xl leading-relaxed">
                       {fatawaConfig.subtitle || getLangText(
-                        'دینی، خاندانی اور مالیاتی مسائل پر دار الافتاء کے مستند مفتیانِ کرام سے شرعی جواب حاصل کریں۔',
-                        'احصل على إجابات موثقة لمسائلك الدينية والمعاملات اليومية من كبار العلماء والمفتين.',
-                        'Submit religious, family, or financial inquiries and receive authenticated guidance from Dar-ul-Ifta scholars.'
+                        'دینی، خاندانی اور فقہی مسائل پر دار الافتاء کے مستند مفتیانِ کرام سے قرآن و سنت کی روشنی میں رہنمائی حاصل کریں۔',
+                        'احصل على إجابات موثقة لمسائلك الدينية والمعاملات اليومية من كبار العلماء والمفتين وفق الكتاب والسنة.',
+                        'Receive authenticated religious guidance from verified scholars based on the Quran and authentic Sunnah.'
                       )}
                     </p>
                   </div>
 
-                  {/* Header Quick Buttons */}
-                  <div className="flex items-center gap-2.5 flex-wrap">
+                  {/* Header Action Buttons */}
+                  <div className="flex items-center gap-2.5 flex-wrap flex-shrink-0">
                     <button
                       onClick={() => setAskQuestionOpen(true)}
-                      className="inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-xs sm:text-sm font-bold text-white transition-all shadow-md hover:shadow-lg active:scale-95 cursor-pointer"
+                      className="inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs sm:text-sm font-semibold text-white transition-all shadow-sm hover:opacity-95 active:scale-95 cursor-pointer"
                       style={{ backgroundColor: accentColor }}
                     >
                       <PlusIcon className="h-4 w-4" />
@@ -928,7 +929,7 @@ const PublicHome = () => {
 
                     <button
                       onClick={() => navigateToTop('/fatawa')}
-                      className="inline-flex items-center gap-1.5 rounded-full border border-slate-300 bg-white/90 hover:bg-white px-4 py-2.5 text-xs sm:text-sm font-bold text-slate-700 hover:text-slate-900 transition shadow-2xs cursor-pointer"
+                      className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 px-3.5 py-2.5 text-xs sm:text-sm font-semibold text-slate-700 hover:text-slate-900 transition shadow-2xs cursor-pointer"
                     >
                       <span>{getLangText('تمام فتاویٰ', 'كافة الفتاوى', 'Browse All')}</span>
                       <ArrowRightIcon className={`h-3.5 w-3.5 ${isRTL ? 'rotate-180' : ''}`} />
@@ -936,29 +937,25 @@ const PublicHome = () => {
                   </div>
                 </div>
 
-                {/* Main Interactive Dar-ul-Ifta Card */}
-                <div className="rounded-[2.25rem] border-2 border-emerald-100 bg-gradient-to-br from-[#FAFDFC] via-white to-emerald-50/40 p-6 sm:p-8 lg:p-10 shadow-sm relative overflow-hidden">
-                  {/* Decorative Islamic Star Outline Accent */}
-                  <div aria-hidden="true" className="absolute top-0 right-0 w-80 h-80 bg-emerald-500/5 rounded-full blur-3xl pointer-events-none" />
-
-                  {/* Search Form Box */}
-                  <form onSubmit={handleFatawaSearch} className="relative z-10 mb-6">
-                    <div className="relative flex items-center shadow-sm rounded-2xl overflow-hidden border border-emerald-200/90 bg-white focus-within:border-emerald-600 focus-within:ring-2 focus-within:ring-emerald-500/20 transition-all">
-                      <MagnifyingGlassIcon className={`w-5 h-5 text-emerald-700 absolute ${isRTL ? 'right-4' : 'left-4'} pointer-events-none`} />
+                {/* Search & Topic Filters Bar */}
+                <div className="bg-slate-50/80 rounded-2xl border border-slate-200/80 p-4 sm:p-5 mb-6">
+                  <form onSubmit={handleFatawaSearch} className="mb-3.5">
+                    <div className="relative flex items-center bg-white rounded-xl border border-slate-300 focus-within:border-emerald-600 focus-within:ring-2 focus-within:ring-emerald-500/20 transition-all shadow-2xs">
+                      <MagnifyingGlassIcon className={`w-5 h-5 text-slate-400 absolute ${isRTL ? 'right-3.5' : 'left-3.5'} pointer-events-none`} />
                       <input
                         type="text"
                         value={fatawaSearchInput}
                         onChange={(e) => setFatawaSearchInput(e.target.value)}
                         placeholder={getLangText(
-                          'شرعی مسئلہ یا فتویٰ تلاش کریں... (مثال: نماز، روزہ، زکوٰۃ، تجارت)',
-                          'ابحث في الفتاوى... (الصلاة، الصيام، الزكاة، المعاملات)',
-                          'Search Fatawa by topic (Prayer, Fasting, Zakat, Finance)...'
+                          'شرعی مسئلہ یا فتویٰ تلاش کریں... (مثال: نماز، روزہ، زکوٰۃ، وراثت، تجارت)',
+                          'ابحث في الفتاوى... (الصلاة، الصيام، الزكاة، الميراث، المعاملات)',
+                          'Search rulings by keyword (e.g. Prayer, Fasting, Zakat, Inheritance)...'
                         )}
-                        className={`w-full py-3.5 text-xs sm:text-sm text-slate-800 placeholder-slate-400 bg-transparent outline-none ${isRTL ? 'pr-12 pl-24 text-right' : 'pl-12 pr-24 text-left'}`}
+                        className={`w-full py-3 text-xs sm:text-sm text-slate-800 placeholder-slate-400 bg-transparent outline-none ${isRTL ? 'pr-11 pl-24 text-right' : 'pl-11 pr-24 text-left'}`}
                       />
                       <button
                         type="submit"
-                        className={`absolute ${isRTL ? 'left-2' : 'right-2'} px-4 py-2 rounded-xl text-xs font-bold text-white transition shadow-2xs hover:opacity-95 cursor-pointer`}
+                        className={`absolute ${isRTL ? 'left-1.5' : 'right-1.5'} px-4 py-2 rounded-lg text-xs font-semibold text-white transition hover:opacity-95 cursor-pointer`}
                         style={{ backgroundColor: accentColor }}
                       >
                         {getLangText('تلاش کریں', 'بحث', 'Search')}
@@ -966,139 +963,124 @@ const PublicHome = () => {
                     </div>
                   </form>
 
-                  {/* Quick Topics Pills */}
-                  <div className="relative z-10 flex flex-wrap items-center gap-2 mb-8">
-                    <span className="text-xs font-bold text-slate-500 mr-1 ml-1">
-                      {getLangText('اہم موضوعات:', 'أهم المواضيع:', 'Popular Topics:')}
+                  {/* Clean Topic Pills (Clean scholarly tags without tacky emojis) */}
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mr-1 ml-1">
+                      {getLangText('موضوعات:', 'المواضيع:', 'Topics:')}
                     </span>
                     {quickTopics.map((topic, idx) => (
                       <button
                         key={idx}
                         type="button"
                         onClick={() => navigateToTop(`/fatawa?search=${encodeURIComponent(topic.query)}`)}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-white border border-emerald-200/80 text-emerald-950 hover:bg-emerald-50/80 hover:border-emerald-300 transition-all shadow-2xs cursor-pointer"
+                        className="px-3 py-1.5 rounded-lg text-xs font-medium bg-white text-slate-700 border border-slate-200 hover:border-emerald-500 hover:text-emerald-800 hover:bg-emerald-50/50 transition shadow-2xs cursor-pointer"
                       >
-                        <span>{topic.icon}</span>
-                        <span>{topic.label}</span>
+                        {topic.label}
                       </button>
                     ))}
                   </div>
+                </div>
 
-                  {/* Trust Highlights & Recent Answered Grid */}
-                  <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr] items-start relative z-10">
-                    {/* Left: Recent Public Answered Fatawa Preview */}
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between pb-1 border-b border-emerald-100">
-                        <span className="text-xs font-extrabold uppercase tracking-wider text-emerald-900 flex items-center gap-1.5">
-                          <CheckBadgeIcon className="w-4 h-4 text-emerald-600" />
-                          {getLangText('حالیہ تصدیق شدہ فتاویٰ', 'أحدث الفتاوى المعتمدة', 'Recent Answered Fatawa')}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => navigateToTop('/fatawa')}
-                          className="text-xs font-bold text-emerald-700 hover:text-emerald-900 hover:underline"
-                        >
-                          {getLangText('سب دیکھیں ←', 'عرض الكل ←', 'View all →')}
-                        </button>
-                      </div>
-
-                      {recentFatawa && recentFatawa.length > 0 ? (
-                        <div className="space-y-2.5">
-                          {recentFatawa.map((item) => (
-                            <div
-                              key={item.id}
-                              onClick={() => navigateToTop('/fatawa')}
-                              className="group p-3.5 rounded-2xl bg-white border border-emerald-100 hover:border-emerald-300 shadow-2xs hover:shadow-sm transition-all cursor-pointer"
-                            >
-                              <div className="flex items-start justify-between gap-3">
-                                <p className="text-xs sm:text-sm font-bold text-slate-900 group-hover:text-emerald-900 line-clamp-2 transition">
-                                  {item.question_text}
-                                </p>
-                                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700 flex-shrink-0 border border-emerald-200/60">
-                                  ✓ {getLangText('جواب دستیاب', 'تمت الإجابة', 'Answered')}
-                                </span>
-                              </div>
-                              {item.mufti_name && (
-                                <p className="text-[11px] text-slate-500 mt-1.5">
-                                  {getLangText('تصدیق شدہ از:', 'معتمد من:', 'Verified by:')} <strong className="font-semibold text-slate-700">{item.mufti_name}</strong>
-                                </p>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <div className="p-4 rounded-2xl bg-white border border-emerald-100 text-center text-xs text-slate-500">
-                          {getLangText(
-                            'دار الافتاء میں روزانہ شرعی سوالات کے تفصیلی جوابات دیے جاتے ہیں۔',
-                            'يتم الرد على الاستفسارات الشرعية يومياً بإشراف دار الإفتاء.',
-                            'Dar-ul-Ifta actively addresses daily questions with Quranic & Sunnah references.'
+                {/* Main Content Area: Recent Answered Cards or Dignified Notice */}
+                {recentFatawa && recentFatawa.length > 0 ? (
+                  <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                    {recentFatawa.map((item) => (
+                      <div
+                        key={item.id}
+                        onClick={() => navigateToTop('/fatawa')}
+                        className="group flex flex-col justify-between p-4 sm:p-5 rounded-xl bg-white border border-slate-200 hover:border-emerald-400 hover:shadow-md transition-all cursor-pointer"
+                      >
+                        <div>
+                          <div className="flex items-center justify-between gap-2 mb-2.5">
+                            <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-800 bg-emerald-50 px-2.5 py-0.5 rounded-md border border-emerald-200/60">
+                              <CheckBadgeIcon className="w-3.5 h-3.5 text-emerald-600" />
+                              {getLangText('مستند جواب', 'تمت الإجابة', 'Answered')}
+                            </span>
+                            {item.category && (
+                              <span className="text-[11px] font-medium text-slate-500">
+                                {typeof item.category === 'object' ? item.category.name : item.category}
+                              </span>
+                            )}
+                          </div>
+                          <h4 className="text-sm font-bold text-slate-900 group-hover:text-emerald-800 line-clamp-2 transition leading-snug">
+                            {item.question_text}
+                          </h4>
+                          {item.answer_text && (
+                            <p className="text-xs text-slate-600 mt-2 line-clamp-3 leading-relaxed">
+                              {item.answer_text}
+                            </p>
                           )}
                         </div>
-                      )}
+
+                        <div className="pt-3 mt-4 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+                          <span className="font-medium text-slate-700 truncate max-w-[160px]">
+                            {item.mufti_name ? `${getLangText('مفتی:', 'المفتي:', 'Mufti:')} ${item.mufti_name}` : getLangText('دار الافتاء', 'دار الإفتاء', 'Dar-ul-Ifta')}
+                          </span>
+                          <span className="text-emerald-700 group-hover:underline font-semibold flex items-center gap-1">
+                            {getLangText('تفصیل دیکھیں', 'عرض الفتوى', 'Read More')}
+                            <ArrowRightIcon className={`w-3 h-3 ${isRTL ? 'rotate-180' : ''}`} />
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="p-6 sm:p-8 rounded-2xl bg-gradient-to-br from-emerald-950 via-slate-900 to-slate-950 text-white shadow-sm flex flex-col md:flex-row items-center justify-between gap-6">
+                    <div className="max-w-xl text-center md:text-start">
+                      <p
+                        className="text-lg sm:text-2xl font-bold text-emerald-300 mb-1.5"
+                        style={{ fontFamily: isRTL ? "'Traditional Arabic', 'Amiri', serif" : "inherit" }}
+                      >
+                        فَاسْأَلُوا أَهْلَ الذِّكْرِ إِن كُنتُمْ لَا تَعْلَمُونَ
+                      </p>
+                      <p className="text-xs text-emerald-200/80 mb-3 font-medium">
+                        {getLangText('”پس اہل علم سے پوچھ لو اگر تم نہیں جانتے۔“ (سورۃ النحل: 43)', '«فَاسْأَلُوا أَهْلَ الذِّكْرِ إِن كُنتُمْ لَا تَعْلَمُونَ» (النحل: 43)', '"So ask the people of knowledge if you do not know." (Surah An-Nahl: 43)')}
+                      </p>
+                      <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
+                        {getLangText(
+                          'روزمرہ کے عبادات، معاملات اور فقہی سوالات پر مستند مفتیانِ کرام سے شرعی رہنمائی حاصل کریں۔ تمام استفسارات کو مکمل صیغۂ راز میں رکھا جاتا ہے۔',
+                          'احصل على إجابات موثقة لمسائلك الشرعية من كبار العلماء والمفتين بكل سرية وأمانة علمية وفق الكتاب والسنة.',
+                          'Submit your religious inquiries to certified scholars. All questions are handled with strict privacy and academic integrity.'
+                        )}
+                      </p>
                     </div>
-
-                    {/* Right: 3 Pillars of Trust (Authentic Badges) */}
-                    <div className="grid gap-3">
-                      <div className="p-4 rounded-2xl bg-white/90 border border-emerald-100 shadow-2xs flex items-start gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center flex-shrink-0 border border-emerald-200">
-                          <ShieldCheckIcon className="w-5 h-5" />
-                        </div>
-                        <div>
-                          <h4 className="text-xs sm:text-sm font-bold text-slate-900">
-                            {getLangText('مستند مفتیانِ کرام کی تصدیق', 'اعتماد من كبار العلماء', 'Verified by Muftis & Scholars')}
-                          </h4>
-                          <p className="text-xs text-slate-600 mt-0.5 leading-relaxed">
-                            {getLangText(
-                              'ہر فتویٰ قرآن و صحیح احادیث کے دلائل کے ساتھ مستند دار الافتاء سے جاری کیا جاتا ہے۔',
-                              'تصدر جميع الفتاوى بأدلة من القرآن والسنة النبوية بإشراف هيئة علمية معتمدة.',
-                              'Every ruling is verified with explicit evidence from Quran and authentic Sunnah.'
-                            )}
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="p-4 rounded-2xl bg-white/90 border border-emerald-100 shadow-2xs flex items-start gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center flex-shrink-0 border border-emerald-200">
-                          <LockClosedIcon className="w-5 h-5" />
-                        </div>
-                        <div>
-                          <h4 className="text-xs sm:text-sm font-bold text-slate-900">
-                            {getLangText('مکمل پرائیویسی اور رازداری', 'خصوصية وسرية تامة', '100% Confidential Inquiries')}
-                          </h4>
-                          <p className="text-xs text-slate-600 mt-0.5 leading-relaxed">
-                            {getLangText(
-                              'آپ اپنا نام ظاہر کیے بغیر نجی طور پر بھی سوال پوچھ سکتے ہیں۔',
-                              'يمكنك طرح سؤالك بشكل خاص وسري دون الكشف عن هويتك.',
-                              'Option to submit questions privately without displaying your name publicly.'
-                            )}
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="p-4 rounded-2xl bg-white/90 border border-emerald-100 shadow-2xs flex items-start gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center flex-shrink-0 border border-emerald-200">
-                          <BookOpenIcon className="w-5 h-5" />
-                        </div>
-                        <div>
-                          <h4 className="text-xs sm:text-sm font-bold text-slate-900">
-                            {getLangText('کتب و مآخذ کے حوالے', 'مراجع موثقة من أمهات الكتب', 'Linked to Library References')}
-                          </h4>
-                          <p className="text-xs text-slate-600 mt-0.5 leading-relaxed">
-                            {getLangText(
-                              'فتاویٰ کے ساتھ مرکز کی ڈیجیٹل لائبریری کی معتبر کتب منسلک کی جاتی ہیں۔',
-                              'ربط مباشر مع أمهات الكتب والمراجع الفقهية في مكتبة المركز الرقمية.',
-                              'Fatawa are directly referenced with authentic Islamic books in our digital library.'
-                            )}
-                          </p>
-                        </div>
-                      </div>
+                    <div className="flex flex-col sm:flex-row gap-3 flex-shrink-0 w-full sm:w-auto">
+                      <button
+                        onClick={() => setAskQuestionOpen(true)}
+                        className="px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs sm:text-sm transition text-center cursor-pointer shadow-sm"
+                      >
+                        {getLangText('اپنا سوال ارسال کریں', 'طرح سؤال جديد', 'Submit a Question')}
+                      </button>
+                      <button
+                        onClick={() => navigateToTop('/fatawa')}
+                        className="px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-medium text-xs sm:text-sm transition text-center cursor-pointer border border-white/20"
+                      >
+                        {getLangText('تمام فتاویٰ دیکھیں', 'أرشيف الفتاوى', 'View Fatawa Archive')}
+                      </button>
                     </div>
+                  </div>
+                )}
+
+                {/* Subtle Scholarly Trust Assurance Strip */}
+                <div className="mt-5 pt-4 border-t border-slate-200/70 grid grid-cols-1 sm:grid-cols-3 gap-3 text-slate-600 text-xs">
+                  <div className="flex items-center gap-2">
+                    <ShieldCheckIcon className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                    <span className="font-medium text-slate-700">{getLangText('قرآن و سنت کے مستند دلائل', 'أدلة موثقة من الكتاب والسنة', 'Evidence from Quran & Sunnah')}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <LockClosedIcon className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                    <span className="font-medium text-slate-700">{getLangText('مکمل صیغۂ راز اور پرائیویسی', 'خصوصية وسرية تامة', 'Strict Confidentiality')}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <BookOpenIcon className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                    <span className="font-medium text-slate-700">{getLangText('لائبریری کی معتبر کتب سے مآخذ', 'مراجع موثقة من أمهات الكتب', 'Verified Library References')}</span>
                   </div>
                 </div>
               </div>
             </div>
           );
         }
+
 
                         // ABOUT SECTION PREVIEW (Home page initial intro preview in Makhtota format)
         if (key === 'about' && getSectionConfig('about', { enabled: false }).enabled !== false) {
