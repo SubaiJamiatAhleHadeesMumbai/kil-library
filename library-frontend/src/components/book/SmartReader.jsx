@@ -40,7 +40,7 @@ const SmartReader = ({
   const [isSearchOpen, setIsSearchOpen] = useState(() => Boolean(initialSearchText));
   const [textFontSize, setTextFontSize] = useState(1.15); // rem font size for text reader 
 
-  const [viewMode, setViewMode] = useState('single');
+  const [viewMode, setViewMode] = useState('scroll');
   
   const [currentPage, setCurrentPage] = useState(initialPage);
   const [searchText, setSearchText] = useState(initialSearchText);
