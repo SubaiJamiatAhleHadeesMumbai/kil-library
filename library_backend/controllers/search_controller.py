@@ -62,7 +62,7 @@ def global_omni_search(
                 "title": b.title,
                 "subtitle": f"Author: {b.author or 'Unknown'}" + (f" • {b.publisher}" if b.publisher else ""),
                 "thumbnail": b.cover_image_url or None,
-                "url": f"/books/{b.id}",
+                "url": f"/read/{b.id}",
                 "badge": b.language.name if getattr(b, "language", None) else "Book",
                 "badge_class": "bg-indigo-50 text-indigo-700 border-indigo-200"
             })

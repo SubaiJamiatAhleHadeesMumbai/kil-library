@@ -232,8 +232,15 @@ const ReadBook = () => {
   // Use Same-Origin Proxy Stream endpoints with token query parameter for authenticated worker streaming
   const authToken = localStorage.getItem("access_token") || sessionStorage.getItem("access_token");
   const tokenQuery = authToken ? `?token=${encodeURIComponent(authToken)}` : "";
-  const directPdfUrl = book?.pdf_url || book?.pdf_file || null;
-  const directTxtUrl = book?.txt_file_url || book?.txt_file || null;
+  const resolveDocumentUrl = (value) => {
+    if (!value) return null;
+    const rawValue = String(value).trim();
+    if (/^https?:\/\//i.test(rawValue)) return rawValue;
+    const normalizedPath = rawValue.startsWith('/') ? rawValue : `/${rawValue}`;
+    return `${API_BASE_URL}${normalizedPath}`;
+  };
+  const directPdfUrl = resolveDocumentUrl(book?.pdf_url || book?.pdf_file);
+  const directTxtUrl = resolveDocumentUrl(book?.txt_file_url || book?.txt_file);
   const pdfUrl = hasPdf ? `${API_BASE_URL}/api/books/${book.id}/stream-pdf${tokenQuery}` : null;
   const txtUrl = hasTxt ? `${API_BASE_URL}/api/books/${book.id}/stream-text${tokenQuery}` : null;
 
