@@ -42,13 +42,25 @@ const PdfViewer = ({
   const [activePdfUrl, setActivePdfUrl] = useState(pdfUrl);
   const [fallbackAttempted, setFallbackAttempted] = useState(false);
   const [docTotalPages, setDocTotalPages] = useState(() => totalPages || 1);
+  const [renderedPages, setRenderedPages] = useState(() => new Set([currentPage]));
 
   // Sync active URL when pdfUrl prop changes
   useEffect(() => {
     setActivePdfUrl(pdfUrl);
     setFallbackAttempted(false);
     setLoadError(null);
+    setRenderedPages(new Set([currentPage]));
   }, [pdfUrl]);
+
+  useEffect(() => {
+    setRenderedPages((previous) => {
+      const next = new Set(previous);
+      [currentPage - 1, currentPage, currentPage + 1].forEach((pageNumber) => {
+        if (pageNumber > 0) next.add(pageNumber);
+      });
+      return next;
+    });
+  }, [currentPage]);
 
   // Synchronize internal docTotalPages with prop
   useEffect(() => {
@@ -58,6 +70,11 @@ const PdfViewer = ({
   }, [totalPages]);
 
   const effectiveTotalPages = Math.max(docTotalPages, totalPages || 1);
+  const documentOptions = useMemo(() => ({
+    disableAutoFetch: true,
+    disableStream: false,
+    rangeChunkSize: 1024 * 1024,
+  }), []);
 
   // Keyboard vertical scrolling support (ArrowUp, ArrowDown, PageUp, PageDown, Space)
   useEffect(() => {
@@ -321,6 +338,7 @@ const PdfViewer = ({
         ) : (
           <Document 
             file={fileSource} 
+            options={documentOptions}
             className={`flex ${viewMode === 'grid' ? 'flex-wrap justify-center gap-8' : 'flex-col gap-10 items-center'} w-full`}
             onLoadSuccess={({numPages}) => {
               setDocTotalPages(numPages);
@@ -354,6 +372,14 @@ const PdfViewer = ({
                 key={index}
                 threshold={0.3}
                 onChange={(inView) => {
+                  if (inView) {
+                    setRenderedPages((previous) => {
+                      const next = new Set(previous);
+                      next.add(index + 1);
+                      next.add(index + 2);
+                      return next;
+                    });
+                  }
                   if (inView && suppressAutoPageTracking && currentPage === index + 1) {
                     onLandingResolved?.(index + 1);
                   }
@@ -374,14 +400,22 @@ const PdfViewer = ({
                     PAGE {index + 1}
                   </div>
                   <div className={`shadow-[0_8px_30px_rgb(0,0,0,0.08)] border rounded-sm overflow-hidden bg-white transition-transform duration-500 ${currentPage === index + 1 ? 'border-indigo-500 ring-4 ring-indigo-200 shadow-[0_12px_40px_rgba(79,70,229,0.18)]' : 'border-slate-200'}`}>
-                    <Page 
-                      pageNumber={index + 1} 
-                      scale={dynamicScale} 
-                      renderTextLayer={true} 
-                      renderAnnotationLayer={true} 
-                      customTextRenderer={renderHighlightedText}
-                      loading={<SinglePageSkeleton scale={dynamicScale} pageNumber={index + 1} />}
-                    />
+                    {renderedPages.has(index + 1) ? (
+                      <Page
+                        pageNumber={index + 1}
+                        scale={dynamicScale}
+                        renderTextLayer={true}
+                        renderAnnotationLayer={true}
+                        customTextRenderer={renderHighlightedText}
+                        loading={<SinglePageSkeleton scale={dynamicScale} pageNumber={index + 1} />}
+                      />
+                    ) : (
+                      <div
+                        aria-label={`Page ${index + 1} loading placeholder`}
+                        className="bg-slate-50"
+                        style={{ width: 595.28 * dynamicScale, height: 841.89 * dynamicScale }}
+                      />
+                    )}
                   </div>
                 </div>
               </InView>
