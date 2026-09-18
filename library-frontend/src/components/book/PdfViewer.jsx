@@ -28,8 +28,7 @@ const PdfViewer = ({
   onLandingResolved,
   totalPages = 1,
   currentPage = 1,
-  searchText = '',
-  bookTitle = 'Book'
+  searchText = ''
 }) => {
   const containerRef = useRef(null);
   const scrollAreaRef = useRef(null);
@@ -42,7 +41,7 @@ const PdfViewer = ({
   const [loadError, setLoadError] = useState(null);
   const [activePdfUrl, setActivePdfUrl] = useState(pdfUrl);
   const [fallbackAttempted, setFallbackAttempted] = useState(false);
-  const [docTotalPages, setDocTotalPages] = useState(() => Math.max(totalPages || 1, currentPage || 1));
+  const [docTotalPages, setDocTotalPages] = useState(() => totalPages || 1);
   const [renderedPages, setRenderedPages] = useState(() => new Set([currentPage]));
 
   // Sync active URL when pdfUrl prop changes
@@ -72,9 +71,7 @@ const PdfViewer = ({
 
   const effectiveTotalPages = Math.max(docTotalPages, totalPages || 1);
   const documentOptions = useMemo(() => ({
-    // Keep range requests, but allow PDF.js to fetch the xref/trailer needed by
-    // non-linearized PDFs. Disabling this can leave large PDFs in "Failed to fetch".
-    disableAutoFetch: false,
+    disableAutoFetch: true,
     disableStream: false,
     rangeChunkSize: 1024 * 1024,
   }), []);
@@ -366,7 +363,7 @@ const PdfViewer = ({
               }
               onDocumentError?.(err);
             }}
-            loading={<BookReaderLoader bookTitle={bookTitle} targetPage={currentPage} />}
+            loading={<BookReaderLoader />}
           >
             
             {/* 1. SCROLL VIEW (VERTICAL UPPER SE NICHE SCROLL) */}

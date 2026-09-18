@@ -1,15 +1,11 @@
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { AnimatePresence } from 'framer-motion';
 import { 
   XMarkIcon, 
   CalendarDaysIcon, 
   MapPinIcon, 
-  UserCircleIcon,
   TagIcon,
-  PhotoIcon,
-  ChevronLeftIcon,
-  ChevronRightIcon
 } from '@heroicons/react/24/outline';
 import ImageLightbox from '../common/ImageLightbox';
 
@@ -35,7 +31,6 @@ const resolveImageUrl = (value) => {
 const SocialWorkItemDetailModal = ({ isOpen, item, onClose }) => {
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
-  const [activeGalleryIndex, setActiveGalleryIndex] = useState(0);
 
   if (!isOpen || !item) return null;
 
@@ -73,11 +68,7 @@ const SocialWorkItemDetailModal = ({ isOpen, item, onClose }) => {
               style={{ zIndex: 100000 }}
               className="fixed inset-0 overflow-y-auto bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 sm:p-6"
             >
-              <motion.div
-                initial={{ opacity: 0, scale: 0.96, y: 12 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.96, y: 12 }}
-                transition={{ duration: 0.2, ease: "easeOut" }}
+              <div
                 className="relative w-full max-w-4xl bg-white rounded-3xl shadow-2xl border border-slate-100 overflow-hidden my-8 max-h-[90vh] flex flex-col"
               >
             {/* Header Sticky */}
@@ -125,108 +116,36 @@ const SocialWorkItemDetailModal = ({ isOpen, item, onClose }) => {
                       <span>{item.location}</span>
                     </div>
                   )}
-                  <div className="flex items-center gap-1.5">
-                    <UserCircleIcon className="w-4 h-4 text-slate-400" />
-                    <span>{item.author_name || 'Markaz Admin'}</span>
-                  </div>
                 </div>
               </div>
 
-              {/* Gallery Section */}
+              {/* Uploaded images: horizontal scroll only, without gallery labels */}
               {imagesList.length > 0 && (
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                      <PhotoIcon className="w-4 h-4 text-blue-600" />
-                      Photo Gallery ({imagesList.length} Photos)
-                    </h3>
-                    <button
-                      onClick={() => openLightbox(activeGalleryIndex)}
-                      className="text-xs font-bold text-blue-600 hover:text-blue-800 transition-colors cursor-pointer"
-                    >
-                      View Fullscreen
-                    </button>
-                  </div>
-
-                  {/* Main Active Image with Click to Zoom */}
-                  <div 
-                    onClick={() => openLightbox(activeGalleryIndex)}
-                    className="relative w-full h-72 sm:h-96 rounded-2xl overflow-hidden bg-slate-100 group cursor-pointer border border-slate-200/80 shadow-sm"
-                  >
-                    <img 
-                      src={typeof imagesList[activeGalleryIndex] === 'string' ? imagesList[activeGalleryIndex] : imagesList[activeGalleryIndex]?.url} 
-                      alt={item.title} 
-                      className="w-full h-full object-cover group-hover:scale-102 transition-transform duration-500"
-                      onError={(e) => {
-                        e.currentTarget.onerror = null;
-                        e.currentTarget.style.display = 'none';
-                      }}
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-4">
-                      <p className="text-white text-xs font-semibold">Click to expand fullscreen</p>
-                    </div>
-
-                    {/* Left / Right arrow overlay for active image */}
-                    {imagesList.length > 1 && (
-                      <>
+                <div className="-mx-1 overflow-x-auto scroll-smooth px-1 pb-2 scrollbar-thin snap-x snap-mandatory touch-pan-x">
+                  <div className="flex w-max gap-3">
+                    {imagesList.map((img, idx) => {
+                      const url = typeof img === 'string' ? img : img?.url;
+                      return (
                         <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setActiveGalleryIndex((prev) => (prev - 1 + imagesList.length) % imagesList.length);
-                          }}
-                          className="absolute left-3 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/40 hover:bg-black/60 text-white transition-all"
+                          key={`${url}-${idx}`}
+                          type="button"
+                          onClick={() => openLightbox(idx)}
+                          className="h-48 w-64 shrink-0 snap-start overflow-hidden rounded-2xl border border-slate-200 bg-slate-100 shadow-sm cursor-pointer"
+                          aria-label={`Open image ${idx + 1}`}
                         >
-                          <ChevronLeftIcon className="w-5 h-5" />
+                          <img
+                            src={url}
+                            alt={item.title}
+                            className="h-full w-full object-cover transition-transform duration-300 hover:scale-105"
+                            onError={(e) => {
+                              e.currentTarget.onerror = null;
+                              e.currentTarget.style.display = 'none';
+                            }}
+                          />
                         </button>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setActiveGalleryIndex((prev) => (prev + 1) % imagesList.length);
-                          }}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/40 hover:bg-black/60 text-white transition-all"
-                        >
-                          <ChevronRightIcon className="w-5 h-5" />
-                        </button>
-                      </>
-                    )}
+                      );
+                    })}
                   </div>
-
-                  {/* Caption for active image */}
-                  {typeof imagesList[activeGalleryIndex] === 'object' && imagesList[activeGalleryIndex]?.caption && (
-                    <p className="text-xs text-slate-500 italic px-1">
-                      {imagesList[activeGalleryIndex].caption}
-                    </p>
-                  )}
-
-                  {/* Thumbnails row */}
-                  {imagesList.length > 1 && (
-                    <div className="grid grid-cols-4 sm:grid-cols-6 gap-2 pt-1">
-                      {imagesList.map((img, idx) => {
-                        const url = typeof img === 'string' ? img : img?.url;
-                        return (
-                          <button
-                            key={idx}
-                            onClick={() => setActiveGalleryIndex(idx)}
-                            className={`relative h-16 sm:h-20 rounded-xl overflow-hidden border-2 transition-all cursor-pointer bg-slate-100 ${
-                              idx === activeGalleryIndex 
-                                ? 'border-blue-600 ring-2 ring-blue-100 scale-102' 
-                                : 'border-transparent opacity-70 hover:opacity-100'
-                            }`}
-                          >
-                            <img
-                              src={url}
-                              alt={`Thumbnail ${idx + 1}`}
-                              className="w-full h-full object-cover"
-                              onError={(e) => {
-                                e.currentTarget.onerror = null;
-                                e.currentTarget.style.display = 'none';
-                              }}
-                            />
-                          </button>
-                        );
-                      })}
-                    </div>
-                  )}
                 </div>
               )}
 
@@ -251,7 +170,7 @@ const SocialWorkItemDetailModal = ({ isOpen, item, onClose }) => {
                 Close
               </button>
             </div>
-          </motion.div>
+          </div>
         </div>
       </AnimatePresence>,
       document.body

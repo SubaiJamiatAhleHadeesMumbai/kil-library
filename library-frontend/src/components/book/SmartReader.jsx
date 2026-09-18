@@ -751,7 +751,6 @@ const SmartReader = ({
               onDocumentError={() => setPdfReady(true)}
               onLandingResolved={handleLandingResolved}
               searchText={searchText}
-              bookTitle={effectiveTitle}
             />
           ) : null}
           textContent={allPagesContent[currentPage] || ""}

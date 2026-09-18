@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { useLanguage } from '../../context/LanguageContext';
 
 // Trilingual messages for the reader loader
@@ -7,19 +7,16 @@ const MESSAGES = {
     title: 'Preparing Document Pages...',
     subtitle: 'Optimizing high-resolution rendering for smooth reading',
     page: 'Page',
-    stages: ['Connecting to document', 'Preparing pages', 'Rendering your page'],
   },
   ur: {
     title: 'کتاب کے صفحات تیار ہو رہے ہیں...',
     subtitle: 'بہترین کوالٹی اور تیز رفتار مطالعہ کے لیے صفحات ترتیب دیے جا رہے ہیں',
     page: 'صفحہ',
-    stages: ['کتاب سے رابطہ ہو رہا ہے', 'صفحات تیار ہو رہے ہیں', 'آپ کا صفحہ کھل رہا ہے'],
   },
   ar: {
     title: 'جارٍ تجهيز صفحات الكتاب...',
     subtitle: 'تحسين العرض فائق الدقة لتجربة قراءة سلسة ومريحة',
     page: 'صفحة',
-    stages: ['جارٍ الاتصال بالكتاب', 'جارٍ تجهيز الصفحات', 'جارٍ عرض صفحتك'],
   },
 };
 
@@ -183,18 +180,10 @@ export const SinglePageSkeleton = ({ scale = 1.0, pageNumber = 1 }) => (
  * Main Combined Loader (Option 1: Book Page Skeleton + Option 2: Animated Flipping Book)
  * Displays while the entire PDF document initializes.
  */
-const BookReaderLoader = ({ bookTitle = 'Book', targetPage = 1 }) => {
+const BookReaderLoader = () => {
   const { currentLang = 'en', isRTL = false } = useLanguage?.() || {};
   const langKey = ['en', 'ur', 'ar'].includes(currentLang) ? currentLang : 'en';
   const t = MESSAGES[langKey] || MESSAGES.en;
-  const [stage, setStage] = useState(0);
-
-  useEffect(() => {
-    const timer = window.setInterval(() => {
-      setStage((current) => (current + 1) % t.stages.length);
-    }, 2200);
-    return () => window.clearInterval(timer);
-  }, [t.stages.length]);
 
   return (
     <div
@@ -233,10 +222,6 @@ const BookReaderLoader = ({ bookTitle = 'Book', targetPage = 1 }) => {
             <FlippingBook />
           </div>
 
-          <p className="mb-2 max-w-[260px] truncate text-[11px] font-bold text-slate-500" title={bookTitle}>
-            {bookTitle}
-          </p>
-
           {/* Main Title Badge */}
           <h3 className="text-sm sm:text-base font-bold text-slate-800 tracking-tight leading-snug">
             {t.title}
@@ -246,12 +231,6 @@ const BookReaderLoader = ({ bookTitle = 'Book', targetPage = 1 }) => {
           <p className="text-xs text-slate-400 font-medium max-w-xs sm:max-w-sm mt-1.5 leading-relaxed">
             {t.subtitle}
           </p>
-
-          <div className="mt-3 flex items-center gap-2 text-[11px] font-semibold text-[#002147]" aria-live="polite">
-            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500" />
-            <span>{t.stages[stage]}</span>
-            <span className="text-slate-300">{t.page} {targetPage}</span>
-          </div>
 
           {/* Sleek Animated Progress Bar */}
           <div className="w-48 sm:w-56 h-1.5 bg-slate-100 rounded-full overflow-hidden mt-4 relative">
@@ -268,8 +247,8 @@ const BookReaderLoader = ({ bookTitle = 'Book', targetPage = 1 }) => {
 
         {/* Bottom Page Number Footer */}
         <div className="pt-4 border-t border-slate-100 flex items-center justify-center gap-1.5 relative z-10">
-            <span className="text-[11px] font-semibold text-slate-400">
-            — {t.page} {targetPage} —
+          <span className="text-[11px] font-semibold text-slate-400">
+            — {t.page} 1 —
           </span>
         </div>
       </div>
