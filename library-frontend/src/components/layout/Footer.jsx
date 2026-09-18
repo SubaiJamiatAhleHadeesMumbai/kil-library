@@ -61,7 +61,7 @@ const Footer = () => {
   ]), []);
 
   return (
-    <footer className="bg-[#001D3D] text-white pt-16 pb-8 font-sans border-t border-[#F4A261]/20">
+    <footer data-site-footer className="bg-[#001D3D] text-white pt-16 pb-8 font-sans border-t border-[#F4A261]/20">
       <div className="app-shell-container grid grid-cols-1 md:grid-cols-4 gap-10 lg:gap-12">
         <div className="col-span-1 md:col-span-1">
           <div className="flex items-center gap-3 mb-6">

@@ -43,6 +43,8 @@ const LibrarySearchStrip = ({
   const [localValue, setLocalValue] = useState(searchTerm);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [listening, setListening] = useState(false);
+  const [isPinned, setIsPinned] = useState(false);
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
   
   // Deep Search Modal State
   const [isDeepSearchOpen, setIsDeepSearchOpen] = useState(false);
@@ -62,6 +64,17 @@ const LibrarySearchStrip = ({
       return () => clearTimeout(t);
     }
   }, [autoFocus]);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const footer = document.querySelector('[data-site-footer]');
+      const footerIsVisible = footer && footer.getBoundingClientRect().top <= window.innerHeight;
+      setIsPinned(window.scrollY > 120 && !footerIsVisible);
+    };
+    handleScroll();
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   /* -------- Apply debounced value -------- */
   useEffect(() => {
@@ -141,20 +154,23 @@ const LibrarySearchStrip = ({
 
   return (
     <>
-      <div className="relative w-full">
+      <div className={`relative w-full ${isPinned ? "min-h-[56px] sm:min-h-[62px]" : ""}`}>
         {/* ================= ULTRA-MODERN FLOATING SEARCH BAR ================= */}
-        <motion.div
-          initial={{ opacity: 0, y: -6 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3 }}
-          className="relative group"
-        >
-          <div className="relative flex min-h-[56px] sm:min-h-[62px] items-center rounded-2xl sm:rounded-full bg-white border border-slate-200/90 hover:border-emerald-400 focus-within:border-emerald-500 focus-within:ring-4 focus-within:ring-emerald-500/15 shadow-[0_16px_36px_-12px_rgba(0,0,0,0.25)] transition-all duration-300 px-3 sm:px-4">
+        <div className={isPinned ? "fixed inset-x-0 top-0 z-[100] border-b border-slate-200 bg-slate-50 px-2 py-2 shadow-sm transition-all duration-200 sm:px-4" : "relative"}>
+          <motion.div
+            initial={{ opacity: 0, y: -6 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+            className={`relative group ${isPinned ? "mx-auto max-w-4xl" : ""}`}
+          >
+          <div className="relative flex min-h-[56px] sm:min-h-[62px] w-full max-w-full items-center overflow-hidden rounded-2xl sm:rounded-full bg-white border border-slate-200/90 hover:border-emerald-400 focus-within:border-emerald-500 focus-within:ring-4 focus-within:ring-emerald-500/15 shadow-[0_16px_36px_-12px_rgba(0,0,0,0.25)] transition-all duration-300 px-3 sm:px-4">
             
             {/* Search Icon */}
-            <div className="flex items-center justify-center p-2 rounded-full text-emerald-600 bg-emerald-50/80 mr-1 sm:mr-2 flex-shrink-0">
-              <MagnifyingGlassIcon className="h-5 w-5 stroke-2" />
-            </div>
+            {!isSearchFocused && (
+              <div className="flex items-center justify-center p-2 rounded-full text-emerald-600 bg-emerald-50/80 mr-1 sm:mr-2 flex-shrink-0">
+                <MagnifyingGlassIcon className="h-5 w-5 stroke-2" />
+              </div>
+            )}
 
             {/* Input */}
             <input
@@ -164,8 +180,10 @@ const LibrarySearchStrip = ({
                 setLocalValue(e.target.value);
                 setShowSuggestions(true);
               }}
+              onFocus={() => setIsSearchFocused(true)}
+              onBlur={() => setIsSearchFocused(false)}
               placeholder={placeholder}
-              className="flex-1 bg-transparent px-2 py-3 text-sm sm:text-base text-slate-900 outline-none placeholder:text-slate-400 font-medium border-0 focus:outline-none focus:ring-0"
+              className="min-w-0 flex-1 bg-transparent px-2 py-3 text-sm sm:text-base text-slate-900 outline-none placeholder:text-slate-400 font-medium border-0 focus:outline-none focus:ring-0"
             />
 
             {/* Action Buttons */}
@@ -255,7 +273,8 @@ const LibrarySearchStrip = ({
               </motion.div>
             )}
           </AnimatePresence>
-        </motion.div>
+          </motion.div>
+        </div>
       </div>
 
       {/* ✅ DEEP SEARCH MODAL */}

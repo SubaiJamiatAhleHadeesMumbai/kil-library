@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { 
   Search, X, Loader2, BookOpen, ChevronRight, FileText, 
-  AlertCircle, Copy, Download, Lock, ChevronDown, ChevronUp, 
+  AlertCircle, Copy, Lock, ChevronDown, ChevronUp,
   Maximize2, Minimize2, ExternalLink 
 } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -43,8 +43,8 @@ const SEARCH_I18N = {
     placeholder: "کتاب کے متن میں تلاش کریں...",
     foundMatches: (count) => `کل ${count} نتائج موصول ہوئے`,
     page: "صفحہ",
-    copyCitation: "اقتباس بمع حوالہ",
-    citationCopied: "اقتباس بمع حوالہ کاپی ہو گیا!",
+    copyCitation: "حوالہ کاپی کریں",
+    citationCopied: "حوالہ کاپی ہو گیا!",
     expandContext: "پورا سیاق دیکھیں",
     collapseContext: "چھوٹا کریں",
     readInBook: "کتاب میں پڑھیں",
@@ -72,8 +72,8 @@ const SEARCH_I18N = {
     placeholder: "ابحث في محتوى الكتب...",
     foundMatches: (count) => `تم العثور على ${count} نتيجة`,
     page: "صفحة",
-    copyCitation: "نسخ الاقتباس مع المرجع",
-    citationCopied: "تم نسخ الاقتباس مع المرجع بنجاح!",
+    copyCitation: "نسخ الاقتباس",
+    citationCopied: "تم نسخ الاقتباس بنجاح!",
     expandContext: "عرض النص كاملاً",
     collapseContext: "طي النص",
     readInBook: "قراءة في الكتاب",
@@ -200,66 +200,24 @@ const GlobalSearchModal = ({ isOpen, onClose, onResultClick, initialQuery = '' }
   const copyCitation = (result, e) => {
     e.stopPropagation();
     e.preventDefault();
-    const cleanSnippet = (result.snippet || '')
-      .replace(/<[^>]*>/g, '')
-      .replace(/\.{3,}/g, '')
-      .trim();
     const origin = typeof window !== 'undefined' ? window.location.origin : '';
-    const citationText = `"${cleanSnippet}"\n\n📖 ${loc.bookCitation}: ${result.title}\n✍️ ${loc.authorCitation}: ${result.author || loc.unknownAuthor}\n📄 ${loc.pageCitation}: ${result.page_number}\n🔗 ${loc.linkCitation}: ${origin}/read/${result.book_id}?page=${result.page_number}`;
+    const shareUrl = `${origin}/read/${result.book_id}?page=${result.page_number}`;
+    const bookAndAuthor = [result.title, result.author]
+      .map((value) => String(value || '').trim())
+      .filter(Boolean)
+      .join(' ');
+    const citation = [
+      bookAndAuthor,
+      `Page: ${result.page_number}`,
+      shareUrl,
+    ].filter(Boolean).join('\n');
     
     if (navigator?.clipboard) {
-      navigator.clipboard.writeText(citationText);
+      navigator.clipboard.writeText(citation);
       toast.success(loc.citationCopied);
     } else {
       toast.error('Clipboard access not available.');
     }
-  };
-
-  const exportResearchReport = () => {
-    if (results.length === 0) return;
-    const origin = typeof window !== 'undefined' ? window.location.origin : '';
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) {
-      toast.error('Please allow popups to export report');
-      return;
-    }
-
-    const rowsHtml = results.map((r, i) => `
-      <div style="margin-bottom: 20px; padding: 14px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px;">
-        <div style="font-size: 15px; color: #1e293b; line-height: 1.8;">${r.snippet}</div>
-        <div style="margin-top: 10px; font-size: 12px; color: #64748b; border-top: 1px dashed #cbd5e1; padding-top: 8px;">
-          <strong>${loc.bookCitation}:</strong> ${r.title} | <strong>${loc.authorCitation}:</strong> ${r.author || 'N/A'} | <strong>${loc.pageCitation}:</strong> ${r.page_number}
-          | <a href="${origin}/read/${r.book_id}?page=${r.page_number}" target="_blank" style="color: #0284c7;">${loc.readPage}</a>
-        </div>
-      </div>
-    `).join('');
-
-    printWindow.document.write(`
-      <!DOCTYPE html>
-      <html dir="${isRTL ? 'rtl' : 'ltr'}" lang="${currentLang}">
-      <head>
-        <meta charset="utf-8">
-        <title>${loc.reportTitle} - ${query}</title>
-        <style>
-          body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 30px; max-width: 800px; margin: auto; }
-          h1 { color: #002147; border-bottom: 2px solid #002147; padding-bottom: 10px; font-size: 22px; }
-          mark { background: #fde047; padding: 2px 4px; border-radius: 4px; font-weight: bold; }
-          .meta { font-size: 13px; color: #64748b; margin-bottom: 24px; }
-          @media print { .no-print { display: none; } }
-        </style>
-      </head>
-      <body>
-        <div class="no-print" style="margin-bottom: 20px; display: flex; justify-content: space-between;">
-          <button onclick="window.print()" style="padding: 10px 20px; background: #002147; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer;">🖨️ ${loc.printReport}</button>
-          <button onclick="window.close()" style="padding: 10px 20px; background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; border-radius: 8px; cursor: pointer;">${loc.close}</button>
-        </div>
-        <h1>${loc.reportTitle}: ${query}</h1>
-        <div class="meta">${loc.libraryBrand} • ${loc.foundMatches(results.length)}</div>
-        ${rowsHtml}
-      </body>
-      </html>
-    `);
-    printWindow.document.close();
   };
 
   const addRecentSearch = useCallback((value) => {
@@ -267,7 +225,18 @@ const GlobalSearchModal = ({ isOpen, onClose, onResultClick, initialQuery = '' }
     if (!term) return;
 
     setRecentSearches((current) => {
-      const next = [term, ...current.filter((item) => item.toLowerCase() !== term.toLowerCase())].slice(0, MAX_HISTORY_ITEMS);
+      const now = Date.now();
+      const existing = current.find((item) => item.term.toLowerCase() === term.toLowerCase());
+      const next = [
+        {
+          term,
+          count: (existing?.count || 0) + 1,
+          lastSearched: now,
+        },
+        ...current.filter((item) => item.term.toLowerCase() !== term.toLowerCase()),
+      ]
+        .sort((a, b) => b.count - a.count || b.lastSearched - a.lastSearched)
+        .slice(0, MAX_HISTORY_ITEMS);
       try {
         window.localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(next));
       } catch (err) {
@@ -293,7 +262,22 @@ const GlobalSearchModal = ({ isOpen, onClose, onResultClick, initialQuery = '' }
       try {
         const savedHistory = JSON.parse(window.localStorage.getItem(HISTORY_STORAGE_KEY) || '[]');
         if (Array.isArray(savedHistory)) {
-          setRecentSearches(savedHistory.filter(Boolean).slice(0, MAX_HISTORY_ITEMS));
+          const normalizedHistory = savedHistory
+            .map((item, index) => {
+              if (typeof item === 'string') {
+                return { term: item, count: 1, lastSearched: savedHistory.length - index };
+              }
+              if (!item?.term) return null;
+              return {
+                term: String(item.term),
+                count: Number(item.count) || 1,
+                lastSearched: Number(item.lastSearched) || savedHistory.length - index,
+              };
+            })
+            .filter(Boolean)
+            .sort((a, b) => b.count - a.count || b.lastSearched - a.lastSearched)
+            .slice(0, MAX_HISTORY_ITEMS);
+          setRecentSearches(normalizedHistory);
         }
       } catch (err) {
         setRecentSearches([]);
@@ -401,7 +385,8 @@ const GlobalSearchModal = ({ isOpen, onClose, onResultClick, initialQuery = '' }
   }, [query]);
 
   const runRecentSearch = (term) => {
-    setQuery(term);
+    const searchTerm = typeof term === 'string' ? term : term.term;
+    setQuery(searchTerm);
     setHasSearched(true);
     setError(null);
     inputRef.current?.focus();
@@ -417,6 +402,11 @@ const GlobalSearchModal = ({ isOpen, onClose, onResultClick, initialQuery = '' }
   };
 
   if (!isOpen) return null;
+
+  const suggestedSearches = recentSearches.filter(({ term }) => {
+    const searchValue = query.trim().toLowerCase();
+    return !searchValue || term.toLowerCase().includes(searchValue);
+  });
 
   const modalContent = (
     <div 
@@ -458,6 +448,36 @@ const GlobalSearchModal = ({ isOpen, onClose, onResultClick, initialQuery = '' }
 
         {/* Search Results Area */}
         <div className="flex-1 overflow-y-auto bg-slate-50 p-2 sm:bg-white sm:p-2 custom-scrollbar" dir={isRTL ? "rtl" : "ltr"}>
+          {/* Google-style suggestions from the user's most searched terms */}
+          {suggestedSearches.length > 0 && !hasSearched && (
+            <div className="mb-2 space-y-3 border-b border-slate-100 bg-white px-3 py-4 sm:px-4">
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-slate-400">
+                  {loc.recentSearches}
+                </p>
+                <button
+                  type="button"
+                  onClick={clearRecentSearches}
+                  className="text-[11px] font-semibold text-slate-400 transition hover:text-rose-600 cursor-pointer"
+                >
+                  {loc.clear}
+                </button>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {suggestedSearches.map((item) => (
+                  <button
+                    key={item.term}
+                    type="button"
+                    onClick={() => runRecentSearch(item)}
+                    className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700 cursor-pointer"
+                  >
+                    {item.term}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Initial State */}
           {!hasSearched && query.trim().length < 1 && (
             <div className="flex flex-col items-center justify-center px-4 py-14 text-center text-gray-400">
@@ -496,16 +516,6 @@ const GlobalSearchModal = ({ isOpen, onClose, onResultClick, initialQuery = '' }
             <div className="space-y-2 p-2 sm:p-3">
               <div className="flex items-center justify-between px-2 pb-1 text-[11px] font-bold uppercase tracking-[0.22em] text-slate-400 sm:px-3">
                 <span>{loc.foundMatches(results.length)}</span>
-                {searchSettings.export_enabled && (
-                  <button
-                    type="button"
-                    onClick={exportResearchReport}
-                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700 hover:bg-indigo-100 transition shadow-2xs cursor-pointer"
-                  >
-                    <Download size={13} />
-                    <span>{loc.exportReport}</span>
-                  </button>
-                )}
               </div>
               
               {results.map((result, index) => {
@@ -541,11 +551,11 @@ const GlobalSearchModal = ({ isOpen, onClose, onResultClick, initialQuery = '' }
                       
                       {/* Book Info */}
                       <div className="flex-1 min-w-0">
-                        <div className="mb-1 flex items-start justify-between gap-2">
-                          <h4 className="truncate text-sm sm:text-base font-bold text-slate-800 transition-colors group-hover:text-indigo-700">
+                        <div className="mb-1 flex flex-col items-start gap-1">
+                          <h4 className="min-w-0 break-words whitespace-normal text-sm sm:text-base font-bold leading-snug text-slate-800 transition-colors group-hover:text-indigo-700">
                             {highlightQueryText(result.title, query)}
                           </h4>
-                          <div className="flex items-center gap-1.5 shrink-0">
+                          <div className="flex flex-wrap items-center gap-1.5">
                             <span className="whitespace-nowrap rounded-full bg-indigo-100 px-2.5 py-0.5 text-[11px] font-bold text-indigo-700">
                               {loc.page} {result.page_number}
                             </span>
@@ -623,12 +633,12 @@ const GlobalSearchModal = ({ isOpen, onClose, onResultClick, initialQuery = '' }
                         {isExpanded ? (
                           <>
                             <ChevronUp size={13} />
-                            <span>{loc.collapseContext}</span>
+                            <span>Collapse</span>
                           </>
                         ) : (
                           <>
                             <Maximize2 size={13} />
-                            <span>{loc.expandContext}</span>
+                            <span>Expand</span>
                           </>
                         )}
                       </button>
@@ -642,7 +652,7 @@ const GlobalSearchModal = ({ isOpen, onClose, onResultClick, initialQuery = '' }
                           title={loc.copyCitation}
                         >
                           <Copy size={12} />
-                          <span>{loc.copyCitation}</span>
+                          <span>Copy</span>
                         </button>
                       )}
                     </div>
@@ -652,36 +662,6 @@ const GlobalSearchModal = ({ isOpen, onClose, onResultClick, initialQuery = '' }
             </div>
           )}
 
-          {/* Recent Search History */}
-          {recentSearches.length > 0 && (
-            <div className="space-y-3 border-t border-slate-100 px-3 py-4 sm:px-4">
-              <div className="flex items-center justify-between gap-3">
-                <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-slate-400">
-                  {loc.recentSearches}
-                </p>
-                <button
-                  type="button"
-                  onClick={clearRecentSearches}
-                  className="text-[11px] font-semibold text-slate-400 transition hover:text-rose-600 cursor-pointer"
-                >
-                  {loc.clear}
-                </button>
-              </div>
-
-              <div className="flex flex-wrap gap-2">
-                {recentSearches.map((term) => (
-                  <button
-                    key={term}
-                    type="button"
-                    onClick={() => runRecentSearch(term)}
-                    className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700 cursor-pointer"
-                  >
-                    {term}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
         
         {/* Footer */}

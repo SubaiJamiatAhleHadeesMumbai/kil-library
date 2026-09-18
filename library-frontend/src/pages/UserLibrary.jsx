@@ -581,7 +581,7 @@ const UserLibrary = () => {
           <div className="absolute inset-0 opacity-20 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] mix-blend-overlay" />
           <div className="absolute top-0 right-0 w-96 h-96 bg-emerald-500/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
 
-          <div className="relative z-10 max-w-4xl mx-auto text-center">
+          <div className="relative z-50 max-w-4xl mx-auto text-center">
             <motion.div
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -599,12 +599,7 @@ const UserLibrary = () => {
               </h1>
             </motion.div>
 
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.2 }}
-              className="mx-auto mt-4 sm:mt-8 max-w-4xl"
-            >
+            <div className="mx-auto mt-4 sm:mt-8 max-w-4xl">
               <LibrarySearchStrip
                 searchTerm={searchTerm}
                 onSearchChange={setSearchTerm}
@@ -614,7 +609,7 @@ const UserLibrary = () => {
                 placeholder="Search by title, author, or ISBN..."
                 showHint={true}
               />
-            </motion.div>
+            </div>
           </div>
         </div>
       )}
