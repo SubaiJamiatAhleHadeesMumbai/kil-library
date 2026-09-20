@@ -288,6 +288,14 @@ const GalleryManagementPage = () => {
     setTimeout(() => setMessage(''), 5000);
   };
 
+  const getDisplayAlbumTitle = (albumId) => {
+    if (!albumId || albumId === 'general') {
+      return activeLang === 'ur' ? 'عمومی البم (ڈیفالٹ)' : 'General Album (Default)';
+    }
+    const found = albums.find((a) => a.id === albumId);
+    return found?.title?.ur || found?.title_ur || found?.title?.en || found?.title_en || albumId;
+  };
+
   // --- BATCH PHOTO UPLOAD ---
   const handleBatchFiles = async (files) => {
     if (!files || files.length === 0) return;
@@ -1145,7 +1153,7 @@ const GalleryManagementPage = () => {
                             {item.title?.ur || item.title?.en || 'Gallery Photo'}
                           </h4>
                           <span className="text-[10px] text-slate-400 font-medium">
-                            {albumObj?.title?.ur || albumObj?.title?.en || item.album_id} · {item.year}
+                            {getDisplayAlbumTitle(item.album_id)} · {item.year}
                           </span>
                         </div>
 
@@ -1297,15 +1305,24 @@ const GalleryManagementPage = () => {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Album</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    {activeLang === 'ur' ? 'البم منتخب کریں' : 'Album'}
+                  </label>
                   <select
                     value={videoForm.album_id}
                     onChange={(e) => setVideoForm({ ...videoForm, album_id: e.target.value })}
                     className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-800"
                   >
-                    {albums.map((a) => (
-                      <option key={a.id} value={a.id}>{a.title?.ur || a.title?.en || a.id}</option>
-                    ))}
+                    <option value="general">
+                      📁 {activeLang === 'ur' ? 'عمومی ویڈیوز البم (ڈیفالٹ)' : 'General Videos Album (Default)'}
+                    </option>
+                    {albums
+                      .filter((a) => a.id !== 'general')
+                      .map((a) => (
+                        <option key={a.id} value={a.id}>
+                          📁 {a.title?.ur || a.title_ur || a.title?.en || a.title_en || a.id}
+                        </option>
+                      ))}
                   </select>
                 </div>
 
@@ -1407,7 +1424,7 @@ const GalleryManagementPage = () => {
                             {item.title?.ur || item.title?.en || 'YouTube Video'}
                           </h4>
                           <span className="text-[10px] text-slate-400 font-medium">
-                            {albumObj?.title?.ur || albumObj?.title?.en || item.album_id} · {item.year}
+                            {getDisplayAlbumTitle(item.album_id)} · {item.year}
                           </span>
                         </div>
 
@@ -2510,17 +2527,24 @@ const GalleryManagementPage = () => {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Album</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    {activeLang === 'ur' ? 'البم منتخب کریں' : 'Album'}
+                  </label>
                   <select
                     value={itemForm.album_id}
                     onChange={(e) => setItemForm({ ...itemForm, album_id: e.target.value })}
                     className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-800"
                   >
-                    {albums.map((alb) => (
-                      <option key={alb.id} value={alb.id}>
-                        {alb.title?.ur || alb.title?.en || alb.id}
-                      </option>
-                    ))}
+                    <option value="general">
+                      📁 {activeLang === 'ur' ? 'عمومی البم (ڈیفالٹ)' : 'General Album (Default)'}
+                    </option>
+                    {albums
+                      .filter((alb) => alb.id !== 'general')
+                      .map((alb) => (
+                        <option key={alb.id} value={alb.id}>
+                          📁 {alb.title?.ur || alb.title_ur || alb.title?.en || alb.title_en || alb.id}
+                        </option>
+                      ))}
                   </select>
                 </div>
 

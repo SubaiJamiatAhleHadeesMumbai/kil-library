@@ -72,24 +72,32 @@ def _ensure_gallery_columns(db: Session):
 
 def _ensure_default_album(db: Session):
     _ensure_gallery_columns(db)
-    general = db.query(GalleryAlbum).filter(GalleryAlbum.id == "general", GalleryAlbum.deleted_at.is_(None)).first()
-    if not general:
-        general = GalleryAlbum(
-            id="general",
-            title_en="General Gallery",
-            title_ur="عمومی تصاویر",
-            title_ar="الصور العامة",
-            description_en="Photos and glimpses of Markaz Dawah and Library",
-            description_ur="مرکز الدعوۃ اور کتب خانہ کی اہم جھلکیاں",
-            description_ar="لقطات من مركز الدعوة والمكتبة",
-            year="2026",
-            cover_image="",
-            sort_order=0,
-            is_active=True
-        )
-        db.add(general)
-        db.commit()
-        db.refresh(general)
+    # Check if general album exists (including soft-deleted)
+    general = db.query(GalleryAlbum).filter(GalleryAlbum.id == "general").first()
+    if general:
+        if general.deleted_at is not None or not general.is_active:
+            general.deleted_at = None
+            general.is_active = True
+            db.commit()
+            db.refresh(general)
+        return general
+
+    general = GalleryAlbum(
+        id="general",
+        title_en="General Gallery",
+        title_ur="عمومی البم (ڈیفالٹ)",
+        title_ar="المعرض العام",
+        description_en="Photos, videos and glimpses of Markaz Dawah and Library",
+        description_ur="مرکز الدعوۃ اور کتب خانہ کی اہم جھلکیاں و ویڈیوز",
+        description_ar="لقطات وفيديوهات من مركز الدعوة والمكتبة",
+        year="2026",
+        cover_image="",
+        sort_order=0,
+        is_active=True
+    )
+    db.add(general)
+    db.commit()
+    db.refresh(general)
     return general
 
 
@@ -689,26 +697,42 @@ def add_gallery_video(
     if not embed_url:
         raise HTTPException(status_code=400, detail="Invalid YouTube URL provided")
 
-    title = title_en.strip() or (f"Video {vid_id}" if vid_id else "YouTube Video")
+    # Ensure target album exists; if not, fallback to default general album
+    target_album_id = (album_id or "").strip() or "general"
+    album_obj = db.query(GalleryAlbum).filter(
+        GalleryAlbum.id == target_album_id,
+        GalleryAlbum.deleted_at.is_(None)
+    ).first()
+    if not album_obj:
+        default_album = _ensure_default_album(db)
+        target_album_id = default_album.id
+
+    title = (title_en or "").strip() or (f"Video {vid_id}" if vid_id else "YouTube Video")
+    ur_title = (title_ur or "").strip() or title
+    ar_title = (title_ar or "").strip() or title
+
+    # Normalize show_on_home
+    is_home = True if str(show_on_home).lower() in ["true", "1", "yes"] else False
+
     current_max_sort = db.query(func.max(GalleryItem.sort_order)).filter(GalleryItem.deleted_at.is_(None)).scalar() or 0
 
     new_item = GalleryItem(
         id=f"video_{uuid.uuid4().hex[:8]}",
-        album_id=album_id.strip() or "general",
+        album_id=target_album_id,
         image_url=thumb_url or "",
         video_url=embed_url,
         item_type="video",
         event_date="",
         title_en=title,
-        title_ur=title_ur.strip() or title,
-        title_ar=title_ar.strip() or title,
-        caption_en=caption_en.strip(),
-        caption_ur=caption_ur.strip(),
-        caption_ar=caption_ar.strip(),
-        year=year.strip() or "2026",
+        title_ur=ur_title,
+        title_ar=ar_title,
+        caption_en=(caption_en or "").strip(),
+        caption_ur=(caption_ur or "").strip(),
+        caption_ar=(caption_ar or "").strip(),
+        year=(year or "2026").strip() or "2026",
         sort_order=current_max_sort + 1,
         is_active=True,
-        show_on_home=show_on_home,
+        show_on_home=is_home,
     )
     db.add(new_item)
     db.commit()
