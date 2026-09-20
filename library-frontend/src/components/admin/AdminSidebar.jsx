@@ -9,7 +9,7 @@ import {
     ComputerDesktopIcon, DocumentDuplicateIcon, AdjustmentsHorizontalIcon,
     InformationCircleIcon, ChatBubbleLeftRightIcon, PhotoIcon,
     ChevronLeftIcon, ChevronRightIcon, ChevronDownIcon, MagnifyingGlassIcon,
-    SparklesIcon, UserGroupIcon, NewspaperIcon, ServerStackIcon, BanknotesIcon, Bars3Icon,
+    PaintBrushIcon, UserGroupIcon, NewspaperIcon, ServerStackIcon, BanknotesIcon, Bars3Icon,
     ChartBarIcon
 } from '@heroicons/react/24/outline';
 
@@ -167,7 +167,7 @@ const AdminSidebar = ({ mobileClose = () => {} }) => {
                 {
                     name: 'Theme & Design Tokens',
                     path: '/admin/theme-settings',
-                    icon: SparklesIcon,
+                    icon: PaintBrushIcon,
                     requiredPerm: null,
                 },
                 {
@@ -230,7 +230,7 @@ const AdminSidebar = ({ mobileClose = () => {} }) => {
                                 <span className="flex h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
                             </div>
                             <span className="text-[10px] font-semibold text-emerald-400/90 uppercase tracking-widest flex items-center gap-1">
-                                <SparklesIcon className="w-3 h-3" /> Admin Suite
+                                <ShieldCheckIcon className="w-3 h-3" /> Admin Suite
                             </span>
                         </div>
                     )}

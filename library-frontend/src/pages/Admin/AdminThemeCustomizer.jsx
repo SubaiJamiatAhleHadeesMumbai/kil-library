@@ -9,7 +9,6 @@ import { Link, useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import { toast } from "react-hot-toast";
 import {
-  SparklesIcon,
   SwatchIcon,
   AdjustmentsHorizontalIcon,
   LanguageIcon,
@@ -145,7 +144,7 @@ const AdminThemeCustomizer = () => {
         <div>
           <div className="flex items-center gap-2 mb-1">
             <span className="p-2 rounded-xl bg-indigo-50 text-indigo-700 border border-indigo-100 shadow-2xs">
-              <SparklesIcon className="w-6 h-6" />
+              <SwatchIcon className="w-6 h-6" />
             </span>
             <h1 className="text-2xl font-black text-slate-900 tracking-tight">
               Global UI/UX Control Panel

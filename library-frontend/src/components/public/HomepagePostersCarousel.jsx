@@ -7,7 +7,7 @@ import {
   MapPinIcon,
   ArrowTopRightOnSquareIcon,
   XMarkIcon,
-  SparklesIcon,
+  PhotoIcon,
   EyeIcon,
   ArrowDownTrayIcon,
   ShareIcon,
@@ -120,7 +120,7 @@ const HomepagePostersCarousel = () => {
       <section className="overflow-hidden rounded-3xl border border-slate-800 bg-slate-900 p-6 shadow-xl sm:p-8">
         <div className="rounded-2xl border border-dashed border-slate-700 bg-slate-950/50 p-8 text-center sm:p-12">
           <span className="inline-flex items-center gap-1.5 rounded-full bg-indigo-500/10 px-3.5 py-1 text-xs font-bold uppercase tracking-widest text-indigo-400 border border-indigo-500/20">
-            <SparklesIcon className="w-4 h-4 text-indigo-400" /> Media & Campaigns
+            <PhotoIcon className="w-4 h-4 text-indigo-400" /> Media & Campaigns
           </span>
           <h2 className="mt-3 text-2xl font-extrabold text-white sm:text-3xl">No Posters Published Yet</h2>
           <p className="mt-2 max-w-lg mx-auto text-sm text-slate-400 sm:text-base leading-relaxed">
@@ -264,7 +264,7 @@ const HomepagePostersCarousel = () => {
                     <div className="flex flex-col justify-between p-5 sm:p-7 border-t border-slate-800 lg:border-t-0 lg:border-l lg:border-slate-800 bg-slate-900 text-white">
                       <div className="space-y-4">
                         <div className="inline-flex items-center gap-1.5 rounded-full bg-indigo-500/10 px-3 py-1 text-xs font-extrabold uppercase tracking-widest text-indigo-400 border border-indigo-500/20">
-                          <SparklesIcon className="w-3.5 h-3.5 text-indigo-400" /> Featured Notice
+                          <PhotoIcon className="w-3.5 h-3.5 text-indigo-400" /> Featured Notice
                         </div>
 
                         <div>

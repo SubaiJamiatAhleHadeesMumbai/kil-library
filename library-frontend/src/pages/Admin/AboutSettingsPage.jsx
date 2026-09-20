@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  SparklesIcon,
+  DocumentPlusIcon,
   ArrowTopRightOnSquareIcon,
   CheckCircleIcon,
   EyeIcon,
@@ -658,7 +658,7 @@ export default function AboutSettingsPage() {
             {/* Quick Insert Snippets */}
             <div className="flex flex-wrap items-center gap-2 px-1">
               <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 flex items-center gap-1">
-                <SparklesIcon className="w-3.5 h-3.5 text-emerald-600" /> Quick Inserts:
+                <DocumentPlusIcon className="w-3.5 h-3.5 text-emerald-600" /> Quick Inserts:
               </span>
               <button
                 type="button"

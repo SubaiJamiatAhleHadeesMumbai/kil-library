@@ -1,5 +1,5 @@
 import React from "react";
-import { ChatBubbleLeftRightIcon, ArrowTopRightOnSquareIcon, SparklesIcon } from "@heroicons/react/24/outline";
+import { ChatBubbleLeftRightIcon, ArrowTopRightOnSquareIcon } from "@heroicons/react/24/outline";
 
 const WhatsAppCommunityBlock = ({ config = {} }) => {
   const title = config?.title || "Join Official Markaz Community";
@@ -7,18 +7,14 @@ const WhatsAppCommunityBlock = ({ config = {} }) => {
   const description = config?.description || "Receive daily Quranic Ayat, authentic Hadith, announcements, newly published books, and Fatawa directly on your phone.";
 
   return (
-    <section className="py-10 px-4 max-w-7xl mx-auto font-sans">
-      <div className="rounded-[2.5rem] bg-gradient-to-r from-emerald-900 via-teal-900 to-[#002147] p-8 sm:p-12 text-white shadow-2xl relative overflow-hidden border border-emerald-500/20">
+    <section className="py-6 px-4 max-w-7xl mx-auto font-sans">
+      <div className="rounded-[2.5rem] bg-gradient-to-r from-emerald-900 via-teal-900 to-[#002147] p-6 sm:p-10 text-white shadow-2xl relative overflow-hidden border border-emerald-500/20">
         {/* Background glow */}
         <div className="absolute -top-24 -right-24 w-96 h-96 bg-emerald-400/15 rounded-full blur-3xl pointer-events-none" />
 
-        <div className="relative z-10 flex flex-col lg:flex-row items-center justify-between gap-8">
-          <div className="space-y-3 text-center lg:text-left max-w-2xl">
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-bold border border-emerald-400/30 backdrop-blur-md">
-              <SparklesIcon className="w-3.5 h-3.5" />
-              <span>Official Broadcast Channel</span>
-            </div>
-            <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-white">
+        <div className="relative z-10 flex flex-col lg:flex-row items-center justify-between gap-6">
+          <div className="space-y-2 text-center lg:text-left max-w-2xl">
+            <h2 className="text-xl sm:text-2xl font-black tracking-tight text-white">
               {title}
             </h2>
             {subtitle && (

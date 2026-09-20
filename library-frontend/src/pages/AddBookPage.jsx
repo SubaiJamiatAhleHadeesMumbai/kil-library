@@ -12,7 +12,6 @@ import { bookService } from "../api/bookService";
 import {
   ArrowLeftIcon,
   TableCellsIcon,
-  SparklesIcon,
   XMarkIcon,
   ArrowDownTrayIcon,
   DocumentArrowUpIcon
@@ -132,7 +131,7 @@ const AddBookPage = () => {
           <div className="bg-gradient-to-r from-emerald-50 via-teal-50 to-emerald-50 border-2 border-emerald-300/80 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm animate-in fade-in slide-in-from-top-2 duration-300">
             <div className="flex items-start gap-3.5">
               <div className="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center flex-shrink-0 shadow-sm mt-0.5">
-                <SparklesIcon className="w-5 h-5" />
+                <TableCellsIcon className="w-5 h-5" />
               </div>
               <div className="space-y-0.5">
                 <div className="flex items-center gap-2 flex-wrap">

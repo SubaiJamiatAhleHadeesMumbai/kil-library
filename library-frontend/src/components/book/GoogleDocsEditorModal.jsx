@@ -5,7 +5,7 @@ import {
   List, ListOrdered, Indent, Outdent, Eraser,
   ChevronDown, ChevronLeft, ChevronRight, FileText, Star, Cloud,
   Maximize2, Minimize2, FileCheck, BookOpen, PlusCircle, Trash2,
-  Table, Image as ImageIcon, Link as LinkIcon, Sparkles, Volume2, HelpCircle,
+  Table, Image as ImageIcon, Link as LinkIcon, Volume2, HelpCircle,
   Puzzle, Keyboard, Copy, Check, FileDown, Scissors, Type, Clock
 } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -699,7 +699,7 @@ export default function GoogleDocsEditorModal({
                     { label: '📋 Insert 3-Column Index Table', icon: Table, action: () => handleInsertTable(3, 3, true) },
                     { label: '📊 Insert Standard Table (3x3)', icon: Table, action: () => handleInsertTable(3, 3, false) },
                     { label: '🔗 Insert Link (Ctrl+K)', icon: LinkIcon, action: () => setShowLinkModal(true) },
-                    { label: '✨ Islamic Symbols & Duas Palette', icon: Sparkles, action: () => setShowSymbolsModal(true) },
+                    { label: 'Islamic Symbols & Duas Palette', icon: BookOpen, action: () => setShowSymbolsModal(true) },
                     { label: '✂️ Insert Page Break (Ctrl+Enter)', icon: PlusCircle, action: () => handleAddPageAfter(currentPage - 1) },
                     { label: '➖ Horizontal Divider Line', action: () => execCmd('insertHorizontalRule') },
                     { label: `🕒 Insert Current Date & Time`, icon: Clock, action: () => insertHtmlAtCursor(`<p style="font-family:sans-serif;font-size:12px;color:#64748b;">${new Date().toLocaleDateString('en-GB')} | ${new Date().toLocaleTimeString()}</p>`) },
@@ -722,11 +722,11 @@ export default function GoogleDocsEditorModal({
                     { label: '⌨️ Urdu Phonetic Keyboard Helper', icon: Keyboard, action: () => setShowKeyboardModal(true) },
                     { label: '🔍 Find & Replace (Ctrl+F)', icon: Search, action: () => setShowFindReplace(true) },
                   ]},
-                  { name: 'Gemini AI', key: 'geminiMenu', items: [
+                  { name: 'Islamic Formatting', key: 'islamicMenu', items: [
                     { label: '🔊 Read Page Aloud (Voice Speech)', icon: Volume2, action: handleListenPage },
-                    { label: '✨ Insert Quranic Ayah Brackets ﴿ ﴾', icon: Sparkles, action: () => insertHtmlAtCursor(' ﴿  ﴾ ') },
-                    { label: '✨ Insert Hadith Quotation « »', icon: Sparkles, action: () => insertHtmlAtCursor(' «  » ') },
-                    { label: '✨ Insert Durood Shareef ﷺ', icon: Sparkles, action: () => insertHtmlAtCursor(' ﷺ ') },
+                    { label: 'Insert Quranic Ayah Brackets ﴿ ﴾', icon: BookOpen, action: () => insertHtmlAtCursor(' ﴿  ﴾ ') },
+                    { label: 'Insert Hadith Quotation « »', icon: BookOpen, action: () => insertHtmlAtCursor(' «  » ') },
+                    { label: 'Insert Durood Shareef ﷺ', icon: BookOpen, action: () => insertHtmlAtCursor(' ﷺ ') },
                   ]},
                   { name: 'Extensions', key: 'extensionsMenu', items: [
                     { label: '⌨️ On-Screen Urdu Keymap', icon: Keyboard, action: () => setShowKeyboardModal(true) },
@@ -1041,7 +1041,7 @@ export default function GoogleDocsEditorModal({
             className="p-1.5 rounded hover:bg-slate-200/80 text-slate-700 flex items-center gap-1"
             title="Islamic Symbols & Duas (ﷺ, ﷻ, ﴿ ﴾)"
           >
-            <Sparkles className="w-4 h-4 text-amber-500" />
+            <BookOpen className="w-4 h-4 text-emerald-600" />
           </button>
 
           <div className="h-4 w-[1px] bg-slate-300 mx-1" />
@@ -1453,7 +1453,7 @@ export default function GoogleDocsEditorModal({
           <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-lg w-full p-6 animate-in zoom-in-95 duration-150">
             <div className="flex justify-between items-center pb-3 border-b border-slate-100">
               <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
-                <Sparkles className="w-5 h-5 text-amber-500" />
+                <BookOpen className="w-5 h-5 text-emerald-600" />
                 Islamic Symbols & Calligraphy Signs
               </h3>
               <button type="button" onClick={() => setShowSymbolsModal(false)} className="text-slate-400 hover:text-slate-700">

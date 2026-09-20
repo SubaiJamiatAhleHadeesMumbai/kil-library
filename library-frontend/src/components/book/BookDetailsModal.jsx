@@ -11,7 +11,6 @@ import {
   ArrowTopRightOnSquareIcon,
   DocumentTextIcon,
   ArrowLeftIcon,
-  SparklesIcon,
   StarIcon,
   ShareIcon,
   UserIcon,
@@ -583,7 +582,7 @@ const BookDetailsModal = ({
                           {/* Description Box */}
                           <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4 sm:p-5">
                             <div className="flex items-center gap-2 mb-2 text-slate-800 font-extrabold text-sm">
-                              <SparklesIcon className="w-4 h-4 text-emerald-600" />
+                              <BookOpenIcon className="w-4 h-4 text-emerald-600" />
                               <span>About this Book</span>
                             </div>
                             <p className="text-slate-700 text-xs sm:text-sm leading-relaxed whitespace-pre-line">

@@ -6,7 +6,6 @@ import {
   MagnifyingGlassIcon,
   ChatBubbleLeftRightIcon,
   UserCircleIcon,
-  SparklesIcon,
 } from '@heroicons/react/24/outline';
 import {
   HomeIcon as HomeIconSolid,

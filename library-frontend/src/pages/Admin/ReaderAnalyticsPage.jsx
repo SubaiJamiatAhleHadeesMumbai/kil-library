@@ -10,7 +10,7 @@ import {
   ArrowPathIcon,
   ArrowDownTrayIcon,
   FunnelIcon,
-  SparklesIcon,
+  DeviceTabletIcon,
   CheckBadgeIcon,
   GlobeAsiaAustraliaIcon,
   FireIcon,
@@ -361,7 +361,7 @@ export default function ReaderAnalyticsPage() {
               </div>
 
               <div className="rounded-2xl border border-amber-100 dark:border-amber-950 bg-amber-50/50 dark:bg-amber-950/20 p-3">
-                <SparklesIcon className="w-5 h-5 mx-auto text-amber-600 mb-1" />
+                <DeviceTabletIcon className="w-5 h-5 mx-auto text-amber-600 mb-1" />
                 <span className="text-xs font-bold text-slate-700 dark:text-slate-300 block">Tablet</span>
                 <span className="text-lg font-black text-amber-600">{tabletPct}%</span>
               </div>

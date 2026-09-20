@@ -5,7 +5,6 @@ import {
     CalendarDaysIcon,
     ArrowLongRightIcon,
     PhotoIcon,
-    SparklesIcon,
     EyeIcon,
 } from "@heroicons/react/24/outline";
 import postService from "../../api/postService";

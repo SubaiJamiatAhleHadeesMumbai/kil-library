@@ -20,7 +20,6 @@ import {
   ArrowTopRightOnSquareIcon,
   CheckCircleIcon,
   ExclamationTriangleIcon,
-  SparklesIcon,
   EyeIcon,
 } from "@heroicons/react/24/outline";
 
@@ -329,7 +328,7 @@ const RestrictedBookPermissions = () => {
 
           <div className="p-4 rounded-2xl bg-amber-50/50 border border-amber-100 flex items-center gap-3.5">
             <div className="h-11 w-11 rounded-xl bg-amber-100 text-amber-800 flex items-center justify-center shrink-0">
-              <SparklesIcon className="h-6 w-6" />
+              <UserGroupIcon className="h-6 w-6" />
             </div>
             <div>
               <span className="text-[11px] font-bold text-amber-900 uppercase tracking-wider">

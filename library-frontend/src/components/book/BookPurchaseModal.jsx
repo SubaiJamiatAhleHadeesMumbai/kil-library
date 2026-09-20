@@ -13,7 +13,7 @@ import {
   CheckCircleIcon,
   ExclamationCircleIcon,
   BookOpenIcon,
-  SparklesIcon
+  BoltIcon
 } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
 import { bookOrderService } from '../../api/bookOrderService';
@@ -459,7 +459,7 @@ const BookPurchaseModal = ({ book, pdfUrl, isOpen, onClose }) => {
                       }}
                       className="py-2 px-3 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 text-slate-400 hover:text-slate-600 transition cursor-pointer"
                     >
-                      <SparklesIcon className="w-3.5 h-3.5 text-amber-500" />
+                      <BoltIcon className="w-3.5 h-3.5 text-amber-500" />
                       <span>Instant Pay</span>
                       <span className="px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-800 text-[9px] font-extrabold uppercase tracking-wider">
                         Coming Soon
@@ -532,7 +532,7 @@ const BookPurchaseModal = ({ book, pdfUrl, isOpen, onClose }) => {
                           </>
                         ) : (
                           <>
-                            <SparklesIcon className="w-4 h-4" />
+                            <ShieldCheckIcon className="w-4 h-4" />
                             Pay ₹{price} & Unlock Book Instantly
                           </>
                         )}

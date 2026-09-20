@@ -16,7 +16,6 @@ import {
   ArrowDownTrayIcon,
   CalendarDaysIcon,
   ClockIcon,
-  SparklesIcon,
   XMarkIcon,
   CheckIcon,
   PhotoIcon,
@@ -455,7 +454,7 @@ const PosterManagerPanel = () => {
 
               {/* Badges on Simulator */}
               <div className="absolute top-2.5 left-2.5 z-20 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-900/80 backdrop-blur-md text-[10px] font-bold text-white border border-slate-700">
-                <SparklesIcon className="w-3 h-3 text-emerald-400" />
+                <PhotoIcon className="w-3 h-3 text-emerald-400" />
                 <span>{simulatorMode === 'mobile' ? 'Mobile View' : 'Desktop View'}</span>
               </div>
             </div>

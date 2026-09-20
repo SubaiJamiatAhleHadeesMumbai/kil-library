@@ -1,12 +1,11 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import {
-  BookOpenIcon,
   NewspaperIcon,
   AcademicCapIcon,
   HeartIcon,
+  BookmarkIcon,
   ArrowRightIcon,
-  SparklesIcon
 } from "@heroicons/react/24/outline";
 
 const KokanHubBento = ({ config = {} }) => {
@@ -14,19 +13,6 @@ const KokanHubBento = ({ config = {} }) => {
   const subtitle = config?.subtitle || "مرکز اہل حدیث کوکن — اہم ڈیجیٹل شعبہ جات";
 
   const cards = [
-    {
-      id: "library",
-      title: "Digital Islamic Library",
-      titleUrdu: "ڈیجیٹل اسلامی کتب خانہ",
-      description: "Access 10,000+ classical & contemporary Islamic books, manuscripts, authors & publishers.",
-      link: "/library",
-      badge: "10,000+ Books",
-      icon: BookOpenIcon,
-      accent: "from-blue-600 to-indigo-800",
-      bgGradient: "from-blue-500/10 via-indigo-500/5 to-transparent",
-      borderColor: "border-blue-200/80 hover:border-blue-500",
-      badgeColor: "bg-blue-100 text-blue-800 border-blue-200"
-    },
     {
       id: "clippings",
       title: "Press & Newspaper Clippings",
@@ -69,11 +55,11 @@ const KokanHubBento = ({ config = {} }) => {
   ];
 
   return (
-    <section className="py-8 px-4 max-w-7xl mx-auto font-sans">
+    <section className="py-6 px-4 max-w-7xl mx-auto font-sans">
       {/* Section Header */}
-      <div className="text-center space-y-2 mb-8">
+      <div className="text-center space-y-2 mb-5">
         <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-800 text-xs font-bold border border-emerald-200 shadow-2xs">
-          <SparklesIcon className="w-3.5 h-3.5 text-emerald-600" />
+          <BookmarkIcon className="w-3.5 h-3.5 text-emerald-600" />
           <span>Kokan Hub Portals</span>
         </div>
         <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
@@ -86,8 +72,8 @@ const KokanHubBento = ({ config = {} }) => {
         )}
       </div>
 
-      {/* 4-Bento Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+      {/* 3-Bento Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
         {cards.map((card) => {
           const Icon = card.icon;
           return (

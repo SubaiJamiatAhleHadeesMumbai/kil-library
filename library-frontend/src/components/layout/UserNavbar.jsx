@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Link, NavLink, useNavigate, useLocation } from "react-router-dom";
+// eslint-disable-next-line no-unused-vars
 import { motion, AnimatePresence } from "framer-motion";
 
 // --- ICONS ---
@@ -21,14 +22,16 @@ import {
   ChevronDownIcon,
   ArrowLeftOnRectangleIcon, // Icon for Login
   AcademicCapIcon,
-  SparklesIcon,
+  Squares2X2Icon,
   UserGroupIcon,
   EllipsisHorizontalCircleIcon,
   MagnifyingGlassIcon,
   NewspaperIcon,
   ShieldCheckIcon,
   BookmarkIcon,
-  PhotoIcon
+  PhotoIcon,
+  MoonIcon,
+  CalendarDaysIcon,
 } from "@heroicons/react/24/outline";
 
 // --- COMPONENTS & HOOKS ---
@@ -114,6 +117,8 @@ const UserNavbar = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isDonationOpen, setIsDonationOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [isAboutDropdownOpen, setIsAboutDropdownOpen] = useState(false);
+  const [isMobileAboutOpen, setIsMobileAboutOpen] = useState(false);
   const [isSocialDropdownOpen, setIsSocialDropdownOpen] = useState(false);
   const [isMobileSocialOpen, setIsMobileSocialOpen] = useState(false);
   const [isUniversalSearchOpen, setIsUniversalSearchOpen] = useState(false);
@@ -122,6 +127,8 @@ const UserNavbar = () => {
   const [isContinueReadingDismissed, setIsContinueReadingDismissed] = useState(false);
   
   const profileRef = useRef(null);
+  const aboutDropdownRef = useRef(null);
+  const aboutTimeoutRef = useRef(null);
   const socialDropdownRef = useRef(null);
   const socialTimeoutRef = useRef(null);
 
@@ -156,6 +163,17 @@ const UserNavbar = () => {
     };
   }, []);
 
+  const handleAboutMouseEnter = () => {
+    if (aboutTimeoutRef.current) clearTimeout(aboutTimeoutRef.current);
+    setIsAboutDropdownOpen(true);
+  };
+
+  const handleAboutMouseLeave = () => {
+    aboutTimeoutRef.current = setTimeout(() => {
+      setIsAboutDropdownOpen(false);
+    }, 180);
+  };
+
   const handleSocialMouseEnter = () => {
     if (socialTimeoutRef.current) clearTimeout(socialTimeoutRef.current);
     setIsSocialDropdownOpen(true);
@@ -170,6 +188,7 @@ const UserNavbar = () => {
   const handleLogout = () => {
     setIsProfileOpen(false);
     setIsMobileMenuOpen(false);
+    setIsAboutDropdownOpen(false);
     setIsSocialDropdownOpen(false);
     logout();
     navigate("/login");
@@ -180,6 +199,9 @@ const UserNavbar = () => {
       if (profileRef.current && !profileRef.current.contains(e.target)) {
         setIsProfileOpen(false);
       }
+      if (aboutDropdownRef.current && !aboutDropdownRef.current.contains(e.target)) {
+        setIsAboutDropdownOpen(false);
+      }
       if (socialDropdownRef.current && !socialDropdownRef.current.contains(e.target)) {
         setIsSocialDropdownOpen(false);
       }
@@ -187,6 +209,7 @@ const UserNavbar = () => {
     document.addEventListener("mousedown", handler);
     return () => {
       document.removeEventListener("mousedown", handler);
+      if (aboutTimeoutRef.current) clearTimeout(aboutTimeoutRef.current);
       if (socialTimeoutRef.current) clearTimeout(socialTimeoutRef.current);
     };
   }, []);
@@ -339,7 +362,128 @@ const UserNavbar = () => {
               {/* DESKTOP NAV */}
               <div className="hidden lg:flex items-center gap-1">
                 {showHomeLink && <NavItem to="/" label={t("home")} icon={HomeIcon} />}
-                {showAboutLink && <NavItem to="/about" label={t("about")} icon={InformationCircleIcon} />}
+
+                {/* ABOUT & ISLAMIC PORTALS DROPDOWN */}
+                <div
+                  ref={aboutDropdownRef}
+                  className="relative"
+                  onMouseEnter={handleAboutMouseEnter}
+                  onMouseLeave={handleAboutMouseLeave}
+                >
+                  <button
+                    type="button"
+                    onClick={() => setIsAboutDropdownOpen((prev) => !prev)}
+                    className={`relative flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-bold transition-all duration-200 cursor-pointer ${
+                      isAboutDropdownOpen ||
+                      location.pathname === '/about' ||
+                      location.pathname === '/calendar' ||
+                      location.pathname === '/moon' ||
+                      location.pathname === '/juma-list'
+                        ? "text-[var(--primary,#002147)] bg-blue-50/80"
+                        : "text-slate-600 hover:text-[var(--primary,#002147)] hover:bg-slate-50"
+                    }`}
+                    aria-expanded={isAboutDropdownOpen}
+                  >
+                    <InformationCircleIcon className={`h-4 w-4 transition-colors ${isAboutDropdownOpen ? "text-[var(--primary,#002147)]" : "text-slate-400"}`} />
+                    <span>{t("about") || "About"}</span>
+                    <ChevronDownIcon
+                      className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 ${
+                        isAboutDropdownOpen ? "rotate-180 text-[var(--primary,#002147)]" : ""
+                      }`}
+                    />
+                  </button>
+
+                  <AnimatePresence>
+                    {isAboutDropdownOpen && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 8, scale: 0.96 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: 6, scale: 0.96 }}
+                        transition={{ duration: 0.18, ease: "easeOut" }}
+                        className="absolute start-0 mt-1.5 w-64 bg-white/95 backdrop-blur-xl rounded-2xl shadow-xl border border-slate-100/90 p-2 z-50 overflow-hidden ring-1 ring-black/5"
+                      >
+                        <div className="space-y-1">
+                          {/* 1. About Markaz */}
+                          <Link
+                            to="/about"
+                            onClick={() => setIsAboutDropdownOpen(false)}
+                            className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-blue-50/80 transition-all duration-200 group"
+                          >
+                            <div className="h-9 w-9 rounded-xl bg-blue-100/70 text-blue-700 flex items-center justify-center flex-shrink-0 group-hover:scale-105 group-hover:bg-blue-600 group-hover:text-white transition-all shadow-sm">
+                              <InformationCircleIcon className="h-5 w-5" />
+                            </div>
+                            <div className="flex flex-col text-start">
+                              <span className="text-xs font-bold text-slate-800 group-hover:text-blue-900 transition-colors">
+                                {language === 'ur' ? 'تعارف مرکز' : (language === 'ar' ? 'عن المركز' : 'About Markaz')}
+                              </span>
+                              <span className="text-[10px] text-slate-400 font-medium">
+                                Mission, History & Aims
+                              </span>
+                            </div>
+                          </Link>
+
+                          {/* 2. Jumah Schedule */}
+                          <Link
+                            to="/juma-list"
+                            onClick={() => setIsAboutDropdownOpen(false)}
+                            className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-emerald-50/80 transition-all duration-200 group"
+                          >
+                            <div className="h-9 w-9 rounded-xl bg-emerald-100/70 text-emerald-700 flex items-center justify-center flex-shrink-0 group-hover:scale-105 group-hover:bg-emerald-600 group-hover:text-white transition-all shadow-sm">
+                              <CalendarDaysIcon className="h-5 w-5" />
+                            </div>
+                            <div className="flex flex-col text-start">
+                              <span className="text-xs font-bold text-slate-800 group-hover:text-emerald-900 transition-colors">
+                                {language === 'ur' ? 'خطبات جمعہ' : (language === 'ar' ? 'خطب الجمعة' : 'Jumah Schedule')}
+                              </span>
+                              <span className="text-[10px] text-slate-400 font-medium">
+                                Khutbah timings & Imams
+                              </span>
+                            </div>
+                          </Link>
+
+                          {/* 3. Moon Announcements */}
+                          <Link
+                            to="/moon"
+                            onClick={() => setIsAboutDropdownOpen(false)}
+                            className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-amber-50/80 transition-all duration-200 group"
+                          >
+                            <div className="h-9 w-9 rounded-xl bg-amber-100/70 text-amber-800 flex items-center justify-center flex-shrink-0 group-hover:scale-105 group-hover:bg-amber-600 group-hover:text-white transition-all shadow-sm">
+                              <MoonIcon className="h-5 w-5" />
+                            </div>
+                            <div className="flex flex-col text-start">
+                              <span className="text-xs font-bold text-slate-800 group-hover:text-amber-900 transition-colors">
+                                {language === 'ur' ? 'رؤیت ہلال' : (language === 'ar' ? 'رؤية الهلال' : 'Moon Announcements')}
+                              </span>
+                              <span className="text-[10px] text-slate-400 font-medium">
+                                Official Hijri declarations
+                              </span>
+                            </div>
+                          </Link>
+
+                          {/* 4. Islamic Calendar */}
+                          <Link
+                            to="/calendar"
+                            onClick={() => setIsAboutDropdownOpen(false)}
+                            className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-teal-50/80 transition-all duration-200 group"
+                          >
+                            <div className="h-9 w-9 rounded-xl bg-teal-100/70 text-teal-800 flex items-center justify-center flex-shrink-0 group-hover:scale-105 group-hover:bg-teal-600 group-hover:text-white transition-all shadow-sm">
+                              <CalendarDaysIcon className="h-5 w-5" />
+                            </div>
+                            <div className="flex flex-col text-start">
+                              <span className="text-xs font-bold text-slate-800 group-hover:text-teal-900 transition-colors">
+                                {language === 'ur' ? 'اسلامی تقویم (کیلنڈر)' : 'Islamic Calendar'}
+                              </span>
+                              <span className="text-[10px] text-slate-400 font-medium">
+                                12 Months Calendar Posters
+                              </span>
+                            </div>
+                          </Link>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+
                 {showLibraryLink && <NavItem to="/books" label={t("library")} icon={BookOpenIcon} />}
                 {showFatawaLink && <NavItem to="/fatawa" label={t("fatawa")} icon={BookOpenIcon} />}
                 {showGalleryLink && <NavItem to="/gallery" label={t("gallery")} icon={PhotoIcon} />}
@@ -362,7 +506,7 @@ const UserNavbar = () => {
                       }`}
                       aria-expanded={isSocialDropdownOpen}
                     >
-                      <SparklesIcon className={`h-4 w-4 transition-colors ${isSocialDropdownOpen ? "text-[var(--primary,#002147)]" : "text-slate-400"}`} />
+                      <Squares2X2Icon className={`h-4 w-4 transition-colors ${isSocialDropdownOpen ? "text-[var(--primary,#002147)]" : "text-slate-400"}`} />
                       <span>{t("more") || "More"}</span>
                       <ChevronDownIcon
                         className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 ${
@@ -712,7 +856,65 @@ const UserNavbar = () => {
                 {/* Mobile Links */}
                 <div className="space-y-1">
                   <NavItem to="/" label={t("home")} icon={HomeIcon} onClick={() => setIsMobileMenuOpen(false)} />
-                  {showAboutLink ? <NavItem to="/about" label={t("about")} icon={InformationCircleIcon} onClick={() => setIsMobileMenuOpen(false)} /> : null}
+                  
+                  {/* Mobile About & Portals Accordion */}
+                  <div className="rounded-xl overflow-hidden">
+                    <button
+                      type="button"
+                      onClick={() => setIsMobileAboutOpen((p) => !p)}
+                      className="flex items-center justify-between w-full px-3 py-2 text-sm font-bold text-slate-600 hover:text-[#002147] hover:bg-slate-50 rounded-xl transition-colors cursor-pointer"
+                    >
+                      <div className="flex items-center gap-2">
+                        <InformationCircleIcon className="h-4 w-4 text-blue-600" />
+                        <span>{t("about") || "About & Portals"}</span>
+                      </div>
+                      <ChevronDownIcon className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 ${isMobileAboutOpen ? 'rotate-180 text-[#002147]' : ''}`} />
+                    </button>
+                    <AnimatePresence>
+                      {isMobileAboutOpen && (
+                        <motion.div
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: "auto" }}
+                          exit={{ opacity: 0, height: 0 }}
+                          className="pl-6 pr-2 py-1 space-y-1 bg-slate-50/70 rounded-xl mt-1 overflow-hidden"
+                        >
+                          <Link
+                            to="/about"
+                            onClick={() => setIsMobileMenuOpen(false)}
+                            className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold text-slate-700 hover:text-blue-900 hover:bg-white transition-colors"
+                          >
+                            <InformationCircleIcon className="w-4 h-4 text-blue-600" />
+                            <span>{language === 'ur' ? 'تعارف مرکز' : 'About Markaz'}</span>
+                          </Link>
+                          <Link
+                            to="/juma-list"
+                            onClick={() => setIsMobileMenuOpen(false)}
+                            className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold text-slate-700 hover:text-emerald-900 hover:bg-white transition-colors"
+                          >
+                            <CalendarDaysIcon className="w-4 h-4 text-emerald-600" />
+                            <span>{language === 'ur' ? 'خطبات جمعہ' : 'Jumah Schedule'}</span>
+                          </Link>
+                          <Link
+                            to="/moon"
+                            onClick={() => setIsMobileMenuOpen(false)}
+                            className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold text-slate-700 hover:text-amber-900 hover:bg-white transition-colors"
+                          >
+                            <MoonIcon className="w-4 h-4 text-amber-600" />
+                            <span>{language === 'ur' ? 'رؤیت ہلال' : 'Moon Announcements'}</span>
+                          </Link>
+                          <Link
+                            to="/calendar"
+                            onClick={() => setIsMobileMenuOpen(false)}
+                            className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold text-slate-700 hover:text-teal-900 hover:bg-white transition-colors"
+                          >
+                            <CalendarDaysIcon className="w-4 h-4 text-teal-600" />
+                            <span>{language === 'ur' ? 'اسلامی تقویم (کیلنڈر)' : 'Islamic Calendar'}</span>
+                          </Link>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+
                   <NavItem to="/books" label={t("library")} icon={BookOpenIcon} onClick={() => setIsMobileMenuOpen(false)} />
                   <NavItem to="/gallery" label={t("gallery")} icon={PhotoIcon} onClick={() => setIsMobileMenuOpen(false)} />
                   {showFatawaLink ? <NavItem to="/fatawa" label={t("fatawa")} icon={BookOpenIcon} onClick={() => setIsMobileMenuOpen(false)} /> : null}
@@ -725,7 +927,7 @@ const UserNavbar = () => {
                       className="flex items-center justify-between w-full px-3 py-2 text-sm font-bold text-slate-600 hover:text-[#002147] hover:bg-slate-50 rounded-xl transition-colors cursor-pointer"
                     >
                       <div className="flex items-center gap-2">
-                        <SparklesIcon className="h-4 w-4 text-slate-400" />
+                        <Squares2X2Icon className="h-4 w-4 text-slate-400" />
                         <span>{t("activities")}</span>
                       </div>
                       <ChevronDownIcon className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 ${isMobileSocialOpen ? 'rotate-180 text-[#002147]' : ''}`} />

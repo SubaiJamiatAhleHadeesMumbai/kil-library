@@ -6,37 +6,56 @@ import {
   UserGroupIcon
 } from "@heroicons/react/24/outline";
 
+const DEFAULT_STATS = [
+  {
+    key: "books",
+    label: "Islamic Books & Rare Treatises",
+    labelUrdu: "کتب و نادر علمی ذخائر",
+    value: "10,000+",
+    icon: BookOpenIcon,
+  },
+  {
+    key: "clippings",
+    label: "Newspaper & Press Archives",
+    labelUrdu: "اخباری کٹنگز و مضامین",
+    value: "250+",
+    icon: NewspaperIcon,
+  },
+  {
+    key: "fatawa",
+    label: "Answered Shar'i Fatawa",
+    labelUrdu: "مفتیانِ کرام کے شرعی فتاویٰ",
+    value: "1,200+",
+    icon: AcademicCapIcon,
+  },
+  {
+    key: "readers",
+    label: "Monthly Active Readers",
+    labelUrdu: "ماہانہ قارئین و طلبہ",
+    value: "50,000+",
+    icon: UserGroupIcon,
+  }
+];
+
 const ImpactStatsCounter = ({ config = {} }) => {
-  const stats = [
-    {
-      label: "Islamic Books & Rare Treatises",
-      labelUrdu: "کتب و نادر علمی ذخائر",
-      value: "10,000+",
-      icon: BookOpenIcon,
-      accent: "text-blue-600 bg-blue-50 border-blue-200"
-    },
-    {
-      label: "Newspaper & Press Archives",
-      labelUrdu: "اخباری کٹنگز و مضامین",
-      value: "250+",
-      icon: NewspaperIcon,
-      accent: "text-emerald-600 bg-emerald-50 border-emerald-200"
-    },
-    {
-      label: "Answered Shar'i Fatawa",
-      labelUrdu: "مفتیانِ کرام کے شرعی فتاویٰ",
-      value: "1,200+",
-      icon: AcademicCapIcon,
-      accent: "text-amber-600 bg-amber-50 border-amber-200"
-    },
-    {
-      label: "Monthly Active Readers",
-      labelUrdu: "ماہانہ قارئین و طلبہ",
-      value: "50,000+",
-      icon: UserGroupIcon,
-      accent: "text-purple-600 bg-purple-50 border-purple-200"
-    }
-  ];
+  // If explicitly hidden by admin
+  if (config?.enabled === false) {
+    return null;
+  }
+
+  // Merge admin-configured stats with defaults
+  const dynamicItems = Array.isArray(config?.stats) ? config.stats : (Array.isArray(config?.items) ? config.items : null);
+
+  const stats = DEFAULT_STATS.map((def, idx) => {
+    const custom = dynamicItems?.[idx];
+    if (!custom) return def;
+    return {
+      ...def,
+      value: custom.value !== undefined && custom.value !== '' ? custom.value : def.value,
+      label: custom.label !== undefined && custom.label !== '' ? custom.label : def.label,
+      labelUrdu: custom.labelUrdu !== undefined && custom.labelUrdu !== '' ? custom.labelUrdu : def.labelUrdu,
+    };
+  });
 
   return (
     <section className="py-8 px-4 max-w-7xl mx-auto font-sans">

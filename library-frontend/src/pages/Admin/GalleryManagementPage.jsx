@@ -10,10 +10,14 @@ import {
   ArrowUpIcon,
   ArrowDownIcon,
   XMarkIcon,
-  SparklesIcon,
+  MoonIcon,
+  StarIcon,
   CheckIcon,
   FilmIcon,
   EyeIcon,
+  CalendarDaysIcon,
+  PlayIcon,
+  LinkIcon,
 } from '@heroicons/react/24/outline';
 
 const API_BASE_URL =
@@ -27,8 +31,29 @@ const toAbsoluteUrl = (value) => {
   return `${API_BASE_URL}${clean}`;
 };
 
+const extractYouTubeId = (url) => {
+  if (!url) return null;
+  const match = url.match(/(?:v=|\/embed\/|\/shorts\/|youtu\.be\/|\/v\/|watch\?v=|&v=)([a-zA-Z0-9_-]{11})/);
+  return match ? match[1] : null;
+};
+
+const ISLAMIC_MONTHS = [
+  { key: 'muharram', label: '1. محرم الحرام (Muharram)' },
+  { key: 'safar', label: '2. صفر المظفر (Safar)' },
+  { key: 'rabi_al_awwal', label: '3. ربيع الأول (Rabi-ul-Awwal)' },
+  { key: 'rabi_al_thani', label: '4. ربيع الثاني (Rabi-us-Sani)' },
+  { key: 'jumada_al_awwal', label: '5. جمادى الأولى (Jumada al-Ula)' },
+  { key: 'jumada_al_thani', label: '6. جمادى الثانية (Jumada al-Thani)' },
+  { key: 'rajab', label: '7. رجب المرجب (Rajab)' },
+  { key: 'shaban', label: '8. شعبان المعظم (Sha\'ban)' },
+  { key: 'ramadan', label: '9. رمضان المبارك (Ramadan)' },
+  { key: 'shawwal', label: '10. شوال المکرم (Shawwal)' },
+  { key: 'dhul_qadah', label: '11. ذو القعدة (Dhul Qi\'dah)' },
+  { key: 'dhul_hijjah', label: '12. ذو الحجة (Dhul Hijjah)' },
+];
+
 const GalleryManagementPage = () => {
-  const [activeTab, setActiveTab] = useState('photos'); // 'photos' | 'albums'
+  const [activeTab, setActiveTab] = useState('photos'); // 'photos' | 'videos' | 'jumah' | 'moon' | 'albums'
 
   const [albums, setAlbums] = useState([]);
   const [items, setItems] = useState([]);
@@ -37,20 +62,81 @@ const GalleryManagementPage = () => {
   const [message, setMessage] = useState('');
   const [isError, setIsError] = useState(false);
 
+  // Preview Modals
+  const [previewVideoUrl, setPreviewVideoUrl] = useState(null);
+  const [previewImageUrl, setPreviewImageUrl] = useState(null);
+
   // Selected Photos for Bulk Actions
   const [selectedIds, setSelectedIds] = useState([]);
   const [albumFilter, setAlbumFilter] = useState('all');
 
-  // Multi-upload Dropzone
+  // Multi-upload Dropzone (Photos)
   const fileInputRef = useRef(null);
   const [isDragging, setIsDragging] = useState(false);
   const [uploadAlbumId, setUploadAlbumId] = useState('general');
   const [uploadYear, setUploadYear] = useState('2026');
 
+  // Video Form State
+  const [videoForm, setVideoForm] = useState({
+    video_url: '',
+    title_en: '',
+    title_ur: '',
+    title_ar: '',
+    caption_en: '',
+    caption_ur: '',
+    caption_ar: '',
+    album_id: 'general',
+    year: '2026',
+    show_on_home: true,
+  });
+  const [videoSaving, setVideoSaving] = useState(false);
+
+  // Jumah Schedule Form State
+  const jumahFileInputRef = useRef(null);
+  const [jumahForm, setJumahForm] = useState({
+    file: null,
+    event_date: new Date().toISOString().split('T')[0],
+    title_en: '',
+    title_ur: '',
+    album_id: 'general',
+    year: '2026',
+    show_on_home: true,
+  });
+  const [jumahSaving, setJumahSaving] = useState(false);
+
+  // Moon Date Form State
+  const moonFileInputRef = useRef(null);
+  const [moonForm, setMoonForm] = useState({
+    file: null,
+    event_date: new Date().toISOString().split('T')[0],
+    hijri_year: '1448',
+    hijri_month: 'rabi_al_awwal',
+    title_en: '',
+    title_ur: '',
+    album_id: 'general',
+    year: '1448',
+    show_on_home: true,
+  });
+  const [moonSaving, setMoonSaving] = useState(false);
+
+  // Calendar Form State (12 Months)
+  const calendarFileInputRef = useRef(null);
+  const [calendarForm, setCalendarForm] = useState({
+    file: null,
+    hijri_month: 'ramadan',
+    year: '1448',
+    title_en: '',
+    title_ur: '',
+    show_on_home: true,
+  });
+  const [calendarSaving, setCalendarSaving] = useState(false);
+
   // Edit Photo Modal State
   const [editingItem, setEditingItem] = useState(null);
   const [itemForm, setItemForm] = useState({
     album_id: 'general',
+    item_type: 'photo',
+    event_date: '',
     title_en: '',
     title_ur: '',
     title_ar: '',
@@ -195,9 +281,9 @@ const GalleryManagementPage = () => {
   // --- REORDER PHOTOS ---
   const handleMoveItem = async (index, direction) => {
     const targetIndex = index + direction;
-    if (targetIndex < 0 || targetIndex >= filteredItems.length) return;
+    if (targetIndex < 0 || targetIndex >= filteredPhotos.length) return;
 
-    const updated = [...filteredItems];
+    const updated = [...filteredPhotos];
     const temp = updated[index];
     updated[index] = updated[targetIndex];
     updated[targetIndex] = temp;
@@ -215,10 +301,10 @@ const GalleryManagementPage = () => {
 
   // --- BULK PHOTO ACTIONS ---
   const toggleSelectAll = () => {
-    if (selectedIds.length === filteredItems.length) {
+    if (selectedIds.length === filteredPhotos.length) {
       setSelectedIds([]);
     } else {
-      setSelectedIds(filteredItems.map((i) => i.id));
+      setSelectedIds(filteredPhotos.map((i) => i.id));
     }
   };
 
@@ -247,11 +333,14 @@ const GalleryManagementPage = () => {
     }
   };
 
-  // --- EDIT PHOTO MODAL ---
+  // --- EDIT PHOTO / ITEM MODAL ---
   const openEditItem = (item) => {
     setEditingItem(item);
     setItemForm({
       album_id: item.album_id || 'general',
+      item_type: item.item_type || (item.video_url ? 'video' : 'photo'),
+      event_date: item.event_date || '',
+      hijri_month: item.hijri_month || '',
       title_en: item.title?.en || '',
       title_ur: item.title?.ur || '',
       title_ar: item.title?.ar || '',
@@ -270,6 +359,9 @@ const GalleryManagementPage = () => {
     try {
       const payload = new FormData();
       payload.append('album_id', itemForm.album_id);
+      payload.append('item_type', itemForm.item_type || 'photo');
+      payload.append('event_date', itemForm.event_date || '');
+      payload.append('hijri_month', itemForm.hijri_month || '');
       payload.append('title_en', itemForm.title_en);
       payload.append('title_ur', itemForm.title_ur);
       payload.append('title_ar', itemForm.title_ar);
@@ -282,13 +374,201 @@ const GalleryManagementPage = () => {
       payload.append('show_on_home', String(itemForm.show_on_home));
 
       await galleryService.updateGalleryItem(editingItem.id, payload);
-      showNotification('Photo details saved successfully.');
+      showNotification('Item details saved successfully.');
       setEditingItem(null);
       fetchAdminGallery();
     } catch {
-      showNotification('Failed to save photo.', true);
+      showNotification('Failed to save item details.', true);
     } finally {
       setItemSaving(false);
+    }
+  };
+
+  // --- ADD YOUTUBE VIDEO ---
+  const handleAddVideo = async (e) => {
+    e?.preventDefault();
+    if (!videoForm.video_url.trim()) {
+      showNotification('Please provide a YouTube video URL.', true);
+      return;
+    }
+    const ytId = extractYouTubeId(videoForm.video_url);
+    if (!ytId) {
+      showNotification('Could not extract a valid YouTube video ID from the link.', true);
+      return;
+    }
+
+    setVideoSaving(true);
+    try {
+      const payload = new FormData();
+      payload.append('video_url', videoForm.video_url.trim());
+      payload.append('title_en', videoForm.title_en.trim() || 'YouTube Video');
+      payload.append('title_ur', videoForm.title_ur.trim() || videoForm.title_en.trim() || 'ویڈیو');
+      payload.append('title_ar', videoForm.title_ar.trim());
+      payload.append('album_id', videoForm.album_id);
+      payload.append('year', videoForm.year);
+      payload.append('show_on_home', String(videoForm.show_on_home));
+
+      await galleryService.addVideo(payload);
+      showNotification('YouTube video added successfully to gallery!');
+      setVideoForm({
+        video_url: '',
+        title_en: '',
+        title_ur: '',
+        title_ar: '',
+        album_id: 'general',
+        year: '2026',
+        show_on_home: false,
+      });
+      fetchAdminGallery();
+    } catch {
+      showNotification('Failed to add YouTube video.', true);
+    } finally {
+      setVideoSaving(false);
+    }
+  };
+
+  // --- UPLOAD JUMAH LIST ---
+  const handleUploadJumah = async (e) => {
+    e?.preventDefault();
+    if (!jumahForm.file) {
+      showNotification('Please select an image file for the Jumah list.', true);
+      return;
+    }
+    if (!jumahForm.event_date) {
+      showNotification('Please select the Jumah Date.', true);
+      return;
+    }
+
+    setJumahSaving(true);
+    try {
+      const payload = new FormData();
+      payload.append('file', jumahForm.file);
+      payload.append('item_type', 'jumah');
+      payload.append('event_date', jumahForm.event_date);
+      payload.append('title_en', jumahForm.title_en.trim() || `Jumah Schedule - ${jumahForm.event_date}`);
+      payload.append('title_ur', jumahForm.title_ur.trim() || `جمعہ شیڈول - ${jumahForm.event_date}`);
+      payload.append('album_id', jumahForm.album_id);
+      payload.append('year', jumahForm.year);
+      payload.append('show_on_home', String(jumahForm.show_on_home));
+
+      await galleryService.uploadDatedItem(payload);
+      showNotification('Jumah List poster uploaded successfully!');
+      setJumahForm({
+        file: null,
+        event_date: new Date().toISOString().split('T')[0],
+        title_en: '',
+        title_ur: '',
+        album_id: 'general',
+        year: '2026',
+        show_on_home: true,
+      });
+      if (jumahFileInputRef.current) jumahFileInputRef.current.value = '';
+      fetchAdminGallery();
+    } catch {
+      showNotification('Failed to upload Jumah List poster.', true);
+    } finally {
+      setJumahSaving(false);
+    }
+  };
+
+  // --- UPLOAD MOON DATE ---
+  const handleUploadMoon = async (e) => {
+    e?.preventDefault();
+    if (!moonForm.file) {
+      showNotification('Please select an image file for the Moon Date announcement.', true);
+      return;
+    }
+    if (!moonForm.event_date) {
+      showNotification('Please select the Moon announcement date.', true);
+      return;
+    }
+
+    setMoonSaving(true);
+    try {
+      const payload = new FormData();
+      payload.append('file', moonForm.file);
+      payload.append('item_type', 'moon');
+      payload.append('event_date', moonForm.event_date);
+      payload.append('hijri_month', moonForm.hijri_month || 'rabi_al_awwal');
+      payload.append('title_en', moonForm.title_en.trim() || `Moon Sighting - ${moonForm.event_date}`);
+      payload.append('title_ur', moonForm.title_ur.trim() || `چاند کی تاریخ کا اعلان - ${moonForm.event_date}`);
+      payload.append('album_id', moonForm.album_id);
+      payload.append('year', moonForm.hijri_year || moonForm.year || '1448');
+      payload.append('show_on_home', String(moonForm.show_on_home));
+
+      await galleryService.uploadDatedItem(payload);
+      showNotification('Moon Date announcement poster uploaded successfully!');
+      setMoonForm({
+        file: null,
+        event_date: new Date().toISOString().split('T')[0],
+        hijri_year: '1448',
+        hijri_month: 'rabi_al_awwal',
+        title_en: '',
+        title_ur: '',
+        album_id: 'general',
+        year: '1448',
+        show_on_home: true,
+      });
+      if (moonFileInputRef.current) moonFileInputRef.current.value = '';
+      fetchAdminGallery();
+    } catch {
+      showNotification('Failed to upload Moon Date announcement poster.', true);
+    } finally {
+      setMoonSaving(false);
+    }
+  };
+
+  // --- UPLOAD ISLAMIC CALENDAR (12 MONTHS) ---
+  const handleUploadCalendar = async (e) => {
+    e?.preventDefault();
+    if (!calendarForm.file) {
+      showNotification('Please select a calendar poster image file.', true);
+      return;
+    }
+
+    setCalendarSaving(true);
+    try {
+      const payload = new FormData();
+      payload.append('file', calendarForm.file);
+      payload.append('item_type', 'calendar');
+      payload.append('hijri_month', calendarForm.hijri_month);
+      payload.append('year', calendarForm.year || '1448');
+      payload.append('show_on_home', String(calendarForm.show_on_home));
+
+      const foundMonth = ISLAMIC_MONTHS.find(m => m.key === calendarForm.hijri_month);
+      const rawMonth = foundMonth ? foundMonth.label.replace(/^\d+\.\s*/, '') : '';
+      const urduName = rawMonth.split('(')[0]?.trim() || '';
+      const engName = rawMonth.split('(')[1]?.replace(')', '')?.trim() || '';
+
+      payload.append('title_en', calendarForm.title_en.trim() || `Islamic Calendar ${engName} ${calendarForm.year || '1448'}`);
+      payload.append('title_ur', calendarForm.title_ur.trim() || `اسلامی کیلنڈر ${urduName} ${calendarForm.year || '1448'}ھ`);
+
+      await galleryService.uploadDatedItem(payload);
+      showNotification('Islamic Calendar poster uploaded successfully! 📅');
+      setCalendarForm({
+        file: null,
+        hijri_month: 'ramadan',
+        year: '1448',
+        title_en: '',
+        title_ur: '',
+        show_on_home: true,
+      });
+      if (calendarFileInputRef.current) calendarFileInputRef.current.value = '';
+      fetchAdminGallery();
+    } catch {
+      showNotification('Failed to upload Islamic Calendar poster.', true);
+    } finally {
+      setCalendarSaving(false);
+    }
+  };
+
+  const handleSetLiveCalendar = async (itemId) => {
+    try {
+      await galleryService.setCurrentCalendar(itemId);
+      showNotification('Calendar month is now LIVE on public site! 🟢');
+      fetchAdminGallery();
+    } catch {
+      showNotification('Failed to set calendar as live.', true);
     }
   };
 
@@ -374,12 +654,33 @@ const GalleryManagementPage = () => {
     }
   };
 
-  // Filtered Photos for Admin Grid
-  const filteredItems = useMemo(() => {
-    if (albumFilter === 'home') return items.filter((i) => Boolean(i.show_on_home));
-    if (albumFilter === 'all') return items;
-    return items.filter((i) => i.album_id === albumFilter);
-  }, [items, albumFilter]);
+  // Categorized items
+  const photosList = useMemo(() => {
+    return items.filter((i) => (!i.item_type || i.item_type === 'photo') && !i.video_url);
+  }, [items]);
+
+  const videosList = useMemo(() => {
+    return items.filter((i) => i.item_type === 'video' || Boolean(i.video_url));
+  }, [items]);
+
+  const jumahList = useMemo(() => {
+    return items.filter((i) => i.item_type === 'jumah');
+  }, [items]);
+
+  const moonList = useMemo(() => {
+    return items.filter((i) => i.item_type === 'moon');
+  }, [items]);
+
+  const calendarList = useMemo(() => {
+    return items.filter((i) => i.item_type === 'calendar');
+  }, [items]);
+
+  // Filtered Photos for Photos Grid
+  const filteredPhotos = useMemo(() => {
+    if (albumFilter === 'home') return photosList.filter((i) => Boolean(i.show_on_home));
+    if (albumFilter === 'all') return photosList;
+    return photosList.filter((i) => i.album_id === albumFilter);
+  }, [photosList, albumFilter]);
 
   return (
     <div className="space-y-6">
@@ -400,45 +701,97 @@ const GalleryManagementPage = () => {
       )}
 
       {/* Top Header & Tabs Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-3xl border border-slate-200 bg-white p-5 shadow-xs">
+      <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 rounded-3xl border border-slate-200 bg-white p-5 shadow-xs">
         <div>
           <span className="text-xs font-extrabold uppercase tracking-widest text-indigo-600">
             Media Suite
           </span>
           <h2 className="text-xl font-black text-slate-800">
-            Markaz Photo & Event Gallery Manager
+            Markaz Media & Gallery Manager
           </h2>
           <p className="text-xs text-slate-500 mt-0.5">
-            Manage trilingual albums, event photos, and video clips across English, Urdu, and Arabic.
+            Manage photos, YouTube videos, Jumah schedules with date, Moon announcements, and albums.
           </p>
         </div>
 
-        {/* Tab Switcher */}
-        <div className="inline-flex items-center p-1 rounded-2xl bg-slate-100 border border-slate-200">
+        {/* 5-Tab Switcher */}
+        <div className="flex flex-wrap items-center gap-1.5 p-1.5 rounded-2xl bg-slate-100 border border-slate-200">
           <button
             type="button"
             onClick={() => setActiveTab('photos')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${
+            className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${
               activeTab === 'photos'
                 ? 'bg-white text-indigo-600 shadow-xs'
                 : 'text-slate-600 hover:text-slate-900'
             }`}
           >
             <PhotoIcon className="w-4 h-4" />
-            <span>Photos & Videos ({items.length})</span>
+            <span>Photos ({photosList.length})</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('videos')}
+            className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${
+              activeTab === 'videos'
+                ? 'bg-rose-600 text-white shadow-xs'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <FilmIcon className="w-4 h-4" />
+            <span>Videos ({videosList.length})</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('jumah')}
+            className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${
+              activeTab === 'jumah'
+                ? 'bg-emerald-700 text-white shadow-xs'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <CalendarDaysIcon className="w-4 h-4" />
+            <span>Jumah List ({jumahList.length})</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('moon')}
+            className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${
+              activeTab === 'moon'
+                ? 'bg-amber-600 text-white shadow-xs'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <MoonIcon className="w-4 h-4" />
+            <span>Moon Date ({moonList.length})</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('calendar')}
+            className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${
+              activeTab === 'calendar'
+                ? 'bg-teal-700 text-white shadow-xs'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <CalendarDaysIcon className="w-4 h-4" />
+            <span>Islamic Calendar ({calendarList.length})</span>
           </button>
 
           <button
             type="button"
             onClick={() => setActiveTab('albums')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${
+            className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${
               activeTab === 'albums'
                 ? 'bg-white text-indigo-600 shadow-xs'
                 : 'text-slate-600 hover:text-slate-900'
             }`}
           >
             <FolderIcon className="w-4 h-4" />
-            <span>Albums & Events ({albums.length})</span>
+            <span>Albums ({albums.length})</span>
           </button>
         </div>
       </div>
@@ -540,7 +893,7 @@ const GalleryManagementPage = () => {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-4">
               <div className="flex flex-wrap items-center gap-3">
                 <h3 className="text-base font-bold text-slate-800">
-                  Photos ({filteredItems.length})
+                  Photos ({filteredPhotos.length})
                 </h3>
 
                 {/* Filter by Album Dropdown */}
@@ -549,8 +902,8 @@ const GalleryManagementPage = () => {
                   onChange={(e) => setAlbumFilter(e.target.value)}
                   className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-bold text-slate-700 focus:outline-indigo-500"
                 >
-                  <option value="all">All Albums ({items.length})</option>
-                  <option value="home">⭐ On Homepage ({items.filter((i) => i.show_on_home).length})</option>
+                  <option value="all">All Albums ({photosList.length})</option>
+                  <option value="home">⭐ On Homepage ({photosList.filter((i) => i.show_on_home).length})</option>
                   {albums.map((alb) => (
                     <option key={alb.id} value={alb.id}>
                       {alb.title?.ur || alb.title?.en || alb.id}
@@ -558,13 +911,13 @@ const GalleryManagementPage = () => {
                   ))}
                 </select>
 
-                {filteredItems.length > 0 && (
+                {filteredPhotos.length > 0 && (
                   <button
                     type="button"
                     onClick={toggleSelectAll}
                     className="text-xs font-semibold text-indigo-600 hover:underline cursor-pointer"
                   >
-                    {selectedIds.length === filteredItems.length ? 'Deselect All' : 'Select All'}
+                    {selectedIds.length === filteredPhotos.length ? 'Deselect All' : 'Select All'}
                   </button>
                 )}
               </div>
@@ -603,13 +956,13 @@ const GalleryManagementPage = () => {
             {/* Photo Cards Grid */}
             {loading ? (
               <div className="py-12 text-center text-sm text-slate-400">Loading gallery photos...</div>
-            ) : filteredItems.length === 0 ? (
+            ) : filteredPhotos.length === 0 ? (
               <div className="py-12 text-center text-slate-500 text-sm">
                 No photos in this album yet. Upload photos using the box above!
               </div>
             ) : (
               <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-                {filteredItems.map((item, index) => {
+                {filteredPhotos.map((item, index) => {
                   const isSelected = selectedIds.includes(item.id);
                   const albumObj = albums.find((a) => a.id === item.album_id);
 
@@ -644,7 +997,7 @@ const GalleryManagementPage = () => {
                           }`}
                           title={item.show_on_home ? 'Featured on Homepage (Click to remove)' : 'Click to feature on Homepage'}
                         >
-                          <SparklesIcon className={`w-3 h-3 ${item.show_on_home ? 'text-amber-900' : 'text-white/70'}`} />
+                          <StarIcon className={`w-3 h-3 ${item.show_on_home ? 'text-amber-900' : 'text-white/70'}`} />
                           <span>{item.show_on_home ? 'On Home' : 'Home?'}</span>
                         </button>
 
@@ -713,7 +1066,7 @@ const GalleryManagementPage = () => {
                           </button>
                           <button
                             type="button"
-                            disabled={index === filteredItems.length - 1}
+                            disabled={index === filteredPhotos.length - 1}
                             onClick={() => handleMoveItem(index, 1)}
                             className="p-1 rounded hover:bg-slate-200 disabled:opacity-30 cursor-pointer"
                           >
@@ -752,7 +1105,976 @@ const GalleryManagementPage = () => {
       )}
 
       {/* ============================================================= */}
-      {/* 📂 TAB 2: ALBUMS & EVENTS MANAGER */}
+      {/* 🎥 TAB: YOUTUBE VIDEOS MANAGER */}
+      {/* ============================================================= */}
+      {activeTab === 'videos' && (
+        <div className="space-y-6">
+          {/* Quick Add YouTube Video Card */}
+          <div className="rounded-3xl border border-rose-200 bg-gradient-to-r from-rose-50/70 via-white to-rose-50/40 p-5 sm:p-6 shadow-xs">
+            <div className="flex items-center gap-2.5 text-rose-700 font-extrabold text-sm mb-3">
+              <FilmIcon className="w-5 h-5" />
+              <span>Add YouTube Video to Gallery</span>
+            </div>
+            <form onSubmit={handleAddVideo} className="space-y-4">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="sm:col-span-2">
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    YouTube Video URL *
+                  </label>
+                  <div className="relative">
+                    <LinkIcon className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                    <input
+                      type="url"
+                      required
+                      placeholder="https://www.youtube.com/watch?v=... or https://youtu.be/..."
+                      value={videoForm.video_url}
+                      onChange={(e) => setVideoForm({ ...videoForm, video_url: e.target.value })}
+                      className="w-full rounded-2xl border border-slate-200 bg-white pl-10 pr-4 py-2.5 text-xs text-slate-800 focus:outline-rose-500 shadow-2xs font-mono"
+                    />
+                  </div>
+                  {/* Live YouTube Preview if valid ID */}
+                  {extractYouTubeId(videoForm.video_url) && (
+                    <div className="mt-2.5 flex items-center gap-3 p-2.5 rounded-2xl bg-white border border-rose-200 shadow-2xs animate-in fade-in">
+                      <div className="relative w-28 aspect-video rounded-xl overflow-hidden bg-black shrink-0">
+                        <img
+                          src={`https://img.youtube.com/vi/${extractYouTubeId(videoForm.video_url)}/hqdefault.jpg`}
+                          alt="Thumbnail preview"
+                          className="w-full h-full object-cover"
+                        />
+                        <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
+                          <PlayIcon className="w-5 h-5 text-white" />
+                        </div>
+                      </div>
+                      <div className="text-xs">
+                        <span className="font-bold text-emerald-700 flex items-center gap-1">
+                          <CheckIcon className="w-3.5 h-3.5" /> Valid YouTube Video detected
+                        </span>
+                        <p className="text-[11px] text-slate-500 font-mono mt-0.5">
+                          ID: {extractYouTubeId(videoForm.video_url)}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    English Title
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Special Lecture by Shaikh..."
+                    value={videoForm.title_en}
+                    onChange={(e) => setVideoForm({ ...videoForm, title_en: e.target.value })}
+                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-800"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    اردو عنوان (Urdu Title)
+                  </label>
+                  <input
+                    type="text"
+                    dir="rtl"
+                    placeholder="مثال: خصوصی خطاب بابت اصلاح معاشرہ"
+                    value={videoForm.title_ur}
+                    onChange={(e) => setVideoForm({ ...videoForm, title_ur: e.target.value })}
+                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-urdu text-slate-800"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Album</label>
+                  <select
+                    value={videoForm.album_id}
+                    onChange={(e) => setVideoForm({ ...videoForm, album_id: e.target.value })}
+                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-800"
+                  >
+                    {albums.map((a) => (
+                      <option key={a.id} value={a.id}>{a.title?.ur || a.title?.en || a.id}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Year</label>
+                  <input
+                    type="text"
+                    value={videoForm.year}
+                    onChange={(e) => setVideoForm({ ...videoForm, year: e.target.value })}
+                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-800"
+                    placeholder="2026"
+                  />
+                </div>
+              </div>
+
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2">
+                <label className="flex items-center gap-2 cursor-pointer text-xs font-semibold text-slate-700">
+                  <input
+                    type="checkbox"
+                    checked={videoForm.show_on_home}
+                    onChange={(e) => setVideoForm({ ...videoForm, show_on_home: e.target.checked })}
+                    className="rounded border-slate-300 text-rose-600 focus:ring-rose-500 w-4 h-4"
+                  />
+                  <span>Feature on Homepage (ہوم پیج پر دکھائیں)</span>
+                </label>
+
+                <button
+                  type="submit"
+                  disabled={videoSaving}
+                  className="inline-flex items-center gap-2 rounded-2xl bg-rose-600 hover:bg-rose-700 active:scale-95 text-white px-6 py-2.5 text-xs font-bold shadow-md shadow-rose-600/20 transition disabled:opacity-60 cursor-pointer"
+                >
+                  {videoSaving ? (
+                    <>
+                      <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      <span>Saving Video...</span>
+                    </>
+                  ) : (
+                    <>
+                      <FilmIcon className="w-4 h-4" />
+                      <span>Add Video to Gallery</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+
+          {/* Videos List Grid */}
+          <div className="rounded-3xl border border-slate-200 bg-white p-5 sm:p-6 shadow-xs space-y-4">
+            <h3 className="text-base font-bold text-slate-800">
+              YouTube Videos in Gallery ({videosList.length})
+            </h3>
+
+            {videosList.length === 0 ? (
+              <div className="py-12 text-center text-slate-500 text-sm">
+                No YouTube videos added yet. Paste a YouTube link in the form above to add one!
+              </div>
+            ) : (
+              <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+                {videosList.map((item) => {
+                  const albumObj = albums.find((a) => a.id === item.album_id);
+                  const ytId = item.video_url ? extractYouTubeId(item.video_url) : null;
+                  const thumb = item.image_url || (ytId ? `https://img.youtube.com/vi/${ytId}/hqdefault.jpg` : '');
+
+                  return (
+                    <div
+                      key={item.id}
+                      className="rounded-2xl border border-slate-200 bg-slate-50/50 p-3 space-y-2 hover:bg-white hover:shadow-md transition"
+                    >
+                      <div
+                        onClick={() => setPreviewVideoUrl(item.video_url)}
+                        className="group relative aspect-video w-full rounded-xl overflow-hidden bg-black border border-slate-200 cursor-pointer"
+                        title="Click to play preview"
+                      >
+                        {thumb ? (
+                          <img
+                            src={toAbsoluteUrl(thumb)}
+                            alt={item.title?.en || 'Video thumbnail'}
+                            className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center bg-slate-900 text-white">
+                            <FilmIcon className="w-8 h-8 opacity-50" />
+                          </div>
+                        )}
+                        <div className="absolute inset-0 bg-black/30 group-hover:bg-black/10 transition flex items-center justify-center">
+                          <div className="w-10 h-10 rounded-full bg-rose-600 text-white flex items-center justify-center shadow-lg group-hover:scale-110 transition">
+                            <PlayIcon className="w-5 h-5 ml-0.5" />
+                          </div>
+                        </div>
+                        <div className="absolute top-2 right-2 rounded-full bg-black/70 text-white px-2 py-0.5 text-[9px] font-bold backdrop-blur-xs">
+                          YouTube
+                        </div>
+                      </div>
+
+                      <div className="flex items-start justify-between gap-1.5 min-w-0">
+                        <div className="min-w-0 flex-1">
+                          <h4 className="text-xs font-bold text-slate-800 truncate" title={item.title?.ur || item.title?.en}>
+                            {item.title?.ur || item.title?.en || 'YouTube Video'}
+                          </h4>
+                          <span className="text-[10px] text-slate-400 font-medium">
+                            {albumObj?.title?.ur || albumObj?.title?.en || item.album_id} · {item.year}
+                          </span>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => toggleItemActive(item)}
+                          className={`shrink-0 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[9px] font-extrabold uppercase transition cursor-pointer border ${
+                            item.is_active
+                              ? 'bg-emerald-50 text-emerald-700 border-emerald-300 hover:bg-emerald-100'
+                              : 'bg-slate-200 text-slate-600 border-slate-300 hover:bg-slate-300'
+                          }`}
+                        >
+                          <span className={`w-1.5 h-1.5 rounded-full ${item.is_active ? 'bg-emerald-500' : 'bg-slate-400'}`} />
+                          <span>{item.is_active ? 'Active' : 'Hidden'}</span>
+                        </button>
+                      </div>
+
+                      <div className="flex items-center justify-between pt-1.5 border-t border-slate-200/60 text-slate-500">
+                        <button
+                          type="button"
+                          onClick={(e) => handleToggleHome(item.id, e)}
+                          className={`text-[10px] font-bold px-2 py-0.5 rounded-lg border cursor-pointer transition ${
+                            item.show_on_home
+                              ? 'bg-amber-100 text-amber-800 border-amber-300'
+                              : 'bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200'
+                          }`}
+                        >
+                          {item.show_on_home ? '⭐ On Home' : '+ On Home'}
+                        </button>
+
+                        <div className="flex items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() => openEditItem(item)}
+                            className="p-1 rounded text-indigo-600 hover:bg-indigo-50 transition cursor-pointer"
+                            title="Edit"
+                          >
+                            <PencilSquareIcon className="w-4 h-4" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteItem(item.id)}
+                            className="p-1 rounded text-rose-500 hover:bg-rose-50 transition cursor-pointer"
+                            title="Delete"
+                          >
+                            <TrashIcon className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ============================================================= */}
+      {/* 🕌 TAB: JUMAH LIST MANAGER */}
+      {/* ============================================================= */}
+      {activeTab === 'jumah' && (
+        <div className="space-y-6">
+          {/* Quick Upload Jumah List Card */}
+          <div className="rounded-3xl border border-emerald-200 bg-gradient-to-r from-emerald-50/70 via-white to-emerald-50/40 p-5 sm:p-6 shadow-xs">
+            <div className="flex items-center gap-2.5 text-emerald-800 font-extrabold text-sm mb-3">
+              <CalendarDaysIcon className="w-5 h-5 text-emerald-600" />
+              <span>Upload Jumah Schedule / Bayan List Poster</span>
+            </div>
+            <form onSubmit={handleUploadJumah} className="space-y-4">
+              <div className="grid gap-4 sm:grid-cols-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Jumah Poster Image *
+                  </label>
+                  <input
+                    type="file"
+                    ref={jumahFileInputRef}
+                    required
+                    accept="image/*"
+                    onChange={(e) => setJumahForm({ ...jumahForm, file: e.target.files?.[0] || null })}
+                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-800"
+                  />
+                  {jumahForm.file && (
+                    <span className="text-[11px] text-emerald-700 font-medium mt-1 block">
+                      Selected: {jumahForm.file.name}
+                    </span>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Jumah Date (جمعہ کی تاریخ) *
+                  </label>
+                  <input
+                    type="date"
+                    required
+                    value={jumahForm.event_date}
+                    onChange={(e) => setJumahForm({ ...jumahForm, event_date: e.target.value })}
+                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-800 font-mono"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Year</label>
+                  <input
+                    type="text"
+                    value={jumahForm.year}
+                    onChange={(e) => setJumahForm({ ...jumahForm, year: e.target.value })}
+                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-800"
+                    placeholder="2026"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    English Title / Note
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Jumah Schedule - 25 Sep 2026"
+                    value={jumahForm.title_en}
+                    onChange={(e) => setJumahForm({ ...jumahForm, title_en: e.target.value })}
+                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-800"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    اردو عنوان (Urdu Title)
+                  </label>
+                  <input
+                    type="text"
+                    dir="rtl"
+                    placeholder="مثال: خطبہ جمعہ و بیانات کا شیڈول"
+                    value={jumahForm.title_ur}
+                    onChange={(e) => setJumahForm({ ...jumahForm, title_ur: e.target.value })}
+                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-urdu text-slate-800"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Album</label>
+                  <select
+                    value={jumahForm.album_id}
+                    onChange={(e) => setJumahForm({ ...jumahForm, album_id: e.target.value })}
+                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-800"
+                  >
+                    {albums.map((a) => (
+                      <option key={a.id} value={a.id}>{a.title?.ur || a.title?.en || a.id}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2">
+                <label className="flex items-center gap-2 cursor-pointer text-xs font-semibold text-slate-700">
+                  <input
+                    type="checkbox"
+                    checked={jumahForm.show_on_home}
+                    onChange={(e) => setJumahForm({ ...jumahForm, show_on_home: e.target.checked })}
+                    className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 w-4 h-4"
+                  />
+                  <span>Feature on Homepage (ہوم پیج پر دکھائیں)</span>
+                </label>
+
+                <button
+                  type="submit"
+                  disabled={jumahSaving}
+                  className="inline-flex items-center gap-2 rounded-2xl bg-emerald-700 hover:bg-emerald-800 active:scale-95 text-white px-6 py-2.5 text-xs font-bold shadow-md shadow-emerald-700/20 transition disabled:opacity-60 cursor-pointer"
+                >
+                  {jumahSaving ? (
+                    <>
+                      <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      <span>Uploading Jumah Poster...</span>
+                    </>
+                  ) : (
+                    <>
+                      <CloudArrowUpIcon className="w-4 h-4" />
+                      <span>Upload Jumah Poster</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+
+          {/* Jumah List Posters Grid */}
+          <div className="rounded-3xl border border-slate-200 bg-white p-5 sm:p-6 shadow-xs space-y-4">
+            <h3 className="text-base font-bold text-slate-800">
+              Uploaded Jumah Posters ({jumahList.length})
+            </h3>
+
+            {jumahList.length === 0 ? (
+              <div className="py-12 text-center text-slate-500 text-sm">
+                No Jumah posters uploaded yet. Choose an image and date above to upload one!
+              </div>
+            ) : (
+              <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+                {jumahList.map((item) => (
+                  <div
+                    key={item.id}
+                    className="rounded-2xl border border-slate-200 bg-slate-50/50 p-3 space-y-2 hover:bg-white hover:shadow-md transition"
+                  >
+                    <div
+                      onClick={() => setPreviewImageUrl(toAbsoluteUrl(item.image_url))}
+                      className="group relative aspect-4/3 w-full rounded-xl overflow-hidden bg-slate-900 border border-slate-200 cursor-pointer"
+                      title="Click to view full poster"
+                    >
+                      <img
+                        src={toAbsoluteUrl(item.image_url)}
+                        alt={item.title?.en || 'Jumah Poster'}
+                        className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
+                      />
+                      <div className="absolute top-2 left-2 rounded-full bg-emerald-600 text-white px-2.5 py-0.5 text-[10px] font-bold shadow-md flex items-center gap-1">
+                        <CalendarDaysIcon className="w-3 h-3" />
+                        <span>{item.event_date || item.year}</span>
+                      </div>
+                      <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
+                        <EyeIcon className="w-6 h-6 text-white drop-shadow-md" />
+                      </div>
+                    </div>
+
+                    <div className="flex items-start justify-between gap-1.5 min-w-0">
+                      <div className="min-w-0 flex-1">
+                        <h4 className="text-xs font-bold text-slate-800 truncate" title={item.title?.ur || item.title?.en}>
+                          {item.title?.ur || item.title?.en || 'Jumah List'}
+                        </h4>
+                        <span className="text-[10px] text-emerald-700 font-semibold font-mono">
+                          📅 {item.event_date || item.year}
+                        </span>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => toggleItemActive(item)}
+                        className={`shrink-0 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[9px] font-extrabold uppercase transition cursor-pointer border ${
+                          item.is_active
+                            ? 'bg-emerald-50 text-emerald-700 border-emerald-300 hover:bg-emerald-100'
+                            : 'bg-slate-200 text-slate-600 border-slate-300 hover:bg-slate-300'
+                        }`}
+                      >
+                        <span className={`w-1.5 h-1.5 rounded-full ${item.is_active ? 'bg-emerald-500' : 'bg-slate-400'}`} />
+                        <span>{item.is_active ? 'Active' : 'Hidden'}</span>
+                      </button>
+                    </div>
+
+                    <div className="flex items-center justify-between pt-1.5 border-t border-slate-200/60 text-slate-500">
+                      <button
+                        type="button"
+                        onClick={(e) => handleToggleHome(item.id, e)}
+                        className={`text-[10px] font-bold px-2 py-0.5 rounded-lg border cursor-pointer transition ${
+                          item.show_on_home
+                            ? 'bg-amber-100 text-amber-800 border-amber-300'
+                            : 'bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200'
+                        }`}
+                      >
+                        {item.show_on_home ? '⭐ On Home' : '+ On Home'}
+                      </button>
+
+                      <div className="flex items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={() => openEditItem(item)}
+                          className="p-1 rounded text-indigo-600 hover:bg-indigo-50 transition cursor-pointer"
+                          title="Edit"
+                        >
+                          <PencilSquareIcon className="w-4 h-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteItem(item.id)}
+                          className="p-1 rounded text-rose-500 hover:bg-rose-50 transition cursor-pointer"
+                          title="Delete"
+                        >
+                          <TrashIcon className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ============================================================= */}
+      {/* 🌙 TAB: MOON DATE MANAGER */}
+      {/* ============================================================= */}
+      {activeTab === 'moon' && (
+        <div className="space-y-6">
+          {/* Quick Upload Moon Date Card */}
+          <div className="rounded-3xl border border-amber-200 bg-gradient-to-r from-amber-50/70 via-white to-amber-50/40 p-5 sm:p-6 shadow-xs">
+            <div className="flex items-center gap-2.5 text-amber-900 font-extrabold text-sm mb-3">
+              <MoonIcon className="w-5 h-5 text-amber-600" />
+              <span>Upload Moon Date (Chand Ki Tareekh) Announcement Poster</span>
+            </div>
+            <form onSubmit={handleUploadMoon} className="space-y-4">
+              <div className="grid gap-4 sm:grid-cols-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Moon Poster Image *
+                  </label>
+                  <input
+                    type="file"
+                    ref={moonFileInputRef}
+                    required
+                    accept="image/*"
+                    onChange={(e) => setMoonForm({ ...moonForm, file: e.target.files?.[0] || null })}
+                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-800"
+                  />
+                  {moonForm.file && (
+                    <span className="text-[11px] text-amber-700 font-medium mt-1 block">
+                      Selected: {moonForm.file.name}
+                    </span>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Announcement Date (چاند کی تاریخ) *
+                  </label>
+                  <input
+                    type="date"
+                    required
+                    value={moonForm.event_date}
+                    onChange={(e) => setMoonForm({ ...moonForm, event_date: e.target.value })}
+                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-800 font-mono"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Hijri Year (ہجری سال) *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={moonForm.hijri_year}
+                    onChange={(e) => setMoonForm({ ...moonForm, hijri_year: e.target.value })}
+                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-mono text-slate-800"
+                    placeholder="1448"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Islamic Month (اسلامی مہینہ) *
+                  </label>
+                  <select
+                    value={moonForm.hijri_month}
+                    onChange={(e) => {
+                      const mVal = e.target.value;
+                      const selectedMonth = ISLAMIC_MONTHS.find(m => m.key === mVal);
+                      const monthCleanName = selectedMonth ? selectedMonth.label.replace(/^\d+\.\s*/, '') : '';
+                      const urduName = monthCleanName.split('(')[0]?.trim() || '';
+                      const engName = monthCleanName.split('(')[1]?.replace(')', '')?.trim() || '';
+                      setMoonForm({
+                        ...moonForm,
+                        hijri_month: mVal,
+                        title_ur: `رویت ہلال ${urduName} ${moonForm.hijri_year}ھ`,
+                        title_en: `Moon Sighting ${engName} ${moonForm.hijri_year}H`,
+                      });
+                    }}
+                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-urdu text-slate-800"
+                  >
+                    {ISLAMIC_MONTHS.map((m) => (
+                      <option key={m.key} value={m.key}>{m.label}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    English Title (e.g. Ramadan 1447 Moon Sighting)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Ramadan 1447 Hilal Sighting"
+                    value={moonForm.title_en}
+                    onChange={(e) => setMoonForm({ ...moonForm, title_en: e.target.value })}
+                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-800"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    اردو عنوان (Urdu Title)
+                  </label>
+                  <input
+                    type="text"
+                    dir="rtl"
+                    placeholder="مثال: رویت ہلال رمضان المبارک ۱۴۴۷ھ"
+                    value={moonForm.title_ur}
+                    onChange={(e) => setMoonForm({ ...moonForm, title_ur: e.target.value })}
+                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-urdu text-slate-800"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Album</label>
+                  <select
+                    value={moonForm.album_id}
+                    onChange={(e) => setMoonForm({ ...moonForm, album_id: e.target.value })}
+                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-800"
+                  >
+                    {albums.map((a) => (
+                      <option key={a.id} value={a.id}>{a.title?.ur || a.title?.en || a.id}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2">
+                <label className="flex items-center gap-2 cursor-pointer text-xs font-semibold text-slate-700">
+                  <input
+                    type="checkbox"
+                    checked={moonForm.show_on_home}
+                    onChange={(e) => setMoonForm({ ...moonForm, show_on_home: e.target.checked })}
+                    className="rounded border-slate-300 text-amber-600 focus:ring-amber-500 w-4 h-4"
+                  />
+                  <span>Feature on Homepage (ہوم پیج پر دکھائیں)</span>
+                </label>
+
+                <button
+                  type="submit"
+                  disabled={moonSaving}
+                  className="inline-flex items-center gap-2 rounded-2xl bg-amber-600 hover:bg-amber-700 active:scale-95 text-white px-6 py-2.5 text-xs font-bold shadow-md shadow-amber-600/20 transition disabled:opacity-60 cursor-pointer"
+                >
+                  {moonSaving ? (
+                    <>
+                      <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      <span>Uploading Moon Poster...</span>
+                    </>
+                  ) : (
+                    <>
+                      <CloudArrowUpIcon className="w-4 h-4" />
+                      <span>Upload Moon Date Poster</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+
+          {/* Moon Posters Grid */}
+          <div className="rounded-3xl border border-slate-200 bg-white p-5 sm:p-6 shadow-xs space-y-4">
+            <h3 className="text-base font-bold text-slate-800">
+              Uploaded Moon Date Posters ({moonList.length})
+            </h3>
+
+            {moonList.length === 0 ? (
+              <div className="py-12 text-center text-slate-500 text-sm">
+                No Moon Date posters uploaded yet. Choose an image and date above to upload one!
+              </div>
+            ) : (
+              <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+                {moonList.map((item) => (
+                  <div
+                    key={item.id}
+                    className="rounded-2xl border border-slate-200 bg-slate-50/50 p-3 space-y-2 hover:bg-white hover:shadow-md transition"
+                  >
+                    <div
+                      onClick={() => setPreviewImageUrl(toAbsoluteUrl(item.image_url))}
+                      className="group relative aspect-4/3 w-full rounded-xl overflow-hidden bg-slate-900 border border-slate-200 cursor-pointer"
+                      title="Click to view full poster"
+                    >
+                      <img
+                        src={toAbsoluteUrl(item.image_url)}
+                        alt={item.title?.en || 'Moon Poster'}
+                        className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
+                      />
+                      <div className="absolute top-2 left-2 rounded-full bg-amber-600 text-white px-2.5 py-0.5 text-[10px] font-bold shadow-md flex items-center gap-1">
+                        <MoonIcon className="w-3 h-3" />
+                        <span>{item.event_date || item.year}</span>
+                      </div>
+                      <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
+                        <EyeIcon className="w-6 h-6 text-white drop-shadow-md" />
+                      </div>
+                    </div>
+
+                    <div className="flex items-start justify-between gap-1.5 min-w-0">
+                      <div className="min-w-0 flex-1">
+                        <h4 className="text-xs font-bold text-slate-800 truncate" title={item.title?.ur || item.title?.en}>
+                          {item.title?.ur || item.title?.en || 'Moon Announcement'}
+                        </h4>
+                        <span className="text-[10px] text-amber-700 font-semibold font-mono">
+                          🌙 {item.event_date || item.year}
+                        </span>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => toggleItemActive(item)}
+                        className={`shrink-0 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[9px] font-extrabold uppercase transition cursor-pointer border ${
+                          item.is_active
+                            ? 'bg-emerald-50 text-emerald-700 border-emerald-300 hover:bg-emerald-100'
+                            : 'bg-slate-200 text-slate-600 border-slate-300 hover:bg-slate-300'
+                        }`}
+                      >
+                        <span className={`w-1.5 h-1.5 rounded-full ${item.is_active ? 'bg-emerald-500' : 'bg-slate-400'}`} />
+                        <span>{item.is_active ? 'Active' : 'Hidden'}</span>
+                      </button>
+                    </div>
+
+                    <div className="flex items-center justify-between pt-1.5 border-t border-slate-200/60 text-slate-500">
+                      <button
+                        type="button"
+                        onClick={(e) => handleToggleHome(item.id, e)}
+                        className={`text-[10px] font-bold px-2 py-0.5 rounded-lg border cursor-pointer transition ${
+                          item.show_on_home
+                            ? 'bg-amber-100 text-amber-800 border-amber-300'
+                            : 'bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200'
+                        }`}
+                      >
+                        {item.show_on_home ? '⭐ On Home' : '+ On Home'}
+                      </button>
+
+                      <div className="flex items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={() => openEditItem(item)}
+                          className="p-1 rounded text-indigo-600 hover:bg-indigo-50 transition cursor-pointer"
+                          title="Edit"
+                        >
+                          <PencilSquareIcon className="w-4 h-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteItem(item.id)}
+                          className="p-1 rounded text-rose-500 hover:bg-rose-50 transition cursor-pointer"
+                          title="Delete"
+                        >
+                          <TrashIcon className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ============================================================= */}
+      {/* 📅 TAB: ISLAMIC CALENDAR (12 MONTHS) MANAGER */}
+      {/* ============================================================= */}
+      {activeTab === 'calendar' && (
+        <div className="space-y-6">
+          {/* Quick Upload Calendar Poster Card */}
+          <div className="rounded-3xl border border-teal-200 bg-gradient-to-r from-teal-50/70 via-white to-emerald-50/40 p-5 sm:p-6 shadow-xs">
+            <div className="flex items-center justify-between gap-3 mb-3">
+              <div className="flex items-center gap-2.5 text-teal-900 font-extrabold text-sm">
+                <CalendarDaysIcon className="w-5 h-5 text-teal-600" />
+                <span>Upload 12-Month Islamic Calendar (سالانہ اسلامی تقویم و کیلنڈر)</span>
+              </div>
+              <span className="text-xs font-semibold text-slate-500">
+                Total Uploaded: {calendarList.length} / 12 Months
+              </span>
+            </div>
+
+            <p className="text-xs text-slate-600 mb-4">
+              یہاں آپ سال کے بارہ مہینوں کے الگ الگ کیلنڈر پوسٹرز اپلوڈ کر سکتے ہیں۔ جس ماہ کو آپ "Make Live" کریں گے، پبلک ویب سائٹ پر سب سے پہلے وہی پوسٹر نمایاں دکھائی دے گا۔
+            </p>
+
+            <form onSubmit={handleUploadCalendar} className="space-y-4">
+              <div className="grid gap-4 sm:grid-cols-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Calendar Poster Image (HD) *
+                  </label>
+                  <input
+                    type="file"
+                    ref={calendarFileInputRef}
+                    required
+                    accept="image/*"
+                    onChange={(e) => setCalendarForm({ ...calendarForm, file: e.target.files?.[0] || null })}
+                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-800"
+                  />
+                  {calendarForm.file && (
+                    <span className="text-[11px] text-teal-700 font-medium mt-1 block">
+                      Selected: {calendarForm.file.name}
+                    </span>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Islamic Month (اسلامی مہینہ) *
+                  </label>
+                  <select
+                    value={calendarForm.hijri_month}
+                    onChange={(e) => setCalendarForm({ ...calendarForm, hijri_month: e.target.value })}
+                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-800"
+                  >
+                    {ISLAMIC_MONTHS.map((m) => (
+                      <option key={m.key} value={m.key}>
+                        {m.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Hijri Year (ہجری سال) *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={calendarForm.year}
+                    onChange={(e) => setCalendarForm({ ...calendarForm, year: e.target.value })}
+                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-mono text-slate-800"
+                    placeholder="1448"
+                  />
+                </div>
+              </div>
+
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2">
+                <label className="flex items-center gap-2 cursor-pointer text-xs font-semibold text-slate-700">
+                  <input
+                    type="checkbox"
+                    checked={calendarForm.show_on_home}
+                    onChange={(e) => setCalendarForm({ ...calendarForm, show_on_home: e.target.checked })}
+                    className="rounded border-slate-300 text-teal-600 focus:ring-teal-500 w-4 h-4"
+                  />
+                  <span>Make Live on Public Site Immediately (شائقین کو یہ ماہ لائیو دکھائیں)</span>
+                </label>
+
+                <button
+                  type="submit"
+                  disabled={calendarSaving}
+                  className="inline-flex items-center gap-2 rounded-2xl bg-teal-700 hover:bg-teal-800 active:scale-95 text-white px-6 py-2.5 text-xs font-bold shadow-md shadow-teal-700/20 transition disabled:opacity-60 cursor-pointer"
+                >
+                  {calendarSaving ? (
+                    <>
+                      <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      <span>Uploading Calendar...</span>
+                    </>
+                  ) : (
+                    <>
+                      <CloudArrowUpIcon className="w-4 h-4" />
+                      <span>Upload Month Poster</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+
+          {/* 12-Month Calendar Grid */}
+          <div className="rounded-3xl border border-slate-200 bg-white p-5 sm:p-6 shadow-xs space-y-4">
+            <div className="flex items-center justify-between gap-3 flex-wrap">
+              <div>
+                <h3 className="text-base font-bold text-slate-800">
+                  12 Islamic Months Calendar Overview (سالانہ بارہ مہینے)
+                </h3>
+                <p className="text-xs text-slate-500">
+                  جس ماہ کے پوسٹر پر "Live" کا نشان ہوگا، پبلک ویب سائٹ پر سب سے پہلے وہی دکھائی دے گا۔ آپ 1-کلک میں کسی بھی مہینے کو لائیو کر سکتے ہیں۔
+                </p>
+              </div>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+              {ISLAMIC_MONTHS.map((m) => {
+                const uploadedItem = calendarList.find(
+                  (it) => String(it.hijri_month || '').toLowerCase() === m.key
+                );
+                const isLive = uploadedItem && Boolean(uploadedItem.show_on_home);
+
+                return (
+                  <div
+                    key={m.key}
+                    className={`rounded-2xl border p-3.5 space-y-2.5 transition flex flex-col justify-between ${
+                      isLive
+                        ? 'border-teal-500 bg-teal-50/40 ring-2 ring-teal-500/20 shadow-sm'
+                        : uploadedItem
+                        ? 'border-slate-200 bg-white hover:shadow-md'
+                        : 'border-dashed border-slate-200 bg-slate-50/60'
+                    }`}
+                  >
+                    <div>
+                      {/* Month Header */}
+                      <div className="flex items-center justify-between gap-1 mb-2">
+                        <span className="text-xs font-bold text-slate-800 font-urdu truncate" dir="rtl">
+                          {m.label}
+                        </span>
+                        {isLive && (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-teal-600 text-white px-2 py-0.5 text-[9px] font-extrabold uppercase shadow-2xs">
+                            <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+                            LIVE NOW
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Poster Preview or Placeholder */}
+                      {uploadedItem ? (
+                        <div
+                          onClick={() => setPreviewImageUrl(toAbsoluteUrl(uploadedItem.image_url))}
+                          className="group relative aspect-4/3 w-full rounded-xl overflow-hidden bg-slate-900 border border-slate-200 cursor-pointer"
+                          title="Click to view full poster"
+                        >
+                          <img
+                            src={toAbsoluteUrl(uploadedItem.image_url)}
+                            alt={uploadedItem.title?.en || m.label}
+                            className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
+                          />
+                          <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
+                            <EyeIcon className="w-6 h-6 text-white drop-shadow-md" />
+                          </div>
+                        </div>
+                      ) : (
+                        <div
+                          onClick={() => {
+                            setCalendarForm((prev) => ({ ...prev, hijri_month: m.key }));
+                            if (calendarFileInputRef.current) calendarFileInputRef.current.focus();
+                          }}
+                          className="aspect-4/3 w-full rounded-xl border-2 border-dashed border-slate-200 bg-slate-100/50 flex flex-col items-center justify-center text-slate-400 hover:border-teal-400 hover:text-teal-600 hover:bg-teal-50/30 transition cursor-pointer p-3 text-center"
+                        >
+                          <CalendarDaysIcon className="w-7 h-7 mb-1 stroke-1" />
+                          <span className="text-[11px] font-bold">+ Upload Poster</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Controls Footer */}
+                    {uploadedItem ? (
+                      <div className="pt-2 border-t border-slate-100 flex items-center justify-between gap-2 flex-wrap">
+                        {isLive ? (
+                          <span className="text-[11px] font-bold text-teal-700">
+                            ✓ Currently Active
+                          </span>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => handleSetLiveCalendar(uploadedItem.id)}
+                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-teal-100 hover:bg-teal-200 text-teal-800 text-[10px] font-bold transition cursor-pointer"
+                            title="Make this month's calendar live on public site"
+                          >
+                            <span>Set as Live 🟢</span>
+                          </button>
+                        )}
+
+                        <div className="flex items-center gap-1 ml-auto">
+                          <button
+                            type="button"
+                            onClick={() => openEditItem(uploadedItem)}
+                            className="p-1 rounded text-indigo-600 hover:bg-indigo-50 transition cursor-pointer"
+                            title="Edit"
+                          >
+                            <PencilSquareIcon className="w-4 h-4" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteItem(uploadedItem.id)}
+                            className="p-1 rounded text-rose-500 hover:bg-rose-50 transition cursor-pointer"
+                            title="Delete"
+                          >
+                            <TrashIcon className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="text-[10px] text-slate-400 text-center italic">
+                        Not uploaded yet
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ============================================================= */}
+      {/* 📂 TAB: ALBUMS & EVENTS MANAGER */}
       {/* ============================================================= */}
       {activeTab === 'albums' && (
         <div className="space-y-4">
@@ -862,14 +2184,28 @@ const GalleryManagementPage = () => {
             </div>
 
             <div className="space-y-4 text-sm text-slate-700">
-              {/* Album & Year */}
-              <div className="grid gap-3 sm:grid-cols-2">
+              {/* Category / Type & Album & Year */}
+              <div className="grid gap-3 sm:grid-cols-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Item Category / Type</label>
+                  <select
+                    value={itemForm.item_type || 'photo'}
+                    onChange={(e) => setItemForm({ ...itemForm, item_type: e.target.value })}
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-bold text-slate-800"
+                  >
+                    <option value="photo">📸 Photo (تصویر)</option>
+                    <option value="video">🎥 YouTube Video (ویڈیو)</option>
+                    <option value="jumah">🕌 Jumah List (جمعہ لسٹ)</option>
+                    <option value="moon">🌙 Moon Date (چاند کی تاریخ)</option>
+                  </select>
+                </div>
+
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">Album</label>
                   <select
                     value={itemForm.album_id}
                     onChange={(e) => setItemForm({ ...itemForm, album_id: e.target.value })}
-                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-800"
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-800"
                   >
                     {albums.map((alb) => (
                       <option key={alb.id} value={alb.id}>
@@ -878,16 +2214,50 @@ const GalleryManagementPage = () => {
                     ))}
                   </select>
                 </div>
+
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">Year</label>
                   <input
                     type="text"
                     value={itemForm.year}
                     onChange={(e) => setItemForm({ ...itemForm, year: e.target.value })}
-                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-800"
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-800"
                   />
                 </div>
               </div>
+
+              {/* Event Date for Jumah & Moon */}
+              {(itemForm.item_type === 'jumah' || itemForm.item_type === 'moon') && (
+                <div className="p-3 rounded-2xl bg-emerald-50/60 border border-emerald-200">
+                  <label className="block text-xs font-bold text-emerald-900 mb-1">
+                    {itemForm.item_type === 'jumah' ? 'Jumah Date (جمعہ کی تاریخ) *' : 'Moon Announcement Date (چاند کی تاریخ) *'}
+                  </label>
+                  <input
+                    type="date"
+                    value={itemForm.event_date || ''}
+                    onChange={(e) => setItemForm({ ...itemForm, event_date: e.target.value })}
+                    className="w-full rounded-xl border border-emerald-300 bg-white px-3 py-2 text-xs text-slate-800 font-mono"
+                  />
+                </div>
+              )}
+
+              {/* Islamic Month for Moon Sighting */}
+              {itemForm.item_type === 'moon' && (
+                <div className="p-3 rounded-2xl bg-amber-50/60 border border-amber-200">
+                  <label className="block text-xs font-bold text-amber-900 mb-1">
+                    Islamic Month (اسلامی مہینہ) *
+                  </label>
+                  <select
+                    value={itemForm.hijri_month || 'rabi_al_awwal'}
+                    onChange={(e) => setItemForm({ ...itemForm, hijri_month: e.target.value })}
+                    className="w-full rounded-xl border border-amber-300 bg-white px-3 py-2 text-xs font-urdu text-slate-800"
+                  >
+                    {ISLAMIC_MONTHS.map((m) => (
+                      <option key={m.key} value={m.key}>{m.label}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
 
               {/* Trilingual Titles */}
               <div className="space-y-3 rounded-2xl border border-slate-200 bg-slate-50/70 p-3.5">
@@ -999,7 +2369,7 @@ const GalleryManagementPage = () => {
               <div className="flex items-center justify-between p-3 rounded-xl bg-amber-50/70 border border-amber-200">
                 <div>
                   <span className="text-xs font-bold text-amber-950 flex items-center gap-1.5">
-                    <SparklesIcon className="w-4 h-4 text-amber-600" />
+                    <StarIcon className="w-4 h-4 text-amber-600" />
                     Show on Homepage (ہوم پیج پر دکھائیں)
                   </span>
                   <p className="text-[11px] text-amber-700 mt-0.5">
@@ -1015,7 +2385,7 @@ const GalleryManagementPage = () => {
                       : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-50'
                   }`}
                 >
-                  <SparklesIcon className={`w-3.5 h-3.5 ${itemForm.show_on_home ? 'text-amber-900' : 'text-slate-400'}`} />
+                  <StarIcon className={`w-3.5 h-3.5 ${itemForm.show_on_home ? 'text-amber-900' : 'text-slate-400'}`} />
                   <span>{itemForm.show_on_home ? '⭐ On Home' : 'Not on Home'}</span>
                 </button>
               </div>
@@ -1145,6 +2515,64 @@ const GalleryManagementPage = () => {
                 {albumSaving ? 'Saving...' : 'Save Album'}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ============================================================= */}
+      {/* 🎥 FULLSCREEN VIDEO PREVIEW MODAL */}
+      {/* ============================================================= */}
+      {previewVideoUrl && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xs animate-in fade-in"
+          onClick={() => setPreviewVideoUrl(null)}
+        >
+          <div
+            className="relative w-full max-w-4xl aspect-video rounded-3xl overflow-hidden bg-black shadow-2xl border border-slate-800"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              type="button"
+              onClick={() => setPreviewVideoUrl(null)}
+              className="absolute top-3 right-3 z-30 p-2 rounded-full bg-black/60 hover:bg-black text-white transition cursor-pointer"
+            >
+              <XMarkIcon className="w-5 h-5" />
+            </button>
+            <iframe
+              src={previewVideoUrl}
+              title="YouTube Preview"
+              className="w-full h-full"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+            />
+          </div>
+        </div>
+      )}
+
+      {/* ============================================================= */}
+      {/* 🖼️ FULLSCREEN IMAGE / POSTER PREVIEW MODAL */}
+      {/* ============================================================= */}
+      {previewImageUrl && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xs animate-in fade-in"
+          onClick={() => setPreviewImageUrl(null)}
+        >
+          <div
+            className="relative max-w-4xl max-h-[90vh] flex flex-col items-center justify-center"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              type="button"
+              onClick={() => setPreviewImageUrl(null)}
+              className="absolute -top-10 right-0 p-2 rounded-full bg-white/20 hover:bg-white/40 text-white transition cursor-pointer"
+            >
+              <XMarkIcon className="w-6 h-6" />
+            </button>
+            <img
+              src={previewImageUrl}
+              alt="Poster preview"
+              className="max-h-[85vh] max-w-full object-contain rounded-2xl shadow-2xl border border-slate-700"
+            />
           </div>
         </div>
       )}

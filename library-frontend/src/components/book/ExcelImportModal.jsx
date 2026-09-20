@@ -15,7 +15,6 @@ import {
   ExclamationCircleIcon,
   MagnifyingGlassIcon,
   ArrowRightIcon,
-  SparklesIcon,
   BookOpenIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
@@ -309,7 +308,7 @@ const ExcelImportModal = ({ isOpen, onClose, onStagedUpdated }) => {
 
               {isSaving && (
                 <div className="flex items-center gap-2 text-xs font-bold text-emerald-600 pt-2 animate-pulse">
-                  <SparklesIcon className="w-5 h-5 animate-spin" />
+                  <ArrowPathIcon className="w-5 h-5 animate-spin" />
                   Saving books directly into MySQL database...
                 </div>
               )}

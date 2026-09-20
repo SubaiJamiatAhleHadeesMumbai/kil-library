@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { XMarkIcon, ArrowTopRightOnSquareIcon, SparklesIcon } from '@heroicons/react/24/solid';
+import { XMarkIcon, ArrowTopRightOnSquareIcon, MegaphoneIcon } from '@heroicons/react/24/solid';
 import { Link } from 'react-router-dom';
 
 const THEMES = {
@@ -82,7 +82,7 @@ const TopAnnouncementBar = ({ config = null }) => {
             {/* Tag Badge */}
             {announcement.badge && (
               <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wider shrink-0 ${themeStyle.badge}`}>
-                <SparklesIcon className="w-3 h-3 text-amber-400" />
+                <MegaphoneIcon className="w-3 h-3 text-amber-400" />
                 <span>{announcement.badge}</span>
               </span>
             )}

@@ -14,10 +14,11 @@ import {
   MagnifyingGlassMinusIcon,
   ArrowsPointingOutIcon,
   DocumentArrowDownIcon,
-  SparklesIcon,
   EyeIcon,
   ChevronLeftIcon,
-  ChevronRightIcon
+  ChevronRightIcon,
+  ArrowsUpDownIcon,
+  DocumentDuplicateIcon
 } from "@heroicons/react/24/outline";
 import toast from "react-hot-toast";
 import newspaperService from "../api/newspaperService";
@@ -183,19 +184,24 @@ const NewspaperClippingsPage = () => {
 
       {/* ================= FILTER TOOLBAR ================= */}
       <div className="max-w-7xl mx-auto px-4 mt-6">
-        <div className="bg-white rounded-3xl p-4 border border-slate-200 shadow-sm space-y-3">
-          {/* Top row: Dropdown filters & Sort */}
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="flex flex-wrap items-center gap-2.5 flex-1 min-w-0">
+        <motion.div
+          initial={{ opacity: 0, y: 15 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+          className="bg-white rounded-2xl sm:rounded-3xl p-3.5 sm:p-4 border border-slate-200/90 shadow-sm space-y-3.5"
+        >
+          {/* Top row: Dropdown filters, Reset & Counter */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex flex-wrap items-center gap-2 flex-1 min-w-0">
               {/* Newspaper Filter */}
-              <div className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-xs font-semibold text-slate-700">
-                <BuildingOffice2Icon className="w-4 h-4 text-slate-400" />
+              <div className="flex items-center gap-2 px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-xs font-semibold text-slate-700 hover:border-emerald-500 focus-within:border-emerald-500 focus-within:bg-white focus-within:ring-2 focus-within:ring-emerald-500/20 transition-all">
+                <BuildingOffice2Icon className="w-4 h-4 text-slate-400 shrink-0" />
                 <select
                   value={selectedNewspaper}
                   onChange={(e) => { setSelectedNewspaper(e.target.value); setPage(1); }}
-                  className="bg-transparent outline-none cursor-pointer max-w-[170px] truncate"
+                  className="bg-transparent outline-none cursor-pointer max-w-[160px] sm:max-w-[200px] truncate text-slate-700 font-medium"
                 >
-                  <option value="all">📰 All Newspapers</option>
+                  <option value="all">All Newspapers</option>
                   {newspapers.map((p, idx) => (
                     <option key={idx} value={p.name}>
                       {p.name} ({p.count})
@@ -205,69 +211,86 @@ const NewspaperClippingsPage = () => {
               </div>
 
               {/* Sort Dropdown */}
-              <div className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-xs font-semibold text-slate-700">
-                <CalendarIcon className="w-4 h-4 text-slate-400" />
+              <div className="flex items-center gap-2 px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-xs font-semibold text-slate-700 hover:border-emerald-500 focus-within:border-emerald-500 focus-within:bg-white focus-within:ring-2 focus-within:ring-emerald-500/20 transition-all">
+                <ArrowsUpDownIcon className="w-4 h-4 text-slate-400 shrink-0" />
                 <select
                   value={sortBy}
                   onChange={(e) => { setSortBy(e.target.value); setPage(1); }}
-                  className="bg-transparent outline-none cursor-pointer"
+                  className="bg-transparent outline-none cursor-pointer text-slate-700 font-medium"
                 >
-                  <option value="newest">✨ Newest First</option>
-                  <option value="oldest">🕰️ Oldest First</option>
-                  <option value="popular">🔥 Most Viewed</option>
+                  <option value="newest">Newest First</option>
+                  <option value="oldest">Oldest First</option>
+                  <option value="popular">Most Viewed</option>
                 </select>
               </div>
 
-              {/* Reset Button */}
-              {(selectedCategory !== "all" || selectedNewspaper !== "all" || search || sortBy !== "newest") && (
-                <button
-                  onClick={resetFilters}
-                  className="inline-flex items-center gap-1 px-3 py-2 rounded-xl bg-rose-50 text-rose-600 text-xs font-bold hover:bg-rose-100 transition cursor-pointer"
-                >
-                  <XMarkIcon className="w-3.5 h-3.5" />
-                  <span>Reset</span>
-                </button>
-              )}
+              {/* Reset Button (Animated) */}
+              <AnimatePresence>
+                {(selectedCategory !== "all" || selectedNewspaper !== "all" || search || sortBy !== "newest") && (
+                  <motion.button
+                    initial={{ opacity: 0, scale: 0.85 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.85 }}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={resetFilters}
+                    className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-rose-50 text-rose-600 text-xs font-bold hover:bg-rose-100 transition cursor-pointer border border-rose-100"
+                  >
+                    <XMarkIcon className="w-3.5 h-3.5" />
+                    <span>Reset</span>
+                  </motion.button>
+                )}
+              </AnimatePresence>
             </div>
 
-            <div className="text-xs font-bold text-slate-400">
-              Showing {clippings.length} clipping{clippings.length !== 1 ? "s" : ""}
+            {/* Counter Badge */}
+            <div className="flex items-center sm:justify-end shrink-0">
+              <span className="inline-flex items-center px-3 py-1.5 rounded-full bg-slate-100 text-slate-600 text-xs font-semibold border border-slate-200/50">
+                Showing <strong className="mx-1 text-slate-900 font-bold">{clippings.length}</strong> {clippings.length === 1 ? "clipping" : "clippings"}
+              </span>
             </div>
           </div>
 
-          {/* Horizontal Category Pill Strip */}
-          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pt-2 border-t border-slate-100 py-1">
+          {/* Horizontal Category Pill Strip with Sliding Animated Indicator */}
+          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pt-2.5 border-t border-slate-100 py-1">
             <button
+              type="button"
               onClick={() => { setSelectedCategory("all"); setPage(1); }}
-              className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all shrink-0 cursor-pointer ${
+              className={`relative px-4 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer ${
                 selectedCategory === "all"
-                  ? "bg-[#002147] text-white shadow-sm scale-105"
-                  : "bg-slate-100 hover:bg-slate-200 text-slate-700"
+                  ? "bg-[#002147] text-white shadow-sm"
+                  : "bg-slate-100/80 hover:bg-slate-200/70 text-slate-600"
               }`}
             >
               All Categories
             </button>
 
-            {categories.map((cat, idx) => (
-              <button
-                key={idx}
-                onClick={() => { setSelectedCategory(cat.name); setPage(1); }}
-                className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all shrink-0 flex items-center gap-1.5 cursor-pointer ${
-                  selectedCategory === cat.name
-                    ? "bg-emerald-600 text-white shadow-sm scale-105"
-                    : "bg-slate-100 hover:bg-emerald-50 text-slate-700 hover:text-emerald-700 border border-slate-200/60"
-                }`}
-              >
-                <span>{cat.name}</span>
-                <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
-                  selectedCategory === cat.name ? "bg-emerald-800 text-white" : "bg-slate-200 text-slate-600"
-                }`}>
-                  {cat.count}
-                </span>
-              </button>
-            ))}
+            {categories.map((cat, idx) => {
+              const isActive = selectedCategory === cat.name;
+              return (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={() => { setSelectedCategory(cat.name); setPage(1); }}
+                  className={`relative px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 flex items-center gap-1.5 cursor-pointer ${
+                    isActive
+                      ? "bg-emerald-600 text-white shadow-sm"
+                      : "bg-slate-100/80 hover:bg-slate-200/70 text-slate-600 border border-slate-200/40"
+                  }`}
+                >
+                  <span>{cat.name}</span>
+                  <span
+                    className={`text-[10px] px-1.5 py-0.5 rounded-md font-bold transition-colors ${
+                      isActive ? "bg-white/20 text-white" : "bg-slate-200/80 text-slate-600"
+                    }`}
+                  >
+                    {cat.count}
+                  </span>
+                </button>
+              );
+            })}
           </div>
-        </div>
+        </motion.div>
       </div>
 
       {/* ================= CLIPPINGS GRID ================= */}
@@ -327,8 +350,9 @@ const NewspaperClippingsPage = () => {
                       </div>
                     )}
                     {getClippingImages(clipping).length > 1 && (
-                      <div className="bg-emerald-600/95 backdrop-blur-md text-white text-[10px] font-black px-2 py-0.5 rounded-md shadow-xs flex items-center gap-1">
-                        <span>🖼️ {getClippingImages(clipping).length} Pages</span>
+                      <div className="bg-emerald-600/95 backdrop-blur-md text-white text-[10px] font-bold px-2 py-0.5 rounded-md shadow-xs flex items-center gap-1">
+                        <DocumentDuplicateIcon className="w-3 h-3" />
+                        <span>{getClippingImages(clipping).length} Pages</span>
                       </div>
                     )}
                   </div>
@@ -420,94 +444,98 @@ const NewspaperClippingsPage = () => {
                 className="relative w-full max-w-5xl bg-slate-900 rounded-3xl overflow-hidden shadow-2xl border border-slate-800 flex flex-col max-h-[95vh] z-10"
               >
                 {/* Top Lightbox Bar */}
-                <div className="flex items-center justify-between p-3 sm:p-4 bg-slate-950/90 border-b border-slate-800 text-white">
-                  <div className="min-w-0 pr-4">
-                    <div className="flex items-center gap-2">
-                      <span className="px-2 py-0.5 rounded bg-emerald-500 text-slate-950 text-[10px] font-black uppercase">
+                <div className="flex items-center justify-between p-3 sm:p-4 bg-slate-950/95 border-b border-slate-800 text-white gap-3">
+                  {/* Left: Newspaper Metadata & Title */}
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="px-2.5 py-0.5 rounded-full bg-emerald-500 text-slate-950 text-[10px] font-black uppercase tracking-wider">
                         {activeClipping.newspaper_name}
                       </span>
-                      <span className="text-xs text-slate-400 font-mono">{activeClipping.edition_date || "Archive"}</span>
+                      <span className="text-xs text-slate-400 font-mono">
+                        {activeClipping.edition_date || "Archive"}
+                      </span>
                       {allImages.length > 1 && (
-                        <span className="bg-slate-800 text-emerald-400 text-[10px] font-bold px-2 py-0.5 rounded">
-                          Page {activeImageIndex + 1} of {allImages.length}
+                        <span className="bg-slate-800 text-emerald-400 text-[10px] font-bold px-2 py-0.5 rounded-full border border-slate-700">
+                          Page {activeImageIndex + 1}/{allImages.length}
                         </span>
                       )}
                     </div>
-                    <h3 className="font-bold text-sm sm:text-base text-slate-100 truncate mt-0.5" title={activeClipping.title}>
+                    <h3 className="font-bold text-xs sm:text-sm text-slate-200 truncate mt-1" title={activeClipping.title}>
                       {activeClipping.title}
                     </h3>
                   </div>
 
-                  {/* Viewer Tools */}
+                  {/* Right: Clean Action Buttons (Zero Clutter) */}
                   <div className="flex items-center gap-1.5 shrink-0">
-                    {/* Zoom In */}
-                    <button
-                      onClick={() => setZoomLevel((z) => Math.min(3, z + 0.25))}
-                      className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 transition"
-                      title="Zoom In"
-                    >
-                      <MagnifyingGlassPlusIcon className="w-5 h-5" />
-                    </button>
+                    {/* Desktop Only Zoom Controls (Hidden on mobile) */}
+                    <div className="hidden md:flex items-center gap-1 bg-slate-900 border border-slate-800 rounded-xl p-0.5">
+                      <button
+                        onClick={() => setZoomLevel((z) => Math.min(3, z + 0.25))}
+                        className="p-1.5 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition cursor-pointer"
+                        title="Zoom In"
+                      >
+                        <MagnifyingGlassPlusIcon className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => setZoomLevel((z) => Math.max(0.75, z - 0.25))}
+                        className="p-1.5 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition cursor-pointer"
+                        title="Zoom Out"
+                      >
+                        <MagnifyingGlassMinusIcon className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => setZoomLevel(1)}
+                        className="px-2 py-1 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white text-[11px] font-bold transition cursor-pointer"
+                        title="Reset Zoom"
+                      >
+                        {Math.round(zoomLevel * 100)}%
+                      </button>
+                    </div>
 
-                    {/* Zoom Out */}
-                    <button
-                      onClick={() => setZoomLevel((z) => Math.max(0.75, z - 0.25))}
-                      className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 transition"
-                      title="Zoom Out"
-                    >
-                      <MagnifyingGlassMinusIcon className="w-5 h-5" />
-                    </button>
-
-                    {/* Reset Zoom */}
-                    <button
-                      onClick={() => setZoomLevel(1)}
-                      className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold transition"
-                      title="Reset Zoom"
-                    >
-                      100%
-                    </button>
-
-                    {/* Download Image */}
+                    {/* 1. Download High-Res Image */}
                     <a
                       href={currentImg}
                       download={`clipping_${activeClipping.id}_page${activeImageIndex + 1}.jpg`}
                       target="_blank"
                       rel="noreferrer"
-                      className="p-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white transition"
-                      title="Download High-Res Image"
+                      className="p-2 rounded-xl bg-slate-800 hover:bg-emerald-600 text-slate-200 hover:text-white transition border border-slate-700/60 flex items-center gap-1.5 text-xs font-bold cursor-pointer shadow-sm"
+                      title="Download Image"
                     >
-                      <ArrowDownTrayIcon className="w-5 h-5" />
+                      <ArrowDownTrayIcon className="w-4 h-4" />
+                      <span className="hidden sm:inline">Download</span>
                     </a>
 
-                    {/* Optional PDF Download */}
+                    {/* Optional PDF Download (if attached) */}
                     {activeClipping.pdf_url && (
                       <a
                         href={activeClipping.pdf_url}
                         target="_blank"
                         rel="noreferrer"
-                        className="p-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white transition flex items-center gap-1 text-xs font-bold"
+                        className="p-2 rounded-xl bg-slate-800 hover:bg-indigo-600 text-slate-200 hover:text-white transition border border-slate-700/60 flex items-center gap-1.5 text-xs font-bold cursor-pointer shadow-sm"
                         title="Open PDF Document"
                       >
-                        <DocumentArrowDownIcon className="w-5 h-5" />
+                        <DocumentArrowDownIcon className="w-4 h-4" />
                         <span className="hidden sm:inline">PDF</span>
                       </a>
                     )}
 
-                    {/* WhatsApp Share */}
+                    {/* 2. WhatsApp Share */}
                     <button
                       onClick={() => handleShareWhatsApp(activeClipping)}
-                      className="p-2 rounded-xl bg-green-600 hover:bg-green-500 text-white transition"
+                      className="p-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white transition flex items-center gap-1.5 text-xs font-bold cursor-pointer shadow-sm"
                       title="Share via WhatsApp"
                     >
-                      <ShareIcon className="w-5 h-5" />
+                      <ShareIcon className="w-4 h-4" />
+                      <span className="hidden sm:inline">Share</span>
                     </button>
 
-                    {/* Close */}
+                    {/* 3. Close */}
                     <button
                       onClick={() => setActiveClipping(null)}
-                      className="p-2 rounded-xl bg-slate-800 hover:bg-rose-600 text-slate-300 hover:text-white transition ml-2"
+                      className="p-2 rounded-xl bg-slate-800 hover:bg-rose-600 text-slate-300 hover:text-white transition border border-slate-700/60 cursor-pointer shadow-sm"
+                      title="Close"
                     >
-                      <XMarkIcon className="w-5 h-5" />
+                      <XMarkIcon className="w-4 h-4" />
                     </button>
                   </div>
                 </div>

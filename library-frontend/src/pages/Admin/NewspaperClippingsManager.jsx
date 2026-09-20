@@ -392,9 +392,9 @@ const NewspaperClippingsManager = () => {
               onChange={(e) => setStatusFilter(e.target.value)}
               className="px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-xs font-bold text-slate-700 outline-none hover:border-emerald-500 cursor-pointer"
             >
-              <option value="all">🔘 All Status</option>
-              <option value="active">🟢 Active Only (Live)</option>
-              <option value="inactive">🔴 Inactive Only (Hidden)</option>
+              <option value="all">All Status</option>
+              <option value="active">Active (Live)</option>
+              <option value="inactive">Inactive (Hidden)</option>
             </select>
 
             {/* Category Filter */}
@@ -403,7 +403,7 @@ const NewspaperClippingsManager = () => {
               onChange={(e) => setCategoryFilter(e.target.value)}
               className="px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-xs font-bold text-slate-700 outline-none hover:border-emerald-500 cursor-pointer max-w-[180px] truncate"
             >
-              <option value="all">📁 All Categories</option>
+              <option value="all">All Categories</option>
               {CATEGORY_PRESETS.map((cat, i) => (
                 <option key={i} value={cat}>{cat}</option>
               ))}

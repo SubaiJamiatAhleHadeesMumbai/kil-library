@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { SparklesIcon } from "@heroicons/react/24/solid";
+import { AcademicCapIcon } from "@heroicons/react/24/solid";
 
 const DEFAULT_QUOTES = [
   {
@@ -143,7 +143,7 @@ const IslamicSplashLoader = ({
           animate={{ opacity: 1, y: 0 }}
           className="absolute top-8 px-4 py-1.5 rounded-full bg-blue-500/15 border border-blue-400/40 text-blue-300 text-xs font-bold flex items-center gap-2 backdrop-blur-md"
         >
-          <SparklesIcon className="w-3.5 h-3.5 text-blue-300" />
+          <AcademicCapIcon className="w-3.5 h-3.5 text-blue-300" />
           <span>Markaz Annual Dawah & Educational Conference</span>
         </motion.div>
       )}

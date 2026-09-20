@@ -98,13 +98,6 @@ def get_default_homepage_settings():
                 "subtitle": "Library identity and story",
                 "description": "Public about page link visibility",
             },
-            "education_social_activity": {
-                "enabled": True,
-                "order": 7,
-                "title": "Education, Social & Activity",
-                "subtitle": "Community learning, service, and engagement",
-                "description": "Community education and social service section visibility",
-            },
             "catalog": {
                 "enabled": True,
                 "order": 8,

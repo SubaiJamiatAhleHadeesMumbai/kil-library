@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import {
-  SparklesIcon,
+  Squares2X2Icon,
   GlobeAltIcon,
   HeartIcon,
   MagnifyingGlassIcon,
@@ -223,7 +223,7 @@ const AdminNavigationSettingsPage = () => {
       {/* TABS NAVIGATION */}
       <div className="flex items-center gap-2 border-b border-slate-200 pb-2 overflow-x-auto">
         {[
-          { id: 'announcement', label: '📢 Top Announcement & Daily Hadith', icon: SparklesIcon },
+          { id: 'announcement', label: '📢 Top Announcement & Daily Hadith', icon: MegaphoneIcon },
           { id: 'navbar', label: '🧭 Desktop Navbar & Links', icon: ComputerDesktopIcon },
           { id: 'mobile', label: '📱 Mobile Bottom App Bar', icon: DevicePhoneMobileIcon },
         ].map((tab) => {
@@ -433,7 +433,7 @@ const AdminNavigationSettingsPage = () => {
                   { key: 'about', label: 'About Us (/about)', icon: InformationCircleIcon },
                   { key: 'gallery', label: 'Gallery & Media (/gallery)', icon: PhotoIcon },
                   { key: 'fatawa', label: 'Dar-ul-Ifta / Fatawa (/fatawa)', icon: BookOpenIcon },
-                  { key: 'activities', label: 'Activities Dropdown (/education, /social-work)', icon: SparklesIcon },
+                  { key: 'activities', label: 'Activities Dropdown (/education, /social-work)', icon: Squares2X2Icon },
                   { key: 'updates', label: 'Announcements & Posts (/posts)', icon: MegaphoneIcon },
                 ].map((item) => {
                   const Icon = item.icon;

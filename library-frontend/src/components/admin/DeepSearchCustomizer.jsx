@@ -3,7 +3,6 @@ import {
   MagnifyingGlassIcon,
   CloudArrowDownIcon,
   LanguageIcon,
-  SparklesIcon,
   AdjustmentsHorizontalIcon,
   ClipboardDocumentCheckIcon,
   DocumentArrowDownIcon,
@@ -50,7 +49,7 @@ const FEATURE_EXPLAINERS = {
   enable_boolean_operators: {
     title: 'Multi-Word & Boolean Operators (مرکب اور جملہ تلاش)',
     badge: 'Advanced Academic Research',
-    icon: SparklesIcon,
+    icon: MagnifyingGlassIcon,
     summary: 'ایک ساتھ کئی الفاظ یا ہو بہو جملہ (Exact Phrase) تلاش کرنے کی علمی سہولت۔',
     purpose: 'محققین اور مفتیانِ کرام کو اکثر دو مختلف شرعی موضوعات کو ایک ساتھ کسی صفحے پر تلاش کرنا ہوتا ہے، مثلاً ایک ہی صفحے پر زکوٰۃ اور سونے کے احکام۔',
     howItWorks: 'کوٹس ("...") کے ذریعے ہو بہو جملہ تلاش کیا جا سکتا ہے، جبکہ بغیر کوٹس کے وہ تمام صفحات ملتے ہیں جہاں دونوں الفاظ موجود ہوں۔',
@@ -169,7 +168,7 @@ const DeepSearchCustomizer = () => {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <div className="inline-flex items-center gap-2 rounded-full bg-indigo-600/10 px-3 py-1 text-xs font-bold text-indigo-700 mb-2">
-              <SparklesIcon className="w-4 h-4" />
+              <MagnifyingGlassIcon className="w-4 h-4" />
               <span>ACADEMIC DEEP SEARCH CONTROLLER</span>
             </div>
             <h2 className="text-xl sm:text-2xl font-black text-slate-900">

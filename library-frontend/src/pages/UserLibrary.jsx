@@ -29,7 +29,6 @@ import {
   ChevronRightIcon,
   ChevronLeftIcon,
   ChevronDownIcon,
-  SparklesIcon,
   Squares2X2Icon,
   ListBulletIcon,
   ArrowUpIcon,
@@ -565,7 +564,7 @@ const UserLibrary = () => {
           <div className="absolute top-0 right-0 w-96 h-96 bg-emerald-500/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
           <div className="relative z-10 max-w-4xl mx-auto">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-bold uppercase tracking-wider mb-2 sm:mb-3">
-              <SparklesIcon className="w-4 h-4" /> Digital Library
+              <BookOpenIcon className="w-4 h-4" /> Digital Library
             </div>
             <h1 className="text-2xl sm:text-4xl md:text-5xl font-extrabold text-white leading-tight">
               Discover Islamic{" "}
@@ -588,7 +587,7 @@ const UserLibrary = () => {
               transition={{ duration: 0.7 }}
             >
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-bold uppercase tracking-wider mb-3 sm:mb-4">
-                <SparklesIcon className="w-4 h-4" /> Digital Library
+                <BookOpenIcon className="w-4 h-4" /> Digital Library
               </div>
 
               <h1 className="text-2xl sm:text-4xl md:text-6xl font-extrabold text-white mb-4 sm:mb-6 leading-tight">

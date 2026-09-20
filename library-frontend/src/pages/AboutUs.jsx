@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useContext, useMemo } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import {
   HomeIcon,
   ChevronRightIcon,
@@ -7,11 +7,17 @@ import {
   ArrowPathIcon,
   ExclamationCircleIcon,
   GlobeAltIcon,
+  CalendarDaysIcon,
+  MoonIcon,
+  InformationCircleIcon,
+  ArrowTopRightOnSquareIcon,
+  SparklesIcon,
 } from '@heroicons/react/24/outline';
 import aboutService from '../api/aboutService';
 import { AuthContext } from '../context/AuthProvider';
 import { isAdminRole } from '../config/accessControl';
 import { useLanguage } from '../context/LanguageContext';
+import IslamicCalendarPage from './IslamicCalendarPage';
 
 const LANG_PILLS = [
   { code: 'ur', label: 'اردو', flag: '🇵🇰', dir: 'rtl' },
@@ -73,6 +79,21 @@ export default function AboutUs() {
   const isAdmin = auth?.role && isAdminRole(auth.role);
 
   const { currentLang, changeLanguage } = useLanguage();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabFromUrl = searchParams.get('tab');
+  const [activeTab, setActiveTab] = useState(tabFromUrl || 'about');
+
+  useEffect(() => {
+    const t = searchParams.get('tab');
+    if (t && ['about', 'calendar', 'jumah', 'moon'].includes(t)) {
+      setActiveTab(t);
+    }
+  }, [searchParams]);
+
+  const handleTabChange = (t) => {
+    setActiveTab(t);
+    setSearchParams(t === 'about' ? {} : { tab: t });
+  };
 
   const [settings, setSettings] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -184,72 +205,189 @@ export default function AboutUs() {
           </div>
         </div>
 
-        {/* ================= LOADING SKELETON ================= */}
-        {loading && (
-          <div className="space-y-6 animate-pulse">
-            <div className="rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-8 sm:p-12 text-center space-y-4">
-              <div className="h-10 w-2/3 mx-auto rounded-2xl bg-slate-200 dark:bg-slate-800" />
-              <div className="h-5 w-1/2 mx-auto rounded-xl bg-slate-100 dark:bg-slate-800" />
-            </div>
-            <div className="rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-8 sm:p-12 space-y-6">
-              <div className="h-4 w-full rounded bg-slate-100 dark:bg-slate-800" />
-              <div className="h-4 w-5/6 rounded bg-slate-100 dark:bg-slate-800" />
-              <div className="h-4 w-4/6 rounded bg-slate-100 dark:bg-slate-800" />
-              <div className="h-64 w-full rounded-2xl bg-slate-100 dark:bg-slate-800" />
-              <div className="h-4 w-full rounded bg-slate-100 dark:bg-slate-800" />
-            </div>
-          </div>
-        )}
+        {/* ================= 4 TABS: ABOUT | CALENDAR | JUMAH | MOON ================= */}
+        <div className="flex items-center gap-1.5 p-1.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xs overflow-x-auto no-scrollbar">
+          <button
+            type="button"
+            onClick={() => handleTabChange('about')}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition cursor-pointer shrink-0 ${
+              activeTab === 'about'
+                ? 'bg-emerald-600 text-white shadow-xs'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800'
+            }`}
+          >
+            <InformationCircleIcon className="w-4 h-4" />
+            <span>{currentLang === 'ur' ? 'تعارف مرکز' : 'About Markaz'}</span>
+          </button>
 
-        {/* ================= ERROR STATE ================= */}
-        {!loading && error && (
-          <div className="rounded-3xl border border-red-200 dark:border-red-900/40 bg-red-50 dark:bg-red-950/20 p-8 text-center space-y-4">
-            <ExclamationCircleIcon className="mx-auto h-12 w-12 text-red-500" />
-            <h3 className="text-lg font-bold text-red-800 dark:text-red-300">{error}</h3>
-            <button
-              type="button"
-              onClick={fetchSettings}
-              className="inline-flex items-center gap-2 rounded-xl bg-red-600 px-4 py-2 text-xs font-semibold text-white shadow-sm hover:bg-red-500 transition cursor-pointer"
-            >
-              <ArrowPathIcon className="h-4 w-4" />
-              <span>Retry</span>
-            </button>
-          </div>
-        )}
+          <button
+            type="button"
+            onClick={() => handleTabChange('calendar')}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition cursor-pointer shrink-0 ${
+              activeTab === 'calendar'
+                ? 'bg-teal-700 text-white shadow-xs'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800'
+            }`}
+          >
+            <CalendarDaysIcon className="w-4 h-4" />
+            <span>{currentLang === 'ur' ? 'اسلامی کیلنڈر (تقویم)' : 'Islamic Calendar'}</span>
+          </button>
 
-        {/* ================= MAIN CONTENT CARD ================= */}
-        {!loading && !error && (
-          <article className="space-y-6">
-            {/* Top Page Header Banner */}
-            <header className="rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-8 sm:p-12 text-center shadow-xs transition-colors">
-              <span className="inline-block rounded-full bg-emerald-100 dark:bg-emerald-950/60 px-3.5 py-1 text-xs font-bold text-emerald-800 dark:text-emerald-300 mb-3 tracking-wide">
-                Markaz & Library
-              </span>
-              <h1
-                dir={activeContent.dir}
-                className="text-3xl sm:text-5xl font-extrabold tracking-tight text-slate-900 dark:text-white"
-              >
-                {activeContent.title}
-              </h1>
-              {activeContent.subtitle && (
-                <p
-                  dir={activeContent.dir}
-                  className="mt-3 sm:mt-4 text-base sm:text-xl font-medium text-slate-600 dark:text-slate-400 max-w-3xl mx-auto leading-relaxed"
+          <button
+            type="button"
+            onClick={() => handleTabChange('jumah')}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition cursor-pointer shrink-0 ${
+              activeTab === 'jumah'
+                ? 'bg-emerald-700 text-white shadow-xs'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800'
+            }`}
+          >
+            <CalendarDaysIcon className="w-4 h-4" />
+            <span>{currentLang === 'ur' ? 'خطبات جمعہ' : 'Jumah Schedule'}</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => handleTabChange('moon')}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition cursor-pointer shrink-0 ${
+              activeTab === 'moon'
+                ? 'bg-amber-600 text-white shadow-xs'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800'
+            }`}
+          >
+            <MoonIcon className="w-4 h-4" />
+            <span>{currentLang === 'ur' ? 'رؤیت ہلال' : 'Moon Announcements'}</span>
+          </button>
+        </div>
+
+        {/* ================= TAB 1: ABOUT MARKAZ ================= */}
+        {activeTab === 'about' && (
+          <>
+            {/* Loading Skeleton */}
+            {loading && (
+              <div className="space-y-6 animate-pulse">
+                <div className="rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-8 sm:p-12 text-center space-y-4">
+                  <div className="h-10 w-2/3 mx-auto rounded-2xl bg-slate-200 dark:bg-slate-800" />
+                  <div className="h-5 w-1/2 mx-auto rounded-xl bg-slate-100 dark:bg-slate-800" />
+                </div>
+                <div className="rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-8 sm:p-12 space-y-6">
+                  <div className="h-4 w-full rounded bg-slate-100 dark:bg-slate-800" />
+                  <div className="h-4 w-5/6 rounded bg-slate-100 dark:bg-slate-800" />
+                  <div className="h-4 w-4/6 rounded bg-slate-100 dark:bg-slate-800" />
+                  <div className="h-64 w-full rounded-2xl bg-slate-100 dark:bg-slate-800" />
+                  <div className="h-4 w-full rounded bg-slate-100 dark:bg-slate-800" />
+                </div>
+              </div>
+            )}
+
+            {/* Error State */}
+            {!loading && error && (
+              <div className="rounded-3xl border border-red-200 dark:border-red-900/40 bg-red-50 dark:bg-red-950/20 p-8 text-center space-y-4">
+                <ExclamationCircleIcon className="mx-auto h-12 w-12 text-red-500" />
+                <h3 className="text-lg font-bold text-red-800 dark:text-red-300">{error}</h3>
+                <button
+                  type="button"
+                  onClick={fetchSettings}
+                  className="inline-flex items-center gap-2 rounded-xl bg-red-600 px-4 py-2 text-xs font-semibold text-white shadow-sm hover:bg-red-500 transition cursor-pointer"
                 >
-                  {activeContent.subtitle}
-                </p>
-              )}
-            </header>
+                  <ArrowPathIcon className="h-4 w-4" />
+                  <span>Retry</span>
+                </button>
+              </div>
+            )}
 
-            {/* Dynamic Rich Text Body */}
-            <section className="rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 sm:p-10 lg:p-14 shadow-sm transition-colors">
-              <div
-                dir={activeContent.dir}
-                className="about-rich-content prose prose-slate max-w-none dark:prose-invert prose-headings:font-bold prose-headings:text-slate-900 dark:prose-headings:text-white prose-a:text-emerald-600 dark:prose-a:text-emerald-400 prose-img:rounded-2xl prose-img:shadow-md prose-img:mx-auto prose-img:max-w-full text-slate-800 dark:text-slate-200 leading-relaxed text-base sm:text-lg"
-                dangerouslySetInnerHTML={{ __html: renderedHtml }}
-              />
-            </section>
-          </article>
+            {/* Main Content Card */}
+            {!loading && !error && (
+              <article className="space-y-6">
+                <header className="rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-8 sm:p-12 text-center shadow-xs transition-colors">
+                  <span className="inline-block rounded-full bg-emerald-100 dark:bg-emerald-950/60 px-3.5 py-1 text-xs font-bold text-emerald-800 dark:text-emerald-300 mb-3 tracking-wide">
+                    Markaz & Library
+                  </span>
+                  <h1
+                    dir={activeContent.dir}
+                    className="text-3xl sm:text-5xl font-extrabold tracking-tight text-slate-900 dark:text-white"
+                  >
+                    {activeContent.title}
+                  </h1>
+                  {activeContent.subtitle && (
+                    <p
+                      dir={activeContent.dir}
+                      className="mt-3 sm:mt-4 text-base sm:text-xl font-medium text-slate-600 dark:text-slate-400 max-w-3xl mx-auto leading-relaxed"
+                    >
+                      {activeContent.subtitle}
+                    </p>
+                  )}
+                </header>
+
+                <section className="rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 sm:p-10 lg:p-14 shadow-sm transition-colors">
+                  <div
+                    dir={activeContent.dir}
+                    className="about-rich-content prose prose-slate max-w-none dark:prose-invert prose-headings:font-bold prose-headings:text-slate-900 dark:prose-headings:text-white prose-a:text-emerald-600 dark:prose-a:text-emerald-400 prose-img:rounded-2xl prose-img:shadow-md prose-img:mx-auto prose-img:max-w-full text-slate-800 dark:text-slate-200 leading-relaxed text-base sm:text-lg"
+                    dangerouslySetInnerHTML={{ __html: renderedHtml }}
+                  />
+                </section>
+              </article>
+            )}
+          </>
+        )}
+
+        {/* ================= TAB 2: ISLAMIC CALENDAR ================= */}
+        {activeTab === 'calendar' && (
+          <div className="rounded-3xl overflow-hidden shadow-xs">
+            <IslamicCalendarPage />
+          </div>
+        )}
+
+        {/* ================= TAB 3: JUMAH SCHEDULE PREVIEW ================= */}
+        {activeTab === 'jumah' && (
+          <div className="rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-8 sm:p-12 text-center space-y-4">
+            <div className="w-16 h-16 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center mx-auto shadow-sm">
+              <CalendarDaysIcon className="w-8 h-8" />
+            </div>
+            <h2 className="text-2xl font-black text-slate-900 dark:text-white">
+              {currentLang === 'ur' ? 'خطبات و شیڈول برائے نماز جمعہ' : 'Jumah Sermons & Schedules'}
+            </h2>
+            <p className="text-sm text-slate-600 dark:text-slate-400 max-w-lg mx-auto">
+              {currentLang === 'ur'
+                ? 'مرکز اہل حدیث اور ملحقہ مساجد کے خطبات جمعہ، خطباء کے نام اور اوقات کی مکمل فہرست اور آرکائیو دیکھنے کے لیے نیچے کلک کریں۔'
+                : 'Browse all upcoming and archived Friday sermon schedules, Bayan topics, and Khatib assignments.'}
+            </p>
+            <div className="pt-2">
+              <Link
+                to="/juma-list"
+                className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl bg-emerald-700 hover:bg-emerald-600 text-white font-bold text-sm transition shadow-md"
+              >
+                <span>View Full Jumah Schedule List (مکمل شیڈول دیکھیں)</span>
+                <ArrowTopRightOnSquareIcon className="w-4 h-4" />
+              </Link>
+            </div>
+          </div>
+        )}
+
+        {/* ================= TAB 4: MOON ANNOUNCEMENTS PREVIEW ================= */}
+        {activeTab === 'moon' && (
+          <div className="rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-8 sm:p-12 text-center space-y-4">
+            <div className="w-16 h-16 rounded-2xl bg-amber-100 text-amber-700 flex items-center justify-center mx-auto shadow-sm">
+              <MoonIcon className="w-8 h-8" />
+            </div>
+            <h2 className="text-2xl font-black text-slate-900 dark:text-white">
+              {currentLang === 'ur' ? 'اعلانات رؤیت ہلال و ہجری تقویم' : 'Moon Sighting Announcements'}
+            </h2>
+            <p className="text-sm text-slate-600 dark:text-slate-400 max-w-lg mx-auto">
+              {currentLang === 'ur'
+                ? 'صوبائی جمعیت اہل حدیث اور مرکز کے باضابطہ رؤیت ہلال کے اعلانات، سرکلرز اور ہجری سال کے ماہانہ اعلانات دیکھیں۔'
+                : 'Browse verified crescent sighting declarations and official Hijri month circulars.'}
+            </p>
+            <div className="pt-2">
+              <Link
+                to="/moon"
+                className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl bg-amber-600 hover:bg-amber-500 text-white font-bold text-sm transition shadow-md"
+              >
+                <span>View All Moon Announcements (تمام اعلانات دیکھیں)</span>
+                <ArrowTopRightOnSquareIcon className="w-4 h-4" />
+              </Link>
+            </div>
+          </div>
         )}
       </div>
     </div>

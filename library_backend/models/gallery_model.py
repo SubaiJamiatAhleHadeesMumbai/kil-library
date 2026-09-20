@@ -64,6 +64,9 @@ class GalleryItem(Base):
     sort_order = Column(Integer, default=0, nullable=False)
     is_active = Column(Boolean, default=True, nullable=False)
     show_on_home = Column(Boolean, default=False, nullable=False, index=True)
+    item_type = Column(String(50), default="photo", nullable=False, index=True)
+    event_date = Column(String(50), nullable=True)
+    hijri_month = Column(String(50), nullable=True)
 
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
@@ -77,6 +80,9 @@ class GalleryItem(Base):
             "album_id": self.album_id,
             "image_url": self.image_url or "",
             "video_url": self.video_url or "",
+            "item_type": self.item_type or "photo",
+            "event_date": self.event_date or "",
+            "hijri_month": self.hijri_month or "",
             "title": {
                 "en": self.title_en or "",
                 "ur": self.title_ur or "",

@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
-  SparklesIcon,
   EyeIcon,
   EyeSlashIcon,
   MoonIcon,
@@ -17,6 +16,11 @@ import {
   Squares2X2Icon,
   ArrowUpTrayIcon,
   MagnifyingGlassIcon,
+  ClockIcon,
+  BookOpenIcon,
+  NewspaperIcon,
+  AcademicCapIcon,
+  UserGroupIcon,
 } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
 import apiClient from '../../api/apiClient';
@@ -61,7 +65,7 @@ const controlPanels = [
     key: 'loader',
     title: 'Splash & Loader',
     description: 'Islamic Splash, Skeleton Shimmer, Festive Modes & Live Test.',
-    icon: SparklesIcon,
+    icon: ClockIcon,
     requiredPermissions: ['HOMEPAGE_BRANDING_MANAGE', 'HOMEPAGE_LAYOUT_MANAGE'],
   },
   {
@@ -73,14 +77,46 @@ const controlPanels = [
   },
 ];
 
+const DEFAULT_IMPACT_STATS = [
+  {
+    key: 'books',
+    defaultVal: '10,000+',
+    defaultLabel: 'Islamic Books & Rare Treatises',
+    defaultUrdu: 'کتب و نادر علمی ذخائر',
+    icon: BookOpenIcon,
+  },
+  {
+    key: 'clippings',
+    defaultVal: '250+',
+    defaultLabel: 'Newspaper & Press Archives',
+    defaultUrdu: 'اخباری کٹنگز و مضامین',
+    icon: NewspaperIcon,
+  },
+  {
+    key: 'fatawa',
+    defaultVal: '1,200+',
+    defaultLabel: 'Answered Shar\'i Fatawa',
+    defaultUrdu: 'مفتیانِ کرام کے شرعی فتاویٰ',
+    icon: AcademicCapIcon,
+  },
+  {
+    key: 'readers',
+    defaultVal: '50,000+',
+    defaultLabel: 'Monthly Active Readers',
+    defaultUrdu: 'ماہانہ قارئین و طلبہ',
+    icon: UserGroupIcon,
+  },
+];
+
 const defaultSections = [
+  { key: 'announcement_ticker', label: 'Islamic Quick Alert Ticker', description: 'Top notification banner for urgent Jumah prayer schedule and Chand ailaan updates' },
   { key: 'hero', label: 'Hero / Welcome Banner', description: 'Main landing intro and spotlight area' },
+  { key: 'islamic_updates', label: 'Islamic Updates & Announcements (Jumah & Moon Cards)', description: 'Prominent 2-card interactive widget showcasing this week\'s Jumah list and latest Moon sighting poster with dates' },
   { key: 'bento_hub', label: 'Kokan Hub (4-Bento Portals)', description: 'Quick access cards to Library, Press Clippings, Fatawa & Social Welfare' },
   { key: 'stats_impact', label: 'Live Impact Stats Counter', description: 'Real-time metrics for Books, Clippings, Fatawa and Active Readers' },
   { key: 'newspaper_clippings', label: 'Newspaper Press Clippings', description: 'Recent press releases and published news coverage from Roznama Inquilab, Urdu Times, etc.' },
   { key: 'posters', label: 'Media & Campaign Posters', description: 'Rotating poster carousel and campaign visuals' },
   { key: 'posts', label: 'Announcements & Updates', description: 'News, events and official announcements' },
-  { key: 'education_social_activity', label: 'Education, Social & Activities', description: 'Community education, relief work and Markaz projects' },
   { key: 'fatawa', label: 'Darul Ifta & Fatawa Showcase', description: 'Public Islamic fatawa questions and answers highlight' },
   { key: 'gallery', label: 'Photo & Event Gallery', description: 'Event photos and activities showcase' },
   { key: 'whatsapp_community', label: 'WhatsApp & Social Community', description: '1-Click official WhatsApp and Telegram community connect card' },
@@ -308,7 +344,7 @@ const HomepageCustomizer = () => {
         ...prev.sections,
         [key]: {
           ...(prev.sections?.[key] || {}),
-          enabled: !Boolean(prev.sections?.[key]?.enabled),
+          enabled: !prev.sections?.[key]?.enabled,
         },
       },
     }));
@@ -467,7 +503,7 @@ const HomepageCustomizer = () => {
       }
       setMessage('Homepage configuration saved successfully!');
       setIsError(false);
-    } catch (error) {
+    } catch (_error) {
       setMessage('Unable to save settings right now. Please try again.');
       setIsError(true);
     } finally {
@@ -497,7 +533,7 @@ const HomepageCustomizer = () => {
             {saving ? (
               <ArrowPathIcon className="h-5 w-5 animate-spin" />
             ) : (
-              <SparklesIcon className="h-5 w-5" />
+              <CheckCircleIcon className="h-5 w-5" />
             )}
             {saving ? 'Publishing Changes...' : 'Save & Publish'}
           </button>
@@ -590,7 +626,7 @@ const HomepageCustomizer = () => {
                     {[
                       { id: 'day', label: 'Day Mode', icon: SunIcon },
                       { id: 'night', label: 'Night Mode', icon: MoonIcon },
-                      { id: 'aurora', label: 'Aurora Mode', icon: SparklesIcon },
+                      { id: 'aurora', label: 'Aurora Mode', icon: PaintBrushIcon },
                     ].map((mode) => {
                       const isActive = settings.theme === mode.id;
                       const ModeIcon = mode.icon;
@@ -1538,6 +1574,151 @@ const HomepageCustomizer = () => {
                             </label>
                           </div>
                         </div>
+                      ) : section.key === 'stats_impact' ? (
+                        <div className="mt-4 space-y-5 rounded-2xl border border-blue-100 bg-blue-50/40 p-5">
+                          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-blue-100 pb-3">
+                            <div>
+                              <span className="text-xs font-black uppercase tracking-wider text-blue-950 block">
+                                📊 Live Impact Stats Counter (4 Metrics)
+                              </span>
+                              <span className="text-[11px] text-slate-500">
+                                Configure values, English labels, and Urdu labels for the 4 stats cards. You can also hide or show this block.
+                              </span>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => toggleSection('stats_impact')}
+                              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-bold text-xs transition cursor-pointer ${
+                                settings.sections?.stats_impact?.enabled !== false
+                                  ? 'bg-emerald-600 text-white shadow-xs hover:bg-emerald-700'
+                                  : 'bg-red-100 text-red-700 hover:bg-red-200'
+                              }`}
+                            >
+                              {settings.sections?.stats_impact?.enabled !== false ? '✅ Stats Section is ON (Visible)' : '❌ Stats Section is OFF (Hidden)'}
+                            </button>
+                          </div>
+
+                          {/* Live Interactive Preview Box */}
+                          <div className="rounded-2xl bg-[#001D3D] p-5 sm:p-6 text-white shadow-md relative overflow-hidden border border-blue-900/50">
+                            <div className="text-[11px] font-bold text-emerald-400 uppercase tracking-wider mb-3">
+                              Live Preview:
+                            </div>
+                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 divide-y sm:divide-y-0 sm:divide-x divide-white/10">
+                              {DEFAULT_IMPACT_STATS.map((def, idx) => {
+                                const currentStat = settings.sections?.stats_impact?.stats?.[idx] || {};
+                                const val = currentStat.value !== undefined && currentStat.value !== '' ? currentStat.value : def.defaultVal;
+                                const lbl = currentStat.label !== undefined && currentStat.label !== '' ? currentStat.label : def.defaultLabel;
+                                const ur = currentStat.labelUrdu !== undefined && currentStat.labelUrdu !== '' ? currentStat.labelUrdu : def.defaultUrdu;
+                                const Icon = def.icon;
+
+                                return (
+                                  <div key={idx} className={`space-y-1.5 text-center ${idx !== 0 ? 'pt-3 sm:pt-0 sm:pl-4' : ''}`}>
+                                    <div className="w-10 h-10 rounded-xl bg-white/10 text-emerald-400 mx-auto flex items-center justify-center border border-white/10">
+                                      <Icon className="w-5 h-5 stroke-[2]" />
+                                    </div>
+                                    <div className="text-xl sm:text-2xl font-black text-amber-300 font-mono">
+                                      {val}
+                                    </div>
+                                    <p className="text-[11px] font-bold text-slate-200 line-clamp-1">
+                                      {lbl}
+                                    </p>
+                                    <p className="text-[11px] font-urdu text-slate-400 line-clamp-1" dir="rtl">
+                                      {ur}
+                                    </p>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+
+                          {/* 4 Editable Stats Form Cards */}
+                          <div className="grid gap-4 sm:grid-cols-2">
+                            {DEFAULT_IMPACT_STATS.map((def, idx) => {
+                              const currentStat = settings.sections?.stats_impact?.stats?.[idx] || {};
+                              const val = currentStat.value !== undefined ? currentStat.value : def.defaultVal;
+                              const lbl = currentStat.label !== undefined ? currentStat.label : def.defaultLabel;
+                              const ur = currentStat.labelUrdu !== undefined ? currentStat.labelUrdu : def.defaultUrdu;
+                              const Icon = def.icon;
+
+                              return (
+                                <div key={idx} className="space-y-3 bg-white p-4 rounded-xl border border-slate-200 shadow-2xs">
+                                  <div className="flex items-center gap-2 border-b border-slate-100 pb-2">
+                                    <div className="w-7 h-7 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
+                                      <Icon className="w-4 h-4" />
+                                    </div>
+                                    <span className="text-xs font-bold text-slate-800">
+                                      Stat #{idx + 1}: {def.defaultLabel}
+                                    </span>
+                                  </div>
+
+                                  <label className="block">
+                                    <span className="mb-1 block text-xs font-semibold text-slate-700">Display Value (نمبر / تعداد)</span>
+                                    <input
+                                      type="text"
+                                      value={val}
+                                      onChange={(e) => {
+                                        const currentStats = Array.isArray(settings.sections?.stats_impact?.stats)
+                                          ? [...settings.sections.stats_impact.stats]
+                                          : DEFAULT_IMPACT_STATS.map(d => ({ value: d.defaultVal, label: d.defaultLabel, labelUrdu: d.defaultUrdu }));
+                                        while (currentStats.length <= idx) {
+                                          const d = DEFAULT_IMPACT_STATS[currentStats.length] || { defaultVal: '', defaultLabel: '', defaultUrdu: '' };
+                                          currentStats.push({ value: d.defaultVal, label: d.defaultLabel, labelUrdu: d.defaultUrdu });
+                                        }
+                                        currentStats[idx] = { ...currentStats[idx], value: e.target.value };
+                                        updateSectionField('stats_impact', 'stats', currentStats);
+                                      }}
+                                      placeholder="e.g. 10,000+"
+                                      className="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-2 text-sm text-slate-800 font-bold focus:border-indigo-500 focus:bg-white focus:outline-none font-mono"
+                                    />
+                                  </label>
+
+                                  <label className="block">
+                                    <span className="mb-1 block text-xs font-semibold text-slate-700">English Title</span>
+                                    <input
+                                      type="text"
+                                      value={lbl}
+                                      onChange={(e) => {
+                                        const currentStats = Array.isArray(settings.sections?.stats_impact?.stats)
+                                          ? [...settings.sections.stats_impact.stats]
+                                          : DEFAULT_IMPACT_STATS.map(d => ({ value: d.defaultVal, label: d.defaultLabel, labelUrdu: d.defaultUrdu }));
+                                        while (currentStats.length <= idx) {
+                                          const d = DEFAULT_IMPACT_STATS[currentStats.length] || { defaultVal: '', defaultLabel: '', defaultUrdu: '' };
+                                          currentStats.push({ value: d.defaultVal, label: d.defaultLabel, labelUrdu: d.defaultUrdu });
+                                        }
+                                        currentStats[idx] = { ...currentStats[idx], label: e.target.value };
+                                        updateSectionField('stats_impact', 'stats', currentStats);
+                                      }}
+                                      placeholder="e.g. Islamic Books & Rare Treatises"
+                                      className="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-2 text-xs text-slate-800 font-medium focus:border-indigo-500 focus:bg-white focus:outline-none"
+                                    />
+                                  </label>
+
+                                  <label className="block">
+                                    <span className="mb-1 block text-xs font-semibold text-slate-700">Urdu Title (اردو عنوان)</span>
+                                    <input
+                                      type="text"
+                                      dir="rtl"
+                                      value={ur}
+                                      onChange={(e) => {
+                                        const currentStats = Array.isArray(settings.sections?.stats_impact?.stats)
+                                          ? [...settings.sections.stats_impact.stats]
+                                          : DEFAULT_IMPACT_STATS.map(d => ({ value: d.defaultVal, label: d.defaultLabel, labelUrdu: d.defaultUrdu }));
+                                        while (currentStats.length <= idx) {
+                                          const d = DEFAULT_IMPACT_STATS[currentStats.length] || { defaultVal: '', defaultLabel: '', defaultUrdu: '' };
+                                          currentStats.push({ value: d.defaultVal, label: d.defaultLabel, labelUrdu: d.defaultUrdu });
+                                        }
+                                        currentStats[idx] = { ...currentStats[idx], labelUrdu: e.target.value };
+                                        updateSectionField('stats_impact', 'stats', currentStats);
+                                      }}
+                                      placeholder="مثلاً: کتب و نادر علمی ذخائر"
+                                      className="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-2 text-xs text-slate-800 font-urdu focus:border-indigo-500 focus:bg-white focus:outline-none"
+                                    />
+                                  </label>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
                       ) : (
                         <label className="mt-3 block">
                           <span className="mb-1 block text-xs font-medium text-slate-700">Section Description / Paragraph</span>
@@ -1640,7 +1821,7 @@ const HomepageCustomizer = () => {
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-4">
                   <div className="flex items-center gap-3">
                     <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-amber-50 text-amber-600 shadow-2xs">
-                      <SparklesIcon className="h-6 w-6" />
+                      <ClockIcon className="h-6 w-6" />
                     </div>
                     <div>
                       <h3 className="text-base font-bold text-slate-900">Splash & Page Loader Experience</h3>
@@ -1657,7 +1838,7 @@ const HomepageCustomizer = () => {
                     }}
                     className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-[#002147] text-white font-bold text-xs shadow-md hover:shadow-lg hover:scale-102 transition-all cursor-pointer shrink-0"
                   >
-                    <SparklesIcon className="w-4 h-4 text-amber-300" />
+                    <ClockIcon className="w-4 h-4 text-amber-300" />
                     <span>👁️ Live Preview / Test Loader</span>
                   </button>
                 </div>

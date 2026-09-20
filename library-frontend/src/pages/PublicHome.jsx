@@ -9,7 +9,7 @@ import {
   FaceFrownIcon,
   HeartIcon,
   ArrowPathIcon,
-  SparklesIcon,
+  CalendarDaysIcon,
   BookOpenIcon,
   AcademicCapIcon,
   UserGroupIcon,
@@ -25,6 +25,7 @@ import {
   CheckBadgeIcon,
   PhotoIcon,
   XMarkIcon,
+  ShareIcon,
 } from "@heroicons/react/24/outline";
 import { useLanguage } from "../context/LanguageContext";
 import { Swiper, SwiperSlide } from "swiper/react";
@@ -46,16 +47,15 @@ import KokanHubBento from "../components/public/KokanHubBento";
 import NewspaperClippingsHomeSection from "../components/public/NewspaperClippingsHomeSection";
 import ImpactStatsCounter from "../components/public/ImpactStatsCounter";
 import WhatsAppCommunityBlock from "../components/public/WhatsAppCommunityBlock";
+import IslamicAnnouncementTicker from "../components/public/IslamicAnnouncementTicker";
+import IslamicUpdatesWidget from "../components/public/IslamicUpdatesWidget";
 
 // Services + Hooks
 import { bookService } from "../api/bookService";
 import { categoryService } from "../api/categoryService";
 import { fatawaService } from "../api/fatawaService";
 import aboutService from "../api/aboutService";
-import socialWorkService from "../api/socialWorkService";
 import galleryService from "../api/galleryService";
-import SocialWorkCard from "../components/social_work/SocialWorkCard";
-import SocialWorkItemDetailModal from "../components/social_work/SocialWorkItemDetailModal";
 import { useBookSearch, deduplicateBooks } from "../hooks/useBookSearch";
 import LandingPostsPreview from "../components/public/LandingPostsPreview";
 import AnnouncementModal from "../components/public/AnnouncementModal";
@@ -63,6 +63,29 @@ import HomepagePostersCarousel from "../components/public/HomepagePostersCarouse
 import DonationPanel from "../components/donation/DonationPanel";
 import { getErrorMessage } from "../utils/errorMessage";
 import { cleanExcerpt, formatCategoryName } from "../utils/i18nFormatters";
+
+const getYouTubeEmbedUrl = (url) => {
+  if (!url) return '';
+  const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+  const match = url.match(regExp);
+  if (match && match[2].length === 11) {
+    return `https://www.youtube-nocookie.com/embed/${match[2]}?autoplay=1&rel=0`;
+  }
+  return url;
+};
+
+const formatDate = (dateStr) => {
+  if (!dateStr) return '';
+  try {
+    const d = new Date(dateStr);
+    if (!isNaN(d.getTime())) {
+      return d.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' });
+    }
+  } catch {
+    // fallback
+  }
+  return dateStr;
+};
 
 // --- API & IMAGE HELPERS ---
 const API_BASE_URL =
@@ -273,12 +296,11 @@ const PublicHome = () => {
   const [dynamicCategories, setDynamicCategories] = useState([]);
   const [galleryImages, setGalleryImages] = useState([]);
   const [homeGallery, setHomeGallery] = useState([]);
+  const [islamicUpdates, setIslamicUpdates] = useState({ jumah: null, moon: null });
   const [activeLightboxImage, setActiveLightboxImage] = useState(null);
   const [selectedAnnouncementPost, setSelectedAnnouncementPost] = useState(null);
   const [aboutContent, setAboutContent] = useState({ hero: {}, intro: {}, display: {} });
   const [isAboutExpanded, setIsAboutExpanded] = useState(false);
-  const [activitiesItems, setActivitiesItems] = useState([]);
-  const [selectedActivity, setSelectedActivity] = useState(null);
   const [recentFatawa, setRecentFatawa] = useState([]);
 
   // Filters & State
@@ -330,14 +352,14 @@ const PublicHome = () => {
   const loadAllData = useCallback(async () => {
     setLoading(true);
     try {
-      const [booksRes, catRes, settingsRes, aboutRes, activitiesRes, fatawaRes, galleryRes] = await Promise.allSettled([
+      const [booksRes, catRes, settingsRes, aboutRes, fatawaRes, galleryRes, islamicUpdatesRes] = await Promise.allSettled([
         bookService.getAllBooks({ approved_only: true, sort_order: 'desc' }, 200),
         categoryService.getAllCategories(),
         settingsService.getHomepageSettings(),
         aboutService.getAboutSettings(),
-        socialWorkService.getPublicItems('', '', 6),
         fatawaService.getQuestions({ status: 'answered', limit: 3 }),
         galleryService.getHomeFeaturedGallery(8),
+        galleryService.getIslamicUpdates(),
       ]);
 
       // 1. Process Books - only approved books should appear on public homepage
@@ -375,14 +397,6 @@ const PublicHome = () => {
         });
       }
 
-      // 5. Process Activities / Social Work
-      if (activitiesRes.status === 'fulfilled' && activitiesRes.value) {
-        const items = Array.isArray(activitiesRes.value) ? activitiesRes.value : [];
-        setActivitiesItems(items);
-      } else {
-        setActivitiesItems([]);
-      }
-
       // 6. Process Recent Fatawa Highlights
       if (fatawaRes.status === 'fulfilled' && fatawaRes.value) {
         const qList = Array.isArray(fatawaRes.value) ? fatawaRes.value : fatawaRes.value?.questions || [];
@@ -397,6 +411,13 @@ const PublicHome = () => {
         setHomeGallery(items);
       } else {
         setHomeGallery([]);
+      }
+
+      // 8. Process Islamic Updates (Latest Jumah & Moon Announcements)
+      if (islamicUpdatesRes.status === 'fulfilled' && islamicUpdatesRes.value) {
+        setIslamicUpdates(islamicUpdatesRes.value || { jumah: null, moon: null });
+      } else {
+        setIslamicUpdates({ jumah: null, moon: null });
       }
     } catch (error) {
       console.error("âŒ PublicHome Master Load Error:", error);
@@ -644,16 +665,20 @@ const PublicHome = () => {
   const orderedHomepageSections = useMemo(() => {
     const defaults = {
       hero: 0,
-      posters: 1,
-      search: 2,
-      featured: 3,
-      gallery: 4,
-      fatawa: 5,
-      about: 6,
-      education_social_activity: 7,
-      catalog: 8,
-      posts: 9,
-      donation: 10,
+      islamic_updates: 1,
+      bento_hub: 2,
+      stats_impact: 3,
+      newspaper_clippings: 4,
+      posters: 5,
+      search: 6,
+      featured: 7,
+      gallery: 8,
+      fatawa: 9,
+      about: 10,
+      catalog: 11,
+      posts: 12,
+      whatsapp_community: 13,
+      donation: 14,
     };
 
     return Object.keys(defaults)
@@ -690,6 +715,11 @@ const PublicHome = () => {
     <div className={`min-h-screen animate-in fade-in duration-500 ${themeClasses.shell} ${themeClasses.background} ${themeClasses.heading}`}>
       <Toaster position="top-right" />
       <div className="sr-only" aria-label="Current site language">{language}</div>
+
+      {/* ISLAMIC QUICK ALERT TICKER */}
+      {getSectionConfig('announcement_ticker', { enabled: true }).enabled !== false && (
+        <IslamicAnnouncementTicker updates={islamicUpdates} config={getSectionConfig('announcement_ticker', {})} />
+      )}
 
       {/* HERO SECTION */}
       {getSectionConfig('hero', { enabled: true }).enabled !== false && (
@@ -737,6 +767,16 @@ const PublicHome = () => {
       {orderedHomepageSections.map(({ key }) => {
         if (key === 'hero' || key === 'search' || key === 'featured' || key === 'catalog') return null;
 
+        // ISLAMIC UPDATES WIDGET (Jumah List & Moon Date Cards)
+        if (key === 'islamic_updates' && getSectionConfig('islamic_updates', { enabled: true }).enabled !== false) {
+          if (!islamicUpdates || (!islamicUpdates.jumah && !islamicUpdates.moon)) return null;
+          return (
+            <div key="islamic_updates" className="app-shell-container pb-4 sm:pb-8">
+              <IslamicUpdatesWidget updates={islamicUpdates} config={getSectionConfig('islamic_updates', {})} />
+            </div>
+          );
+        }
+
         // 1. KOKAN HUB BENTO GRID
         if (key === 'bento_hub' && getSectionConfig('bento_hub', { enabled: true }).enabled !== false) {
           return (
@@ -758,10 +798,8 @@ const PublicHome = () => {
         // 3. NEWSPAPER PRESS CLIPPINGS
         if (key === 'newspaper_clippings' && getSectionConfig('newspaper_clippings', { enabled: true }).enabled !== false) {
           return (
-            <div key="newspaper_clippings" className="app-shell-container pb-6 sm:pb-10">
-              <div className={sectionFrameClass}>
-                <NewspaperClippingsHomeSection config={getSectionConfig('newspaper_clippings', {})} />
-              </div>
+            <div key="newspaper_clippings" className="app-shell-container pb-2 sm:pb-4">
+              <NewspaperClippingsHomeSection config={getSectionConfig('newspaper_clippings', {})} />
             </div>
           );
         }
@@ -790,104 +828,76 @@ const PublicHome = () => {
           if (!homeGallery || homeGallery.length === 0) return null;
 
           return (
-            <div key="gallery" className="app-shell-container pb-6 sm:pb-12">
-              <div className={sectionFrameClass}>
-                <div className="mb-6 flex flex-col sm:flex-row items-start sm:items-end justify-between gap-4">
-                  <div className="flex-1">
-                    <p className="eyebrow text-xs font-bold uppercase tracking-[0.25em]" style={{ color: accentColor }}>
-                      {galleryConfig.title || 'Gallery'}
-                    </p>
-                    <h3 className="section-title text-2xl font-black text-slate-900 mt-1">
-                      {galleryConfig.subtitle || 'Photo & Event Gallery'}
-                    </h3>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    {/* Gallery Prev/Next Navigation Controls */}
-                    <div className="flex items-center gap-1.5">
-                      <button
-                        type="button"
-                        className="swiper-prev-gallery w-9 h-9 rounded-full border border-slate-200 bg-white hover:bg-slate-100 flex items-center justify-center text-slate-700 transition shadow-2xs cursor-pointer active:scale-95"
-                        aria-label="Previous Slide"
-                      >
-                        <ChevronLeftIcon className="w-4 h-4" />
-                      </button>
-                      <button
-                        type="button"
-                        className="swiper-next-gallery w-9 h-9 rounded-full border border-slate-200 bg-white hover:bg-slate-100 flex items-center justify-center text-slate-700 transition shadow-2xs cursor-pointer active:scale-95"
-                        aria-label="Next Slide"
-                      >
-                        <ChevronRightIcon className="w-4 h-4" />
-                      </button>
-                    </div>
-
-                    <button
-                      onClick={() => navigateToTop('/gallery')}
-                      className="inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-xs sm:text-sm font-bold text-white transition-all shadow-md hover:shadow-lg hover:opacity-95 focus:outline-none focus:ring-2 focus:ring-offset-2 whitespace-nowrap cursor-pointer"
-                      style={{ backgroundColor: accentColor, outlineColor: accentColor }}
-                    >
-                      <span>View Gallery</span>
-                      <ArrowRightIcon className="h-4 w-4" />
-                    </button>
-                  </div>
+            <div key="gallery" className="app-shell-container pb-4 sm:pb-6">
+              <div className="px-4 max-w-7xl mx-auto">
+                {/* Header */}
+                <div className="flex items-center justify-between gap-3 mb-4">
+                  <h2 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight">
+                    {galleryConfig.subtitle || 'Photo & Event Gallery'}
+                  </h2>
+                  <button
+                    onClick={() => navigateToTop('/gallery')}
+                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold text-white transition-all shadow-sm hover:opacity-90 shrink-0 cursor-pointer"
+                    style={{ backgroundColor: accentColor }}
+                  >
+                    <span>View All</span>
+                    <ArrowRightIcon className="h-3.5 w-3.5" />
+                  </button>
                 </div>
 
-                <Swiper
-                  modules={[Autoplay, Navigation]}
-                  spaceBetween={20}
-                  loop={homeGallery.length > 3}
-                  autoplay={{
-                    delay: 4500,
-                    disableOnInteraction: false,
-                    pauseOnMouseEnter: true,
-                  }}
-                  navigation={{
-                    prevEl: '.swiper-prev-gallery',
-                    nextEl: '.swiper-next-gallery',
-                  }}
-                  breakpoints={{
-                    320: { slidesPerView: 1.1, spaceBetween: 12 },
-                    640: { slidesPerView: 2.1, spaceBetween: 16 },
-                    1024: { slidesPerView: 3, spaceBetween: 20 },
-                  }}
-                  className="rounded-2xl !pb-2"
-                >
-                  {homeGallery.map((item, idx) => {
-                    const title = resolveMultilingualText(item.title, 'Gallery Photo');
-                    const caption = resolveMultilingualText(item.caption, '');
+                {/* Compact Masonry-style Grid — 8 images max */}
+                <div className="grid grid-cols-4 sm:grid-cols-4 md:grid-cols-8 gap-1.5 sm:gap-2">
+                  {homeGallery.slice(0, 8).map((item, idx) => {
+                    const title = resolveMultilingualText(item.title, 'Gallery Media');
                     const imageUrl = resolveImageUrl(item.image_url);
+                    const isVideo = item.item_type === 'video';
+                    // Make first 2 images wider on desktop
+                    const isWide = idx < 2;
 
                     return (
-                      <SwiperSlide key={item.id || idx}>
-                        <div
-                          onClick={() => setActiveLightboxImage(item)}
-                          className="relative group overflow-hidden rounded-2xl bg-slate-900 border border-slate-200/80 shadow-sm hover:shadow-xl transition-all duration-300 h-64 sm:h-72 cursor-pointer"
-                        >
+                      <div
+                        key={item.id || idx}
+                        onClick={() => setActiveLightboxImage(item)}
+                        className={`relative group overflow-hidden rounded-xl bg-slate-900 cursor-pointer ${
+                          isWide ? 'col-span-2 row-span-2' : 'col-span-2 md:col-span-2'
+                        }`}
+                      >
+                        {/* Aspect ratio box */}
+                        <div className={`w-full ${isWide ? 'aspect-square sm:aspect-video' : 'aspect-square'}`}>
                           <img
                             src={imageUrl}
                             alt={title}
-                            className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
+                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                             loading="lazy"
                             onError={(e) => {
                               e.currentTarget.onerror = null;
                               e.currentTarget.style.display = 'none';
                             }}
                           />
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/25 to-transparent p-5 flex flex-col justify-end transition-opacity">
-                            {item.year && (
-                              <span className="inline-block px-2.5 py-0.5 rounded-full bg-white/20 backdrop-blur-md text-[10px] font-bold text-amber-300 mb-1.5 w-fit border border-white/15 shadow-2xs">
-                                {item.year}
-                              </span>
-                            )}
-                            <p className="text-white font-bold text-sm sm:text-base line-clamp-2 leading-snug drop-shadow-sm">{title}</p>
-                            {caption ? (
-                              <p className="text-white/80 text-xs line-clamp-1 mt-1 font-normal">{caption}</p>
-                            ) : null}
-                          </div>
                         </div>
-                      </SwiperSlide>
+
+                        {/* Hover overlay */}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-2.5">
+                          <p className="text-white font-semibold text-[11px] sm:text-xs line-clamp-2 leading-snug">
+                            {title}
+                          </p>
+                          {item.year && (
+                            <span className="text-amber-300 text-[10px] font-bold mt-0.5">{item.year}</span>
+                          )}
+                        </div>
+
+                        {/* Video badge */}
+                        {isVideo && (
+                          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-red-600/90 text-white flex items-center justify-center shadow-md group-hover:scale-110 transition-transform">
+                              <svg className="w-3.5 h-3.5 fill-current ml-0.5" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
+                            </div>
+                          </div>
+                        )}
+                      </div>
                     );
                   })}
-                </Swiper>
+                </div>
               </div>
             </div>
           );
@@ -1139,143 +1149,6 @@ const PublicHome = () => {
           );
         }
 
-        // ACTIVITIES, EDUCATION & SOCIAL WELFARE SECTION
-        if (key === 'education_social_activity' && getSectionConfig('education_social_activity', { enabled: true }).enabled !== false) {
-          const educationConfig = getSectionConfig('education_social_activity', {});
-          const actionCards = [
-            {
-              title: 'Education & Guidance',
-              urduTitle: 'تعلیم و رہنمائی',
-              description: 'Knowledge-based learning programs, educational seminars, and academic support for students.',
-              icon: AcademicCapIcon,
-              to: '/education',
-              color: 'from-blue-600 to-indigo-600',
-              bgColor: 'bg-blue-50',
-              textColor: 'text-blue-700',
-              borderColor: 'border-blue-200'
-            },
-            {
-              title: 'Social Work & Welfare',
-              urduTitle: 'سماجی خدمات و ریلیف',
-              description: 'Humanitarian relief drives, medical assistance, ration distribution, and welfare support.',
-              icon: UserGroupIcon,
-              to: '/social-work',
-              color: 'from-emerald-600 to-teal-600',
-              bgColor: 'bg-emerald-50',
-              textColor: 'text-emerald-700',
-              borderColor: 'border-emerald-200'
-            },
-            {
-              title: 'Markaz Activities & Events',
-              urduTitle: 'سرگرمیاں اور کانفرنسز',
-              description: 'Annual conventions, book fairs, youth gatherings, and community educational events.',
-              icon: SparklesIcon,
-              to: '/activities',
-              color: 'from-purple-600 to-pink-600',
-              bgColor: 'bg-purple-50',
-              textColor: 'text-purple-700',
-              borderColor: 'border-purple-200'
-            },
-          ];
-
-          return (
-            <div key="education_social_activity" id="education_social_activity" className="app-shell-container pb-6 sm:pb-12 scroll-mt-24">
-              <div className={sectionFrameClass}>
-                <div className="mb-8 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
-                  <div>
-                    <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-50 border border-indigo-200 text-indigo-700 text-xs font-bold mb-2">
-                      <SparklesIcon className="w-3.5 h-3.5" />
-                      <span>{educationConfig.title || 'Activities, Education & Social Welfare'}</span>
-                    </div>
-                    <h3 className="section-title text-2xl sm:text-3xl font-black text-slate-900">
-                      {educationConfig.subtitle || 'Community Services & Markaz Initiatives'}
-                    </h3>
-                    <p className="text-xs sm:text-sm text-slate-500 mt-1 max-w-2xl">
-                      Empowering our community through educational seminars, humanitarian relief, book fairs, and youth conventions.
-                    </p>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => navigateToTop('/activities')}
-                      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 transition-colors shadow-2xs cursor-pointer"
-                    >
-                      <span>View All Activities</span>
-                      <ArrowRightIcon className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                </div>
-
-                {/* 3 Main Action Hub Cards */}
-                <div className="grid gap-5 md:grid-cols-3 mb-8">
-                  {actionCards.map((card) => {
-                    const CardIcon = card.icon;
-                    return (
-                      <div
-                        key={card.title}
-                        onClick={() => navigateToTop(card.to)}
-                        className={`group relative rounded-3xl border ${card.borderColor} bg-white p-6 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer flex flex-col justify-between`}
-                      >
-                        <div>
-                          <div className="flex items-center justify-between mb-4">
-                            <div className={`h-12 w-12 rounded-2xl ${card.bgColor} ${card.textColor} flex items-center justify-center shadow-xs group-hover:scale-110 transition-transform`}>
-                              <CardIcon className="h-6 w-6 stroke-2" />
-                            </div>
-                            <span className={`text-[10px] font-extrabold px-2.5 py-1 rounded-full ${card.bgColor} ${card.textColor} border ${card.borderColor}`}>
-                              Explore Hub
-                            </span>
-                          </div>
-
-                          <h4 className="text-lg font-black text-slate-900 group-hover:text-emerald-700 transition-colors">
-                            {card.title}
-                          </h4>
-                          <p className="text-xs font-bold text-slate-400 mb-2 font-serif">
-                            {card.urduTitle}
-                          </p>
-                          <p className="text-xs leading-relaxed text-slate-600">
-                            {card.description}
-                          </p>
-                        </div>
-
-                        <div className="mt-5 pt-4 border-t border-slate-100 flex items-center justify-between text-xs font-bold text-slate-800 group-hover:text-emerald-600">
-                          <span>Open Section</span>
-                          <ArrowRightIcon className="h-4 w-4 transform group-hover:translate-x-1 transition-transform" />
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-
-                {/* Live Recent Activities Grid */}
-                {activitiesItems.length > 0 && (
-                  <div>
-                    <div className="flex items-center justify-between mb-4 border-t border-slate-100 pt-6">
-                      <h4 className="text-sm font-extrabold uppercase tracking-wider text-slate-400 flex items-center gap-2">
-                        <SparklesIcon className="w-4 h-4 text-amber-500" />
-                        <span>Recent Activities & Happenings</span>
-                      </h4>
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-                      {activitiesItems.slice(0, 3).map((item) => (
-                        <SocialWorkCard
-                          key={item.id}
-                          item={item}
-                          onSelect={(selected) => setSelectedActivity(selected)}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          );
-        }
-
-
-
-
-
         // POSTS & DONATIONS
         if (key === 'posts' || key === 'donation') {
           const showPosts = getSectionConfig('posts', { enabled: true }).enabled !== false;
@@ -1348,15 +1221,6 @@ const PublicHome = () => {
         </Suspense>
       )}
 
-      {/* ACTIVITY DETAIL MODAL */}
-      {selectedActivity && (
-        <SocialWorkItemDetailModal
-          item={selectedActivity}
-          isOpen={!!selectedActivity}
-          onClose={() => setSelectedActivity(null)}
-        />
-      )}
-
       {/* GALLERY LIGHTBOX MODAL */}
       {activeLightboxImage &&
         typeof document !== 'undefined' &&
@@ -1378,22 +1242,52 @@ const PublicHome = () => {
                 <XMarkIcon className="w-5 h-5" />
               </button>
 
-            <div className="max-h-[75vh] flex items-center justify-center bg-black">
-              <img
-                src={resolveImageUrl(activeLightboxImage.image_url)}
-                alt="Enlarged gallery photo"
-                className="max-h-[75vh] w-auto max-w-full object-contain"
-                onError={(e) => {
-                  e.currentTarget.onerror = null;
-                  e.currentTarget.style.display = 'none';
-                }}
-              />
-            </div>
+            {/* Media Content */}
+            {activeLightboxImage.item_type === 'video' && activeLightboxImage.video_url ? (
+              <div className="relative aspect-video w-full bg-black">
+                <iframe
+                  src={getYouTubeEmbedUrl(activeLightboxImage.video_url)}
+                  title={resolveMultilingualText(activeLightboxImage.title, 'Video Player')}
+                  className="w-full h-full border-0"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                />
+              </div>
+            ) : (
+              <div className="max-h-[75vh] flex items-center justify-center bg-black">
+                <img
+                  src={resolveImageUrl(activeLightboxImage.image_url)}
+                  alt="Enlarged gallery photo"
+                  className="max-h-[75vh] w-auto max-w-full object-contain"
+                  onError={(e) => {
+                    e.currentTarget.onerror = null;
+                    e.currentTarget.style.display = 'none';
+                  }}
+                />
+              </div>
+            )}
 
             <div className="p-4 bg-slate-900 text-white flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
+                <div className="flex items-center gap-2 mb-1 flex-wrap">
+                  {activeLightboxImage.item_type === 'jumah' && (
+                    <span className="px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[11px] font-bold">
+                      🕌 Jumah: {formatDate(activeLightboxImage.event_date)}
+                    </span>
+                  )}
+                  {activeLightboxImage.item_type === 'moon' && (
+                    <span className="px-2 py-0.5 rounded-md bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[11px] font-bold">
+                      🌙 Moon: {formatDate(activeLightboxImage.event_date)}
+                    </span>
+                  )}
+                  {activeLightboxImage.item_type === 'video' && (
+                    <span className="px-2 py-0.5 rounded-md bg-red-500/20 text-red-300 border border-red-500/30 text-[11px] font-bold">
+                      ▶ YouTube Video
+                    </span>
+                  )}
+                </div>
                 <h4 className="text-sm font-bold">
-                  {resolveMultilingualText(activeLightboxImage.title, 'Gallery Photo')}
+                  {resolveMultilingualText(activeLightboxImage.title, 'Gallery Media')}
                 </h4>
                 {resolveMultilingualText(activeLightboxImage.caption, '') ? (
                   <p className="text-xs text-slate-400 mt-0.5">
@@ -1402,16 +1296,31 @@ const PublicHome = () => {
                 ) : null}
               </div>
 
-              <button
-                type="button"
-                onClick={() => {
-                  setActiveLightboxImage(null);
-                  navigateToTop('/gallery');
-                }}
-                className="px-4 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 text-xs font-bold transition shrink-0 cursor-pointer shadow-md"
-              >
-                View Full Gallery
-              </button>
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const title = resolveMultilingualText(activeLightboxImage.title, 'Gallery Media');
+                    const dateText = activeLightboxImage.event_date ? ` [${activeLightboxImage.event_date}]` : '';
+                    const shareText = `📢 *${title}*${dateText}\n${activeLightboxImage.video_url || window.location.origin}`;
+                    window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(shareText)}`, '_blank');
+                  }}
+                  className="px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold shadow-sm transition cursor-pointer flex items-center gap-1.5"
+                >
+                  <ShareIcon className="w-3.5 h-3.5" />
+                  <span>WhatsApp</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveLightboxImage(null);
+                    navigateToTop('/gallery');
+                  }}
+                  className="px-4 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 text-xs font-bold transition shrink-0 cursor-pointer shadow-md"
+                >
+                  View Full Gallery
+                </button>
+              </div>
             </div>
           </div>
         </div>,

@@ -2,16 +2,17 @@ import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  NewspaperIcon,
   EyeIcon,
   ArrowRightIcon,
-  SparklesIcon,
   XMarkIcon,
   MagnifyingGlassPlusIcon,
   MagnifyingGlassMinusIcon,
   ArrowDownTrayIcon,
+  DocumentArrowDownIcon,
+  ShareIcon,
   ChevronLeftIcon,
-  ChevronRightIcon
+  ChevronRightIcon,
+  DocumentDuplicateIcon
 } from "@heroicons/react/24/outline";
 import newspaperService from "../../api/newspaperService";
 
@@ -53,6 +54,11 @@ const NewspaperClippingsHomeSection = ({ config = {} }) => {
     return [clipping.image_url].filter(Boolean);
   };
 
+  const handleShareWhatsApp = (clipping) => {
+    const text = `📰 *${clipping.newspaper_name}* (${clipping.edition_date || 'Press Clipping'})\n\n*${clipping.title}*\n\nRead full clipping at:\n${window.location.origin}/clippings?id=${clipping.id}`;
+    window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, "_blank");
+  };
+
   const openLightbox = (clipping, idx = 0) => {
     setActiveClipping(clipping);
     setActiveImageIndex(idx);
@@ -64,32 +70,18 @@ const NewspaperClippingsHomeSection = ({ config = {} }) => {
   }
 
   return (
-    <section className="py-12 px-4 max-w-7xl mx-auto font-sans">
+    <section className="py-6 px-4 max-w-7xl mx-auto font-sans">
       {/* Section Header */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
-        <div className="space-y-2">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-800 text-xs font-bold border border-emerald-200 shadow-2xs">
-            <NewspaperIcon className="w-4 h-4 text-emerald-600" />
-            <span>Media & Press Coverage</span>
-          </div>
-          <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
-            {title}
-          </h2>
-          {subtitle && (
-            <p className="text-sm font-urdu font-semibold text-slate-500" dir="rtl">
-              {subtitle}
-            </p>
-          )}
-          <p className="text-xs sm:text-sm text-slate-600 max-w-2xl">
-            {description}
-          </p>
-        </div>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
+        <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+          {title}
+        </h2>
 
         <Link
           to="/clippings"
-          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#002147] text-white font-bold text-xs hover:bg-slate-900 transition-all shadow-sm hover:shadow-md shrink-0 self-start md:self-auto"
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#002147] text-white font-bold text-xs hover:bg-slate-900 transition-all shadow-sm hover:shadow-md shrink-0 self-start sm:self-auto"
         >
-          <span>View All Press Archives</span>
+          <span>View All</span>
           <ArrowRightIcon className="w-3.5 h-3.5" />
         </Link>
       </div>
@@ -139,8 +131,9 @@ const NewspaperClippingsHomeSection = ({ config = {} }) => {
                       </div>
                     )}
                     {allImages.length > 1 && (
-                      <div className="bg-emerald-600 text-white text-[10px] font-black px-2 py-0.5 rounded-md shadow-xs">
-                        🖼️ {allImages.length} Pages
+                      <div className="bg-emerald-600/95 backdrop-blur-md text-white text-[10px] font-bold px-2 py-0.5 rounded-md shadow-xs flex items-center gap-1">
+                        <DocumentDuplicateIcon className="w-3 h-3" />
+                        <span>{allImages.length} Pages</span>
                       </div>
                     )}
                   </div>
@@ -191,62 +184,98 @@ const NewspaperClippingsHomeSection = ({ config = {} }) => {
                 className="relative w-full max-w-5xl bg-slate-900 rounded-3xl overflow-hidden shadow-2xl border border-slate-800 flex flex-col max-h-[95vh] z-10"
               >
                 {/* Top Lightbox Bar */}
-                <div className="flex items-center justify-between p-3 sm:p-4 bg-slate-950/90 border-b border-slate-800 text-white">
-                  <div className="min-w-0 pr-4">
-                    <div className="flex items-center gap-2">
-                      <span className="px-2 py-0.5 rounded bg-emerald-500 text-slate-950 text-[10px] font-black uppercase">
+                <div className="flex items-center justify-between p-3 sm:p-4 bg-slate-950/95 border-b border-slate-800 text-white gap-3">
+                  {/* Left: Newspaper Metadata & Title */}
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="px-2.5 py-0.5 rounded-full bg-emerald-500 text-slate-950 text-[10px] font-black uppercase tracking-wider">
                         {activeClipping.newspaper_name}
                       </span>
-                      <span className="text-xs text-slate-400 font-mono">{activeClipping.edition_date || "Archive"}</span>
+                      <span className="text-xs text-slate-400 font-mono">
+                        {activeClipping.edition_date || "Archive"}
+                      </span>
                       {allImages.length > 1 && (
-                        <span className="bg-slate-800 text-emerald-400 text-[10px] font-bold px-2 py-0.5 rounded">
-                          Page {activeImageIndex + 1} of {allImages.length}
+                        <span className="bg-slate-800 text-emerald-400 text-[10px] font-bold px-2 py-0.5 rounded-full border border-slate-700">
+                          Page {activeImageIndex + 1}/{allImages.length}
                         </span>
                       )}
                     </div>
-                    <h3 className="font-bold text-sm sm:text-base text-slate-100 truncate mt-0.5" title={activeClipping.title}>
+                    <h3 className="font-bold text-xs sm:text-sm text-slate-200 truncate mt-1" title={activeClipping.title}>
                       {activeClipping.title}
                     </h3>
                   </div>
 
-                  {/* Viewer Tools */}
+                  {/* Right: Clean Action Buttons (Zero Clutter) */}
                   <div className="flex items-center gap-1.5 shrink-0">
-                    <button
-                      onClick={() => setZoomLevel((z) => Math.min(3, z + 0.25))}
-                      className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 transition"
-                      title="Zoom In"
-                    >
-                      <MagnifyingGlassPlusIcon className="w-5 h-5" />
-                    </button>
-                    <button
-                      onClick={() => setZoomLevel((z) => Math.max(0.75, z - 0.25))}
-                      className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 transition"
-                      title="Zoom Out"
-                    >
-                      <MagnifyingGlassMinusIcon className="w-5 h-5" />
-                    </button>
-                    <button
-                      onClick={() => setZoomLevel(1)}
-                      className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold transition"
-                      title="Reset Zoom"
-                    >
-                      100%
-                    </button>
+                    {/* Desktop Only Zoom Controls (Hidden on mobile) */}
+                    <div className="hidden md:flex items-center gap-1 bg-slate-900 border border-slate-800 rounded-xl p-0.5">
+                      <button
+                        onClick={() => setZoomLevel((z) => Math.min(3, z + 0.25))}
+                        className="p-1.5 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition cursor-pointer"
+                        title="Zoom In"
+                      >
+                        <MagnifyingGlassPlusIcon className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => setZoomLevel((z) => Math.max(0.75, z - 0.25))}
+                        className="p-1.5 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition cursor-pointer"
+                        title="Zoom Out"
+                      >
+                        <MagnifyingGlassMinusIcon className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => setZoomLevel(1)}
+                        className="px-2 py-1 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white text-[11px] font-bold transition cursor-pointer"
+                        title="Reset Zoom"
+                      >
+                        {Math.round(zoomLevel * 100)}%
+                      </button>
+                    </div>
+
+                    {/* 1. Download High-Res Image */}
                     <a
                       href={currentImg}
-                      download={`clipping_${activeClipping.id}.jpg`}
+                      download={`clipping_${activeClipping.id}_page${activeImageIndex + 1}.jpg`}
                       target="_blank"
                       rel="noreferrer"
-                      className="p-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white transition"
+                      className="p-2 rounded-xl bg-slate-800 hover:bg-emerald-600 text-slate-200 hover:text-white transition border border-slate-700/60 flex items-center gap-1.5 text-xs font-bold cursor-pointer shadow-sm"
                       title="Download Image"
                     >
-                      <ArrowDownTrayIcon className="w-5 h-5" />
+                      <ArrowDownTrayIcon className="w-4 h-4" />
+                      <span className="hidden sm:inline">Download</span>
                     </a>
+
+                    {/* Optional PDF Download (if attached) */}
+                    {activeClipping.pdf_url && (
+                      <a
+                        href={activeClipping.pdf_url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="p-2 rounded-xl bg-slate-800 hover:bg-indigo-600 text-slate-200 hover:text-white transition border border-slate-700/60 flex items-center gap-1.5 text-xs font-bold cursor-pointer shadow-sm"
+                        title="Open PDF Document"
+                      >
+                        <DocumentArrowDownIcon className="w-4 h-4" />
+                        <span className="hidden sm:inline">PDF</span>
+                      </a>
+                    )}
+
+                    {/* 2. WhatsApp Share */}
+                    <button
+                      onClick={() => handleShareWhatsApp(activeClipping)}
+                      className="p-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white transition flex items-center gap-1.5 text-xs font-bold cursor-pointer shadow-sm"
+                      title="Share via WhatsApp"
+                    >
+                      <ShareIcon className="w-4 h-4" />
+                      <span className="hidden sm:inline">Share</span>
+                    </button>
+
+                    {/* 3. Close */}
                     <button
                       onClick={() => setActiveClipping(null)}
-                      className="p-2 rounded-xl bg-slate-800 hover:bg-rose-600 text-slate-300 hover:text-white transition ml-2"
+                      className="p-2 rounded-xl bg-slate-800 hover:bg-rose-600 text-slate-300 hover:text-white transition border border-slate-700/60 cursor-pointer shadow-sm"
+                      title="Close"
                     >
-                      <XMarkIcon className="w-5 h-5" />
+                      <XMarkIcon className="w-4 h-4" />
                     </button>
                   </div>
                 </div>

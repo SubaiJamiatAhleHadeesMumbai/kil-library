@@ -14,7 +14,6 @@ import {
   X,
   ArrowRight,
   ArrowLeft,
-  Sparkles,
   ExternalLink,
 } from "lucide-react";
 

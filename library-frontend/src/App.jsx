@@ -24,6 +24,8 @@ import UserLayout from "./components/layout/UserLayout";
 import PublicHome from "./pages/PublicHome";
 import AboutUs from "./pages/AboutUs";
 import GalleryPage from "./pages/GalleryPage";
+import MoonSightingPage from "./pages/MoonSightingPage";
+import JumaListPage from "./pages/JumaListPage";
 import Fatawa from "./pages/Fatawa";
 import ReadBook from "./pages/ReadBook";
 import History from "./pages/History";
@@ -59,6 +61,7 @@ const UserLibrary = lazy(() => import("./pages/UserLibrary"));
 const AddBookPage = lazy(() => import("./pages/AddBookPage"));
 const Authors = lazy(() => import("./pages/Authors"));
 const Publishers = lazy(() => import("./pages/Publishers"));
+const IslamicCalendarPage = lazy(() => import("./pages/IslamicCalendarPage"));
 const HomepageSettingsPage = lazy(() => import("./pages/Admin/HomepageSettingsPage"));
 const AdminNavigationSettingsPage = lazy(() => import("./pages/AdminNavigationSettingsPage"));
 const PosterManagementPage = lazy(() => import("./pages/Admin/PosterManagementPage"));
@@ -120,6 +123,12 @@ function App() {
             <Route path="about" element={<AboutUs />} />
             <Route path="about/gallery" element={<Navigate to="/gallery" replace />} />
             <Route path="gallery" element={<GalleryPage />} />
+            <Route path="calendar" element={<IslamicCalendarPage />} />
+            <Route path="islamic-calendar" element={<Navigate to="/calendar" replace />} />
+            <Route path="moon" element={<MoonSightingPage />} />
+            <Route path="ruyat-e-hilal" element={<Navigate to="/moon" replace />} />
+            <Route path="juma-list" element={<JumaListPage />} />
+            <Route path="jumah-list" element={<Navigate to="/juma-list" replace />} />
             <Route path="fatawa" element={<Fatawa />} />
             <Route path="news" element={<MarkazFeed />} />
             <Route path="posts" element={<LatestPosts />} />

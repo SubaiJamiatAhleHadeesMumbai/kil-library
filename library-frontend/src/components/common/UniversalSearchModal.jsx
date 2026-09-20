@@ -7,7 +7,8 @@ import {
   BookOpenIcon,
   ChatBubbleLeftRightIcon,
   AcademicCapIcon,
-  SparklesIcon,
+  HeartIcon,
+  CalendarDaysIcon,
   ClockIcon,
   ArrowRightIcon,
   ArrowLeftIcon
@@ -90,8 +91,8 @@ const UniversalSearchModal = ({ isOpen, onClose }) => {
     { id: 'books', label: t('search_books'), icon: BookOpenIcon },
     { id: 'fatawa', label: t('search_fatawa'), icon: ChatBubbleLeftRightIcon },
     { id: 'education', label: t('search_education'), icon: AcademicCapIcon },
-    { id: 'social_work', label: t('search_social_work'), icon: SparklesIcon },
-    { id: 'activities', label: t('search_activities'), icon: SparklesIcon },
+    { id: 'social_work', label: t('search_social_work'), icon: HeartIcon },
+    { id: 'activities', label: t('search_activities'), icon: CalendarDaysIcon },
   ];
 
   // Focus on open
@@ -298,7 +299,7 @@ const UniversalSearchModal = ({ isOpen, onClose }) => {
                                     {catKey === 'fatawa' && <ChatBubbleLeftRightIcon className="w-5 h-5" />}
                                     {catKey === 'education' && <AcademicCapIcon className="w-5 h-5" />}
                                     {catKey === 'social_work' && <img src="/icons/social-work.png" alt="Social" className="w-5 h-5 object-contain" />}
-                                    {catKey === 'activities' && <SparklesIcon className="w-5 h-5" />}
+                                    {catKey === 'activities' && <CalendarDaysIcon className="w-5 h-5" />}
                                   </div>
                                 )}
                               </div>
