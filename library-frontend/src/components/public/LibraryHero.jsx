@@ -74,18 +74,32 @@ const LibraryHero = ({ config }) => {
     ? Math.min(1, Math.max(0.1, Number(heroSettings.banner_overlay_opacity) / 100))
     : 0.7;
 
+  const resolveText = (val, fallback = "") => {
+    if (!val) return fallback;
+    if (typeof val === "string") return val.trim() || fallback;
+    if (typeof val === "object") {
+      const preferred = val.en || val.ur || val.ar;
+      if (typeof preferred === "string" && preferred.trim()) return preferred.trim();
+      for (const k of Object.keys(val)) {
+        if (typeof val[k] === "string" && val[k].trim()) return val[k].trim();
+      }
+      return fallback;
+    }
+    return String(val);
+  };
+
   const showStars = heroSettings?.show_stars !== false;
   const showBadge = heroSettings?.show_badge !== false;
-  const badgeText = heroSettings?.badge || "MARKAZ AHLE HADEES KOKAN";
+  const badgeText = resolveText(heroSettings?.badge, "MARKAZ AHLE HADEES KOKAN");
   const showAyah = heroSettings?.show_ayah !== false;
-  const ayahArabic = heroSettings?.ayah_arabic ?? "يَا أَيُّهَا الَّذِينَ آمَنُوا أَطِيعُوا اللَّهَ وَأَطِيعُوا الرَّسُولَ";
-  const ayahTranslation = heroSettings?.ayah_translation || "";
-  const title = heroSettings?.title || "Kokan Islamic Library";
-  const description = heroSettings?.description || "Explore curated Islamic knowledge with a calm, modern reading experience.";
+  const ayahArabic = resolveText(heroSettings?.ayah_arabic, "يَا أَيُّهَا الَّذِينَ آمَنُوا أَطِيعُوا اللَّهَ وَأَطِيعُوا الرَّسُولَ");
+  const ayahTranslation = resolveText(heroSettings?.ayah_translation, "");
+  const title = resolveText(heroSettings?.title, "Kokan Islamic Library");
+  const description = resolveText(heroSettings?.description, "Explore curated Islamic knowledge with a calm, modern reading experience.");
   const showCta = heroSettings?.show_cta === true;
-  const ctaText = heroSettings?.cta_text || "Explore Catalog";
+  const ctaText = resolveText(heroSettings?.cta_text, "Explore Catalog");
   const ctaLink = heroSettings?.cta_link || "/library";
-  const secondaryCtaText = heroSettings?.secondary_cta_text || "Ask a Question";
+  const secondaryCtaText = resolveText(heroSettings?.secondary_cta_text, "Ask a Question");
   const secondaryCtaLink = heroSettings?.secondary_cta_link || "/fatawa";
   const spotlightColor = heroSettings?.spotlight_color || "#f5d9a6";
 

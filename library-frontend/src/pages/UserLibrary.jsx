@@ -82,6 +82,20 @@ const showUpcomingToast = () => {
   });
 };
 
+const safeBookText = (value, fallback = "") => {
+  if (value === null || value === undefined) return fallback;
+  if (typeof value === "object") {
+    const text = value.en || value.ur || value.ar || value.name || value.title;
+    if (typeof text === "string" && text.trim()) return text.trim();
+    for (const k of Object.keys(value)) {
+      if (typeof value[k] === "string" && value[k].trim()) return value[k].trim();
+    }
+    return fallback;
+  }
+  const str = String(value).trim();
+  return str.length ? str : fallback;
+};
+
 // ==========================================
 // 1. PUBLIC BOOK CARD COMPONENT (Clean UI)
 // ==========================================
@@ -95,15 +109,8 @@ const PublicBookCard = ({
   const [imgSrc, setImgSrc] = useState(null);
   const [imgLoaded, setImgLoaded] = useState(false);
 
-  const safeText = (value, fallback = "Unknown") => {
-    if (value === null || value === undefined) return fallback;
-    if (typeof value === "object") return value?.name || value?.title || fallback;
-    const str = String(value).trim();
-    return str.length ? str : fallback;
-  };
-
-  const title = useMemo(() => safeText(book?.title, "Untitled Book"), [book]);
-  const author = useMemo(() => safeText(book?.author, "Unknown Author"), [book]);
+  const title = useMemo(() => safeBookText(book?.title, "Untitled Book"), [book]);
+  const author = useMemo(() => safeBookText(book?.author, "Unknown Author"), [book]);
   const isRestricted = !!book?.is_restricted;
   const userHasAccess = !!book?.user_has_access;
   const hasDigitalPdf = Boolean(book?.pdf_url || book?.pdf_file || book?.txt_file_url || book?.txt_file);
@@ -444,15 +451,16 @@ const UserLibrary = () => {
   };
 
   const safeCategory = (book) => {
+    if (!book) return "General";
     if (book.category && typeof book.category === 'object') {
-      return book.category.name || book.category.title || "General";
+      return safeBookText(book.category.name || book.category.title || book.category, "General");
     }
     if (book.subcategories && Array.isArray(book.subcategories) && book.subcategories.length > 0) {
       const sub = book.subcategories[0];
       if (sub.category && typeof sub.category === 'object') {
-        return sub.category.name;
+        return safeBookText(sub.category.name || sub.category, "General");
       }
-      return sub.name || "General";
+      return safeBookText(sub.name, "General");
     }
     if (typeof book.category === 'string') return book.category;
     return "General";
@@ -500,7 +508,7 @@ const UserLibrary = () => {
     } else if (sortBy === "oldest") {
       sorted.sort((a, b) => safeId(a) - safeId(b));
     } else if (sortBy === "az") {
-      sorted.sort((a, b) => (a?.title || "").localeCompare(b?.title || ""));
+      sorted.sort((a, b) => safeBookText(a?.title).localeCompare(safeBookText(b?.title)));
     } else if (sortBy === "favorites") {
       return sorted.filter((b) => favorites.includes(b.id));
     }
@@ -518,7 +526,7 @@ const UserLibrary = () => {
   const activeCategoryLabel = useMemo(() => {
     if (selectedCategory === "all") return "All Books";
     const found = categories.find(c => c.value === selectedCategory);
-    return found ? found.label : selectedCategory.replace(/_/g, " ");
+    return found ? safeBookText(found.label, "All Books") : selectedCategory.replace(/_/g, " ");
   }, [selectedCategory, categories]);
 
   return (
@@ -580,7 +588,7 @@ const UserLibrary = () => {
           <div className="absolute inset-0 opacity-20 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] mix-blend-overlay" />
           <div className="absolute top-0 right-0 w-96 h-96 bg-emerald-500/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
 
-          <div className="relative z-50 max-w-4xl mx-auto text-center">
+          <div className="relative z-10 max-w-4xl mx-auto text-center">
             <motion.div
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -904,12 +912,12 @@ const UserLibrary = () => {
                           </div>
 
                           <h3 className="font-bold text-slate-800 leading-tight mb-1 line-clamp-2">
-                            {book.title}
+                            {safeBookText(book?.title, "Untitled Book")}
                           </h3>
 
                           <p className="text-xs text-slate-500 mb-2">
-                            By {safeText(book.author, "Unknown")}
-                            {book.translator && ` (ترجمہ: ${book.translator})`}
+                            By {safeBookText(book?.author, "Unknown Author")}
+                            {book.translator && ` (ترجمہ: ${safeBookText(book.translator)})`}
                           </p>
 
                           <p className="text-xs text-slate-400 line-clamp-2 mb-2">

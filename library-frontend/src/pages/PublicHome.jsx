@@ -296,6 +296,7 @@ const PublicHome = () => {
   const [dynamicCategories, setDynamicCategories] = useState([]);
   const [galleryImages, setGalleryImages] = useState([]);
   const [homeGallery, setHomeGallery] = useState([]);
+  const [gallerySwiper, setGallerySwiper] = useState(null);
   const [islamicUpdates, setIslamicUpdates] = useState({ jumah: null, moon: null });
   const [activeLightboxImage, setActiveLightboxImage] = useState(null);
   const [selectedAnnouncementPost, setSelectedAnnouncementPost] = useState(null);
@@ -358,7 +359,7 @@ const PublicHome = () => {
         settingsService.getHomepageSettings(),
         aboutService.getAboutSettings(),
         fatawaService.getQuestions({ status: 'answered', limit: 3 }),
-        galleryService.getHomeFeaturedGallery(8),
+        galleryService.getHomeFeaturedGallery(12),
         galleryService.getIslamicUpdates(),
       ]);
 
@@ -828,75 +829,143 @@ const PublicHome = () => {
           if (!homeGallery || homeGallery.length === 0) return null;
 
           return (
-            <div key="gallery" className="app-shell-container pb-4 sm:pb-6">
+            <div key="gallery" className="app-shell-container pb-6 sm:pb-8">
               <div className="px-4 max-w-7xl mx-auto">
-                {/* Header */}
-                <div className="flex items-center justify-between gap-3 mb-4">
-                  <h2 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight">
-                    {galleryConfig.subtitle || 'Photo & Event Gallery'}
-                  </h2>
-                  <button
-                    onClick={() => navigateToTop('/gallery')}
-                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold text-white transition-all shadow-sm hover:opacity-90 shrink-0 cursor-pointer"
-                    style={{ backgroundColor: accentColor }}
-                  >
-                    <span>View All</span>
-                    <ArrowRightIcon className="h-3.5 w-3.5" />
-                  </button>
+                {/* Header with Title, Navigation Controls & View All */}
+                <div className="flex flex-wrap items-center justify-between gap-3 mb-4 sm:mb-5">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-2.5 h-6 rounded-full bg-emerald-600"></div>
+                    <div>
+                      <h2 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight">
+                        {resolveMultilingualText(galleryConfig.title) || getLangText('مرکز تصویری نگارخانہ', 'معرض صور المركز', 'Markaz Gallery & Events')}
+                      </h2>
+                      <p className="text-xs text-slate-500 font-medium">
+                        {resolveMultilingualText(galleryConfig.subtitle) || getLangText('تقاریب، پروگرامز اور یادگار لمحات', 'الفعاليات والبرامج واللحظات البارزة', 'Events, programs and historic highlights')}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    {/* Left & Right adjustment buttons */}
+                    <div className="flex items-center gap-1.5 bg-slate-100/90 p-1 rounded-full border border-slate-200/70 shadow-2xs">
+                      <button
+                        type="button"
+                        onClick={() => gallerySwiper?.slidePrev()}
+                        className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white hover:bg-slate-50 text-slate-700 flex items-center justify-center transition-all shadow-xs cursor-pointer active:scale-95"
+                        aria-label="Previous slide"
+                        title="Previous"
+                      >
+                        <ChevronLeftIcon className="w-4 h-4" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => gallerySwiper?.slideNext()}
+                        className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white hover:bg-slate-50 text-slate-700 flex items-center justify-center transition-all shadow-xs cursor-pointer active:scale-95"
+                        aria-label="Next slide"
+                        title="Next"
+                      >
+                        <ChevronRightIcon className="w-4 h-4" />
+                      </button>
+                    </div>
+
+                    <button
+                      onClick={() => navigateToTop('/gallery')}
+                      className="inline-flex items-center gap-1.5 px-3.5 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs font-bold text-white transition-all shadow-xs hover:opacity-95 hover:shadow-md shrink-0 cursor-pointer active:scale-95"
+                      style={{ backgroundColor: accentColor }}
+                    >
+                      <span>{getLangText('مکمل نگارخانہ', 'عرض الكل', 'View All')}</span>
+                      <ArrowRightIcon className={`h-3.5 w-3.5 ${isRTL ? 'rotate-180' : ''}`} />
+                    </button>
+                  </div>
                 </div>
 
-                {/* Compact Masonry-style Grid — 8 images max */}
-                <div className="grid grid-cols-4 sm:grid-cols-4 md:grid-cols-8 gap-1.5 sm:gap-2">
-                  {homeGallery.slice(0, 8).map((item, idx) => {
-                    const title = resolveMultilingualText(item.title, 'Gallery Media');
-                    const imageUrl = resolveImageUrl(item.image_url);
-                    const isVideo = item.item_type === 'video';
-                    // Make first 2 images wider on desktop
-                    const isWide = idx < 2;
+                {/* Swiper Carousel */}
+                <div className="relative">
+                  <Swiper
+                    modules={[Autoplay, Navigation]}
+                    onSwiper={setGallerySwiper}
+                    autoplay={{
+                      delay: 3500,
+                      disableOnInteraction: false,
+                      pauseOnMouseEnter: true,
+                    }}
+                    loop={homeGallery.length > 3}
+                    spaceBetween={14}
+                    breakpoints={{
+                      320: { slidesPerView: 1.25, spaceBetween: 10 },
+                      480: { slidesPerView: 1.8, spaceBetween: 12 },
+                      640: { slidesPerView: 2.3, spaceBetween: 14 },
+                      768: { slidesPerView: 3.2, spaceBetween: 16 },
+                      1024: { slidesPerView: 3.8, spaceBetween: 16 },
+                      1280: { slidesPerView: 4.2, spaceBetween: 18 },
+                    }}
+                    className="!py-1"
+                  >
+                    {homeGallery.map((item, idx) => {
+                      const title = resolveMultilingualText(item.title, 'Gallery Media');
+                      const imageUrl = resolveImageUrl(item.image_url);
+                      const isVideo = item.item_type === 'video';
 
-                    return (
-                      <div
-                        key={item.id || idx}
-                        onClick={() => setActiveLightboxImage(item)}
-                        className={`relative group overflow-hidden rounded-xl bg-slate-900 cursor-pointer ${
-                          isWide ? 'col-span-2 row-span-2' : 'col-span-2 md:col-span-2'
-                        }`}
-                      >
-                        {/* Aspect ratio box */}
-                        <div className={`w-full ${isWide ? 'aspect-square sm:aspect-video' : 'aspect-square'}`}>
-                          <img
-                            src={imageUrl}
-                            alt={title}
-                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                            loading="lazy"
-                            onError={(e) => {
-                              e.currentTarget.onerror = null;
-                              e.currentTarget.style.display = 'none';
-                            }}
-                          />
-                        </div>
+                      return (
+                        <SwiperSlide key={item.id || idx}>
+                          <div
+                            onClick={() => setActiveLightboxImage(item)}
+                            className="group relative overflow-hidden rounded-2xl bg-slate-100 border border-slate-200/80 shadow-xs hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer aspect-[16/11] flex flex-col justify-end select-none"
+                          >
+                            {/* Photo background */}
+                            <img
+                              src={imageUrl}
+                              alt={title}
+                              className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-108"
+                              loading="lazy"
+                              onError={(e) => {
+                                e.currentTarget.onerror = null;
+                                e.currentTarget.src = SVG_NO_COVER;
+                              }}
+                            />
 
-                        {/* Hover overlay */}
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-2.5">
-                          <p className="text-white font-semibold text-[11px] sm:text-xs line-clamp-2 leading-snug">
-                            {title}
-                          </p>
-                          {item.year && (
-                            <span className="text-amber-300 text-[10px] font-bold mt-0.5">{item.year}</span>
-                          )}
-                        </div>
+                            {/* Permanent subtle dark gradient for high readability */}
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/25 to-transparent transition-opacity duration-300" />
 
-                        {/* Video badge */}
-                        {isVideo && (
-                          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-red-600/90 text-white flex items-center justify-center shadow-md group-hover:scale-110 transition-transform">
-                              <svg className="w-3.5 h-3.5 fill-current ml-0.5" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
+                            {/* Top Badges (Category / Year / Video) */}
+                            <div className="absolute top-2.5 inset-x-2.5 flex items-center justify-between gap-1.5 pointer-events-none z-10">
+                              {item.year ? (
+                                <span className="px-2 py-0.5 rounded-md bg-black/60 backdrop-blur-md text-amber-300 text-[10px] font-bold border border-amber-300/30 shadow-xs">
+                                  {item.year}
+                                </span>
+                              ) : <span />}
+
+                              {isVideo && (
+                                <span className="px-2 py-0.5 rounded-md bg-red-600/90 backdrop-blur-md text-white text-[10px] font-bold flex items-center gap-1 shadow-xs">
+                                  <svg className="w-2.5 h-2.5 fill-current" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
+                                  <span>Video</span>
+                                </span>
+                              )}
+                            </div>
+
+                            {/* Bottom text info */}
+                            <div className="relative z-10 p-3 sm:p-3.5 flex flex-col justify-end">
+                              <p className="text-white font-bold text-xs sm:text-sm line-clamp-2 leading-snug drop-shadow-xs group-hover:text-amber-200 transition-colors">
+                                {title}
+                              </p>
+                              {item.event_date && (
+                                <span className="text-slate-300 text-[10px] font-medium mt-0.5">
+                                  {formatDate(item.event_date)}
+                                </span>
+                              )}
+                            </div>
+
+                            {/* Hover Click to View High-Res Badge */}
+                            <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center pointer-events-none z-20">
+                              <div className="w-9 h-9 rounded-full bg-white/95 backdrop-blur-sm text-slate-800 flex items-center justify-center shadow-lg transform scale-75 group-hover:scale-100 transition-transform duration-300">
+                                <PhotoIcon className="w-4 h-4 text-emerald-600" />
+                              </div>
                             </div>
                           </div>
-                        )}
-                      </div>
-                    );
-                  })}
+                        </SwiperSlide>
+                      );
+                    })}
+                  </Swiper>
                 </div>
               </div>
             </div>
@@ -923,10 +992,10 @@ const PublicHome = () => {
                       className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight"
                       style={{ fontFamily: isRTL ? (currentLang === 'ar' ? "'Noto Naskh Arabic', serif" : "'Noto Nastaliq Urdu', 'JameelNoori', serif") : "inherit" }}
                     >
-                      {fatawaConfig.title || getLangText('شرعی مسائل اور مستند رہنمائی', 'الفتاوى الشرعية والاستشارات', 'Authentic Islamic Rulings & Inquiries')}
+                      {resolveMultilingualText(fatawaConfig.title) || getLangText('شرعی مسائل اور مستند رہنمائی', 'الفتاوى الشرعية والاستشارات', 'Authentic Islamic Rulings & Inquiries')}
                     </h3>
                     <p className="text-xs sm:text-sm text-slate-600 mt-1 max-w-2xl leading-relaxed">
-                      {fatawaConfig.subtitle || getLangText(
+                      {resolveMultilingualText(fatawaConfig.subtitle) || getLangText(
                         'دینی، خاندانی اور فقہی مسائل پر دار الافتاء کے مستند مفتیانِ کرام سے قرآن و سنت کی روشنی میں رہنمائی حاصل کریں۔',
                         'احصل على إجابات موثقة لمسائلك الدينية والمعاملات اليومية من كبار العلماء والمفتين وفق الكتاب والسنة.',
                         'Receive authenticated religious guidance from verified scholars based on the Quran and authentic Sunnah.'

@@ -29,6 +29,12 @@ class GalleryAlbum(Base):
     def to_dict(self):
         return {
             "id": self.id,
+            "title_en": self.title_en or "",
+            "title_ur": self.title_ur or "",
+            "title_ar": self.title_ar or "",
+            "description_en": self.description_en or "",
+            "description_ur": self.description_ur or "",
+            "description_ar": self.description_ar or "",
             "title": {
                 "en": self.title_en or "",
                 "ur": self.title_ur or "",
@@ -83,6 +89,12 @@ class GalleryItem(Base):
             "item_type": self.item_type or "photo",
             "event_date": self.event_date or "",
             "hijri_month": self.hijri_month or "",
+            "title_en": self.title_en or "",
+            "title_ur": self.title_ur or "",
+            "title_ar": self.title_ar or "",
+            "caption_en": self.caption_en or "",
+            "caption_ur": self.caption_ur or "",
+            "caption_ar": self.caption_ar or "",
             "title": {
                 "en": self.title_en or "",
                 "ur": self.title_ur or "",

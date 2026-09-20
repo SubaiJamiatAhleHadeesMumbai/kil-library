@@ -54,40 +54,46 @@ const MARKAZ_LOGO_URL = `${API_BASE_URL}/static/images/MarkazLogo.png`;
 // 1. SUB-COMPONENTS
 // ==========================================
 
-const NavItem = ({ to, label, icon: Icon, onClick }) => (
-  <NavLink
-    to={to}
-    onClick={onClick}
-    className={({ isActive }) => `
-      relative flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-bold transition-all duration-300
-      ${
-        isActive
-          ? "text-[#002147] bg-blue-50/80"
-          : "text-slate-500 hover:text-[#002147] hover:bg-slate-50"
-      }
-    `}
-  >
-    {({ isActive }) => (
-      <>
-        {Icon && (
-          <Icon
-            className={`h-4 w-4 transition-colors ${
-              isActive ? "text-[#002147]" : "text-slate-400"
-            }`}
-          />
-        )}
-        <span>{label}</span>
-        {isActive && (
-          <motion.div
-            layoutId="active-nav-pill"
-            className="absolute inset-0 rounded-xl bg-blue-50/50 -z-10 border border-blue-100/50"
-            transition={{ type: "spring", stiffness: 300, damping: 30 }}
-          />
-        )}
-      </>
-    )}
-  </NavLink>
-);
+const NavItem = ({ to, label, icon: Icon, onClick }) => {
+  const displayLabel = typeof label === 'object' && label !== null
+    ? (label.en || label.ur || label.ar || '')
+    : String(label || '');
+
+  return (
+    <NavLink
+      to={to}
+      onClick={onClick}
+      className={({ isActive }) => `
+        relative flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-bold transition-all duration-300
+        ${
+          isActive
+            ? "text-[#002147] bg-blue-50/80"
+            : "text-slate-500 hover:text-[#002147] hover:bg-slate-50"
+        }
+      `}
+    >
+      {({ isActive }) => (
+        <>
+          {Icon && (
+            <Icon
+              className={`h-4 w-4 transition-colors ${
+                isActive ? "text-[#002147]" : "text-slate-400"
+              }`}
+            />
+          )}
+          <span>{displayLabel}</span>
+          {isActive && (
+            <motion.div
+              layoutId="active-nav-pill"
+              className="absolute inset-0 rounded-xl bg-blue-50/50 -z-10 border border-blue-100/50"
+              transition={{ type: "spring", stiffness: 300, damping: 30 }}
+            />
+          )}
+        </>
+      )}
+    </NavLink>
+  );
+};
 
 // Safe helper to extract role name whether user.role is a string or an object { name, description, id, permissions, created_at }
 const getRoleDisplayName = (u) => {
@@ -268,7 +274,14 @@ const UserNavbar = () => {
   const showSearchPill = navbarConfig.show_search !== false;
   const showLanguageSwitcher = navbarConfig.show_language !== false;
   const showDonateButton = navbarConfig.show_donate !== false;
-  const donateButtonText = navbarConfig.donate_text || t("donate_btn") || "Donate";
+  const donateButtonText = (() => {
+    const d = navbarConfig.donate_text;
+    if (d && typeof d === "object") {
+      return d[language] || d.en || d.ur || d.ar || t("donate_btn") || "Donate";
+    }
+    if (typeof d === "string" && d.trim()) return d.trim();
+    return t("donate_btn") || "Donate";
+  })();
   const logoSizePx = Number(navbarConfig.logo_size) || 42;
 
   const brandLogoUrl = homepageSettings?.site_logo_url
@@ -301,7 +314,7 @@ const UserNavbar = () => {
 
   return (
     <>
-      <header className="sticky top-0 z-50 flex flex-col w-full font-sans shadow-xs">
+      <header className="sticky top-0 z-[100] flex flex-col w-full font-sans shadow-xs">
         {/* THIN STICKY READING PROGRESS BAR (YouTube Style) */}
         {lastReadBook && showContinueReading && (
           <div 
@@ -361,7 +374,13 @@ const UserNavbar = () => {
 
               {/* DESKTOP NAV */}
               <div className="hidden lg:flex items-center gap-1">
-                {showHomeLink && <NavItem to="/" label={t("home")} icon={HomeIcon} />}
+                {showHomeLink && (
+                  <NavItem
+                    to="/"
+                    label={t("nav.home") || (language === 'ur' ? 'صفحہ اول' : language === 'ar' ? 'الرئيسية' : 'Home')}
+                    icon={HomeIcon}
+                  />
+                )}
 
                 {/* ABOUT & ISLAMIC PORTALS DROPDOWN */}
                 <div
@@ -400,7 +419,7 @@ const UserNavbar = () => {
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: 6, scale: 0.96 }}
                         transition={{ duration: 0.18, ease: "easeOut" }}
-                        className="absolute start-0 mt-1.5 w-64 bg-white/95 backdrop-blur-xl rounded-2xl shadow-xl border border-slate-100/90 p-2 z-50 overflow-hidden ring-1 ring-black/5"
+                        className="absolute start-0 mt-1.5 w-64 bg-white/95 backdrop-blur-xl rounded-2xl shadow-xl border border-slate-100/90 p-2 z-[110] overflow-hidden ring-1 ring-black/5"
                       >
                         <div className="space-y-1">
                           {/* 1. About Markaz */}
@@ -433,10 +452,10 @@ const UserNavbar = () => {
                             </div>
                             <div className="flex flex-col text-start">
                               <span className="text-xs font-bold text-slate-800 group-hover:text-emerald-900 transition-colors">
-                                {language === 'ur' ? 'خطبات جمعہ' : (language === 'ar' ? 'خطب الجمعة' : 'Jumah Schedule')}
+                                {language === 'ur' ? 'خطباتِ جمعہ' : (language === 'ar' ? 'جدول خطب الجمعة' : 'Jumah Schedule')}
                               </span>
                               <span className="text-[10px] text-slate-400 font-medium">
-                                Khutbah timings & Imams
+                                {language === 'ur' ? 'اوقاتِ خطبہ و مساجد' : (language === 'ar' ? 'مواعيد الخطب والأئمة' : 'Khutbah timings & Imams')}
                               </span>
                             </div>
                           </Link>
@@ -452,10 +471,10 @@ const UserNavbar = () => {
                             </div>
                             <div className="flex flex-col text-start">
                               <span className="text-xs font-bold text-slate-800 group-hover:text-amber-900 transition-colors">
-                                {language === 'ur' ? 'رؤیت ہلال' : (language === 'ar' ? 'رؤية الهلال' : 'Moon Announcements')}
+                                {language === 'ur' ? 'رؤیتِ ہلال' : (language === 'ar' ? 'إعلانات رؤية الهلال' : 'Moon Announcements')}
                               </span>
                               <span className="text-[10px] text-slate-400 font-medium">
-                                Official Hijri declarations
+                                {language === 'ur' ? 'ہلال کمیٹی کے سرکاری اعلانات' : (language === 'ar' ? 'البيانات الرسمية للأهلة' : 'Official Hijri declarations')}
                               </span>
                             </div>
                           </Link>
@@ -471,10 +490,10 @@ const UserNavbar = () => {
                             </div>
                             <div className="flex flex-col text-start">
                               <span className="text-xs font-bold text-slate-800 group-hover:text-teal-900 transition-colors">
-                                {language === 'ur' ? 'اسلامی تقویم (کیلنڈر)' : 'Islamic Calendar'}
+                                {language === 'ur' ? 'اسلامی تقویم (کیلنڈر)' : (language === 'ar' ? 'التقويم الهجري' : 'Islamic Calendar')}
                               </span>
                               <span className="text-[10px] text-slate-400 font-medium">
-                                12 Months Calendar Posters
+                                {language === 'ur' ? 'سال کے ۱۲ مہینوں کے پوسٹرز' : (language === 'ar' ? 'ملصقات التقويم لـ ١٢ شهراً' : '12 Months Calendar Posters')}
                               </span>
                             </div>
                           </Link>
@@ -484,9 +503,27 @@ const UserNavbar = () => {
                   </AnimatePresence>
                 </div>
 
-                {showLibraryLink && <NavItem to="/books" label={t("library")} icon={BookOpenIcon} />}
-                {showFatawaLink && <NavItem to="/fatawa" label={t("fatawa")} icon={BookOpenIcon} />}
-                {showGalleryLink && <NavItem to="/gallery" label={t("gallery")} icon={PhotoIcon} />}
+                {showLibraryLink && (
+                  <NavItem
+                    to="/books"
+                    label={t("nav.library") || (language === 'ur' ? 'کتب خانہ' : language === 'ar' ? 'المكتبة' : 'Library')}
+                    icon={BookOpenIcon}
+                  />
+                )}
+                {showFatawaLink && (
+                  <NavItem
+                    to="/fatawa"
+                    label={t("nav.fatawa") || (language === 'ur' ? 'فتاویٰ' : language === 'ar' ? 'الفتاوى' : 'Fatawa')}
+                    icon={BookOpenIcon}
+                  />
+                )}
+                {showGalleryLink && (
+                  <NavItem
+                    to="/gallery"
+                    label={t("nav.gallery") || (language === 'ur' ? 'نگارخانہ' : language === 'ar' ? 'المعرض' : 'Gallery')}
+                    icon={PhotoIcon}
+                  />
+                )}
 
                 {/* MORE DROPDOWN (Contains Activities, Welfare, Clippings, Updates) */}
                 {(showActivitiesLink || showUpdatesLink) && (
@@ -522,7 +559,7 @@ const UserNavbar = () => {
                           animate={{ opacity: 1, y: 0, scale: 1 }}
                           exit={{ opacity: 0, y: 6, scale: 0.96 }}
                           transition={{ duration: 0.18, ease: "easeOut" }}
-                          className="absolute start-0 mt-1.5 w-64 bg-white/95 backdrop-blur-xl rounded-2xl shadow-xl border border-slate-100/90 p-2 z-50 overflow-hidden ring-1 ring-black/5"
+                          className="absolute start-0 mt-1.5 w-64 bg-white/95 backdrop-blur-xl rounded-2xl shadow-xl border border-slate-100/90 p-2 z-[110] overflow-hidden ring-1 ring-black/5"
                         >
                           <div className="space-y-1">
 
@@ -537,7 +574,7 @@ const UserNavbar = () => {
                               </div>
                               <div className="flex flex-col text-start">
                                 <span className="text-xs font-bold text-slate-800 group-hover:text-blue-900 transition-colors">
-                                  {t("education_taleem")}
+                                  {t("education_taleem") || (language === 'ur' ? 'تعلیم و رہنمائی' : language === 'ar' ? 'التعليم والإرشاد' : 'Education & Guidance')}
                                 </span>
                                 <span className="text-[10px] text-slate-400 font-medium">
                                   Taleem & Guidance
@@ -695,7 +732,7 @@ const UserNavbar = () => {
                               animate={{ opacity: 1, y: 0, scale: 1 }}
                               exit={{ opacity: 0, y: 6, scale: 0.96 }}
                               transition={{ duration: 0.15, ease: "easeOut" }}
-                              className="absolute end-0 mt-2 w-60 bg-white/95 backdrop-blur-xl rounded-2xl shadow-xl border border-slate-200/90 p-1.5 z-[100] overflow-hidden ring-1 ring-black/5"
+                              className="absolute end-0 mt-2 w-60 bg-white/95 backdrop-blur-xl rounded-2xl shadow-xl border border-slate-200/90 p-1.5 z-[110] overflow-hidden ring-1 ring-black/5"
                             >
                               {/* User Header Info Card */}
                               <div className="px-3.5 py-3 bg-gradient-to-br from-slate-50 to-blue-50/40 rounded-xl border border-slate-100 mb-1">
@@ -855,7 +892,12 @@ const UserNavbar = () => {
 
                 {/* Mobile Links */}
                 <div className="space-y-1">
-                  <NavItem to="/" label={t("home")} icon={HomeIcon} onClick={() => setIsMobileMenuOpen(false)} />
+                  <NavItem
+                    to="/"
+                    label={t("nav.home") || (language === 'ur' ? 'صفحہ اول' : language === 'ar' ? 'الرئيسية' : 'Home')}
+                    icon={HomeIcon}
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  />
                   
                   {/* Mobile About & Portals Accordion */}
                   <div className="rounded-xl overflow-hidden">
@@ -892,7 +934,7 @@ const UserNavbar = () => {
                             className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold text-slate-700 hover:text-emerald-900 hover:bg-white transition-colors"
                           >
                             <CalendarDaysIcon className="w-4 h-4 text-emerald-600" />
-                            <span>{language === 'ur' ? 'خطبات جمعہ' : 'Jumah Schedule'}</span>
+                            <span>{language === 'ur' ? 'خطباتِ جمعہ' : (language === 'ar' ? 'جدول خطب الجمعة' : 'Jumah Schedule')}</span>
                           </Link>
                           <Link
                             to="/moon"
@@ -900,7 +942,7 @@ const UserNavbar = () => {
                             className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold text-slate-700 hover:text-amber-900 hover:bg-white transition-colors"
                           >
                             <MoonIcon className="w-4 h-4 text-amber-600" />
-                            <span>{language === 'ur' ? 'رؤیت ہلال' : 'Moon Announcements'}</span>
+                            <span>{language === 'ur' ? 'رؤیتِ ہلال' : (language === 'ar' ? 'إعلانات رؤية الهلال' : 'Moon Announcements')}</span>
                           </Link>
                           <Link
                             to="/calendar"
@@ -908,16 +950,33 @@ const UserNavbar = () => {
                             className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold text-slate-700 hover:text-teal-900 hover:bg-white transition-colors"
                           >
                             <CalendarDaysIcon className="w-4 h-4 text-teal-600" />
-                            <span>{language === 'ur' ? 'اسلامی تقویم (کیلنڈر)' : 'Islamic Calendar'}</span>
+                            <span>{language === 'ur' ? 'اسلامی تقویم (کیلنڈر)' : (language === 'ar' ? 'التقويم الهجري' : 'Islamic Calendar')}</span>
                           </Link>
                         </motion.div>
                       )}
                     </AnimatePresence>
                   </div>
 
-                  <NavItem to="/books" label={t("library")} icon={BookOpenIcon} onClick={() => setIsMobileMenuOpen(false)} />
-                  <NavItem to="/gallery" label={t("gallery")} icon={PhotoIcon} onClick={() => setIsMobileMenuOpen(false)} />
-                  {showFatawaLink ? <NavItem to="/fatawa" label={t("fatawa")} icon={BookOpenIcon} onClick={() => setIsMobileMenuOpen(false)} /> : null}
+                  <NavItem
+                    to="/books"
+                    label={t("nav.library") || (language === 'ur' ? 'کتب خانہ' : language === 'ar' ? 'المكتبة' : 'Library')}
+                    icon={BookOpenIcon}
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  />
+                  <NavItem
+                    to="/gallery"
+                    label={t("nav.gallery") || (language === 'ur' ? 'نگارخانہ' : language === 'ar' ? 'المعرض' : 'Gallery')}
+                    icon={PhotoIcon}
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  />
+                  {showFatawaLink ? (
+                    <NavItem
+                      to="/fatawa"
+                      label={t("nav.fatawa") || (language === 'ur' ? 'فتاویٰ' : language === 'ar' ? 'الفتاوى' : 'Fatawa')}
+                      icon={BookOpenIcon}
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    />
+                  ) : null}
                   
                   {/* Mobile Activities Accordion */}
                   <div className="rounded-xl overflow-hidden">
@@ -946,7 +1005,7 @@ const UserNavbar = () => {
                             className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold text-slate-700 hover:text-blue-900 hover:bg-white transition-colors"
                           >
                             <AcademicCapIcon className="w-4 h-4 text-blue-600" />
-                            <span>{t("education_taleem")}</span>
+                            <span>{t("education_taleem") || (language === 'ur' ? 'تعلیم و رہنمائی' : language === 'ar' ? 'التعليم والإرشاد' : 'Education & Guidance')}</span>
                           </Link>
                           <Link
                             to="/social-work"

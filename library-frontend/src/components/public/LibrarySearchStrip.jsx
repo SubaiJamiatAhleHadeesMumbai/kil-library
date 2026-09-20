@@ -42,9 +42,8 @@ const LibrarySearchStrip = ({
   const [localValue, setLocalValue] = useState(searchTerm);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [listening, setListening] = useState(false);
-  const [isPinned, setIsPinned] = useState(false);
   const [isSearchFocused, setIsSearchFocused] = useState(false);
-  
+
   // Deep Search Modal State
   const [isDeepSearchOpen, setIsDeepSearchOpen] = useState(false);
   const [deepSearchQuery, setDeepSearchQuery] = useState("");
@@ -63,17 +62,6 @@ const LibrarySearchStrip = ({
       return () => clearTimeout(t);
     }
   }, [autoFocus]);
-
-  useEffect(() => {
-    const handleScroll = () => {
-      const footer = document.querySelector('[data-site-footer]');
-      const footerIsVisible = footer && footer.getBoundingClientRect().top <= window.innerHeight;
-      setIsPinned(window.scrollY > 120 && !footerIsVisible);
-    };
-    handleScroll();
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
 
   /* -------- Apply debounced value -------- */
   useEffect(() => {
@@ -153,14 +141,14 @@ const LibrarySearchStrip = ({
 
   return (
     <>
-      <div className={`relative w-full ${isPinned ? "min-h-[56px] sm:min-h-[62px]" : ""}`}>
-        {/* ================= ULTRA-MODERN FLOATING SEARCH BAR ================= */}
-        <div className={isPinned ? "fixed inset-x-0 top-0 z-[100] border-b border-slate-200 bg-slate-50 px-2 py-2 shadow-sm transition-all duration-200 sm:px-4" : "relative"}>
+      <div className="relative w-full">
+        {/* ================= ULTRA-MODERN SEARCH BAR ================= */}
+        <div className="relative">
           <motion.div
             initial={{ opacity: 0, y: -6 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3 }}
-            className={`relative group ${isPinned ? "mx-auto max-w-4xl" : ""}`}
+            className="relative group"
           >
           <div className="relative flex min-h-[56px] sm:min-h-[62px] w-full max-w-full items-center overflow-hidden rounded-2xl sm:rounded-full bg-white border border-slate-200/90 hover:border-emerald-400 focus-within:border-emerald-500 focus-within:ring-4 focus-within:ring-emerald-500/15 shadow-[0_16px_36px_-12px_rgba(0,0,0,0.25)] transition-all duration-300 px-3 sm:px-4">
             

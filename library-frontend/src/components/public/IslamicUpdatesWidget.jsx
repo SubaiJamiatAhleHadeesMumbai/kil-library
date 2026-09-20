@@ -44,10 +44,25 @@ const IslamicUpdatesWidget = ({ updates, config = {} }) => {
   const { jumah, moon } = updates;
   const hasBoth = Boolean(jumah && moon);
 
+  const resolveText = (val, fallback = '') => {
+    if (!val) return fallback;
+    if (typeof val === 'string') return val.trim() || fallback;
+    if (typeof val === 'object') {
+      const txt = val.en || val.ur || val.ar;
+      if (typeof txt === 'string' && txt.trim()) return txt.trim();
+      for (const k of Object.keys(val)) {
+        if (typeof val[k] === 'string' && val[k].trim()) return val[k].trim();
+      }
+      return fallback;
+    }
+    return String(val);
+  };
+
   const handleShare = (e, item) => {
     e.stopPropagation();
     const isJumah = item.item_type === 'jumah';
-    const title = item.title_en || item.title_ur || (isJumah ? 'Jumah Schedule' : 'Moon Sighting Announcement');
+    const fallbackTitle = isJumah ? 'Jumah Schedule' : 'Moon Sighting Announcement';
+    const title = resolveText(item.title_en) || resolveText(item.title_ur) || resolveText(item.title, fallbackTitle);
     const dateText = item.event_date ? ` [Date: ${item.event_date}]` : '';
     const shareText = `📢 *${title}*${dateText}\nView the official schedule & poster at Markaz Islamic Library:\n${window.location.origin}`;
     window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(shareText)}`, '_blank');
@@ -72,8 +87,10 @@ const IslamicUpdatesWidget = ({ updates, config = {} }) => {
 
   const renderCard = (item, type) => {
     const isJumah = type === 'jumah';
-    const title = item.title_en || item.title_ur || (isJumah ? 'Upcoming Jumah Schedule' : 'Islamic Moon Sighting Announcement');
-    const subtitle = item.caption_en || item.caption_ur || (isJumah ? 'Khutbah timings, Bayan & Musalla guidelines' : 'Official Hijri month declaration & calendar details');
+    const fallbackTitle = isJumah ? 'Upcoming Jumah Schedule' : 'Islamic Moon Sighting Announcement';
+    const fallbackSubtitle = isJumah ? 'Khutbah timings, Bayan & Musalla guidelines' : 'Official Hijri month declaration & calendar details';
+    const title = resolveText(item.title_en) || resolveText(item.title_ur) || resolveText(item.title, fallbackTitle);
+    const subtitle = resolveText(item.caption_en) || resolveText(item.caption_ur) || resolveText(item.caption, fallbackSubtitle);
     const formattedDate = formatDate(item.event_date);
     const imageUrl = resolveImageUrl(item.image_url);
 
@@ -257,11 +274,11 @@ const IslamicUpdatesWidget = ({ updates, config = {} }) => {
             <div className="p-4 sm:p-5 border-t border-slate-800 bg-slate-900/95 flex flex-wrap items-center justify-between gap-3">
               <div>
                 <h4 className="text-white font-bold text-sm sm:text-base">
-                  {activeModalItem.title_en || activeModalItem.title_ur || (activeModalItem.item_type === 'jumah' ? 'Jumah Schedule' : 'Moon Announcement')}
+                  {resolveText(activeModalItem.title_en) || resolveText(activeModalItem.title_ur) || resolveText(activeModalItem.title, activeModalItem.item_type === 'jumah' ? 'Jumah Schedule' : 'Moon Announcement')}
                 </h4>
-                {(activeModalItem.caption_en || activeModalItem.caption_ur) && (
+                {(activeModalItem.caption_en || activeModalItem.caption_ur || activeModalItem.caption) && (
                   <p className="text-xs text-slate-400 mt-0.5 max-w-md">
-                    {activeModalItem.caption_en || activeModalItem.caption_ur}
+                    {resolveText(activeModalItem.caption_en) || resolveText(activeModalItem.caption_ur) || resolveText(activeModalItem.caption, '')}
                   </p>
                 )}
               </div>

@@ -52,6 +52,96 @@ const ISLAMIC_MONTHS = [
   { key: 'dhul_hijjah', label: '12. ذو الحجة (Dhul Hijjah)' },
 ];
 
+const GREGORIAN_MONTHS = [
+  { index: 1, key: 'january', ur: 'جنوری', en: 'January' },
+  { index: 2, key: 'february', ur: 'فروری', en: 'February' },
+  { index: 3, key: 'march', ur: 'مارچ', en: 'March' },
+  { index: 4, key: 'april', ur: 'اپریل', en: 'April' },
+  { index: 5, key: 'may', ur: 'مئی', en: 'May' },
+  { index: 6, key: 'june', ur: 'جون', en: 'June' },
+  { index: 7, key: 'july', ur: 'جولائی', en: 'July' },
+  { index: 8, key: 'august', ur: 'اگست', en: 'August' },
+  { index: 9, key: 'september', ur: 'ستمبر', en: 'September' },
+  { index: 10, key: 'october', ur: 'اکتوبر', en: 'October' },
+  { index: 11, key: 'november', ur: 'نومبر', en: 'November' },
+  { index: 12, key: 'december', ur: 'دسمبر', en: 'December' },
+];
+
+const FRIDAY_WEEK_NAMES = {
+  1: { en: '1st Friday', ur: 'یکم جمعہ (پہلا)', ar: 'الجمعة الأولى' },
+  2: { en: '2nd Friday', ur: 'دوسرا جمعہ', ar: 'الجمعة الثانية' },
+  3: { en: '3rd Friday', ur: 'تیسرا جمعہ', ar: 'الجمعة الثالثة' },
+  4: { en: '4th Friday', ur: 'چوتھا جمعہ', ar: 'الجمعة الرابعة' },
+  5: { en: '5th Friday', ur: 'پانچواں جمعہ', ar: 'الجمعة الخامسة' },
+};
+
+const getMonthFridays = (yearStr, monthIndex) => {
+  const y = parseInt(yearStr, 10) || 2026;
+  const m = monthIndex - 1;
+  const daysInMonth = new Date(y, m + 1, 0).getDate();
+  const fridays = [];
+
+  const monthsUr = [
+    'جنوری', 'فروری', 'مارچ', 'اپریل', 'مئی', 'جون',
+    'جولائی', 'اگست', 'ستمبر', 'اکتوبر', 'نومبر', 'دسمبر'
+  ];
+  const monthsEn = [
+    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+  ];
+
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dateObj = new Date(y, m, d);
+    if (dateObj.getDay() === 5) {
+      const weekIndex = fridays.length + 1;
+      const dateStr = `${y}-${String(monthIndex).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+      fridays.push({
+        weekIndex,
+        day: d,
+        dateStr,
+        formattedEn: `${d} ${monthsEn[m]} ${y}`,
+        formattedUr: `${d}؍ ${monthsUr[m]} ${y}`,
+        labelEn: FRIDAY_WEEK_NAMES[weekIndex]?.en || `${weekIndex}th Friday`,
+        labelUr: FRIDAY_WEEK_NAMES[weekIndex]?.ur || `${weekIndex}واں جمعہ`,
+        labelAr: FRIDAY_WEEK_NAMES[weekIndex]?.ar || `الجمعة ${weekIndex}`,
+      });
+    }
+  }
+  return fridays;
+};
+
+const resolveAdminText = (val, fallback = '') => {
+  if (!val) return fallback;
+  if (typeof val === 'string') return val;
+  if (typeof val === 'object') {
+    return val.ur || val.en || val.ar || fallback;
+  }
+  return String(val);
+};
+
+const getFridaySlotLabel = (eventDate) => {
+  if (!eventDate) return null;
+  try {
+    const parts = eventDate.trim().split(/[-/]/);
+    if (parts.length === 3) {
+      let y = parseInt(parts[0], 10);
+      let m = parseInt(parts[1], 10);
+      if (parts[2].length === 4) {
+        y = parseInt(parts[2], 10);
+        m = parseInt(parts[1], 10);
+      }
+      if (y && m) {
+        const fridays = getMonthFridays(y, m);
+        const matched = fridays.find((f) => f.dateStr === eventDate.trim() || eventDate.trim().includes(f.dateStr));
+        if (matched) return matched;
+      }
+    }
+  } catch {
+    // fallback
+  }
+  return null;
+};
+
 const GalleryManagementPage = () => {
   const [activeTab, setActiveTab] = useState('photos'); // 'photos' | 'videos' | 'jumah' | 'moon' | 'albums'
 
@@ -93,6 +183,14 @@ const GalleryManagementPage = () => {
 
   // Jumah Schedule Form State
   const jumahFileInputRef = useRef(null);
+  const [jumahSelectedMonth, setJumahSelectedMonth] = useState(() => new Date().getMonth() + 1);
+  const [jumahSelectedYear, setJumahSelectedYear] = useState(() => String(new Date().getFullYear()));
+  const [jumahFilterMonth, setJumahFilterMonth] = useState('all');
+
+  const currentMonthFridays = useMemo(() => {
+    return getMonthFridays(jumahSelectedYear, jumahSelectedMonth);
+  }, [jumahSelectedYear, jumahSelectedMonth]);
+
   const [jumahForm, setJumahForm] = useState({
     file: null,
     event_date: new Date().toISOString().split('T')[0],
@@ -453,15 +551,15 @@ const GalleryManagementPage = () => {
 
       await galleryService.uploadDatedItem(payload);
       showNotification('Jumah List poster uploaded successfully!');
-      setJumahForm({
+      setJumahForm((prev) => ({
         file: null,
-        event_date: new Date().toISOString().split('T')[0],
+        event_date: '',
         title_en: '',
         title_ur: '',
-        album_id: 'general',
-        year: '2026',
+        album_id: prev.album_id,
+        year: jumahSelectedYear,
         show_on_home: true,
-      });
+      }));
       if (jumahFileInputRef.current) jumahFileInputRef.current.value = '';
       fetchAdminGallery();
     } catch {
@@ -666,6 +764,20 @@ const GalleryManagementPage = () => {
   const jumahList = useMemo(() => {
     return items.filter((i) => i.item_type === 'jumah');
   }, [items]);
+
+  const filteredJumahList = useMemo(() => {
+    if (jumahFilterMonth === 'all') return jumahList;
+    const mNum = parseInt(jumahFilterMonth, 10);
+    return jumahList.filter((item) => {
+      if (!item.event_date) return false;
+      const parts = item.event_date.trim().split(/[-/]/);
+      if (parts.length === 3) {
+        const itemM = parts[0].length === 4 ? parseInt(parts[1], 10) : parseInt(parts[1], 10);
+        return itemM === mNum;
+      }
+      return false;
+    });
+  }, [jumahList, jumahFilterMonth]);
 
   const moonList = useMemo(() => {
     return items.filter((i) => i.item_type === 'moon');
@@ -1360,12 +1472,144 @@ const GalleryManagementPage = () => {
       {activeTab === 'jumah' && (
         <div className="space-y-6">
           {/* Quick Upload Jumah List Card */}
-          <div className="rounded-3xl border border-emerald-200 bg-gradient-to-r from-emerald-50/70 via-white to-emerald-50/40 p-5 sm:p-6 shadow-xs">
-            <div className="flex items-center gap-2.5 text-emerald-800 font-extrabold text-sm mb-3">
-              <CalendarDaysIcon className="w-5 h-5 text-emerald-600" />
-              <span>Upload Jumah Schedule / Bayan List Poster</span>
+          <div className="rounded-3xl border border-emerald-200 bg-gradient-to-r from-emerald-50/80 via-white to-emerald-50/50 p-5 sm:p-6 shadow-xs space-y-5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-emerald-100 pb-4">
+              <div className="flex items-center gap-2.5 text-emerald-800">
+                <div className="w-10 h-10 rounded-2xl bg-emerald-100/80 border border-emerald-200 flex items-center justify-center text-emerald-700 shadow-2xs">
+                  <CalendarDaysIcon className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-sm sm:text-base font-black text-slate-900">
+                    Upload Jumah Schedule / جمعہ شیڈول
+                  </h3>
+                  <p className="text-xs text-emerald-700 font-medium">
+                    Select the Friday slot (1st, 2nd, 3rd, 4th or 5th) to auto-fill dates and bilingual titles.
+                  </p>
+                </div>
+              </div>
+
+              {/* Month & Year Selectors */}
+              <div className="flex items-center gap-2 self-start sm:self-auto">
+                <select
+                  value={jumahSelectedMonth}
+                  onChange={(e) => setJumahSelectedMonth(Number(e.target.value))}
+                  className="rounded-xl border border-emerald-300 bg-white px-3 py-2 text-xs font-bold text-slate-800 focus:outline-emerald-600 shadow-2xs"
+                >
+                  {GREGORIAN_MONTHS.map((m) => (
+                    <option key={m.index} value={m.index}>
+                      {m.en} ({m.ur})
+                    </option>
+                  ))}
+                </select>
+
+                <select
+                  value={jumahSelectedYear}
+                  onChange={(e) => {
+                    const y = e.target.value;
+                    setJumahSelectedYear(y);
+                    setJumahForm((prev) => ({ ...prev, year: y }));
+                  }}
+                  className="rounded-xl border border-emerald-300 bg-white px-3 py-2 text-xs font-bold text-slate-800 focus:outline-emerald-600 shadow-2xs"
+                >
+                  {['2025', '2026', '2027', '2028'].map((y) => (
+                    <option key={y} value={y}>{y}</option>
+                  ))}
+                </select>
+              </div>
             </div>
-            <form onSubmit={handleUploadJumah} className="space-y-4">
+
+            {/* Step 1: Friday Slots Selector (4 or 5 Fridays) */}
+            <div className="space-y-2.5">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-extrabold uppercase tracking-wider text-emerald-900 flex items-center gap-1.5">
+                  <span>Step 1: Choose Friday Slot</span>
+                  <span className="text-[11px] font-normal text-emerald-600">
+                    ({currentMonthFridays.length} Fridays in {GREGORIAN_MONTHS.find(m => m.index === jumahSelectedMonth)?.en} {jumahSelectedYear})
+                  </span>
+                </span>
+                <span className="text-[11px] font-urdu text-emerald-800 font-bold">
+                  ہر مہینے کے ۴ یا ۵ جمعہ
+                </span>
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                {currentMonthFridays.map((friday) => {
+                  const isSelected = jumahForm.event_date === friday.dateStr;
+                  const existing = jumahList.find((it) => {
+                    if (!it.event_date) return false;
+                    const d = it.event_date.trim();
+                    return d === friday.dateStr || d.includes(friday.dateStr);
+                  });
+
+                  return (
+                    <button
+                      key={friday.weekIndex}
+                      type="button"
+                      onClick={() => {
+                        setJumahForm((prev) => ({
+                          ...prev,
+                          event_date: friday.dateStr,
+                          year: jumahSelectedYear,
+                          title_en: `Jumah Schedule - ${friday.labelEn} (${friday.formattedEn})`,
+                          title_ur: `خطبہ جمعہ شیڈول - ${friday.labelUr} (${friday.formattedUr})`,
+                        }));
+                      }}
+                      className={`relative p-3.5 rounded-2xl border text-left transition-all cursor-pointer flex flex-col justify-between gap-2 text-slate-800 ${
+                        isSelected
+                          ? 'border-emerald-600 bg-emerald-100/70 ring-2 ring-emerald-500 shadow-sm scale-[1.02]'
+                          : existing
+                          ? 'border-emerald-200 bg-white hover:border-emerald-400 hover:bg-emerald-50/50'
+                          : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between gap-1">
+                        <span className={`text-xs font-black ${isSelected ? 'text-emerald-950' : 'text-slate-800'}`}>
+                          {friday.labelEn}
+                        </span>
+                        {existing ? (
+                          <span className="inline-flex items-center gap-0.5 text-[9px] font-black text-emerald-800 bg-emerald-200/80 px-2 py-0.5 rounded-full shadow-2xs">
+                            <CheckIcon className="w-2.5 h-2.5 stroke-3" /> Done
+                          </span>
+                        ) : (
+                          <span className="text-[9px] font-semibold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">
+                            Empty
+                          </span>
+                        )}
+                      </div>
+
+                      <div>
+                        <div className="font-urdu text-xs text-emerald-800 font-bold leading-tight">
+                          {friday.labelUr}
+                        </div>
+                        <div className="text-[11px] font-mono text-slate-500 font-bold mt-1">
+                          📅 {friday.formattedEn}
+                        </div>
+                      </div>
+
+                      {isSelected && (
+                        <div className="text-[9px] font-bold text-emerald-700 bg-emerald-200/70 rounded-md py-0.5 px-1.5 text-center">
+                          ✓ Slot Selected
+                        </div>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Step 2: Upload Form */}
+            <form onSubmit={handleUploadJumah} className="space-y-4 pt-2 border-t border-emerald-100">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-extrabold uppercase tracking-wider text-emerald-900">
+                  Step 2: Attach Flyer & Confirm Details
+                </span>
+                {jumahForm.event_date && (
+                  <span className="text-xs font-bold text-emerald-700 font-mono bg-emerald-100/70 px-2.5 py-0.5 rounded-lg">
+                    Target Date: {jumahForm.event_date}
+                  </span>
+                )}
+              </div>
+
               <div className="grid gap-4 sm:grid-cols-3">
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">
@@ -1377,7 +1621,7 @@ const GalleryManagementPage = () => {
                     required
                     accept="image/*"
                     onChange={(e) => setJumahForm({ ...jumahForm, file: e.target.files?.[0] || null })}
-                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-800"
+                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-800 focus:outline-emerald-600"
                   />
                   {jumahForm.file && (
                     <span className="text-[11px] text-emerald-700 font-medium mt-1 block">
@@ -1395,7 +1639,7 @@ const GalleryManagementPage = () => {
                     required
                     value={jumahForm.event_date}
                     onChange={(e) => setJumahForm({ ...jumahForm, event_date: e.target.value })}
-                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-800 font-mono"
+                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-800 font-mono focus:outline-emerald-600"
                   />
                 </div>
 
@@ -1405,7 +1649,7 @@ const GalleryManagementPage = () => {
                     type="text"
                     value={jumahForm.year}
                     onChange={(e) => setJumahForm({ ...jumahForm, year: e.target.value })}
-                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-800"
+                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-800 focus:outline-emerald-600"
                     placeholder="2026"
                   />
                 </div>
@@ -1416,10 +1660,10 @@ const GalleryManagementPage = () => {
                   </label>
                   <input
                     type="text"
-                    placeholder="e.g. Jumah Schedule - 25 Sep 2026"
+                    placeholder="e.g. Jumah Schedule - 1st Friday (06 Mar 2026)"
                     value={jumahForm.title_en}
                     onChange={(e) => setJumahForm({ ...jumahForm, title_en: e.target.value })}
-                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-800"
+                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-800 focus:outline-emerald-600"
                   />
                 </div>
 
@@ -1430,10 +1674,10 @@ const GalleryManagementPage = () => {
                   <input
                     type="text"
                     dir="rtl"
-                    placeholder="مثال: خطبہ جمعہ و بیانات کا شیڈول"
+                    placeholder="مثال: خطبہ جمعہ شیڈول - یکم جمعہ"
                     value={jumahForm.title_ur}
                     onChange={(e) => setJumahForm({ ...jumahForm, title_ur: e.target.value })}
-                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-urdu text-slate-800"
+                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-urdu text-slate-800 focus:outline-emerald-600"
                   />
                 </div>
 
@@ -1442,10 +1686,10 @@ const GalleryManagementPage = () => {
                   <select
                     value={jumahForm.album_id}
                     onChange={(e) => setJumahForm({ ...jumahForm, album_id: e.target.value })}
-                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-800"
+                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-800 focus:outline-emerald-600"
                   >
                     {albums.map((a) => (
-                      <option key={a.id} value={a.id}>{a.title?.ur || a.title?.en || a.id}</option>
+                      <option key={a.id} value={a.id}>{resolveAdminText(a.title?.ur) || resolveAdminText(a.title?.en) || a.id}</option>
                     ))}
                   </select>
                 </div>
@@ -1475,7 +1719,7 @@ const GalleryManagementPage = () => {
                   ) : (
                     <>
                       <CloudArrowUpIcon className="w-4 h-4" />
-                      <span>Upload Jumah Poster</span>
+                      <span>Upload Jumah Schedule Poster</span>
                     </>
                   )}
                 </button>
@@ -1483,100 +1727,165 @@ const GalleryManagementPage = () => {
             </form>
           </div>
 
-          {/* Jumah List Posters Grid */}
+          {/* Jumah List Posters Grid with Month Filter */}
           <div className="rounded-3xl border border-slate-200 bg-white p-5 sm:p-6 shadow-xs space-y-4">
-            <h3 className="text-base font-bold text-slate-800">
-              Uploaded Jumah Posters ({jumahList.length})
-            </h3>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
+              <div>
+                <h3 className="text-base font-black text-slate-800">
+                  Uploaded Jumah Posters ({filteredJumahList.length})
+                </h3>
+                <p className="text-xs text-slate-500">
+                  Manage weekly Friday sermon schedules and bayan announcements
+                </p>
+              </div>
 
-            {jumahList.length === 0 ? (
-              <div className="py-12 text-center text-slate-500 text-sm">
-                No Jumah posters uploaded yet. Choose an image and date above to upload one!
+              {/* Month Filter */}
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold text-slate-500">Filter Month:</span>
+                <select
+                  value={jumahFilterMonth}
+                  onChange={(e) => setJumahFilterMonth(e.target.value)}
+                  className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-bold text-slate-700 focus:outline-emerald-600"
+                >
+                  <option value="all">All Months ({jumahList.length})</option>
+                  {GREGORIAN_MONTHS.map((m) => {
+                    const count = jumahList.filter((it) => {
+                      if (!it.event_date) return false;
+                      const parts = it.event_date.trim().split(/[-/]/);
+                      if (parts.length === 3) {
+                        return parseInt(parts[1], 10) === m.index;
+                      }
+                      return false;
+                    }).length;
+                    return (
+                      <option key={m.index} value={m.index}>
+                        {m.en} ({count})
+                      </option>
+                    );
+                  })}
+                </select>
+              </div>
+            </div>
+
+            {filteredJumahList.length === 0 ? (
+              <div className="py-12 text-center text-slate-500 text-sm space-y-2">
+                <div className="text-3xl">🕌</div>
+                <div className="font-semibold">No Jumah posters found for this filter.</div>
+                <div className="text-xs text-slate-400">Choose a Friday slot above to upload a schedule!</div>
               </div>
             ) : (
               <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-                {jumahList.map((item) => (
-                  <div
-                    key={item.id}
-                    className="rounded-2xl border border-slate-200 bg-slate-50/50 p-3 space-y-2 hover:bg-white hover:shadow-md transition"
-                  >
+                {filteredJumahList.map((item) => {
+                  const fridaySlot = getFridaySlotLabel(item.event_date);
+                  const displayTitle = resolveAdminText(item.title_ur) || resolveAdminText(item.title_en) || resolveAdminText(item.title?.ur) || resolveAdminText(item.title?.en) || 'Jumah Schedule';
+
+                  return (
                     <div
-                      onClick={() => setPreviewImageUrl(toAbsoluteUrl(item.image_url))}
-                      className="group relative aspect-4/3 w-full rounded-xl overflow-hidden bg-slate-900 border border-slate-200 cursor-pointer"
-                      title="Click to view full poster"
+                      key={item.id}
+                      className="rounded-2xl border border-slate-200 bg-slate-50/50 p-3 space-y-2.5 hover:bg-white hover:shadow-md transition flex flex-col justify-between"
                     >
-                      <img
-                        src={toAbsoluteUrl(item.image_url)}
-                        alt={item.title?.en || 'Jumah Poster'}
-                        className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
-                      />
-                      <div className="absolute top-2 left-2 rounded-full bg-emerald-600 text-white px-2.5 py-0.5 text-[10px] font-bold shadow-md flex items-center gap-1">
-                        <CalendarDaysIcon className="w-3 h-3" />
-                        <span>{item.event_date || item.year}</span>
+                      <div className="space-y-2">
+                        {/* Poster Image */}
+                        <div
+                          onClick={() => setPreviewImageUrl(toAbsoluteUrl(item.image_url))}
+                          className="group relative aspect-4/3 w-full rounded-xl overflow-hidden bg-slate-900 border border-slate-200 cursor-pointer"
+                          title="Click to view full poster"
+                        >
+                          <img
+                            src={toAbsoluteUrl(item.image_url)}
+                            alt={displayTitle}
+                            className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
+                            onError={(e) => {
+                              e.currentTarget.onerror = null;
+                              e.currentTarget.style.display = 'none';
+                            }}
+                          />
+
+                          {/* Friday Slot Badge */}
+                          {fridaySlot ? (
+                            <div className="absolute top-2 left-2 rounded-full bg-emerald-700/90 text-white px-2.5 py-0.5 text-[10px] font-bold shadow-md flex items-center gap-1 backdrop-blur-xs">
+                              <CalendarDaysIcon className="w-3 h-3" />
+                              <span>{fridaySlot.labelEn}</span>
+                            </div>
+                          ) : (
+                            <div className="absolute top-2 left-2 rounded-full bg-slate-800/80 text-white px-2.5 py-0.5 text-[10px] font-bold shadow-md flex items-center gap-1 backdrop-blur-xs">
+                              <CalendarDaysIcon className="w-3 h-3" />
+                              <span>{item.event_date || item.year}</span>
+                            </div>
+                          )}
+
+                          <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
+                            <EyeIcon className="w-6 h-6 text-white drop-shadow-md" />
+                          </div>
+                        </div>
+
+                        {/* Title & Friday Label */}
+                        <div className="flex items-start justify-between gap-1.5 min-w-0">
+                          <div className="min-w-0 flex-1">
+                            {fridaySlot && (
+                              <div className="font-urdu text-[11px] text-emerald-800 font-bold truncate">
+                                {fridaySlot.labelUr}
+                              </div>
+                            )}
+                            <h4 className="text-xs font-bold text-slate-800 truncate" title={displayTitle}>
+                              {displayTitle}
+                            </h4>
+                            <span className="text-[10px] text-emerald-700 font-bold font-mono block">
+                              📅 {fridaySlot ? fridaySlot.formattedEn : (item.event_date || item.year)}
+                            </span>
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() => toggleItemActive(item)}
+                            className={`shrink-0 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[9px] font-extrabold uppercase transition cursor-pointer border ${
+                              item.is_active
+                                ? 'bg-emerald-50 text-emerald-700 border-emerald-300 hover:bg-emerald-100'
+                                : 'bg-slate-200 text-slate-600 border-slate-300 hover:bg-slate-300'
+                            }`}
+                          >
+                            <span className={`w-1.5 h-1.5 rounded-full ${item.is_active ? 'bg-emerald-500' : 'bg-slate-400'}`} />
+                            <span>{item.is_active ? 'Active' : 'Hidden'}</span>
+                          </button>
+                        </div>
                       </div>
-                      <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
-                        <EyeIcon className="w-6 h-6 text-white drop-shadow-md" />
-                      </div>
-                    </div>
 
-                    <div className="flex items-start justify-between gap-1.5 min-w-0">
-                      <div className="min-w-0 flex-1">
-                        <h4 className="text-xs font-bold text-slate-800 truncate" title={item.title?.ur || item.title?.en}>
-                          {item.title?.ur || item.title?.en || 'Jumah List'}
-                        </h4>
-                        <span className="text-[10px] text-emerald-700 font-semibold font-mono">
-                          📅 {item.event_date || item.year}
-                        </span>
-                      </div>
-
-                      <button
-                        type="button"
-                        onClick={() => toggleItemActive(item)}
-                        className={`shrink-0 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[9px] font-extrabold uppercase transition cursor-pointer border ${
-                          item.is_active
-                            ? 'bg-emerald-50 text-emerald-700 border-emerald-300 hover:bg-emerald-100'
-                            : 'bg-slate-200 text-slate-600 border-slate-300 hover:bg-slate-300'
-                        }`}
-                      >
-                        <span className={`w-1.5 h-1.5 rounded-full ${item.is_active ? 'bg-emerald-500' : 'bg-slate-400'}`} />
-                        <span>{item.is_active ? 'Active' : 'Hidden'}</span>
-                      </button>
-                    </div>
-
-                    <div className="flex items-center justify-between pt-1.5 border-t border-slate-200/60 text-slate-500">
-                      <button
-                        type="button"
-                        onClick={(e) => handleToggleHome(item.id, e)}
-                        className={`text-[10px] font-bold px-2 py-0.5 rounded-lg border cursor-pointer transition ${
-                          item.show_on_home
-                            ? 'bg-amber-100 text-amber-800 border-amber-300'
-                            : 'bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200'
-                        }`}
-                      >
-                        {item.show_on_home ? '⭐ On Home' : '+ On Home'}
-                      </button>
-
-                      <div className="flex items-center gap-1">
+                      {/* Controls Bar */}
+                      <div className="flex items-center justify-between pt-2 border-t border-slate-200/60 text-slate-500">
                         <button
                           type="button"
-                          onClick={() => openEditItem(item)}
-                          className="p-1 rounded text-indigo-600 hover:bg-indigo-50 transition cursor-pointer"
-                          title="Edit"
+                          onClick={(e) => handleToggleHome(item.id, e)}
+                          className={`text-[10px] font-bold px-2 py-0.5 rounded-lg border cursor-pointer transition ${
+                            item.show_on_home
+                              ? 'bg-amber-100 text-amber-800 border-amber-300'
+                              : 'bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200'
+                          }`}
                         >
-                          <PencilSquareIcon className="w-4 h-4" />
+                          {item.show_on_home ? '⭐ On Home' : '+ On Home'}
                         </button>
-                        <button
-                          type="button"
-                          onClick={() => handleDeleteItem(item.id)}
-                          className="p-1 rounded text-rose-500 hover:bg-rose-50 transition cursor-pointer"
-                          title="Delete"
-                        >
-                          <TrashIcon className="w-4 h-4" />
-                        </button>
+
+                        <div className="flex items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() => openEditItem(item)}
+                            className="p-1 rounded text-indigo-600 hover:bg-indigo-50 transition cursor-pointer"
+                            title="Edit Details"
+                          >
+                            <PencilSquareIcon className="w-4 h-4" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteItem(item.id)}
+                            className="p-1 rounded text-rose-500 hover:bg-rose-50 transition cursor-pointer"
+                            title="Delete"
+                          >
+                            <TrashIcon className="w-4 h-4" />
+                          </button>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>

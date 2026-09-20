@@ -65,6 +65,24 @@ const TopAnnouncementBar = ({ config = null }) => {
   const themeStyle = THEMES[announcement.theme] || THEMES.emerald;
   const isExternalLink = announcement.link && (announcement.link.startsWith('http://') || announcement.link.startsWith('https://'));
 
+  const resolveText = (val, fallback = '') => {
+    if (!val) return fallback;
+    if (typeof val === 'string') return val.trim() || fallback;
+    if (typeof val === 'object') {
+      const preferred = val.en || val.ur || val.ar;
+      if (typeof preferred === 'string' && preferred.trim()) return preferred.trim();
+      for (const k of Object.keys(val)) {
+        if (typeof val[k] === 'string' && val[k].trim()) return val[k].trim();
+      }
+      return fallback;
+    }
+    return String(val);
+  };
+
+  const badgeText = resolveText(announcement.badge);
+  const mainText = resolveText(announcement.text);
+  const transText = resolveText(announcement.translation);
+
   return (
     <AnimatePresence>
       <motion.aside
@@ -80,22 +98,22 @@ const TopAnnouncementBar = ({ config = null }) => {
           {/* CENTER / CONTENT */}
           <div className="flex flex-1 items-center justify-center gap-2 text-center min-w-0 pr-6 pl-2 sm:px-0">
             {/* Tag Badge */}
-            {announcement.badge && (
+            {badgeText && (
               <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wider shrink-0 ${themeStyle.badge}`}>
                 <MegaphoneIcon className="w-3 h-3 text-amber-400" />
-                <span>{announcement.badge}</span>
+                <span>{badgeText}</span>
               </span>
             )}
 
             {/* Arabic / Main Message */}
             <span dir="rtl" className="font-serif font-semibold text-sm sm:text-sm truncate drop-shadow-2xs">
-              {announcement.text}
+              {mainText}
             </span>
 
             {/* Translation / Sub-text */}
-            {announcement.translation && (
+            {transText && (
               <span className="hidden md:inline font-sans text-xs opacity-80 italic truncate max-w-md">
-                — "{announcement.translation}"
+                — "{transText}"
               </span>
             )}
 

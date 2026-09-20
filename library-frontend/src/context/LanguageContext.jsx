@@ -59,6 +59,7 @@ export const TRANSLATIONS = {
     gallery: "Gallery",
     fatawa: "Fatawa",
     education: "Education",
+    education_taleem: "Education & Guidance",
     activities: "Activities",
     social_work: "Social Work",
     clippings: "Newspaper Clippings",
@@ -131,6 +132,7 @@ export const TRANSLATIONS = {
     gallery: "نگارخانہ",
     fatawa: "فتاویٰ",
     education: "تعلیم",
+    education_taleem: "تعلیم و رہنمائی",
     activities: "سرگرمیاں",
     social_work: "سماجی خدمات",
     clippings: "اخبارات کے تراشے",
@@ -203,6 +205,7 @@ export const TRANSLATIONS = {
     gallery: "معرض الصور",
     fatawa: "الفتاوى",
     education: "التعليم",
+    education_taleem: "التعليم والإرشاد",
     activities: "الأنشطة",
     social_work: "العمل الخيري",
     clippings: "القصاصات الصحفية",
@@ -418,61 +421,144 @@ export const LanguageProvider = ({ children }) => {
     return LANGUAGES.find(l => l.code === currentLang) || LANGUAGES.find(l => l.code === 'en') || LANGUAGES[0];
   }, [currentLang]);
 
+  // Safe helper to extract nested value by path e.g. "nav.home"
+  const getNestedVal = (obj, path) => {
+    if (!obj || !path) return undefined;
+    if (typeof obj !== 'object') return undefined;
+    if (obj[path] !== undefined && typeof obj[path] !== 'object') return obj[path];
+    const parts = path.split('.');
+    let curr = obj;
+    for (const part of parts) {
+      if (curr && typeof curr === 'object' && part in curr) {
+        curr = curr[part];
+      } else {
+        return undefined;
+      }
+    }
+    return curr;
+  };
+
+  const isValidString = (v) => typeof v === 'string' && v.trim().length > 0;
+
   // ✅ ENHANCED SMART TRANSLATION HELPER (Nested Path + Flat Key + Dynamic CMS Fallback)
   const t = (key, fallbackText) => {
-    if (!key) return typeof fallbackText === 'string' ? fallbackText : '';
+    if (!key) {
+      if (typeof fallbackText === 'string') return fallbackText;
+      if (fallbackText && typeof fallbackText === 'object') {
+        const fb = fallbackText[currentLang] || fallbackText.ur || fallbackText.en || fallbackText.ar;
+        return typeof fb === 'string' ? fb : '';
+      }
+      return '';
+    }
+
     if (typeof key !== 'string') {
       if (typeof key === 'object') {
-        return key[currentLang] || key.ur || key.en || key.ar || '';
+        const raw = key[currentLang] || key.ur || key.en || key.ar || '';
+        if (typeof raw === 'string') return raw;
+        if (raw && typeof raw === 'object') {
+          const sub = raw[currentLang] || raw.ur || raw.en || raw.ar || '';
+          return typeof sub === 'string' ? sub : '';
+        }
+        return String(raw || '');
       }
       return String(key);
     }
 
+    const shortKey = key.includes('.') ? key.split('.').pop() : key;
+    const candidates = [
+      key,                     // e.g. 'nav.home' or 'home'
+      `nav.${shortKey}`,      // e.g. 'nav.home'
+      shortKey,               // e.g. 'home'
+      `common.${shortKey}`,   // e.g. 'common.home'
+    ];
+
     let val = null;
-    // 1. Direct dynamic lookup in current language
-    if (dynamicTranslations?.[currentLang]?.[key]) {
-      val = dynamicTranslations[currentLang][key];
-    } else {
-      // 2. Short key lookup if key has namespace (e.g. 'navbar.home' -> 'home')
-      const shortKey = key.includes('.') ? key.split('.').pop() : null;
-      if (shortKey && dynamicTranslations?.[currentLang]?.[shortKey]) {
-        val = dynamicTranslations[currentLang][shortKey];
-      } else {
-        // 3. Static dictionary lookup for current language
-        const dict = TRANSLATIONS[currentLang] || TRANSLATIONS.en;
-        if (dict?.[key]) {
-          val = dict[key];
-        } else if (shortKey && dict?.[shortKey]) {
-          val = dict[shortKey];
-        } else if (dynamicTranslations?.en?.[key]) {
-          val = dynamicTranslations.en[key];
-        } else if (shortKey && dynamicTranslations?.en?.[shortKey]) {
-          val = dynamicTranslations.en[shortKey];
-        } else if (TRANSLATIONS.en?.[key]) {
-          val = TRANSLATIONS.en[key];
-        } else if (shortKey && TRANSLATIONS.en?.[shortKey]) {
-          val = TRANSLATIONS.en[shortKey];
+
+    // 1. Direct or nested dynamic lookup in current language
+    for (const k of candidates) {
+      const v = getNestedVal(dynamicTranslations?.[currentLang], k);
+      if (isValidString(v)) {
+        val = v;
+        break;
+      }
+    }
+
+    // 2. Static dictionary lookup for current language
+    if (!val) {
+      const dict = TRANSLATIONS[currentLang] || TRANSLATIONS.en;
+      for (const k of candidates) {
+        const v = getNestedVal(dict, k);
+        if (isValidString(v)) {
+          val = v;
+          break;
         }
       }
     }
 
-    if (val !== null && val !== undefined) {
-      if (typeof val === 'string') return val;
-      if (typeof val === 'object') {
-        return val[currentLang] || val.ur || val.en || val.ar || '';
+    // 3. Fallback to dynamic English
+    if (!val && currentLang !== 'en') {
+      for (const k of candidates) {
+        const v = getNestedVal(dynamicTranslations?.en, k);
+        if (isValidString(v)) {
+          val = v;
+          break;
+        }
       }
-      return String(val);
     }
 
-    if (fallbackText !== undefined) {
-      if (typeof fallbackText === 'string') return fallbackText;
+    // 4. Fallback to static English dictionary
+    if (!val) {
+      for (const k of candidates) {
+        const v = getNestedVal(TRANSLATIONS.en, k);
+        if (isValidString(v)) {
+          val = v;
+          break;
+        }
+      }
+    }
+
+    if (isValidString(val)) return val;
+
+    // Multilingual object if returned
+    if (val && typeof val === 'object' && ('en' in val || 'ur' in val || 'ar' in val)) {
+      const localized = val[currentLang] || val.ur || val.en || val.ar;
+      if (isValidString(localized)) return localized;
+    }
+
+    // 5. Provided fallbackText
+    if (fallbackText !== undefined && fallbackText !== null) {
+      if (isValidString(fallbackText)) return fallbackText;
       if (typeof fallbackText === 'object') {
-        return fallbackText[currentLang] || fallbackText.ur || fallbackText.en || fallbackText.ar || '';
+        const fb = fallbackText[currentLang] || fallbackText.ur || fallbackText.en || fallbackText.ar;
+        if (isValidString(fb)) return fb;
       }
-      return String(fallbackText);
     }
 
-    return key;
+    // 6. Hardcoded essential navigation safety fallback so core links NEVER show empty
+    const DEFAULT_NAV = {
+      home: { en: 'Home', ur: 'صفحہ اول', ar: 'الرئيسية' },
+      library: { en: 'Library', ur: 'کتب خانہ', ar: 'المكتبة' },
+      fatawa: { en: 'Fatawa', ur: 'فتاویٰ', ar: 'الفتاوى' },
+      gallery: { en: 'Gallery', ur: 'نگارخانہ', ar: 'المعرض' },
+      about: { en: 'About', ur: 'ہمارے متعلق', ar: 'عن المركز' },
+      more: { en: 'More', ur: 'مزید', ar: 'المزيد' },
+      activities: { en: 'Activities', ur: 'سرگرمیاں', ar: 'الأنشطة' },
+      updates: { en: 'Updates', ur: 'اعلانات', ar: 'الإعلانات' },
+      login: { en: 'Log In', ur: 'داخل ہوں', ar: 'تسجيل الدخول' },
+      logout: { en: 'Log Out', ur: 'لاگ آؤٹ', ar: 'تسجيل الخروج' },
+      donate: { en: 'Donate', ur: 'تعاون کریں', ar: 'تبرع' },
+      profile: { en: 'My Profile', ur: 'میری پروفائل', ar: 'ملفي الشخصي' },
+    };
+    if (DEFAULT_NAV[shortKey]) {
+      const navItem = DEFAULT_NAV[shortKey];
+      return navItem[currentLang] || navItem.en || '';
+    }
+
+    const finalFallback = shortKey || key;
+    if (typeof finalFallback === 'object') {
+      return finalFallback[currentLang] || finalFallback.ur || finalFallback.en || finalFallback.ar || '';
+    }
+    return String(finalFallback || '');
   };
 
   const formatDate = (date, options) => formatLocalizedDate(date, currentLang, options);

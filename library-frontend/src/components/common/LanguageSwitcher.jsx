@@ -109,7 +109,7 @@ const LanguageSwitcher = ({
             transition={{ duration: 0.15, ease: "easeOut" }}
             className={`absolute end-0 ${
               isUp ? 'bottom-full mb-2' : 'top-full mt-2'
-            } w-40 bg-white/95 backdrop-blur-xl rounded-2xl shadow-xl border border-slate-200/90 p-1.5 z-[100] overflow-hidden notranslate ring-1 ring-black/5`}
+            } w-40 bg-white/95 backdrop-blur-xl rounded-2xl shadow-xl border border-slate-200/90 p-1.5 z-[110] overflow-hidden notranslate ring-1 ring-black/5`}
             translate="no"
           >
             <div className="space-y-0.5">

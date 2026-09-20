@@ -95,18 +95,37 @@ export default function IslamicCalendarPage() {
     }
   };
 
+  const resolveText = (val, lang = 'en', fallback = '') => {
+    if (!val) return fallback;
+    if (typeof val === 'string') return val.trim() || fallback;
+    if (typeof val === 'object') {
+      const preferred = lang === 'ar'
+        ? (val.ar || val.ur || val.en)
+        : lang === 'ur'
+        ? (val.ur || val.en || val.ar)
+        : (val.en || val.ur || val.ar);
+      if (typeof preferred === 'string' && preferred.trim()) return preferred.trim();
+      for (const k of ['ur', 'en', 'ar', ...Object.keys(val)]) {
+        if (typeof val[k] === 'string' && val[k].trim()) return val[k].trim();
+      }
+      return fallback;
+    }
+    return String(val);
+  };
+
   const handleShare = (e, item) => {
     if (e) e.stopPropagation();
-    const title = item?.title_ur || item?.title_en || 'Islamic Calendar';
+    const title = resolveText(item?.title, currentLang) || item?.title_ur || item?.title_en || 'Islamic Calendar';
     const text = encodeURIComponent(`*${title}*\nMarkaz Ahle Hadees Kokan - Islamic Calendar\n` + window.location.href);
     window.open(`https://api.whatsapp.com/send?text=${text}`, '_blank');
   };
 
   const handleDownload = (e, item) => {
     if (e) e.stopPropagation();
+    const title = resolveText(item?.title, 'en') || item?.title_en || 'islamic-calendar';
     const link = document.createElement('a');
     link.href = resolveImageUrl(item.image_url);
-    link.download = `${item.title_en || 'islamic-calendar'}.jpg`;
+    link.download = `${title}.jpg`;
     link.target = '_blank';
     document.body.appendChild(link);
     link.click();
@@ -122,11 +141,15 @@ export default function IslamicCalendarPage() {
         <div className="text-center max-w-3xl mx-auto space-y-3">
           <div className="inline-flex items-center gap-2 rounded-full bg-emerald-50 border border-emerald-200/80 px-4 py-1.5 text-xs font-bold text-emerald-800 shadow-2xs">
             <CalendarDaysIcon className="w-4 h-4 text-emerald-600" />
-            <span>Islamic Hijri Calendar • اسلامی تقویم</span>
+            <span>
+              {currentLang === 'ur'
+                ? 'مرکز اہل حدیث کوکن • اسلامی تقویم'
+                : 'Markaz Ahle Hadees Kokan • Islamic Calendar'}
+            </span>
           </div>
 
           <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-slate-900 tracking-tight">
-            {currentLang === 'ur' ? 'مرکز اہل حدیث کوکن — اسلامی کیلنڈر' : 'Markaz Islamic Calendar'}
+            {currentLang === 'ur' ? 'مرکز اہل حدیث کوکن — اسلامی کیلنڈر' : 'Markaz Ahle Hadees Kokan — Islamic Calendar'}
           </h1>
 
           <p className="text-sm sm:text-base text-slate-600 leading-relaxed max-w-2xl mx-auto font-medium">
@@ -144,7 +167,7 @@ export default function IslamicCalendarPage() {
             {calendarData.current_calendar && (
               <span className="inline-flex items-center gap-1.5 text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">
                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                <span>Live Month: {calendarData.current_calendar.title_ur || calendarData.current_calendar.title_en}</span>
+                <span>Live Month: {resolveText(calendarData.current_calendar.title, currentLang) || calendarData.current_calendar.title_ur || calendarData.current_calendar.title_en || 'Islamic Calendar'}</span>
               </span>
             )}
           </div>
@@ -230,10 +253,12 @@ export default function IslamicCalendarPage() {
                 </div>
 
                 <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
-                  {activePoster.title_ur || activePoster.title_en}
+                  {resolveText(activePoster.title, currentLang) || activePoster.title_ur || activePoster.title_en || 'Islamic Calendar'}
                 </h2>
-                {activePoster.caption_en && (
-                  <p className="text-xs sm:text-sm text-slate-500">{activePoster.caption_en}</p>
+                {(activePoster.caption_en || activePoster.caption_ur || activePoster.caption) && (
+                  <p className="text-xs sm:text-sm text-slate-500">
+                    {resolveText(activePoster.caption, currentLang) || activePoster.caption_ur || activePoster.caption_en}
+                  </p>
                 )}
               </div>
 

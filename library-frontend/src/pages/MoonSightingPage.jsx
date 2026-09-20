@@ -12,6 +12,7 @@ import {
   MoonIcon,
 } from '@heroicons/react/24/outline';
 import galleryService from '../api/galleryService';
+import { useLanguage } from '../context/LanguageContext';
 
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL ||
@@ -55,15 +56,22 @@ const ISLAMIC_MONTHS = [
 ];
 
 const MoonSightingPage = () => {
+  const { currentLang, language, isRTL } = useLanguage();
+  const activeLang = language || currentLang || 'en';
+
   const [archiveData, setArchiveData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedYear, setSelectedYear] = useState('');
   const [activeModalItem, setActiveModalItem] = useState(null);
 
   useEffect(() => {
-    document.title = 'رؤیت ہلال | Ruyat-e-Hilal (Moon Sighting) - Markaz Ahle Hadees';
+    document.title = activeLang === 'ur'
+      ? 'رؤیتِ ہلال کے اعلانات | مرکز اہل حدیث کوکن'
+      : activeLang === 'ar'
+      ? 'إعلانات رؤية الهلال | مركز أهل الحديث كوكن'
+      : 'Moon Sighting Announcements | Markaz Ahle Hadees Kokan';
     loadArchive();
-  }, []);
+  }, [activeLang]);
 
   const loadArchive = async () => {
     setLoading(true);
@@ -116,10 +124,52 @@ const MoonSightingPage = () => {
     return map;
   }, [currentYearData]);
 
+  const resolveText = (val, lang = 'en', fallback = '') => {
+    if (!val) return fallback;
+    if (typeof val === 'string') return val.trim() || fallback;
+    if (typeof val === 'object') {
+      const preferred = lang === 'ar'
+        ? (val.ar || val.ur || val.en)
+        : lang === 'ur'
+        ? (val.ur || val.en || val.ar)
+        : (val.en || val.ur || val.ar);
+      if (typeof preferred === 'string' && preferred.trim()) return preferred.trim();
+      for (const k of ['ur', 'en', 'ar', ...Object.keys(val)]) {
+        if (typeof val[k] === 'string' && val[k].trim()) return val[k].trim();
+      }
+      return fallback;
+    }
+    return String(val);
+  };
+
+  const getItemTitle = (item) => {
+    if (!item) return '';
+    const fallback = activeLang === 'ur' ? 'رؤیتِ ہلال کا اعلان' : activeLang === 'ar' ? 'إعلان رؤية الهلال' : 'Moon Sighting Announcement';
+    if (activeLang === 'ur') {
+      return item.title_ur || resolveText(item.title, 'ur') || item.title_en || fallback;
+    }
+    if (activeLang === 'ar') {
+      return item.title_ar || resolveText(item.title, 'ar') || item.title_en || item.title_ur || fallback;
+    }
+    return item.title_en || resolveText(item.title, 'en') || item.title_ur || fallback;
+  };
+
+  const getItemCaption = (item) => {
+    if (!item) return '';
+    if (activeLang === 'ur') {
+      return item.caption_ur || resolveText(item.caption, 'ur') || item.caption_en || '';
+    }
+    if (activeLang === 'ar') {
+      return item.caption_ar || resolveText(item.caption, 'ar') || item.caption_en || item.caption_ur || '';
+    }
+    return item.caption_en || resolveText(item.caption, 'en') || item.caption_ur || '';
+  };
+
   const handleShare = (item) => {
-    const title = item.title_en || item.title_ur || 'Moon Sighting Announcement';
-    const dateText = item.event_date ? ` [Date: ${item.event_date}]` : '';
-    const shareText = `📢 *${title}*${dateText}\nView the official Ruyat-e-Hilal circular at Markaz Islamic Library:\n${window.location.origin}/moon`;
+    const title = getItemTitle(item);
+    const dateText = item.event_date ? ` [${item.event_date}]` : '';
+    const orgName = activeLang === 'ur' ? 'مرکز اہل حدیث کوکن' : 'Markaz Ahle Hadees Kokan';
+    const shareText = `📢 *${title}*${dateText}\n🌐 ${orgName}\nhttps://www.ahlehadeeskokan.com/moon`;
     window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(shareText)}`, '_blank');
   };
 
@@ -150,18 +200,41 @@ const MoonSightingPage = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center space-y-4">
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-500/20 border border-emerald-400/30 text-xs font-bold text-emerald-300 uppercase tracking-widest">
             <MoonIcon className="w-4 h-4 text-emerald-400" />
-            <span>Islamic Hijri Calendar & Hilal Declarations</span>
+            <span>
+              {activeLang === 'ur'
+                ? 'مرکز اہل حدیث کوکن • رؤیتِ ہلال و اسلامی تقویم'
+                : activeLang === 'ar'
+                ? 'مركز أهل الحديث كوكن • إعلانات رؤية الهلال'
+                : 'Markaz Ahle Hadees Kokan • Official Hilal Declarations'}
+            </span>
           </div>
 
           <h1 className="text-3xl sm:text-5xl font-black tracking-tight text-white font-serif">
-            <span className="block font-urdu text-4xl sm:text-6xl text-amber-300 mb-2">رؤیت ہلال</span>
-            <span className="text-2xl sm:text-3xl font-sans font-bold text-slate-200">
-              Ruyat-e-Hilal (Moon Sighting Announcements)
-            </span>
+            {activeLang === 'ur' ? (
+              <>
+                <span className="block font-urdu text-4xl sm:text-6xl text-amber-300 mb-2">رؤیتِ ہلال</span>
+                <span className="text-xl sm:text-2xl font-sans font-bold text-slate-200">
+                  Ruyat-e-Hilal (Moon Sighting Announcements)
+                </span>
+              </>
+            ) : (
+              <>
+                <span className="block font-sans text-3xl sm:text-5xl text-amber-300 mb-1">
+                  Moon Sighting Announcements
+                </span>
+                <span className="text-xl sm:text-2xl font-urdu text-slate-200">
+                  (رؤیتِ ہلال کے سرکاری اعلانات)
+                </span>
+              </>
+            )}
           </h1>
 
-          <p className="max-w-2xl mx-auto text-sm sm:text-base text-slate-300 leading-relaxed">
-            Official monthly Hilal sighting declarations, circulars, and Hijri calendar updates released by Markaz Jamiat Ahle Hadees.
+          <p className="max-w-2xl mx-auto text-sm sm:text-base text-slate-300 leading-relaxed font-medium">
+            {activeLang === 'ur'
+              ? 'مرکز اہل حدیث کوکن کی رویتِ ہلال کمیٹی کی جانب سے جاری کردہ مستند ماہانہ سرکلرز اور اعلانات۔'
+              : activeLang === 'ar'
+              ? 'البيانات والتعاميم الرسمية الصادرة عن لجنة تحري الأهلة بمركز أهل الحديث كوكن.'
+              : 'Official monthly Hilal sighting declarations, circulars, and Hijri calendar updates released by Markaz Ahle Hadees Kokan.'}
           </p>
 
           <div className="pt-2 text-xs sm:text-sm text-emerald-200/80 font-arabic font-medium">
@@ -175,7 +248,7 @@ const MoonSightingPage = () => {
         <div className="bg-white rounded-2xl p-3 shadow-lg border border-slate-200/80 flex items-center justify-between gap-3 flex-wrap">
           <div className="flex items-center gap-2">
             <span className="text-xs font-bold uppercase tracking-wider text-slate-500 px-2">
-              Hijri Year (ہجری سال):
+              {activeLang === 'ur' ? 'ہجری سال:' : activeLang === 'ar' ? 'السنة الهجرية:' : 'Hijri Year:'}
             </span>
           </div>
 
@@ -196,7 +269,7 @@ const MoonSightingPage = () => {
                   }`}
                 >
                   <span className="font-urdu text-base">{yr} ھ</span>
-                  <span className="text-xs font-sans">({yr} H)</span>
+                  <span className="text-xs font-sans">({yr} AH)</span>
                   {count > 0 && (
                     <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${
                       isSelected ? 'bg-white/25 text-white' : 'bg-slate-200 text-slate-600'
@@ -216,10 +289,20 @@ const MoonSightingPage = () => {
         <div className="mb-6 flex items-center justify-between">
           <div>
             <h2 className="text-xl sm:text-2xl font-black text-slate-900 flex items-center gap-2">
-              <span>{selectedYear} ھ کے تمام اسلامی مہینوں کے اعلانات</span>
+              <span>
+                {activeLang === 'ur'
+                  ? `${selectedYear} ھ کے تمام اسلامی مہینوں کے اعلانات`
+                  : activeLang === 'ar'
+                  ? `إعلانات كافة الأشهر الهجرية لعام ${selectedYear} هـ`
+                  : `Monthly Declarations Archive for ${selectedYear} Hijri`}
+              </span>
             </h2>
             <p className="text-xs sm:text-sm text-slate-500">
-              Annual circular archive for the year {selectedYear} Hijri
+              {activeLang === 'ur'
+                ? `سال ${selectedYear} ہجری کے باضابطہ رؤیتِ ہلال سرکلرز کا مکمل آرکائیو`
+                : activeLang === 'ar'
+                ? `أرشيف التعاميم الشهرية الرسمية لعام ${selectedYear} هـ`
+                : `Annual circular archive for the year ${selectedYear} Hijri`}
             </p>
           </div>
         </div>
@@ -257,10 +340,10 @@ const MoonSightingPage = () => {
                       </span>
                       <div>
                         <h3 className="font-urdu text-lg sm:text-xl font-black text-slate-900 leading-none">
-                          {month.ur}
+                          {activeLang === 'ur' ? month.ur : month.en}
                         </h3>
                         <p className="text-[11px] font-semibold text-slate-500 mt-0.5">
-                          {month.en} • {selectedYear} H
+                          {activeLang === 'ur' ? month.en : month.ur} • {selectedYear} AH
                         </p>
                       </div>
                     </div>
@@ -291,7 +374,7 @@ const MoonSightingPage = () => {
                       <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-transparent to-transparent flex items-end p-3">
                         <span className="inline-flex items-center gap-1 text-[11px] font-medium text-white/90 bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-lg">
                           <EyeIcon className="w-3.5 h-3.5" />
-                          <span>بڑا پوسٹر دیکھیں</span>
+                          <span>{activeLang === 'ur' ? 'بڑا پوسٹر دیکھیں' : activeLang === 'ar' ? 'عرض الملصق' : 'View Full HD'}</span>
                         </span>
                       </div>
                     </div>
@@ -299,10 +382,10 @@ const MoonSightingPage = () => {
                     <div className="aspect-[4/3] m-3.5 rounded-2xl bg-slate-100/70 border border-slate-200/50 flex flex-col items-center justify-center text-center p-4">
                       <span className="text-3xl mb-1.5 opacity-40">🌙</span>
                       <p className="font-urdu text-sm font-bold text-slate-600">
-                        اعلان کا انتظار
+                        {activeLang === 'ur' ? 'اعلان کا انتظار' : activeLang === 'ar' ? 'في انتظار الإعلان' : 'Declaration Pending'}
                       </p>
                       <p className="text-[10px] text-slate-400 mt-0.5">
-                        Declaration Pending
+                        {activeLang === 'ur' ? 'سرکلر جاری ہونا باقی ہے' : 'Awaiting Circular'}
                       </p>
                     </div>
                   )}
@@ -334,14 +417,14 @@ const MoonSightingPage = () => {
                             onClick={() => setActiveModalItem(item)}
                             className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition shadow-xs cursor-pointer"
                           >
-                            <span>دیکھیں</span>
+                            <span>{activeLang === 'ur' ? 'دیکھیں' : activeLang === 'ar' ? 'عرض' : 'View'}</span>
                             <ArrowTopRightOnSquareIcon className="w-3 h-3" />
                           </button>
                         </div>
                       </>
                     ) : (
                       <span className="text-[11px] text-slate-400 italic">
-                        No circular uploaded yet
+                        {activeLang === 'ur' ? 'ابھی تک کوئی سرکلر اپلوڈ نہیں ہوا' : 'No circular uploaded yet'}
                       </span>
                     )}
                   </div>
@@ -366,7 +449,7 @@ const MoonSightingPage = () => {
             <div className="p-4 sm:p-5 flex items-center justify-between border-b border-slate-800 bg-slate-900/90">
               <div className="flex items-center gap-2.5">
                 <span className="px-3 py-1 rounded-xl text-xs font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40">
-                  🌙 رؤیت ہلال اعلان
+                  {activeLang === 'ur' ? '🌙 رؤیتِ ہلال اعلان' : activeLang === 'ar' ? '🌙 إعلان رؤية الهلال' : '🌙 Moon Announcement'}
                 </span>
                 {activeModalItem.event_date && (
                   <span className="text-white/90 text-xs font-semibold px-2.5 py-1 rounded-xl bg-white/10 border border-white/10">
@@ -391,7 +474,7 @@ const MoonSightingPage = () => {
             <div className="relative flex-1 min-h-[320px] max-h-[66vh] bg-black/70 flex items-center justify-center overflow-auto p-3">
               <img
                 src={resolveImageUrl(activeModalItem.image_url)}
-                alt={activeModalItem.title_en || 'Moon Circular'}
+                alt={getItemTitle(activeModalItem)}
                 className="max-h-[63vh] max-w-full object-contain rounded-xl shadow-2xl"
               />
             </div>
@@ -400,11 +483,11 @@ const MoonSightingPage = () => {
             <div className="p-4 sm:p-5 border-t border-slate-800 bg-slate-900/95 flex flex-wrap items-center justify-between gap-3">
               <div>
                 <h4 className="text-white font-bold text-sm sm:text-base">
-                  {activeModalItem.title_en || activeModalItem.title_ur || 'رؤیت ہلال اعلان'}
+                  {getItemTitle(activeModalItem)}
                 </h4>
-                {(activeModalItem.caption_en || activeModalItem.caption_ur) && (
+                {getItemCaption(activeModalItem) && (
                   <p className="text-xs text-slate-400 mt-0.5 max-w-md">
-                    {activeModalItem.caption_en || activeModalItem.caption_ur}
+                    {getItemCaption(activeModalItem)}
                   </p>
                 )}
               </div>
@@ -412,11 +495,11 @@ const MoonSightingPage = () => {
               <div className="flex items-center gap-2">
                 <button
                   type="button"
-                  onClick={() => downloadImage(resolveImageUrl(activeModalItem.image_url), activeModalItem.title_en)}
+                  onClick={() => downloadImage(resolveImageUrl(activeModalItem.image_url), getItemTitle(activeModalItem))}
                   className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold transition cursor-pointer border border-slate-700"
                 >
                   <ArrowDownTrayIcon className="w-4 h-4" />
-                  <span>Download</span>
+                  <span>{activeLang === 'ur' ? 'ڈاؤن لوڈ' : activeLang === 'ar' ? 'تحميل' : 'Download'}</span>
                 </button>
                 <button
                   type="button"
@@ -424,7 +507,7 @@ const MoonSightingPage = () => {
                   className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-md transition cursor-pointer"
                 >
                   <ShareIcon className="w-4 h-4" />
-                  <span>Share WhatsApp</span>
+                  <span>{activeLang === 'ur' ? 'واٹس ایپ شیئر' : activeLang === 'ar' ? 'مشاركة واتساب' : 'Share WhatsApp'}</span>
                 </button>
               </div>
             </div>
