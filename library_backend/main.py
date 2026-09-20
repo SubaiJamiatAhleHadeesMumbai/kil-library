@@ -172,6 +172,7 @@ def sync_database_schema():
         "ALTER TABLE gallery_items ADD COLUMN IF NOT EXISTS item_type VARCHAR(50) DEFAULT 'photo';",
         "ALTER TABLE gallery_items ADD COLUMN IF NOT EXISTS event_date VARCHAR(50);",
         "ALTER TABLE gallery_items ADD COLUMN IF NOT EXISTS hijri_month VARCHAR(50);",
+        "ALTER TABLE gallery_items ADD COLUMN IF NOT EXISTS year INTEGER;",
         # book_permissions & access_requests_user (Deadline System)
         "ALTER TABLE book_permissions ADD COLUMN IF NOT EXISTS expires_at TIMESTAMP;",
         "ALTER TABLE access_requests_user ADD COLUMN IF NOT EXISTS expires_at TIMESTAMP;",
