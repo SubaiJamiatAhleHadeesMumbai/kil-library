@@ -37,6 +37,19 @@ import {
     DocumentArrowUpIcon
 } from '@heroicons/react/24/outline';
 
+const API_BASE_URL =
+    import.meta.env.VITE_API_BASE_URL ||
+    (import.meta.env.PROD ? '' : 'http://127.0.0.1:8000');
+
+const toAbsoluteUrl = (value) => {
+    if (!value) return '';
+    if (value.startsWith('http://') || value.startsWith('https://')) return value;
+    const clean = value.startsWith('/') ? value : `/${value}`;
+    return `${API_BASE_URL}${clean}`;
+};
+
+const isUrduText = (str) => /[\u0600-\u06FF]/.test(str || '');
+
 // --- SKELETON LOADER COMPONENT ---
 const TableSkeleton = () => (
     <div className="space-y-4">
@@ -413,53 +426,61 @@ const BookManagement = () => {
                 </div>
             </div>
 
-            {/* --- CONTROLS & FILTER TABS --- */}
-            <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-200/80 flex flex-col md:flex-row items-center justify-between gap-4">
-                
-                {/* Search Input */}
-                <div className="relative w-full md:w-96">
-                    <MagnifyingGlassIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                    <input
-                        type="text"
-                        placeholder="Search title, author, ISBN, language..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full pl-10 pr-9 py-2.5 bg-slate-50 text-xs font-medium text-slate-800 placeholder-slate-400 rounded-xl border border-slate-200 focus:bg-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all"
-                    />
-                    {searchTerm && (
-                        <button 
-                            onClick={() => setSearchTerm('')} 
-                            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-                        >
-                            <XMarkIcon className="w-4 h-4" />
-                        </button>
-                    )}
-                </div>
+            {/* --- CONTROLS & FILTER TABS (PRO RESPONSIVE) --- */}
+            <div className="bg-white p-4 sm:p-5 rounded-3xl shadow-xs border border-slate-200/80 space-y-3.5">
+                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3.5">
+                    
+                    {/* Search Input */}
+                    <div className="relative flex-1 max-w-xl">
+                        <MagnifyingGlassIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                        <input
+                            type="text"
+                            placeholder="Search title, author, ISBN, serial, publisher..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="w-full pl-10 pr-9 py-2.5 bg-slate-50 text-xs font-semibold text-slate-800 placeholder-slate-400 rounded-2xl border border-slate-200 focus:bg-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all shadow-2xs"
+                        />
+                        {searchTerm && (
+                            <button 
+                                onClick={() => setSearchTerm('')} 
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
+                                title="Clear Search"
+                            >
+                                <XMarkIcon className="w-4 h-4" />
+                            </button>
+                        )}
+                    </div>
 
-                {/* Status Quick Filter Pills */}
-                <div className="flex items-center gap-1.5 overflow-x-auto w-full md:w-auto pb-1 md:pb-0 scrollbar-none">
-                    {[
-                        { key: 'ALL', label: 'All Books' },
-                        { key: 'PUBLIC', label: 'Live / Public' },
-                        { key: 'HIDDEN', label: '🙈 Hidden (چھپی ہوئی)' },
-                        { key: 'UNAPPROVED', label: '⏳ Pending Approval' },
-                        { key: 'RESTRICTED', label: 'Restricted' },
-                        { key: 'DIGITAL', label: 'Digital Only' },
-                    ].map(tab => (
-                        <button
-                            key={tab.key}
-                            onClick={() => setStatusFilter(tab.key)}
-                            className={`
-                                px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all duration-200
-                                ${statusFilter === tab.key 
-                                    ? 'bg-slate-900 text-emerald-400 shadow-sm border border-slate-800' 
-                                    : 'text-slate-600 hover:bg-slate-100 border border-transparent'
-                                }
-                            `}
-                        >
-                            {tab.label}
-                        </button>
-                    ))}
+                    {/* Status Quick Filter Pills with Counts */}
+                    <div className="flex items-center gap-1.5 overflow-x-auto w-full lg:w-auto pb-1 lg:pb-0 scrollbar-none">
+                        {[
+                            { key: 'ALL', label: 'All Books', count: stats.total },
+                            { key: 'PUBLIC', label: 'Live / Public', count: stats.publicAccess },
+                            { key: 'HIDDEN', label: 'Hidden (چھپی ہوئی)', count: stats.hidden },
+                            { key: 'UNAPPROVED', label: 'Pending Approval', count: null },
+                            { key: 'RESTRICTED', label: 'Restricted', count: stats.restricted },
+                            { key: 'DIGITAL', label: 'Digital Only', count: stats.digitalOnly },
+                        ].map(tab => (
+                            <button
+                                key={tab.key}
+                                onClick={() => setStatusFilter(tab.key)}
+                                className={`
+                                    px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all duration-200 flex items-center gap-1.5 cursor-pointer active:scale-95
+                                    ${statusFilter === tab.key 
+                                        ? 'bg-slate-900 text-emerald-400 shadow-sm border border-slate-800' 
+                                        : 'text-slate-600 hover:bg-slate-100 border border-transparent'
+                                    }
+                                `}
+                            >
+                                <span>{tab.label}</span>
+                                {tab.count !== undefined && tab.count !== null && (
+                                    <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-extrabold ${statusFilter === tab.key ? 'bg-slate-800 text-emerald-300' : 'bg-slate-200 text-slate-700'}`}>
+                                        {Number(tab.count).toLocaleString()}
+                                    </span>
+                                )}
+                            </button>
+                        ))}
+                    </div>
                 </div>
             </div>
 
@@ -468,18 +489,18 @@ const BookManagement = () => {
                 
                 {/* Bulk Actions Toolbar */}
                 {selectedBooks.size > 0 && (
-                  <div className="flex flex-wrap items-center gap-2 sm:gap-3 px-6 py-4 bg-indigo-50 border-b border-indigo-100">
+                  <div className="flex flex-wrap items-center gap-2 sm:gap-3 px-6 py-4 bg-indigo-50 border-b border-indigo-100 animate-in fade-in">
                     <span className="text-sm font-bold text-indigo-700 mr-1">{selectedBooks.size} selected</span>
-                    <button disabled={bulkActionLoading} onClick={() => handleBulkAction('approve')} className="px-3.5 py-1.5 text-xs font-bold bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition disabled:opacity-50 shadow-xs flex items-center gap-1.5">
+                    <button disabled={bulkActionLoading} onClick={() => handleBulkAction('approve')} className="px-3.5 py-1.5 text-xs font-bold bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition disabled:opacity-50 shadow-xs flex items-center gap-1.5 cursor-pointer">
                       <CheckCircleIcon className="w-4 h-4" /> Approve Selected
                     </button>
-                    <button disabled={bulkActionLoading} onClick={() => handleBulkAction('reject')} className="px-3.5 py-1.5 text-xs font-bold bg-amber-600 text-white rounded-xl hover:bg-amber-700 transition disabled:opacity-50 shadow-xs flex items-center gap-1.5">
+                    <button disabled={bulkActionLoading} onClick={() => handleBulkAction('reject')} className="px-3.5 py-1.5 text-xs font-bold bg-amber-600 text-white rounded-xl hover:bg-amber-700 transition disabled:opacity-50 shadow-xs flex items-center gap-1.5 cursor-pointer">
                       <XCircleIcon className="w-4 h-4" /> Reject Selected
                     </button>
-                    <button disabled={bulkActionLoading} onClick={() => handleBulkAction('restrict')} className="px-3 py-1.5 text-xs font-bold bg-amber-100 text-amber-700 rounded-xl hover:bg-amber-200 transition disabled:opacity-50">Restrict</button>
-                    <button disabled={bulkActionLoading} onClick={() => handleBulkAction('unrestrict')} className="px-3 py-1.5 text-xs font-bold bg-emerald-100 text-emerald-700 rounded-xl hover:bg-emerald-200 transition disabled:opacity-50">Unrestrict</button>
-                    <button disabled={bulkActionLoading} onClick={() => handleBulkAction('delete')} className="px-3 py-1.5 text-xs font-bold bg-red-100 text-red-700 rounded-xl hover:bg-red-200 transition disabled:opacity-50">Delete</button>
-                    <button disabled={bulkActionLoading} onClick={() => setSelectedBooks(new Set())} className="ml-auto px-3 py-1.5 text-xs font-bold bg-slate-100 text-slate-600 rounded-xl hover:bg-slate-200 transition disabled:opacity-50">Clear</button>
+                    <button disabled={bulkActionLoading} onClick={() => handleBulkAction('restrict')} className="px-3 py-1.5 text-xs font-bold bg-amber-100 text-amber-700 rounded-xl hover:bg-amber-200 transition disabled:opacity-50 cursor-pointer">Restrict</button>
+                    <button disabled={bulkActionLoading} onClick={() => handleBulkAction('unrestrict')} className="px-3 py-1.5 text-xs font-bold bg-emerald-100 text-emerald-700 rounded-xl hover:bg-emerald-200 transition disabled:opacity-50 cursor-pointer">Unrestrict</button>
+                    <button disabled={bulkActionLoading} onClick={() => handleBulkAction('delete')} className="px-3 py-1.5 text-xs font-bold bg-red-100 text-red-700 rounded-xl hover:bg-red-200 transition disabled:opacity-50 cursor-pointer">Delete</button>
+                    <button disabled={bulkActionLoading} onClick={() => setSelectedBooks(new Set())} className="ml-auto px-3 py-1.5 text-xs font-bold bg-slate-100 text-slate-600 rounded-xl hover:bg-slate-200 transition disabled:opacity-50 cursor-pointer">Clear</button>
                   </div>
                 )}
 
@@ -487,7 +508,10 @@ const BookManagement = () => {
                 <div className="px-6 py-3.5 bg-slate-50/90 border-b border-slate-200/80 flex flex-wrap items-center justify-between gap-3">
 
                     <div className="flex flex-wrap items-center gap-3">
-                        <span className="text-xs font-black text-slate-700 uppercase tracking-wider">Book Information</span>
+                        <span className="inline-flex items-center gap-1.5 text-xs font-extrabold text-slate-800 uppercase tracking-wider">
+                            <BookOpenIcon className="w-4 h-4 text-emerald-600" />
+                            <span>Catalog Table</span>
+                        </span>
                         <span className="text-slate-300 hidden sm:inline">•</span>
                         <div className="flex items-center gap-2">
                             <span className="text-xs font-semibold text-slate-500">Rows per page:</span>
@@ -507,8 +531,13 @@ const BookManagement = () => {
                                 </select>
                                 <ChevronDownIcon className="w-3.5 h-3.5 text-slate-500 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
                             </div>
-                            <span className="text-xs text-slate-400">
-                                Showing {(currentPage - 1) * itemsPerPage + 1} - {Math.min(currentPage * itemsPerPage, filteredBooks.length)} of {filteredBooks.length}
+                            <span className="text-xs text-slate-500 font-medium">
+                                Showing {(currentPage - 1) * itemsPerPage + 1} - {Math.min(currentPage * itemsPerPage, filteredBooks.length)} of {filteredBooks.length.toLocaleString()} books
+                                {allBooks.length < stats.total && (
+                                    <span className="text-slate-400 font-normal ml-1">
+                                        (Loaded {allBooks.length.toLocaleString()} of {stats.total.toLocaleString()} total)
+                                    </span>
+                                )}
                             </span>
                         </div>
                     </div>
@@ -518,17 +547,17 @@ const BookManagement = () => {
                             <button
                                 onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                                 disabled={currentPage === 1}
-                                className="inline-flex items-center gap-1 px-2.5 py-1 border border-slate-200 rounded-lg bg-white text-xs font-bold text-slate-700 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-2xs"
+                                className="inline-flex items-center gap-1 px-2.5 py-1 border border-slate-200 rounded-lg bg-white text-xs font-bold text-slate-700 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-2xs cursor-pointer"
                             >
                                 <ChevronLeftIcon className="w-3.5 h-3.5" /> Prev
                             </button>
-                            <span className="text-xs text-slate-600 font-bold px-1.5">
+                            <span className="text-xs text-slate-700 font-bold px-1.5">
                                 {currentPage} / {totalPages}
                             </span>
                             <button
                                 onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                                 disabled={currentPage === totalPages}
-                                className="inline-flex items-center gap-1 px-2.5 py-1 border border-slate-200 rounded-lg bg-white text-xs font-bold text-slate-700 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-2xs"
+                                className="inline-flex items-center gap-1 px-2.5 py-1 border border-slate-200 rounded-lg bg-white text-xs font-bold text-slate-700 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-2xs cursor-pointer"
                             >
                                 Next <ChevronRightIcon className="w-3.5 h-3.5" />
                             </button>
@@ -541,195 +570,249 @@ const BookManagement = () => {
                         <TableSkeleton />
                     </div>
                 ) : filteredBooks.length > 0 ? (
-                    <div className="overflow-x-auto max-h-[700px]">
-                        <table className="w-full text-left border-collapse">
-                            <thead className="sticky top-0 bg-slate-50/95 z-10 backdrop-blur-xs shadow-2xs">
-                                <tr className="bg-slate-50/50 border-b border-slate-200/80 text-[11px] font-black text-slate-500 uppercase tracking-widest">
-                                    <th className="px-6 py-4 w-12 text-center">
+                    <div className="overflow-x-auto relative">
+                        <table className="w-full text-left border-collapse min-w-[980px]">
+                            <thead className="bg-slate-100/90 sticky top-0 z-10 border-b border-slate-200 text-[11px] font-black text-slate-500 uppercase tracking-wider backdrop-blur-xs">
+                                <tr>
+                                    <th className="px-4 py-3.5 w-12 text-center">
                                         <input 
                                             type="checkbox" 
-                                            className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
+                                            className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
                                             checked={paginatedBooks.length > 0 && selectedBooks.size === paginatedBooks.length}
                                             onChange={toggleSelectAll}
                                         />
                                     </th>
-                                    <th className="px-6 py-4">Book Details</th>
-                                    <th className="px-6 py-4">ISBN & Language</th>
-                                    <th className="px-6 py-4 text-center">Files & Media</th>
-                                    <th className="px-6 py-4 text-center">Access Level</th>
-                                    <th className="px-6 py-4 text-right">Actions</th>
+                                    <th className="px-4 py-3.5 min-w-[280px]">Book Details & Metadata</th>
+                                    <th className="px-4 py-3.5 w-36">ISBN & Language</th>
+                                    <th className="px-4 py-3.5 w-32 text-center">Files & Media</th>
+                                    <th className="px-4 py-3.5 w-36 text-center">Access & Status</th>
+                                    <th className="px-4 py-3.5 w-44 text-right sticky right-0 bg-slate-100/95 backdrop-blur-xs z-20 shadow-[-4px_0_6px_-2px_rgba(0,0,0,0.06)]">
+                                        Actions
+                                    </th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100 text-xs font-medium">
-                                {paginatedBooks.map((book) => (
-                                    <tr key={book.id} className="hover:bg-slate-50/80 transition-colors group">
-                                        
-                                        <td className="px-6 py-4 text-center">
-                                            <input 
-                                                type="checkbox" 
-                                                className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
-                                                checked={selectedBooks.has(book.id)}
-                                                onChange={() => toggleSelectBook(book.id)}
-                                            />
-                                        </td>
-                                        
-                                        {/* Book Title, Author & Metadata */}
-                                        <td className="px-6 py-4">
-                                            <div className="flex items-center gap-4">
-                                                {/* Serial / ID Fallback */}
-                                                <div className="h-12 w-12 flex-shrink-0 bg-gradient-to-tr from-slate-900 to-slate-800 text-emerald-400 rounded-xl flex flex-col items-center justify-center font-bold text-xs shadow-md border border-slate-700">
-                                                    <span>{book.serial_number ? `#${book.serial_number}` : `#${book.id}`}</span>
+                                {paginatedBooks.map((book) => {
+                                    const isUrdu = isUrduText(book.title);
+
+                                    return (
+                                        <tr key={book.id} className="hover:bg-slate-50/80 transition-colors group">
+                                            
+                                            {/* Checkbox */}
+                                            <td className="px-4 py-3.5 text-center">
+                                                <input 
+                                                    type="checkbox" 
+                                                    className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
+                                                    checked={selectedBooks.has(book.id)}
+                                                    onChange={() => toggleSelectBook(book.id)}
+                                                />
+                                            </td>
+                                            
+                                            {/* Book Thumbnail + Details */}
+                                            <td className="px-4 py-3.5">
+                                                <div className="flex items-start gap-3.5">
+                                                    {/* Book Cover / Spine Thumbnail */}
+                                                    <div className="shrink-0 relative group/thumb">
+                                                        {book.cover_image_url ? (
+                                                            <img
+                                                                src={toAbsoluteUrl(book.cover_image_url)}
+                                                                alt={book.title}
+                                                                className="w-11 h-15 object-cover rounded-lg shadow-sm border border-slate-200 bg-slate-100"
+                                                                loading="lazy"
+                                                                onError={(e) => {
+                                                                    e.currentTarget.onerror = null;
+                                                                    e.currentTarget.style.display = 'none';
+                                                                }}
+                                                            />
+                                                        ) : (
+                                                            <div className="w-11 h-15 rounded-lg bg-gradient-to-b from-slate-800 via-slate-900 to-slate-950 text-slate-300 flex flex-col items-center justify-between p-1.5 shadow-sm border border-slate-700/60">
+                                                                <BookOpenIcon className="w-4 h-4 text-emerald-400 mt-1" />
+                                                                <span className="font-mono text-[8px] font-bold text-emerald-300 truncate w-full text-center">
+                                                                    {book.serial_number ? `#${book.serial_number}` : `#${book.id}`}
+                                                                </span>
+                                                            </div>
+                                                        )}
+                                                    </div>
+
+                                                    {/* Title, Author, Publisher & Badges */}
+                                                    <div className="min-w-0 flex-1 space-y-1">
+                                                        <div className="flex items-baseline gap-2 flex-wrap">
+                                                            <h3 
+                                                                onClick={() => handleViewClick(book)}
+                                                                className={`font-bold text-slate-900 leading-snug hover:text-emerald-700 transition-colors cursor-pointer line-clamp-2 ${isUrdu ? 'font-urdu text-base' : 'text-sm'}`}
+                                                                dir="auto"
+                                                                title={book.title}
+                                                            >
+                                                                {book.title || 'Untitled Book'}
+                                                            </h3>
+                                                        </div>
+
+                                                        {/* Author & Publisher */}
+                                                        <p className="text-[11px] text-slate-500 line-clamp-1 leading-normal" dir="auto">
+                                                            <span className="font-semibold text-slate-700">{book.author || 'Unknown Author'}</span>
+                                                            {book.translator && (
+                                                                <span className="text-slate-400"> (ترجمہ: {book.translator})</span>
+                                                            )}
+                                                            {book.publisher && (
+                                                                <span className="text-slate-400"> — {book.publisher}</span>
+                                                            )}
+                                                        </p>
+
+                                                        {/* Micro Metadata Badges */}
+                                                        <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
+                                                            {book.serial_number && (
+                                                                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-slate-100 text-slate-700 border border-slate-200">
+                                                                    SR: #{book.serial_number}
+                                                                </span>
+                                                            )}
+                                                            {book.book_number && (
+                                                                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-slate-100 text-slate-700 border border-slate-200">
+                                                                    BK: {book.book_number}
+                                                                </span>
+                                                            )}
+                                                            {book.parts_or_volumes && (
+                                                                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-emerald-50 text-emerald-800 border border-emerald-200">
+                                                                    جلد: {book.parts_or_volumes}
+                                                                </span>
+                                                            )}
+                                                            {book.page_count && (
+                                                                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-slate-100 text-slate-600">
+                                                                    {book.page_count} صفحات
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                    </div>
                                                 </div>
-                                                <div className="min-w-0">
-                                                    <h3 className="font-bold text-slate-900 text-sm truncate group-hover:text-emerald-700 transition-colors">
-                                                        {book.title || 'Untitled Book'}
-                                                    </h3>
-                                                    <p className="text-slate-500 text-xs truncate mt-0.5">
-                                                        {book.author || 'Unknown Author'}
-                                                        {book.translator && <span className="text-slate-400 font-medium"> (ترجمہ: {book.translator})</span>}
-                                                        {book.publisher && <span className="text-slate-400 font-medium"> — {book.publisher}</span>}
-                                                    </p>
-                                                    <div className="flex items-center gap-1.5 mt-1 flex-wrap">
-                                                        {book.book_number && (
-                                                            <span className="text-[10px] bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded font-mono font-bold">
-                                                                BK: {book.book_number}
+                                            </td>
+
+                                            {/* ISBN & Language */}
+                                            <td className="px-4 py-3.5 whitespace-nowrap">
+                                                <div className="space-y-1">
+                                                    <div className="font-mono text-xs font-semibold text-slate-800">
+                                                        {book.isbn || <span className="text-slate-400 font-normal italic">No ISBN</span>}
+                                                    </div>
+                                                    <span className="inline-block px-2 py-0.5 text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-100 rounded-md">
+                                                        {book.language?.name || 'Urdu'}
+                                                    </span>
+                                                </div>
+                                            </td>
+
+                                            {/* File Indicators */}
+                                            <td className="px-4 py-3.5 whitespace-nowrap text-center">
+                                                <div className="inline-flex flex-col items-center gap-1">
+                                                    {book.pdf_url ? (
+                                                        <span title="PDF File Attached" className="p-1.5 bg-emerald-50 text-emerald-700 rounded-lg border border-emerald-200 shadow-2xs inline-flex items-center gap-1 font-bold text-[10px]">
+                                                            <DocumentIcon className="w-3.5 h-3.5 text-emerald-600" />
+                                                            <span>PDF Ready</span>
+                                                        </span>
+                                                    ) : (
+                                                        <span className="px-2 py-0.5 text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200 rounded-md inline-flex items-center gap-1">
+                                                            <ClockIcon className="w-3 h-3 text-amber-600" />
+                                                            <span>No PDF</span>
+                                                        </span>
+                                                    )}
+                                                    
+                                                    {book.txt_file_url && (
+                                                        <span title="Text/Research File Attached" className="p-1 bg-indigo-50 text-indigo-600 rounded-md border border-indigo-100 shadow-2xs text-[9px] font-bold inline-flex items-center gap-0.5">
+                                                            <DocumentTextIcon className="w-3 h-3" />
+                                                            <span>TXT</span>
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </td>
+
+                                            {/* Status & Visibility Badges */}
+                                            <td className="px-4 py-3.5 whitespace-nowrap text-center">
+                                                <div className="flex flex-col items-center gap-1">
+                                                    {/* 1-Click Visibility Toggle */}
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleToggleVisibility(book)}
+                                                        title={book.is_hidden ? "Click to make Live for public" : "Click to Hide from public"}
+                                                        className={`
+                                                            inline-flex items-center gap-1 px-2.5 py-0.5 text-[10px] font-extrabold rounded-full border transition-all cursor-pointer active:scale-95 shadow-2xs
+                                                            ${book.is_hidden
+                                                                ? 'bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100 hover:border-rose-300'
+                                                                : 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100 hover:border-emerald-300'
+                                                            }
+                                                        `}
+                                                    >
+                                                        {book.is_hidden ? (
+                                                            <>
+                                                                <EyeSlashIcon className="w-3.5 h-3.5 text-rose-600 stroke-[2.5]" />
+                                                                <span>Hidden</span>
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <EyeIcon className="w-3.5 h-3.5 text-emerald-600 stroke-[2.5]" />
+                                                                <span>Live (پبلک)</span>
+                                                            </>
+                                                        )}
+                                                    </button>
+
+                                                    <div className="flex items-center gap-1">
+                                                        {book.is_approved ? (
+                                                            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded text-[9px] font-bold bg-slate-100 text-slate-600 border border-slate-200">
+                                                                <CheckCircleIcon className="w-2.5 h-2.5 text-slate-500" />
+                                                                Approved
+                                                            </span>
+                                                        ) : (
+                                                            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded text-[9px] font-bold bg-amber-50 text-amber-800 border border-amber-200 animate-pulse">
+                                                                Pending
                                                             </span>
                                                         )}
-                                                        {book.parts_or_volumes && (
-                                                            <span className="text-[10px] bg-emerald-50 text-emerald-700 px-1.5 py-0.5 rounded font-medium">
-                                                                جلد: {book.parts_or_volumes}
-                                                            </span>
-                                                        )}
-                                                        {book.page_count && (
-                                                            <span className="text-[10px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded">
-                                                                {book.page_count} صفحات
+                                                        {book.is_restricted && (
+                                                            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded text-[9px] font-bold bg-red-50 text-red-700 border border-red-200">
+                                                                <LockClosedIcon className="w-2.5 h-2.5 text-red-600" />
+                                                                Restricted
                                                             </span>
                                                         )}
                                                     </div>
                                                 </div>
-                                            </div>
-                                        </td>
+                                            </td>
 
-                                        {/* ISBN & Language */}
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <div className="text-slate-900 font-semibold">{book.isbn || 'N/A'}</div>
-                                            <span className="inline-block mt-0.5 px-2 py-0.5 text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-100 rounded-md">
-                                                {book.language?.name || 'Urdu'}
-                                            </span>
-                                        </td>
-
-                                        {/* File Indicators */}
-                                        <td className="px-6 py-4 whitespace-nowrap text-center">
-                                            <div className="flex items-center justify-center gap-2">
-                                                {book.pdf_url ? (
-                                                    <span title="PDF File Attached" className="p-1.5 bg-rose-50 text-rose-600 rounded-lg border border-rose-100 shadow-2xs inline-flex items-center gap-1 font-bold text-[10px]">
-                                                        <DocumentIcon className="w-4 h-4" />
-                                                        <span>PDF</span>
-                                                    </span>
-                                                ) : (
-                                                    <span className="px-2 py-0.5 text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200 rounded-md">
-                                                        Pending PDF
-                                                    </span>
-                                                )}
-                                                
-                                                {book.txt_file_url ? (
-                                                    <span title="Text/Research File Attached" className="p-1.5 bg-indigo-50 text-indigo-600 rounded-lg border border-indigo-100 shadow-2xs">
-                                                        <DocumentTextIcon className="w-4 h-4" />
-                                                    </span>
-                                                ) : null}
-                                            </div>
-                                        </td>
-
-                                        {/* Status & Visibility Badges */}
-                                        <td className="px-6 py-4 whitespace-nowrap text-center">
-                                            <div className="flex flex-col items-center gap-1.5">
-                                                {/* 1-Click Visibility Toggle */}
-                                                <button
-                                                    type="button"
-                                                    onClick={() => handleToggleVisibility(book)}
-                                                    title={book.is_hidden ? "Click to make Live for public" : "Click to Hide from public"}
-                                                    className={`
-                                                        inline-flex items-center gap-1 px-2.5 py-0.5 text-[10px] font-extrabold rounded-full border transition-all cursor-pointer active:scale-95 shadow-2xs
-                                                        ${book.is_hidden
-                                                            ? 'bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100 hover:border-rose-300'
-                                                            : 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100 hover:border-emerald-300'
-                                                        }
-                                                    `}
-                                                >
-                                                    {book.is_hidden ? (
-                                                        <>
-                                                            <EyeSlashIcon className="w-3.5 h-3.5 text-rose-600 stroke-[2.5]" />
-                                                            <span>Hidden (چھپی ہوئی)</span>
-                                                        </>
-                                                    ) : (
-                                                        <>
-                                                            <EyeIcon className="w-3.5 h-3.5 text-emerald-600 stroke-[2.5]" />
-                                                            <span>Live (پبلک)</span>
-                                                        </>
+                                            {/* Actions (Sticky on right) */}
+                                            <td className="px-4 py-3.5 whitespace-nowrap text-right sticky right-0 bg-white/95 backdrop-blur-xs group-hover:bg-slate-50/95 z-10 shadow-[-4px_0_6px_-2px_rgba(0,0,0,0.06)]">
+                                                <div className="flex items-center justify-end gap-1">
+                                                    {!book.pdf_url && (
+                                                        <button
+                                                            onClick={() => handleEditClick(book)}
+                                                            className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-xs transition-all active:scale-95 whitespace-nowrap mr-0.5 cursor-pointer"
+                                                            title="Attach PDF file to this book"
+                                                        >
+                                                            <DocumentArrowUpIcon className="w-3.5 h-3.5" />
+                                                            <span>+ PDF</span>
+                                                        </button>
                                                     )}
-                                                </button>
 
-                                                {book.is_approved ? (
-                                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[9px] font-bold rounded-full bg-slate-100 text-slate-600 border border-slate-200">
-                                                        <CheckCircleIcon className="w-2.5 h-2.5 text-slate-500 stroke-[2.5]" />
-                                                        Approved
-                                                    </span>
-                                                ) : (
-                                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[9px] font-bold rounded-full bg-amber-50 text-amber-800 border border-amber-300 animate-pulse">
-                                                        <ClockIcon className="w-2.5 h-2.5 text-amber-600 stroke-[2.5]" />
-                                                        Pending Approval
-                                                    </span>
-                                                )}
-                                                {book.is_restricted && (
-                                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[9px] font-bold rounded-full bg-amber-50 text-amber-800 border border-amber-200">
-                                                        <LockClosedIcon className="w-2.5 h-2.5 text-amber-600 stroke-[2.5]" />
-                                                        Restricted
-                                                    </span>
-                                                )}
-                                            </div>
-                                        </td>
-
-                                        {/* Actions */}
-                                        <td className="px-6 py-4 whitespace-nowrap text-right">
-                                            <div className="flex items-center justify-end gap-1.5 opacity-90 group-hover:opacity-100 transition-opacity">
-                                                {!book.pdf_url && (
-                                                    <button
-                                                        onClick={() => handleEditClick(book)}
-                                                        className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-xs transition-all active:scale-95 whitespace-nowrap mr-1"
-                                                        title="Attach PDF file to this book"
+                                                    <button 
+                                                        onClick={() => handleViewClick(book)} 
+                                                        className="p-1.5 text-slate-500 hover:text-emerald-700 hover:bg-emerald-50 rounded-xl transition-colors cursor-pointer" 
+                                                        title="View Book Details"
                                                     >
-                                                        <DocumentArrowUpIcon className="w-3.5 h-3.5" />
-                                                        <span>Attach PDF</span>
+                                                        <EyeIcon className="w-4 h-4" />
                                                     </button>
-                                                )}
 
-                                                <button 
-                                                    onClick={() => handleViewClick(book)} 
-                                                    className="p-2 text-slate-500 hover:text-emerald-700 hover:bg-emerald-50 rounded-xl transition-colors" 
-                                                    title="View Book Details"
-                                                >
-                                                    <EyeIcon className="w-4 h-4" />
-                                                </button>
+                                                    <button 
+                                                        onClick={() => handleEditClick(book)} 
+                                                        className="p-1.5 text-slate-500 hover:text-indigo-700 hover:bg-indigo-50 rounded-xl transition-colors cursor-pointer" 
+                                                        title="Edit Metadata"
+                                                    >
+                                                        <PencilSquareIcon className="w-4 h-4" />
+                                                    </button>
 
-                                                <button 
-                                                    onClick={() => handleEditClick(book)} 
-                                                    className="p-2 text-slate-500 hover:text-indigo-700 hover:bg-indigo-50 rounded-xl transition-colors" 
-                                                    title="Edit Metadata"
-                                                >
-                                                    <PencilSquareIcon className="w-4 h-4" />
-                                                </button>
-
-                                                <button 
-                                                    onClick={() => handleDeleteClick(book)} 
-                                                    className="p-2 text-slate-500 hover:text-rose-700 hover:bg-rose-50 rounded-xl transition-colors" 
-                                                    title="Delete Book"
-                                                >
-                                                    <TrashIcon className="w-4 h-4" />
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))}
+                                                    <button 
+                                                        onClick={() => handleDeleteClick(book)} 
+                                                        className="p-1.5 text-slate-500 hover:text-rose-700 hover:bg-rose-50 rounded-xl transition-colors cursor-pointer" 
+                                                        title="Delete Book"
+                                                    >
+                                                        <TrashIcon className="w-4 h-4" />
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
                             </tbody>
                         </table>
                     </div>
