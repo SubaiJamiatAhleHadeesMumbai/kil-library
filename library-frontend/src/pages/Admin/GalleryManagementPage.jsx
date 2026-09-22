@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import galleryService from '../../api/galleryService';
+import { useLanguage } from '../../context/LanguageContext';
 import {
   CloudArrowUpIcon,
   TrashIcon,
@@ -143,6 +144,9 @@ const getFridaySlotLabel = (eventDate) => {
 };
 
 const GalleryManagementPage = () => {
+  const languageCtx = useLanguage();
+  const activeLang = languageCtx?.currentLang || 'ur';
+
   const [activeTab, setActiveTab] = useState('photos'); // 'photos' | 'videos' | 'jumah' | 'moon' | 'albums'
 
   const [albums, setAlbums] = useState([]);
