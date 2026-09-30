@@ -39,6 +39,7 @@ const EMPTY_QUOTE = () => ({
   source_url: '',
   image_url: '',
   document_image_url: '',
+  language: 'ur',
 });
 
 const DRAFT_STORAGE_KEY = 'kil_about_cms_draft';
@@ -134,6 +135,7 @@ export default function AboutSettingsPage() {
 
   // Ulama Pro UX: Search, Pagination & Modal Editor
   const [quoteSearch, setQuoteSearch] = useState('');
+  const [quoteLangFilter, setQuoteLangFilter] = useState('all'); // 'all' | 'ur' | 'en'
   const [quotePage, setQuotePage] = useState(1);
   const quotesPerPage = 10;
   const [isQuoteModalOpen, setIsQuoteModalOpen] = useState(false);
@@ -325,26 +327,66 @@ export default function AboutSettingsPage() {
     setIsQuoteModalOpen(true);
   };
 
-  const handleSaveQuoteFromModal = (e) => {
+  const saveQuotesToBackend = async (newQuotes, successMessage) => {
+    setSaving(true);
+    try {
+      const cleaned = newQuotes.filter(q => q.name?.trim() || q.quote?.trim());
+      const urTitle = langData?.ur?.title?.trim() || fullSettings?.title || 'مرکز الدعوۃ الاسلامیۃ والخیریہ';
+      const urSubtitle = langData?.ur?.subtitle?.trim() || fullSettings?.subtitle || '';
+      const urContent = langData?.ur?.content_html || fullSettings?.content_html || '';
+      const payload = {
+        ...fullSettings,
+        title: urTitle,
+        subtitle: urSubtitle,
+        content_html: urContent,
+        languages: langData || fullSettings?.languages || {},
+        ulma_quotes: cleaned,
+        hero: {
+          ...(fullSettings?.hero || {}),
+          title: urTitle,
+          subtitle: urSubtitle,
+        },
+      };
+      const res = await aboutService.updateAboutSettings(payload);
+      setFullSettings(res?.settings || payload);
+      setUlmaQuotes(cleaned.length > 0 ? cleaned : [EMPTY_QUOTE()]);
+      if (successMessage) toast.success(successMessage);
+      return true;
+    } catch (err) {
+      console.error('Error saving quotes to backend:', err);
+      toast.error(err?.response?.data?.detail || err.message || 'سیٹنگز محفوظ کرنے میں مسئلہ پیش آیا');
+      return false;
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleSaveQuoteFromModal = async (e) => {
     e?.preventDefault();
     if (!quoteFormData.name?.trim() && !quoteFormData.quote?.trim()) {
       toast.error('براہ کرم عالم کا نام یا ان کی رائے درج کریں');
       return;
     }
+    let updatedQuotes = [];
     if (editingQuoteIndex !== null) {
-      setUlmaQuotes(prev => prev.map((q, i) => i === editingQuoteIndex ? { ...quoteFormData } : q));
-      toast.success('عالم کی معلومات اپ ڈیٹ کر دی گئیں');
+      updatedQuotes = ulmaQuotes.map((q, i) => i === editingQuoteIndex ? { ...quoteFormData } : q);
     } else {
-      setUlmaQuotes(prev => [...prev, { ...quoteFormData }]);
-      toast.success('نیا عالم فہرست میں شامل کر دیا گیا');
+      const existing = ulmaQuotes.filter(q => q.name?.trim() || q.quote?.trim());
+      updatedQuotes = [...existing, { ...quoteFormData }];
     }
-    setIsQuoteModalOpen(false);
+    const ok = await saveQuotesToBackend(
+      updatedQuotes,
+      editingQuoteIndex !== null ? 'عالم کی معلومات اپ ڈیٹ اور محفوظ ہو گئیں' : 'نیا عالم کامیابی سے شامل اور محفوظ ہو گیا'
+    );
+    if (ok) {
+      setIsQuoteModalOpen(false);
+    }
   };
 
-  const handleDeleteQuote = (index) => {
-    if (window.confirm('کیا آپ واقعی اس عالم کی رائے کو فہرست سے حذف کرنا چاہتے ہیں؟')) {
-      setUlmaQuotes(prev => prev.filter((_, i) => i !== index));
-      toast.success('رائے حذف کر دی گئی');
+  const handleDeleteQuote = async (index) => {
+    if (window.confirm('کیا آپ واقعی اس عالم کی رائے کو فہرست سے حذف کرنا چاہتے ہیں؟ یہ ڈیٹا بیس سے بھی مستقل حذف ہو جائے گی۔')) {
+      const updatedQuotes = ulmaQuotes.filter((_, i) => i !== index);
+      await saveQuotesToBackend(updatedQuotes, 'رائے کامیابی سے حذف ہو گئی');
     }
   };
 
@@ -424,7 +466,10 @@ export default function AboutSettingsPage() {
   };
 
   const filteredQuotes = useMemo(() => {
-    const list = ulmaQuotes.map((q, idx) => ({ ...q, originalIndex: idx }));
+    let list = ulmaQuotes.map((q, idx) => ({ ...q, originalIndex: idx }));
+    if (quoteLangFilter !== 'all') {
+      list = list.filter(q => (q.language || 'ur') === quoteLangFilter || q.language === 'all');
+    }
     if (!quoteSearch.trim()) return list;
     const term = quoteSearch.toLowerCase().trim();
     return list.filter(q => 
@@ -433,7 +478,7 @@ export default function AboutSettingsPage() {
       (q.quote && q.quote.toLowerCase().includes(term)) ||
       (q.source_text && q.source_text.toLowerCase().includes(term))
     );
-  }, [ulmaQuotes, quoteSearch]);
+  }, [ulmaQuotes, quoteSearch, quoteLangFilter]);
 
   const totalQuotePages = Math.ceil(filteredQuotes.length / quotesPerPage) || 1;
   const paginatedQuotes = useMemo(() => {
@@ -643,55 +688,95 @@ export default function AboutSettingsPage() {
       {adminTab === 'ulama' && (
         <div className="space-y-4">
           {/* Top Control Bar: Search & Actions */}
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xs">
-            {/* Search Input */}
-            <div className="relative flex-1 max-w-md">
-              <MagnifyingGlassIcon className="w-5 h-5 text-slate-400 absolute start-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-              <input
-                type="text"
-                dir="auto"
-                value={quoteSearch}
-                onChange={(e) => {
-                  setQuoteSearch(e.target.value);
-                  setQuotePage(1);
-                }}
-                placeholder="عالم کا نام، عہدہ یا رائے تلاش کریں... (Search 100+ scholars)"
-                className="w-full ps-10 pe-9 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs sm:text-sm text-slate-800 dark:text-slate-200 outline-none focus:ring-2 focus:ring-amber-500 transition"
-              />
-              {quoteSearch && (
+          <div className="flex flex-col gap-3 bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xs">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+              {/* Search Input */}
+              <div className="relative flex-1 max-w-md">
+                <MagnifyingGlassIcon className="w-5 h-5 text-slate-400 absolute start-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <input
+                  type="text"
+                  dir="auto"
+                  value={quoteSearch}
+                  onChange={(e) => {
+                    setQuoteSearch(e.target.value);
+                    setQuotePage(1);
+                  }}
+                  placeholder="عالم کا نام، عہدہ یا رائے تلاش کریں... (Search 100+ scholars)"
+                  className="w-full ps-10 pe-9 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs sm:text-sm text-slate-800 dark:text-slate-200 outline-none focus:ring-2 focus:ring-amber-500 transition"
+                />
+                {quoteSearch && (
+                  <button
+                    type="button"
+                    onClick={() => { setQuoteSearch(''); setQuotePage(1); }}
+                    className="absolute end-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400 hover:text-slate-600"
+                  >
+                    <XMarkIcon className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+
+              {/* Quick Stats & Action Buttons */}
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-slate-500 font-semibold px-2.5 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800">
+                  کل علماء: <strong className="text-amber-700 dark:text-amber-400">{ulmaQuotes.filter(q => q.name?.trim() || q.quote?.trim()).length}</strong>
+                </span>
+
                 <button
                   type="button"
-                  onClick={() => { setQuoteSearch(''); setQuotePage(1); }}
-                  className="absolute end-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400 hover:text-slate-600"
+                  onClick={handleOpenAddQuoteModal}
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold transition cursor-pointer shadow-sm"
                 >
-                  <XMarkIcon className="w-4 h-4" />
+                  <PlusIcon className="w-4 h-4" />
+                  <span>عالم شامل کریں</span>
                 </button>
-              )}
+
+                <button
+                  type="button"
+                  onClick={handleSave}
+                  disabled={saving}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition cursor-pointer shadow-sm disabled:opacity-50"
+                >
+                  {saving ? <ArrowPathIcon className="w-4 h-4 animate-spin" /> : <CheckCircleIcon className="w-4 h-4" />}
+                  <span>محفوظ کریں</span>
+                </button>
+              </div>
             </div>
 
-            {/* Quick Stats & Action Buttons */}
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-slate-500 font-semibold px-2.5 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800">
-                کل علماء: <strong className="text-amber-700 dark:text-amber-400">{ulmaQuotes.filter(q => q.name?.trim() || q.quote?.trim()).length}</strong>
-              </span>
-
+            {/* Language Filter Tabs */}
+            <div className="flex items-center gap-1.5 pt-2 border-t border-slate-100 dark:border-slate-800 flex-wrap">
+              <span className="text-xs font-bold text-slate-400 me-1">زبان فلٹر:</span>
               <button
                 type="button"
-                onClick={handleOpenAddQuoteModal}
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold transition cursor-pointer shadow-sm"
+                onClick={() => { setQuoteLangFilter('all'); setQuotePage(1); }}
+                className={`px-3 py-1 rounded-xl text-xs font-bold transition cursor-pointer ${
+                  quoteLangFilter === 'all'
+                    ? 'bg-amber-600 text-white shadow-xs'
+                    : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200'
+                }`}
               >
-                <PlusIcon className="w-4 h-4" />
-                <span>عالم شامل کریں</span>
+                تمام زبانیں ({ulmaQuotes.filter(q => q.name?.trim() || q.quote?.trim()).length})
               </button>
-
               <button
                 type="button"
-                onClick={handleSave}
-                disabled={saving}
-                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition cursor-pointer shadow-sm disabled:opacity-50"
+                onClick={() => { setQuoteLangFilter('ur'); setQuotePage(1); }}
+                className={`px-3 py-1 rounded-xl text-xs font-bold transition cursor-pointer ${
+                  quoteLangFilter === 'ur'
+                    ? 'bg-emerald-600 text-white shadow-xs'
+                    : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200'
+                }`}
               >
-                {saving ? <ArrowPathIcon className="w-4 h-4 animate-spin" /> : <CheckCircleIcon className="w-4 h-4" />}
-                <span>محفوظ کریں</span>
+                🇵🇰 اردو ({ulmaQuotes.filter(q => (q.language || 'ur') === 'ur').length})
+              </button>
+              <button
+                type="button"
+                onClick={() => { setQuoteLangFilter('en'); setQuotePage(1); }}
+                className={`px-3 py-1 rounded-xl text-xs font-bold transition cursor-pointer ${
+                  quoteLangFilter === 'en'
+                    ? 'bg-blue-600 text-white shadow-xs'
+                    : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200'
+                }`}
+              >
+                🇬🇧 English ({ulmaQuotes.filter(q => q.language === 'en').length})
               </button>
             </div>
           </div>
@@ -757,6 +842,19 @@ export default function AboutSettingsPage() {
                                 {q.name || '(نام درج نہیں)'}
                               </p>
                               <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
+                                {q.language === 'en' ? (
+                                  <span className="inline-flex items-center px-1.5 py-0.5 rounded-md bg-blue-100 dark:bg-blue-950/60 text-blue-800 dark:text-blue-300 text-[10px] font-bold">
+                                    🇬🇧 English
+                                  </span>
+                                ) : q.language === 'all' ? (
+                                  <span className="inline-flex items-center px-1.5 py-0.5 rounded-md bg-purple-100 dark:bg-purple-950/60 text-purple-800 dark:text-purple-300 text-[10px] font-bold">
+                                    🌐 تمام زبانیں
+                                  </span>
+                                ) : (
+                                  <span className="inline-flex items-center px-1.5 py-0.5 rounded-md bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 text-[10px] font-bold">
+                                    🇵🇰 اردو
+                                  </span>
+                                )}
                                 {q.designation && (
                                   <span className="text-[11px] text-amber-700 dark:text-amber-400 font-urdu truncate">
                                     {q.designation}
@@ -1325,6 +1423,50 @@ export default function AboutSettingsPage() {
 
             {/* Modal Body Form */}
             <form onSubmit={handleSaveQuoteFromModal} className="space-y-4">
+              {/* Language Selection: Urdu vs English vs All */}
+              <div className="bg-slate-50 dark:bg-slate-800/60 p-3 rounded-2xl border border-slate-200 dark:border-slate-700/80 space-y-1.5">
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
+                  زبان منتخب کریں / Select Language
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setQuoteFormData(prev => ({ ...prev, language: 'ur' }))}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-1.5 ${
+                      (quoteFormData.language || 'ur') === 'ur'
+                        ? 'bg-emerald-600 text-white shadow-xs'
+                        : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100'
+                    }`}
+                  >
+                    <span>🇵🇰 اردو (Urdu)</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setQuoteFormData(prev => ({ ...prev, language: 'en' }))}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-1.5 ${
+                      quoteFormData.language === 'en'
+                        ? 'bg-blue-600 text-white shadow-xs'
+                        : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100'
+                    }`}
+                  >
+                    <span>🇬🇧 English</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setQuoteFormData(prev => ({ ...prev, language: 'all' }))}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-1.5 ${
+                      quoteFormData.language === 'all'
+                        ? 'bg-purple-600 text-white shadow-xs'
+                        : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100'
+                    }`}
+                  >
+                    <span>🌐 تمام زبانیں (Urdu & English)</span>
+                  </button>
+                </div>
+              </div>
+
               {/* Scholar Photo preview + Upload + URL */}
               <div className="flex flex-col sm:flex-row sm:items-center gap-3.5 p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-700/80">
                 <div className="flex items-center gap-3">
@@ -1376,28 +1518,28 @@ export default function AboutSettingsPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                    عالم کا نام <span className="text-red-500">*</span>
+                    عالم کا نام / Scholar Name <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="text"
                     required
-                    dir="auto"
+                    dir={quoteFormData.language === 'en' ? 'ltr' : 'auto'}
                     value={quoteFormData.name}
                     onChange={(e) => setQuoteFormData(prev => ({ ...prev, name: e.target.value }))}
-                    placeholder="مثلاً: شیخ عبد الرحیم صاحب"
+                    placeholder={quoteFormData.language === 'en' ? "e.g. Sheikh Abdul Rahim" : "مثلاً: شیخ عبد الرحیم صاحب"}
                     className="w-full px-3.5 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm font-semibold text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-amber-500"
                   />
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                    عہدہ / لقب
+                    عہدہ / لقب (Designation)
                   </label>
                   <input
                     type="text"
-                    dir="auto"
+                    dir={quoteFormData.language === 'en' ? 'ltr' : 'auto'}
                     value={quoteFormData.designation}
                     onChange={(e) => setQuoteFormData(prev => ({ ...prev, designation: e.target.value }))}
-                    placeholder="مثلاً: مفتی، صدر جمعیت، استاد حدیث"
+                    placeholder={quoteFormData.language === 'en' ? "e.g. Mufti, Head Scholar" : "مثلاً: مفتی، صدر جمعیت، استاد حدیث"}
                     className="w-full px-3.5 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-amber-500"
                   />
                 </div>
@@ -1497,11 +1639,17 @@ export default function AboutSettingsPage() {
                 <textarea
                   rows={4}
                   required
-                  dir="rtl"
+                  dir={quoteFormData.language === 'en' ? 'ltr' : 'rtl'}
                   value={quoteFormData.quote}
                   onChange={(e) => setQuoteFormData(prev => ({ ...prev, quote: e.target.value }))}
-                  placeholder="عالم کے تأثرات یا خط کا مکمل متن یہاں اردو یا عربی میں صاف ٹائپ کریں..."
-                  className="w-full p-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm leading-relaxed text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-amber-500 font-urdu resize-none"
+                  placeholder={
+                    quoteFormData.language === 'en'
+                      ? "Type scholar's statement or testimonial in clear English text..."
+                      : "عالم کے تأثرات یا خط کا مکمل متن یہاں اردو یا عربی میں صاف ٹائپ کریں..."
+                  }
+                  className={`w-full p-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm leading-relaxed text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-amber-500 resize-none ${
+                    quoteFormData.language === 'en' ? 'font-sans' : 'font-urdu'
+                  }`}
                 />
               </div>
 
@@ -1583,9 +1731,17 @@ export default function AboutSettingsPage() {
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold transition shadow-sm"
+                  disabled={saving}
+                  className="px-5 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold transition shadow-sm disabled:opacity-50 inline-flex items-center gap-1.5 cursor-pointer"
                 >
-                  {editingQuoteIndex !== null ? 'معلومات اپ ڈیٹ کریں' : 'فہرست میں شامل کریں'}
+                  {saving ? (
+                    <>
+                      <ArrowPathIcon className="w-4 h-4 animate-spin" />
+                      <span>محفوظ ہو رہا ہے...</span>
+                    </>
+                  ) : (
+                    <span>{editingQuoteIndex !== null ? 'معلومات محفوظ کریں' : 'شامل اور محفوظ کریں'}</span>
+                  )}
                 </button>
               </div>
             </form>

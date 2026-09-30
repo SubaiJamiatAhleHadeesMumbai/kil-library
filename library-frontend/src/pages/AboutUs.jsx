@@ -16,7 +16,9 @@ import {
   MagnifyingGlassIcon,
   XMarkIcon,
   DocumentTextIcon,
+  TrashIcon,
 } from '@heroicons/react/24/outline';
+import toast from 'react-hot-toast';
 import aboutService from '../api/aboutService';
 import { AuthContext } from '../context/AuthProvider';
 import { isAdminRole } from '../config/accessControl';
@@ -104,6 +106,7 @@ export default function AboutUs() {
   const [settings, setSettings] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [publicLangFilter, setPublicLangFilter] = useState('all'); // 'all' | 'ur' | 'en'
 
   const fetchSettings = async () => {
     try {
@@ -116,6 +119,25 @@ export default function AboutUs() {
       setError('Unable to load About page information. Please try again.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDeleteQuoteFromPublic = async (quoteIndex) => {
+    if (!window.confirm(currentLang === 'ur' ? 'کیا آپ واقعی اس عالم کی رائے کو مستقل حذف کرنا چاہتے ہیں؟ یہ ڈیٹا بیس سے بھی حذف ہو جائے گی۔' : 'Are you sure you want to permanently delete this testimonial?')) {
+      return;
+    }
+    try {
+      const updatedQuotes = (settings?.ulma_quotes || []).filter((_, i) => i !== quoteIndex);
+      const payload = {
+        ...settings,
+        ulma_quotes: updatedQuotes,
+      };
+      await aboutService.updateAboutSettings(payload);
+      setSettings(prev => ({ ...prev, ulma_quotes: updatedQuotes }));
+      toast.success(currentLang === 'ur' ? 'عالم کی رائے کامیابی سے حذف ہو گئی' : 'Testimonial deleted successfully');
+    } catch (err) {
+      console.error('Delete error:', err);
+      toast.error(currentLang === 'ur' ? 'حذف کرنے میں مسئلہ پیش آیا' : 'Failed to delete testimonial');
     }
   };
 
@@ -163,53 +185,46 @@ export default function AboutUs() {
   const renderedHtml = rawHtml && rawHtml.trim() ? rawHtml : formatLegacyTextToHtml(settings?.hero?.description);
 
   return (
-    <div className="min-h-screen bg-slate-50/50 dark:bg-slate-950 py-6 sm:py-10">
-      <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 space-y-6">
-        {/* ================= BREADCRUMBS & TOP BAR ================= */}
-        <div className="flex flex-wrap items-center justify-between gap-3 text-xs sm:text-sm">
-          <nav className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400">
-            <Link to="/" className="flex items-center gap-1 hover:text-emerald-600 transition">
-              <HomeIcon className="h-4 w-4" />
-              <span>Home</span>
-            </Link>
-            <ChevronRightIcon className="h-3 w-3 opacity-60" />
-            <span className="font-semibold text-slate-800 dark:text-slate-200">About Us</span>
-          </nav>
-
-          <div className="flex items-center gap-2">
-            {/* Quick Language Switcher Pills */}
-            <div className="inline-flex items-center rounded-xl bg-white dark:bg-slate-900 p-1 border border-slate-200 dark:border-slate-800 shadow-2xs">
-              <GlobeAltIcon className="w-3.5 h-3.5 text-slate-400 ml-1 mr-0.5" />
-              {LANG_PILLS.map((pill) => {
-                const isActive = currentLang === pill.code;
-                return (
-                  <button
-                    key={pill.code}
-                    type="button"
-                    onClick={() => changeLanguage(pill.code)}
-                    className={`px-2.5 py-1 text-xs font-bold rounded-lg transition cursor-pointer ${
-                      isActive
-                        ? 'bg-emerald-600 text-white shadow-xs'
-                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                    }`}
-                  >
-                    <span>{pill.label}</span>
-                  </button>
-                );
-              })}
+    <div className="min-h-screen bg-slate-50/60 dark:bg-slate-950 pb-20 font-sans">
+      {/* ================= HERO BANNER ================= */}
+      <section className="relative overflow-hidden bg-gradient-to-br from-[#064E3B] via-[#047857] to-[#059669] text-white py-14 sm:py-18">
+        <div className="absolute inset-0 bg-[radial-gradient(#6ee7b7_1px,transparent_1px)] [background-size:24px_24px] opacity-15 pointer-events-none" />
+        <div className="absolute -top-24 -right-24 w-96 h-96 bg-emerald-400/20 rounded-full blur-3xl pointer-events-none" />
+        
+        <div className="app-shell-container relative z-10">
+          <div className="max-w-4xl space-y-4">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-400/20 border border-emerald-300/30 text-emerald-100 text-xs font-bold tracking-wide uppercase">
+              <InformationCircleIcon className="w-4 h-4" />
+              <span>{currentLang === 'ur' ? 'مرکز کا تعارف و خدمات' : (currentLang === 'ar' ? 'نبذة عن المركز' : 'About Markaz & Services')}</span>
             </div>
+            
+            <h1 className="text-3xl sm:text-5xl font-black tracking-tight leading-tight font-urdu" dir={activeContent.dir}>
+              {activeContent.title || (currentLang === 'ur' ? 'مرکز الدعوۃ الاسلامیۃ والخیریہ' : 'Markaz Dawah Al-Islamiyyah wal-Khayriyyah')}
+            </h1>
+            
+            {activeContent.subtitle && (
+              <p className="text-sm sm:text-base text-emerald-100/90 leading-relaxed max-w-2xl font-urdu" dir={activeContent.dir}>
+                {activeContent.subtitle}
+              </p>
+            )}
 
             {isAdmin && (
-              <Link
-                to="/admin/about-settings"
-                className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-300 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-950/40 px-3 py-1.5 text-xs font-semibold text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 transition shadow-2xs"
-              >
-                <PencilSquareIcon className="h-3.5 w-3.5" />
-                <span>Edit in CMS</span>
-              </Link>
+              <div className="pt-2">
+                <Link
+                  to="/admin/about-settings"
+                  className="inline-flex items-center gap-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 px-3.5 py-1.5 text-xs font-bold text-white transition shadow-sm backdrop-blur-xs"
+                >
+                  <PencilSquareIcon className="h-4 w-4" />
+                  <span>{currentLang === 'ur' ? 'ایڈمن سیٹنگز میں ترمیم کریں' : 'Edit in CMS'}</span>
+                </Link>
+              </div>
             )}
           </div>
         </div>
+      </section>
+
+      {/* ================= MAIN CONTENT CONTAINER ================= */}
+      <div className="app-shell-container -mt-6 space-y-6">
 
         {/* ================= 4 TABS: ABOUT | CALENDAR | JUMAH | MOON ================= */}
         <div className="flex items-center gap-1.5 p-1.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xs overflow-x-auto no-scrollbar">
@@ -323,26 +338,6 @@ export default function AboutUs() {
             {/* Main Content Card */}
             {!loading && !error && (
               <article className="space-y-6">
-                <header className="rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-8 sm:p-12 text-center shadow-xs transition-colors">
-                  <span className="inline-block rounded-full bg-emerald-100 dark:bg-emerald-950/60 px-3.5 py-1 text-xs font-bold text-emerald-800 dark:text-emerald-300 mb-3 tracking-wide">
-                    Markaz & Library
-                  </span>
-                  <h1
-                    dir={activeContent.dir}
-                    className="text-3xl sm:text-5xl font-extrabold tracking-tight text-slate-900 dark:text-white"
-                  >
-                    {activeContent.title}
-                  </h1>
-                  {activeContent.subtitle && (
-                    <p
-                      dir={activeContent.dir}
-                      className="mt-3 sm:mt-4 text-base sm:text-xl font-medium text-slate-600 dark:text-slate-400 max-w-3xl mx-auto leading-relaxed"
-                    >
-                      {activeContent.subtitle}
-                    </p>
-                  )}
-                </header>
-
                 <section className="rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 sm:p-10 lg:p-14 shadow-sm transition-colors">
                   <div
                     dir={activeContent.dir}
@@ -373,12 +368,22 @@ export default function AboutUs() {
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                       {settings.ulma_quotes
+                        .map((q, origIdx) => ({ ...q, originalIndex: origIdx }))
                         .filter(q => q.name?.trim() || q.quote?.trim())
-                        .map((q, idx) => (
-                          <div key={idx} className="relative rounded-2xl border border-amber-100 dark:border-amber-900/40 bg-white dark:bg-slate-900 p-5 sm:p-6 shadow-xs hover:shadow-md transition-shadow space-y-4 flex flex-col justify-between">
+                        .filter(q => {
+                          if (currentLang === 'en') return q.language === 'en' || q.language === 'all' || !q.language;
+                          return (q.language || 'ur') === 'ur' || q.language === 'all';
+                        })
+                        .map((q) => (
+                          <div key={q.originalIndex} className="relative rounded-2xl border border-amber-100 dark:border-amber-900/40 bg-white dark:bg-slate-900 p-5 sm:p-6 shadow-xs hover:shadow-md transition-shadow space-y-4 flex flex-col justify-between">
                             <div className="absolute top-4 right-5 text-amber-200 dark:text-amber-900/60 text-5xl font-serif leading-none select-none pointer-events-none" aria-hidden="true">"</div>
                             {q.quote && (
-                              <blockquote dir="rtl" className="text-slate-800 dark:text-slate-200 text-sm sm:text-base leading-loose font-urdu relative z-10">
+                              <blockquote
+                                dir={q.language === 'en' ? 'ltr' : 'rtl'}
+                                className={`text-slate-800 dark:text-slate-200 text-sm sm:text-base leading-loose relative z-10 ${
+                                  q.language === 'en' ? 'font-sans' : 'font-urdu'
+                                }`}
+                              >
                                 {q.quote}
                               </blockquote>
                             )}
@@ -435,7 +440,10 @@ export default function AboutUs() {
                               )}
                               <div className="min-w-0" dir="rtl">
                                 {q.name && <p className="font-bold text-slate-900 dark:text-white text-sm truncate font-urdu">{q.name}</p>}
-                                {q.designation && <p className="text-xs text-amber-700 dark:text-amber-400 font-urdu truncate">{q.designation}</p>}
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                  {q.designation && <span className="text-xs text-amber-700 dark:text-amber-400 font-urdu truncate">{q.designation}</span>}
+                                  {q.language === 'en' && <span className="text-[10px] font-bold text-blue-600">🇬🇧 English</span>}
+                                </div>
                                 {q.source_text && <p className="text-xs text-slate-400 dark:text-slate-500 truncate font-urdu">— {q.source_text}</p>}
                               </div>
                               {q.source_url && (
@@ -459,6 +467,16 @@ export default function AboutUs() {
                                     <ArrowTopRightOnSquareIcon className="w-4 h-4" />
                                   )}
                                 </a>
+                              )}
+                              {isAdmin && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteQuoteFromPublic(q.originalIndex)}
+                                  className="p-1.5 rounded-lg text-red-500 hover:bg-red-50 dark:hover:bg-red-950/40 hover:text-red-700 transition cursor-pointer flex-shrink-0"
+                                  title="ڈیٹا بیس سے حذف کریں (Delete from database)"
+                                >
+                                  <TrashIcon className="w-4 h-4" />
+                                </button>
                               )}
                             </div>
                           </div>
@@ -579,22 +597,64 @@ export default function AboutUs() {
                   )}
                 </div>
               )}
+
+              {/* Language Filter Pills */}
+              <div className="flex items-center justify-center gap-1.5 flex-wrap pt-2">
+                <button
+                  type="button"
+                  onClick={() => setPublicLangFilter('all')}
+                  className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
+                    publicLangFilter === 'all'
+                      ? 'bg-amber-600 text-white shadow-xs'
+                      : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100'
+                  }`}
+                >
+                  <span>{currentLang === 'ur' ? 'تمام زبانیں (All)' : 'All Languages'}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPublicLangFilter('ur')}
+                  className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
+                    publicLangFilter === 'ur'
+                      ? 'bg-emerald-600 text-white shadow-xs'
+                      : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100'
+                  }`}
+                >
+                  <span>🇵🇰 اردو (Urdu)</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPublicLangFilter('en')}
+                  className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
+                    publicLangFilter === 'en'
+                      ? 'bg-blue-600 text-white shadow-xs'
+                      : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100'
+                  }`}
+                >
+                  <span>🇬🇧 English</span>
+                </button>
+              </div>
             </header>
 
             {/* Scholars Grid with Live Filter */}
             {(() => {
               const allQuotes = Array.isArray(settings?.ulma_quotes)
-                ? settings.ulma_quotes.filter(q => q.name?.trim() || q.quote?.trim())
+                ? settings.ulma_quotes
+                    .map((q, origIdx) => ({ ...q, originalIndex: origIdx }))
+                    .filter(q => q.name?.trim() || q.quote?.trim())
                 : [];
+              const langFiltered = publicLangFilter === 'all'
+                ? allQuotes
+                : allQuotes.filter(q => (q.language || 'ur') === publicLangFilter || q.language === 'all');
               const term = scholarSearch.toLowerCase().trim();
               const filtered = term
-                ? allQuotes.filter(q =>
+                ? langFiltered.filter(q =>
                     (q.name && q.name.toLowerCase().includes(term)) ||
                     (q.designation && q.designation.toLowerCase().includes(term)) ||
                     (q.quote && q.quote.toLowerCase().includes(term)) ||
                     (q.source_text && q.source_text.toLowerCase().includes(term))
                   )
-                : allQuotes;
+                : langFiltered;
 
               if (allQuotes.length === 0) {
                 return (
@@ -643,19 +703,28 @@ export default function AboutUs() {
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                    {filtered.map((q, idx) => (
+                    {filtered.map((q) => (
                       <div
-                        key={idx}
+                        key={q.originalIndex}
                         className="relative rounded-2xl border border-amber-100 dark:border-amber-900/40 bg-white dark:bg-slate-900 p-6 shadow-xs hover:shadow-md transition-shadow space-y-4 flex flex-col justify-between"
                       >
-                        <div className="absolute top-4 right-5 text-amber-200 dark:text-amber-900/60 text-5xl font-serif leading-none select-none pointer-events-none" aria-hidden="true">
-                          "
+                        <div className="flex items-center justify-between">
+                          <div className="text-amber-200 dark:text-amber-900/60 text-4xl font-serif leading-none select-none pointer-events-none" aria-hidden="true">
+                            "
+                          </div>
+                          {q.language === 'en' && (
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
+                              🇬🇧 English
+                            </span>
+                          )}
                         </div>
 
                         {q.quote && (
                           <blockquote
-                            dir="rtl"
-                            className="text-slate-800 dark:text-slate-200 text-sm sm:text-base leading-loose font-urdu relative z-10"
+                            dir={q.language === 'en' ? 'ltr' : 'rtl'}
+                            className={`text-slate-800 dark:text-slate-200 text-sm sm:text-base leading-loose relative z-10 ${
+                              q.language === 'en' ? 'font-sans' : 'font-urdu'
+                            }`}
                           >
                             {q.quote}
                           </blockquote>
@@ -719,19 +788,19 @@ export default function AboutUs() {
                             </div>
                           )}
 
-                          <div className="min-w-0 flex-1" dir="rtl">
+                          <div className="min-w-0 flex-1" dir={q.language === 'en' ? 'ltr' : 'rtl'}>
                             {q.name && (
-                              <h4 className="font-bold text-slate-900 dark:text-white text-base truncate font-urdu">
+                              <h4 className={`font-bold text-slate-900 dark:text-white text-base truncate ${q.language === 'en' ? 'font-sans' : 'font-urdu'}`}>
                                 {q.name}
                               </h4>
                             )}
                             {q.designation && (
-                              <p className="text-xs text-amber-700 dark:text-amber-400 font-urdu truncate font-medium">
+                              <p className={`text-xs text-amber-700 dark:text-amber-400 truncate font-medium ${q.language === 'en' ? 'font-sans' : 'font-urdu'}`}>
                                 {q.designation}
                               </p>
                             )}
                             {q.source_text && (
-                              <p className="text-xs text-slate-400 dark:text-slate-500 truncate font-urdu mt-0.5">
+                              <p className={`text-xs text-slate-400 dark:text-slate-500 truncate mt-0.5 ${q.language === 'en' ? 'font-sans' : 'font-urdu'}`}>
                                 — {q.source_text}
                               </p>
                             )}
@@ -758,6 +827,17 @@ export default function AboutUs() {
                                 <ArrowTopRightOnSquareIcon className="w-4 h-4" />
                               )}
                             </a>
+                          )}
+
+                          {isAdmin && (
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteQuoteFromPublic(q.originalIndex)}
+                              className="p-2 rounded-xl bg-red-50 dark:bg-red-950/40 text-red-500 hover:text-red-700 hover:bg-red-100 transition shadow-2xs cursor-pointer flex-shrink-0"
+                              title={currentLang === 'ur' ? 'ڈیٹا بیس سے یہ رائے مستقل حذف کریں' : 'Delete testimonial permanently from database'}
+                            >
+                              <TrashIcon className="w-4 h-4" />
+                            </button>
                           )}
                         </div>
                       </div>
