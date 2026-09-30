@@ -18,10 +18,23 @@ import {
   ViewColumnsIcon,
   ExclamationTriangleIcon,
   CheckBadgeIcon,
+  UserCircleIcon,
+  PlusIcon,
+  TrashIcon,
+  ChatBubbleLeftRightIcon,
 } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
 import aboutService from '../../api/aboutService';
 import RichTextEditor from '../../components/common/RichTextEditor';
+
+const EMPTY_QUOTE = () => ({
+  name: '',
+  designation: '',
+  quote: '',
+  source_text: '',
+  source_url: '',
+  image_url: '',
+});
 
 const DRAFT_STORAGE_KEY = 'kil_about_cms_draft';
 
@@ -111,6 +124,9 @@ export default function AboutSettingsPage() {
     ar: { title: '', subtitle: '', content_html: '' },
   });
 
+  const [adminTab, setAdminTab] = useState('content');
+  const [ulmaQuotes, setUlmaQuotes] = useState([EMPTY_QUOTE()]);
+
   // Load from backend & check draft
   useEffect(() => {
     const loadSettings = async () => {
@@ -165,6 +181,10 @@ export default function AboutSettingsPage() {
 
         setLangData(initialLangs);
         setOriginalLangData(initialLangs);
+        const backendQuotes = data?.ulma_quotes;
+        if (Array.isArray(backendQuotes) && backendQuotes.length > 0) {
+          setUlmaQuotes(backendQuotes);
+        }
       } catch (err) {
         console.error(err);
         toast.error('Failed to load About settings');
@@ -248,6 +268,7 @@ export default function AboutSettingsPage() {
         subtitle: langData.ur?.subtitle?.trim() || '',
         content_html: langData.ur?.content_html || '',
         languages: langData,
+        ulma_quotes: ulmaQuotes.filter(q => q.name?.trim() || q.quote?.trim()),
         hero: {
           ...(fullSettings.hero || {}),
           title: urTitle,
@@ -459,7 +480,113 @@ export default function AboutSettingsPage() {
         </div>
       </div>
 
-      {/* ================= LANGUAGE SWITCHER TABS & COMPLETION BADGES ================= */}
+      {/* ================= ADMIN SECTION TABS ================= */}
+      <div className="flex items-center gap-2 bg-white dark:bg-slate-900 p-2 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs w-fit">
+        <button type="button" onClick={() => setAdminTab('content')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${adminTab === 'content' ? 'bg-emerald-600 text-white' : 'text-slate-600 hover:bg-slate-100'}`}>
+          <PencilSquareIcon className="w-4 h-4" /><span>Content Editor</span>
+        </button>
+        <button type="button" onClick={() => setAdminTab('ulama')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${adminTab === 'ulama' ? 'bg-amber-600 text-white' : 'text-slate-600 hover:bg-slate-100'}`}>
+          <ChatBubbleLeftRightIcon className="w-4 h-4" /><span>علماء کی آراء</span>
+          <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${adminTab === 'ulama' ? 'bg-amber-700 text-white' : 'bg-slate-200 text-slate-600'}`}>
+            {ulmaQuotes.filter(q => q.name?.trim()).length}
+          </span>
+        </button>
+      </div>
+
+      {adminTab === 'ulama' && (
+        <div className="space-y-5">
+          <div className="flex flex-wrap items-center justify-between gap-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 rounded-2xl p-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center">
+                <ChatBubbleLeftRightIcon className="w-5 h-5 text-amber-700" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-slate-900 dark:text-white">علماء کی آراء و تأثرات</h3>
+                <p className="text-xs text-slate-500">Scholarly Testimonials — جن علماء نے مرکز کی تعریف کی ہے ان کی آراء یہاں شامل کریں</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <button type="button" onClick={() => setUlmaQuotes(prev => [...prev, EMPTY_QUOTE()])}
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold transition cursor-pointer">
+                <PlusIcon className="w-4 h-4" /><span>عالم شامل کریں</span>
+              </button>
+              <button type="button" onClick={handleSave} disabled={saving}
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition cursor-pointer disabled:opacity-50">
+                {saving ? <ArrowPathIcon className="w-4 h-4 animate-spin" /> : <CheckCircleIcon className="w-4 h-4" />}
+                <span>محفوظ کریں</span>
+              </button>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+            {ulmaQuotes.map((quote, idx) => (
+              <div key={idx} className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-5 shadow-xs space-y-4">
+                <div className="flex items-center justify-between">
+                  <span className="w-7 h-7 rounded-full bg-amber-100 flex items-center justify-center text-amber-800 text-xs font-bold">{idx + 1}</span>
+                  <button type="button"
+                    onClick={() => setUlmaQuotes(prev => prev.length === 1 ? [EMPTY_QUOTE()] : prev.filter((_, i) => i !== idx))}
+                    className="p-1.5 rounded-lg text-red-400 hover:bg-red-50 hover:text-red-600 transition cursor-pointer">
+                    <TrashIcon className="w-4 h-4" />
+                  </button>
+                </div>
+                <div className="flex items-start gap-3">
+                  <div className="flex-shrink-0">
+                    {quote.image_url ? (
+                      <img src={quote.image_url} alt={quote.name || 'Scholar'} className="w-14 h-14 rounded-full object-cover border-2 border-amber-200" onError={e => { e.target.style.display = 'none'; }} />
+                    ) : (
+                      <div className="w-14 h-14 rounded-full bg-amber-100 flex items-center justify-center border-2 border-dashed border-amber-300">
+                        <UserCircleIcon className="w-7 h-7 text-amber-400" />
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex-1 space-y-2">
+                    <input type="text" dir="auto" placeholder="عالم کا نام" value={quote.name}
+                      onChange={e => setUlmaQuotes(prev => prev.map((q, i) => i === idx ? { ...q, name: e.target.value } : q))}
+                      className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-sm font-semibold text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-amber-500" />
+                    <input type="text" dir="auto" placeholder="عہدہ / لقب" value={quote.designation}
+                      onChange={e => setUlmaQuotes(prev => prev.map((q, i) => i === idx ? { ...q, designation: e.target.value } : q))}
+                      className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-xs text-slate-700 dark:text-slate-300 outline-none focus:ring-2 focus:ring-amber-500" />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-600 mb-1.5">رائے / تأثر *</label>
+                  <textarea rows={4} dir="rtl" placeholder="علماء کی رائے اردو/عربی میں لکھیں" value={quote.quote}
+                    onChange={e => setUlmaQuotes(prev => prev.map((q, i) => i === idx ? { ...q, quote: e.target.value } : q))}
+                    className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3.5 py-2.5 text-sm text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-amber-500 resize-none leading-relaxed font-urdu" />
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <input type="text" dir="auto" placeholder="ماخذ" value={quote.source_text}
+                    onChange={e => setUlmaQuotes(prev => prev.map((q, i) => i === idx ? { ...q, source_text: e.target.value } : q))}
+                    className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-amber-500" />
+                  <input type="url" placeholder="Photo URL" value={quote.image_url}
+                    onChange={e => setUlmaQuotes(prev => prev.map((q, i) => i === idx ? { ...q, image_url: e.target.value } : q))}
+                    className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-amber-500" />
+                </div>
+                <input type="url" placeholder="Source URL (optional)" value={quote.source_url}
+                  onChange={e => setUlmaQuotes(prev => prev.map((q, i) => i === idx ? { ...q, source_url: e.target.value } : q))}
+                  className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-amber-500" />
+              </div>
+            ))}
+          </div>
+
+          <button type="button" onClick={() => setUlmaQuotes(prev => [...prev, EMPTY_QUOTE()])}
+            className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl border-2 border-dashed border-amber-300 dark:border-amber-700 text-amber-700 text-sm font-bold hover:bg-amber-50 transition cursor-pointer">
+            <PlusIcon className="w-5 h-5" /><span>مزید عالم شامل کریں</span>
+          </button>
+
+          <div className="flex justify-end">
+            <button type="button" onClick={handleSave} disabled={saving}
+              className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-6 py-2.5 text-sm font-bold text-white hover:bg-emerald-500 disabled:opacity-50 transition cursor-pointer">
+              {saving ? (<><ArrowPathIcon className="h-4 w-4 animate-spin" /><span>محفوظ ہو رہا ہے...</span></>) : (<><CheckCircleIcon className="h-4 w-4" /><span>تمام آراء محفوظ کریں</span></>)}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {adminTab === 'content' && (
+      <>{/* ================= LANGUAGE SWITCHER TABS & COMPLETION BADGES ================= */}
       <div className="flex flex-wrap items-center justify-between gap-3 bg-white dark:bg-slate-900 p-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs">
         <div className="flex flex-wrap items-center gap-2">
           <GlobeAltIcon className="w-5 h-5 text-emerald-600 ml-1" />
@@ -753,6 +880,8 @@ export default function AboutSettingsPage() {
           )}
         </div>
       )}
+
+      </>)}
 
       {/* ================= ADVANCED: FULLSCREEN DEVICE PREVIEW & CONFIRM MODAL ================= */}
       {isPreviewModalOpen && (

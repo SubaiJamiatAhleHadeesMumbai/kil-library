@@ -326,6 +326,62 @@ export default function AboutUs() {
                     dangerouslySetInnerHTML={{ __html: renderedHtml }}
                   />
                 </section>
+
+                {/* ================= ULAMA KI ARAAY SECTION ================= */}
+                {Array.isArray(settings?.ulma_quotes) && settings.ulma_quotes.filter(q => q.name?.trim() || q.quote?.trim()).length > 0 && (
+                  <section className="rounded-3xl border border-amber-100 dark:border-amber-900/40 bg-gradient-to-br from-amber-50/60 to-white dark:from-amber-950/20 dark:to-slate-900 p-6 sm:p-10 shadow-sm space-y-8 transition-colors">
+                    <div className="text-center space-y-2">
+                      <span className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 text-xs font-bold tracking-wide">
+                        <SparklesIcon className="w-3.5 h-3.5" />
+                        {currentLang === 'ur' ? 'علماء کی آراء و تأثرات' : currentLang === 'ar' ? 'آراء العلماء وشهاداتهم' : 'Scholarly Testimonials'}
+                      </span>
+                      <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white" dir={currentLang === 'en' ? 'ltr' : 'rtl'}>
+                        {currentLang === 'ur' ? 'علماء کرام کی زبانی' : currentLang === 'ar' ? 'شهادات العلماء الكرام' : 'What Scholars Say'}
+                      </h2>
+                      <p className="text-sm text-slate-500 dark:text-slate-400" dir={currentLang === 'en' ? 'ltr' : 'rtl'}>
+                        {currentLang === 'ur'
+                          ? 'علماء کرام کی آراء جنہوں نے مرکز اور اس کے دینی کاموں کو سراہا ہے'
+                          : currentLang === 'ar'
+                          ? 'آراء العلماء الذين أثنوا على المركز وأعماله الدينية'
+                          : 'Opinions of scholars who have praised the Markaz and its religious efforts'}
+                      </p>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                      {settings.ulma_quotes
+                        .filter(q => q.name?.trim() || q.quote?.trim())
+                        .map((q, idx) => (
+                          <div key={idx} className="relative rounded-2xl border border-amber-100 dark:border-amber-900/40 bg-white dark:bg-slate-900 p-5 sm:p-6 shadow-xs hover:shadow-md transition-shadow space-y-4">
+                            <div className="absolute top-4 right-5 text-amber-200 dark:text-amber-900/60 text-5xl font-serif leading-none select-none pointer-events-none" aria-hidden="true">"</div>
+                            {q.quote && (
+                              <blockquote dir="rtl" className="text-slate-800 dark:text-slate-200 text-sm sm:text-base leading-loose font-urdu relative z-10">
+                                {q.quote}
+                              </blockquote>
+                            )}
+                            <div className="flex items-center gap-3 pt-2 border-t border-amber-100 dark:border-amber-900/40">
+                              {q.image_url ? (
+                                <img src={q.image_url} alt={q.name} className="w-11 h-11 rounded-full object-cover border-2 border-amber-200 dark:border-amber-700 shadow-sm flex-shrink-0" onError={e => { e.target.style.display = 'none'; }} />
+                              ) : (
+                                <div className="w-11 h-11 rounded-full bg-amber-100 dark:bg-amber-900/40 flex items-center justify-center border-2 border-amber-200 dark:border-amber-700 flex-shrink-0">
+                                  <span className="text-amber-600 dark:text-amber-400 text-lg font-bold">{q.name?.charAt(0) || '؟'}</span>
+                                </div>
+                              )}
+                              <div className="min-w-0" dir="rtl">
+                                {q.name && <p className="font-bold text-slate-900 dark:text-white text-sm truncate font-urdu">{q.name}</p>}
+                                {q.designation && <p className="text-xs text-amber-700 dark:text-amber-400 font-urdu truncate">{q.designation}</p>}
+                                {q.source_text && <p className="text-xs text-slate-400 dark:text-slate-500 truncate font-urdu">— {q.source_text}</p>}
+                              </div>
+                              {q.source_url && (
+                                <a href={q.source_url} target="_blank" rel="noopener noreferrer" className="ml-auto flex-shrink-0 p-1.5 rounded-lg text-slate-400 hover:text-amber-600 transition" title="View Source">
+                                  <ArrowTopRightOnSquareIcon className="w-4 h-4" />
+                                </a>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                    </div>
+                  </section>
+                )}
               </article>
             )}
           </>
