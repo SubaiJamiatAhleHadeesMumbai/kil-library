@@ -22,6 +22,7 @@ import {
   PlusIcon,
   TrashIcon,
   ChatBubbleLeftRightIcon,
+  MagnifyingGlassIcon,
 } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
 import aboutService from '../../api/aboutService';
@@ -126,6 +127,14 @@ export default function AboutSettingsPage() {
 
   const [adminTab, setAdminTab] = useState('content');
   const [ulmaQuotes, setUlmaQuotes] = useState([EMPTY_QUOTE()]);
+
+  // Ulama Pro UX: Search, Pagination & Modal Editor
+  const [quoteSearch, setQuoteSearch] = useState('');
+  const [quotePage, setQuotePage] = useState(1);
+  const quotesPerPage = 10;
+  const [isQuoteModalOpen, setIsQuoteModalOpen] = useState(false);
+  const [editingQuoteIndex, setEditingQuoteIndex] = useState(null);
+  const [quoteFormData, setQuoteFormData] = useState(EMPTY_QUOTE());
 
   // Load from backend & check draft
   useEffect(() => {
@@ -295,6 +304,60 @@ export default function AboutSettingsPage() {
     setPreviewLang(activeLang);
     setIsPreviewModalOpen(true);
   };
+
+  // ── Ulama Management Handlers & Filtering ──────────────────────────────
+  const handleOpenAddQuoteModal = () => {
+    setEditingQuoteIndex(null);
+    setQuoteFormData(EMPTY_QUOTE());
+    setIsQuoteModalOpen(true);
+  };
+
+  const handleOpenEditQuoteModal = (index) => {
+    setEditingQuoteIndex(index);
+    setQuoteFormData({ ...ulmaQuotes[index] });
+    setIsQuoteModalOpen(true);
+  };
+
+  const handleSaveQuoteFromModal = (e) => {
+    e?.preventDefault();
+    if (!quoteFormData.name?.trim() && !quoteFormData.quote?.trim()) {
+      toast.error('براہ کرم عالم کا نام یا ان کی رائے درج کریں');
+      return;
+    }
+    if (editingQuoteIndex !== null) {
+      setUlmaQuotes(prev => prev.map((q, i) => i === editingQuoteIndex ? { ...quoteFormData } : q));
+      toast.success('عالم کی معلومات اپ ڈیٹ کر دی گئیں');
+    } else {
+      setUlmaQuotes(prev => [...prev, { ...quoteFormData }]);
+      toast.success('نیا عالم فہرست میں شامل کر دیا گیا');
+    }
+    setIsQuoteModalOpen(false);
+  };
+
+  const handleDeleteQuote = (index) => {
+    if (window.confirm('کیا آپ واقعی اس عالم کی رائے کو فہرست سے حذف کرنا چاہتے ہیں؟')) {
+      setUlmaQuotes(prev => prev.filter((_, i) => i !== index));
+      toast.success('رائے حذف کر دی گئی');
+    }
+  };
+
+  const filteredQuotes = useMemo(() => {
+    const list = ulmaQuotes.map((q, idx) => ({ ...q, originalIndex: idx }));
+    if (!quoteSearch.trim()) return list;
+    const term = quoteSearch.toLowerCase().trim();
+    return list.filter(q => 
+      (q.name && q.name.toLowerCase().includes(term)) ||
+      (q.designation && q.designation.toLowerCase().includes(term)) ||
+      (q.quote && q.quote.toLowerCase().includes(term)) ||
+      (q.source_text && q.source_text.toLowerCase().includes(term))
+    );
+  }, [ulmaQuotes, quoteSearch]);
+
+  const totalQuotePages = Math.ceil(filteredQuotes.length / quotesPerPage) || 1;
+  const paginatedQuotes = useMemo(() => {
+    const start = (quotePage - 1) * quotesPerPage;
+    return filteredQuotes.slice(start, start + quotesPerPage);
+  }, [filteredQuotes, quotePage, quotesPerPage]);
 
   const handleInsertSampleBlock = (type) => {
     let snippet = '';
@@ -496,89 +559,227 @@ export default function AboutSettingsPage() {
       </div>
 
       {adminTab === 'ulama' && (
-        <div className="space-y-5">
-          <div className="flex flex-wrap items-center justify-between gap-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 rounded-2xl p-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center">
-                <ChatBubbleLeftRightIcon className="w-5 h-5 text-amber-700" />
-              </div>
-              <div>
-                <h3 className="text-sm font-bold text-slate-900 dark:text-white">علماء کی آراء و تأثرات</h3>
-                <p className="text-xs text-slate-500">Scholarly Testimonials — جن علماء نے مرکز کی تعریف کی ہے ان کی آراء یہاں شامل کریں</p>
-              </div>
+        <div className="space-y-4">
+          {/* Top Control Bar: Search & Actions */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xs">
+            {/* Search Input */}
+            <div className="relative flex-1 max-w-md">
+              <MagnifyingGlassIcon className="w-5 h-5 text-slate-400 absolute start-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <input
+                type="text"
+                dir="auto"
+                value={quoteSearch}
+                onChange={(e) => {
+                  setQuoteSearch(e.target.value);
+                  setQuotePage(1);
+                }}
+                placeholder="عالم کا نام، عہدہ یا رائے تلاش کریں... (Search 100+ scholars)"
+                className="w-full ps-10 pe-9 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs sm:text-sm text-slate-800 dark:text-slate-200 outline-none focus:ring-2 focus:ring-amber-500 transition"
+              />
+              {quoteSearch && (
+                <button
+                  type="button"
+                  onClick={() => { setQuoteSearch(''); setQuotePage(1); }}
+                  className="absolute end-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400 hover:text-slate-600"
+                >
+                  <XMarkIcon className="w-4 h-4" />
+                </button>
+              )}
             </div>
+
+            {/* Quick Stats & Action Buttons */}
             <div className="flex items-center gap-2">
-              <button type="button" onClick={() => setUlmaQuotes(prev => [...prev, EMPTY_QUOTE()])}
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold transition cursor-pointer">
-                <PlusIcon className="w-4 h-4" /><span>عالم شامل کریں</span>
+              <span className="text-xs text-slate-500 font-semibold px-2.5 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800">
+                کل علماء: <strong className="text-amber-700 dark:text-amber-400">{ulmaQuotes.filter(q => q.name?.trim() || q.quote?.trim()).length}</strong>
+              </span>
+
+              <button
+                type="button"
+                onClick={handleOpenAddQuoteModal}
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold transition cursor-pointer shadow-sm"
+              >
+                <PlusIcon className="w-4 h-4" />
+                <span>عالم شامل کریں</span>
               </button>
-              <button type="button" onClick={handleSave} disabled={saving}
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition cursor-pointer disabled:opacity-50">
+
+              <button
+                type="button"
+                onClick={handleSave}
+                disabled={saving}
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition cursor-pointer shadow-sm disabled:opacity-50"
+              >
                 {saving ? <ArrowPathIcon className="w-4 h-4 animate-spin" /> : <CheckCircleIcon className="w-4 h-4" />}
                 <span>محفوظ کریں</span>
               </button>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-            {ulmaQuotes.map((quote, idx) => (
-              <div key={idx} className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-5 shadow-xs space-y-4">
-                <div className="flex items-center justify-between">
-                  <span className="w-7 h-7 rounded-full bg-amber-100 flex items-center justify-center text-amber-800 text-xs font-bold">{idx + 1}</span>
-                  <button type="button"
-                    onClick={() => setUlmaQuotes(prev => prev.length === 1 ? [EMPTY_QUOTE()] : prev.filter((_, i) => i !== idx))}
-                    className="p-1.5 rounded-lg text-red-400 hover:bg-red-50 hover:text-red-600 transition cursor-pointer">
-                    <TrashIcon className="w-4 h-4" />
-                  </button>
-                </div>
-                <div className="flex items-start gap-3">
-                  <div className="flex-shrink-0">
-                    {quote.image_url ? (
-                      <img src={quote.image_url} alt={quote.name || 'Scholar'} className="w-14 h-14 rounded-full object-cover border-2 border-amber-200" onError={e => { e.target.style.display = 'none'; }} />
-                    ) : (
-                      <div className="w-14 h-14 rounded-full bg-amber-100 flex items-center justify-center border-2 border-dashed border-amber-300">
-                        <UserCircleIcon className="w-7 h-7 text-amber-400" />
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex-1 space-y-2">
-                    <input type="text" dir="auto" placeholder="عالم کا نام" value={quote.name}
-                      onChange={e => setUlmaQuotes(prev => prev.map((q, i) => i === idx ? { ...q, name: e.target.value } : q))}
-                      className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-sm font-semibold text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-amber-500" />
-                    <input type="text" dir="auto" placeholder="عہدہ / لقب" value={quote.designation}
-                      onChange={e => setUlmaQuotes(prev => prev.map((q, i) => i === idx ? { ...q, designation: e.target.value } : q))}
-                      className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-xs text-slate-700 dark:text-slate-300 outline-none focus:ring-2 focus:ring-amber-500" />
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-600 mb-1.5">رائے / تأثر *</label>
-                  <textarea rows={4} dir="rtl" placeholder="علماء کی رائے اردو/عربی میں لکھیں" value={quote.quote}
-                    onChange={e => setUlmaQuotes(prev => prev.map((q, i) => i === idx ? { ...q, quote: e.target.value } : q))}
-                    className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3.5 py-2.5 text-sm text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-amber-500 resize-none leading-relaxed font-urdu" />
-                </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <input type="text" dir="auto" placeholder="ماخذ" value={quote.source_text}
-                    onChange={e => setUlmaQuotes(prev => prev.map((q, i) => i === idx ? { ...q, source_text: e.target.value } : q))}
-                    className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-amber-500" />
-                  <input type="url" placeholder="Photo URL" value={quote.image_url}
-                    onChange={e => setUlmaQuotes(prev => prev.map((q, i) => i === idx ? { ...q, image_url: e.target.value } : q))}
-                    className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-amber-500" />
-                </div>
-                <input type="url" placeholder="Source URL (optional)" value={quote.source_url}
-                  onChange={e => setUlmaQuotes(prev => prev.map((q, i) => i === idx ? { ...q, source_url: e.target.value } : q))}
-                  className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-amber-500" />
+          {/* Scholars Data Table / Compact List */}
+          {paginatedQuotes.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-12 text-center space-y-3">
+              <ChatBubbleLeftRightIcon className="w-12 h-12 text-slate-300 dark:text-slate-700 mx-auto" />
+              <h4 className="text-sm font-bold text-slate-700 dark:text-slate-300">
+                {quoteSearch ? `"${quoteSearch}" کے مطابق کوئی عالم نہیں ملا` : 'فہرست میں کوئی عالم موجود نہیں ہے'}
+              </h4>
+              <p className="text-xs text-slate-400">
+                {quoteSearch ? 'تلاش کا لفظ تبدیل کریں یا سرچ کلیر کریں۔' : 'نیا عالم شامل کرنے کے لیے اوپر دیے گئے بٹن پر کلک کریں۔'}
+              </p>
+              {!quoteSearch && (
+                <button
+                  type="button"
+                  onClick={handleOpenAddQuoteModal}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-amber-600 text-white text-xs font-bold hover:bg-amber-500 transition"
+                >
+                  <PlusIcon className="w-4 h-4" />
+                  <span>پہلا عالم شامل کریں</span>
+                </button>
+              )}
+            </div>
+          ) : (
+            <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden shadow-2xs">
+              <div className="overflow-x-auto">
+                <table className="w-full text-start text-xs border-collapse">
+                  <thead>
+                    <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/60 text-slate-600 dark:text-slate-400 font-bold uppercase tracking-wider">
+                      <th className="py-3 px-4 w-12 text-center">#</th>
+                      <th className="py-3 px-4 text-start">عالم و عہدہ (Scholar)</th>
+                      <th className="py-3 px-4 text-start">رائے / تأثر (Quote Excerpt)</th>
+                      <th className="py-3 px-4 text-start w-36">ماخذ (Source)</th>
+                      <th className="py-3 px-4 text-center w-28">ایکشن (Actions)</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80">
+                    {paginatedQuotes.map((q) => (
+                      <tr key={q.originalIndex} className="hover:bg-amber-50/40 dark:hover:bg-amber-950/20 transition-colors">
+                        <td className="py-3 px-4 text-center font-bold text-slate-400">
+                          {q.originalIndex + 1}
+                        </td>
+                        <td className="py-3 px-4">
+                          <div className="flex items-center gap-3">
+                            {q.image_url ? (
+                              <img
+                                src={q.image_url}
+                                alt={q.name}
+                                className="w-10 h-10 rounded-full object-cover border border-amber-200 dark:border-amber-700 shadow-2xs flex-shrink-0"
+                                onError={(e) => { e.target.style.display = 'none'; }}
+                              />
+                            ) : (
+                              <div className="w-10 h-10 rounded-full bg-amber-100 dark:bg-amber-900/40 flex items-center justify-center border border-amber-200 dark:border-amber-700 flex-shrink-0">
+                                <span className="text-amber-700 dark:text-amber-400 font-bold text-sm">
+                                  {q.name?.charAt(0) || '؟'}
+                                </span>
+                              </div>
+                            )}
+                            <div className="min-w-0" dir="rtl">
+                              <p className="font-bold text-slate-900 dark:text-white text-sm font-urdu truncate">
+                                {q.name || '(نام درج نہیں)'}
+                              </p>
+                              {q.designation && (
+                                <p className="text-[11px] text-amber-700 dark:text-amber-400 font-urdu truncate">
+                                  {q.designation}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        </td>
+                        <td className="py-3 px-4">
+                          <div dir="rtl" className="max-w-md">
+                            <p className="text-slate-700 dark:text-slate-300 font-urdu text-xs line-clamp-2 leading-relaxed">
+                              "{q.quote || '...'}"
+                            </p>
+                          </div>
+                        </td>
+                        <td className="py-3 px-4">
+                          <div className="space-y-1">
+                            {q.source_text ? (
+                              <span className="inline-block px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-urdu text-[11px] truncate max-w-[130px]">
+                                {q.source_text}
+                              </span>
+                            ) : (
+                              <span className="text-slate-400 text-[11px]">—</span>
+                            )}
+                            {q.source_url && (
+                              <a
+                                href={q.source_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center gap-1 text-[10px] text-blue-600 hover:underline"
+                              >
+                                <span>Link</span>
+                                <ArrowTopRightOnSquareIcon className="w-3 h-3" />
+                              </a>
+                            )}
+                          </div>
+                        </td>
+                        <td className="py-3 px-4 text-center">
+                          <div className="flex items-center justify-center gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => handleOpenEditQuoteModal(q.originalIndex)}
+                              className="p-1.5 rounded-lg text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 transition cursor-pointer"
+                              title="ترمیم کریں (Edit)"
+                            >
+                              <PencilSquareIcon className="w-4 h-4" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteQuote(q.originalIndex)}
+                              className="p-1.5 rounded-lg text-red-500 hover:bg-red-50 dark:hover:bg-red-950/40 transition cursor-pointer"
+                              title="حذف کریں (Delete)"
+                            >
+                              <TrashIcon className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
-            ))}
-          </div>
 
-          <button type="button" onClick={() => setUlmaQuotes(prev => [...prev, EMPTY_QUOTE()])}
-            className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl border-2 border-dashed border-amber-300 dark:border-amber-700 text-amber-700 text-sm font-bold hover:bg-amber-50 transition cursor-pointer">
-            <PlusIcon className="w-5 h-5" /><span>مزید عالم شامل کریں</span>
-          </button>
+              {/* Pagination Bar */}
+              {totalQuotePages > 1 && (
+                <div className="flex items-center justify-between px-4 py-3 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/40 text-xs">
+                  <span className="text-slate-500">
+                    Showing {(quotePage - 1) * quotesPerPage + 1} - {Math.min(quotePage * quotesPerPage, filteredQuotes.length)} of {filteredQuotes.length}
+                  </span>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      disabled={quotePage === 1}
+                      onClick={() => setQuotePage(p => Math.max(1, p - 1))}
+                      className="px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 disabled:opacity-40 font-bold hover:bg-slate-100"
+                    >
+                      Previous
+                    </button>
+                    <span className="px-2 font-bold text-slate-700 dark:text-slate-300">
+                      {quotePage} / {totalQuotePages}
+                    </span>
+                    <button
+                      type="button"
+                      disabled={quotePage === totalQuotePages}
+                      onClick={() => setQuotePage(p => Math.min(totalQuotePages, p + 1))}
+                      className="px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 disabled:opacity-40 font-bold hover:bg-slate-100"
+                    >
+                      Next
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
-          <div className="flex justify-end">
-            <button type="button" onClick={handleSave} disabled={saving}
-              className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-6 py-2.5 text-sm font-bold text-white hover:bg-emerald-500 disabled:opacity-50 transition cursor-pointer">
+          {/* Save All Footer inside Ulama tab */}
+          <div className="flex items-center justify-between pt-2">
+            <p className="text-xs text-slate-400">
+              تبدیلیوں کے بعد اوپر یا نیچے دیے گئے <strong>"محفوظ کریں"</strong> بٹن پر کلک کرنا نہ بھولیں۔
+            </p>
+            <button
+              type="button"
+              onClick={handleSave}
+              disabled={saving}
+              className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-6 py-2.5 text-xs font-bold text-white hover:bg-emerald-500 disabled:opacity-50 transition cursor-pointer shadow-sm"
+            >
               {saving ? (<><ArrowPathIcon className="h-4 w-4 animate-spin" /><span>محفوظ ہو رہا ہے...</span></>) : (<><CheckCircleIcon className="h-4 w-4" /><span>تمام آراء محفوظ کریں</span></>)}
             </button>
           </div>
@@ -1002,6 +1203,158 @@ export default function AboutSettingsPage() {
             >
               {renderPublicPreviewCard(previewLangContent, previewActiveLangObj)}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ================= MODAL: ADD / EDIT SCHOLAR QUOTE ================= */}
+      {isQuoteModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-xs animate-in fade-in duration-150">
+          <div className="w-full max-w-lg rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-2xl space-y-5 max-h-[90vh] overflow-y-auto">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-amber-100 dark:bg-amber-900/50 flex items-center justify-center text-amber-700 dark:text-amber-400">
+                  <ChatBubbleLeftRightIcon className="w-4 h-4" />
+                </div>
+                <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                  {editingQuoteIndex !== null ? 'عالم کی معلومات میں ترمیم کریں' : 'نیا عالم شامل کریں'}
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsQuoteModalOpen(false)}
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800"
+              >
+                <XMarkIcon className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Modal Body Form */}
+            <form onSubmit={handleSaveQuoteFromModal} className="space-y-4">
+              {/* Photo preview + Photo URL */}
+              <div className="flex items-center gap-3.5 p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-700/80">
+                <div className="flex-shrink-0">
+                  {quoteFormData.image_url ? (
+                    <img
+                      src={quoteFormData.image_url}
+                      alt="Preview"
+                      className="w-14 h-14 rounded-full object-cover border-2 border-amber-300 dark:border-amber-700 shadow-sm"
+                      onError={(e) => { e.target.style.display = 'none'; }}
+                    />
+                  ) : (
+                    <div className="w-14 h-14 rounded-full bg-amber-100 dark:bg-amber-900/40 flex items-center justify-center border-2 border-dashed border-amber-300 dark:border-amber-700">
+                      <UserCircleIcon className="w-8 h-8 text-amber-500" />
+                    </div>
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-1">
+                    تصویر کا لنک (Photo URL - اختیاری)
+                  </label>
+                  <input
+                    type="url"
+                    value={quoteFormData.image_url}
+                    onChange={(e) => setQuoteFormData(prev => ({ ...prev, image_url: e.target.value }))}
+                    placeholder="https://.../scholar.jpg"
+                    className="w-full px-3 py-1.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs text-slate-800 dark:text-slate-200 outline-none focus:ring-2 focus:ring-amber-500"
+                  />
+                </div>
+              </div>
+
+              {/* Scholar Name & Designation */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                    عالم کا نام <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    dir="auto"
+                    value={quoteFormData.name}
+                    onChange={(e) => setQuoteFormData(prev => ({ ...prev, name: e.target.value }))}
+                    placeholder="مثلاً: شیخ عبد الرحیم صاحب"
+                    className="w-full px-3.5 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm font-semibold text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-amber-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                    عہدہ / لقب
+                  </label>
+                  <input
+                    type="text"
+                    dir="auto"
+                    value={quoteFormData.designation}
+                    onChange={(e) => setQuoteFormData(prev => ({ ...prev, designation: e.target.value }))}
+                    placeholder="مثلاً: مفتی، صدر جمعیت، استاد حدیث"
+                    className="w-full px-3.5 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-amber-500"
+                  />
+                </div>
+              </div>
+
+              {/* Quote Text */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                  رائے / تأثر <span className="text-red-500">*</span>
+                </label>
+                <textarea
+                  rows={4}
+                  required
+                  dir="rtl"
+                  value={quoteFormData.quote}
+                  onChange={(e) => setQuoteFormData(prev => ({ ...prev, quote: e.target.value }))}
+                  placeholder="عالم کے تأثرات اور رائے یہاں اردو یا عربی میں درج کریں..."
+                  className="w-full p-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm leading-relaxed text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-amber-500 font-urdu resize-none"
+                />
+              </div>
+
+              {/* Source & Link */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                    ماخذ (Source Attribution)
+                  </label>
+                  <input
+                    type="text"
+                    dir="auto"
+                    value={quoteFormData.source_text}
+                    onChange={(e) => setQuoteFormData(prev => ({ ...prev, source_text: e.target.value }))}
+                    placeholder="مثلاً: رسالہ، مکتوب، کانفرنس"
+                    className="w-full px-3.5 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-amber-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                    ماخذ لنک (Source URL - اختیاری)
+                  </label>
+                  <input
+                    type="url"
+                    value={quoteFormData.source_url}
+                    onChange={(e) => setQuoteFormData(prev => ({ ...prev, source_url: e.target.value }))}
+                    placeholder="https://youtube.com/... یا PDF"
+                    className="w-full px-3.5 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-amber-500"
+                  />
+                </div>
+              </div>
+
+              {/* Modal Buttons */}
+              <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100 dark:border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setIsQuoteModalOpen(false)}
+                  className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+                >
+                  منسوخ کریں (Cancel)
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold transition shadow-sm"
+                >
+                  {editingQuoteIndex !== null ? 'معلومات اپ ڈیٹ کریں' : 'فہرست میں شامل کریں'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

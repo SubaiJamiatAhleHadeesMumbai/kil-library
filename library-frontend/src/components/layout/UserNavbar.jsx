@@ -32,6 +32,7 @@ import {
   PhotoIcon,
   MoonIcon,
   CalendarDaysIcon,
+  ChatBubbleLeftRightIcon,
 } from "@heroicons/react/24/outline";
 
 // --- COMPONENTS & HOOKS ---
@@ -497,6 +498,25 @@ const UserNavbar = () => {
                               </span>
                             </div>
                           </Link>
+
+                          {/* 5. Ulama Opinions */}
+                          <Link
+                            to="/about?tab=ulama"
+                            onClick={() => setIsAboutDropdownOpen(false)}
+                            className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-amber-50/80 transition-all duration-200 group"
+                          >
+                            <div className="h-9 w-9 rounded-xl bg-amber-100/70 text-amber-800 flex items-center justify-center flex-shrink-0 group-hover:scale-105 group-hover:bg-amber-600 group-hover:text-white transition-all shadow-sm">
+                              <ChatBubbleLeftRightIcon className="h-5 w-5" />
+                            </div>
+                            <div className="flex flex-col text-start">
+                              <span className="text-xs font-bold text-slate-800 group-hover:text-amber-900 transition-colors">
+                                {language === 'ur' ? 'علماء کی آراء' : (language === 'ar' ? 'آراء العلماء' : 'Scholarly Opinions')}
+                              </span>
+                              <span className="text-[10px] text-slate-400 font-medium">
+                                {language === 'ur' ? 'مرکز کے بارے میں تاثرات' : (language === 'ar' ? 'شهادات وانطباعات' : 'Scholarly Testimonials')}
+                              </span>
+                            </div>
+                          </Link>
                         </div>
                       </motion.div>
                     )}
@@ -951,6 +971,14 @@ const UserNavbar = () => {
                           >
                             <CalendarDaysIcon className="w-4 h-4 text-teal-600" />
                             <span>{language === 'ur' ? 'اسلامی تقویم (کیلنڈر)' : (language === 'ar' ? 'التقويم الهجري' : 'Islamic Calendar')}</span>
+                          </Link>
+                          <Link
+                            to="/about?tab=ulama"
+                            onClick={() => setIsMobileMenuOpen(false)}
+                            className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold text-slate-700 hover:text-amber-900 hover:bg-white transition-colors"
+                          >
+                            <ChatBubbleLeftRightIcon className="w-4 h-4 text-amber-600" />
+                            <span>{language === 'ur' ? 'علماء کی آراء' : (language === 'ar' ? 'آراء العلماء' : 'Scholarly Opinions')}</span>
                           </Link>
                         </motion.div>
                       )}

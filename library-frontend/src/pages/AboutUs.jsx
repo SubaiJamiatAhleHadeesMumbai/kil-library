@@ -12,6 +12,8 @@ import {
   InformationCircleIcon,
   ArrowTopRightOnSquareIcon,
   SparklesIcon,
+  ChatBubbleLeftRightIcon,
+  MagnifyingGlassIcon,
 } from '@heroicons/react/24/outline';
 import aboutService from '../api/aboutService';
 import { AuthContext } from '../context/AuthProvider';
@@ -82,10 +84,11 @@ export default function AboutUs() {
   const [searchParams, setSearchParams] = useSearchParams();
   const tabFromUrl = searchParams.get('tab');
   const [activeTab, setActiveTab] = useState(tabFromUrl || 'about');
+  const [scholarSearch, setScholarSearch] = useState('');
 
   useEffect(() => {
     const t = searchParams.get('tab');
-    if (t && ['about', 'calendar', 'jumah', 'moon'].includes(t)) {
+    if (t && ['about', 'calendar', 'jumah', 'moon', 'ulama'].includes(t)) {
       setActiveTab(t);
     }
   }, [searchParams]);
@@ -257,6 +260,24 @@ export default function AboutUs() {
           >
             <MoonIcon className="w-4 h-4" />
             <span>{currentLang === 'ur' ? 'رؤیت ہلال' : 'Moon Announcements'}</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => handleTabChange('ulama')}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition cursor-pointer shrink-0 ${
+              activeTab === 'ulama'
+                ? 'bg-amber-600 text-white shadow-xs'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800'
+            }`}
+          >
+            <ChatBubbleLeftRightIcon className="w-4 h-4" />
+            <span>{currentLang === 'ur' ? 'علماء کی آراء' : (currentLang === 'ar' ? 'آراء العلماء' : 'Scholarly Opinions')}</span>
+            {Array.isArray(settings?.ulma_quotes) && settings.ulma_quotes.filter(q => q.name?.trim() || q.quote?.trim()).length > 0 && (
+              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${activeTab === 'ulama' ? 'bg-amber-700 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'}`}>
+                {settings.ulma_quotes.filter(q => q.name?.trim() || q.quote?.trim()).length}
+              </span>
+            )}
           </button>
         </div>
 
@@ -443,6 +464,192 @@ export default function AboutUs() {
                 <ArrowTopRightOnSquareIcon className="w-4 h-4" />
               </Link>
             </div>
+          </div>
+        )}
+
+        {/* ================= TAB 5: ULAMA TESTIMONIALS (علماء کی آراء) ================= */}
+        {activeTab === 'ulama' && (
+          <div className="space-y-6">
+            {/* Header with Search and Stats */}
+            <header className="rounded-3xl border border-amber-100 dark:border-amber-900/40 bg-gradient-to-br from-amber-50/60 via-white to-amber-50/40 dark:from-amber-950/20 dark:via-slate-900 dark:to-slate-950 p-6 sm:p-10 shadow-xs space-y-6">
+              <div className="text-center space-y-2.5 max-w-2xl mx-auto">
+                <span className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 text-xs font-bold tracking-wide">
+                  <SparklesIcon className="w-3.5 h-3.5" />
+                  {currentLang === 'ur' ? 'علماء کی آراء و تأثرات' : (currentLang === 'ar' ? 'آراء العلماء وشهاداتهم' : 'Scholarly Testimonials')}
+                </span>
+                <h1 className="text-2xl sm:text-4xl font-extrabold text-slate-900 dark:text-white" dir={currentLang === 'en' ? 'ltr' : 'rtl'}>
+                  {currentLang === 'ur' ? 'اکابر و علمائے کرام کی آراء' : (currentLang === 'ar' ? 'شهادات العلماء الكرام' : 'Endorsements from Respected Scholars')}
+                </h1>
+                <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed" dir={currentLang === 'en' ? 'ltr' : 'rtl'}>
+                  {currentLang === 'ur'
+                    ? 'مرکز الدعوۃ الاسلامیۃ، جامع مسجد، مکتبہ اور تعلیمی و سماجی سرگرمیوں کے حوالے سے اہلِ علم و دانش کے تأثرات'
+                    : (currentLang === 'ar'
+                    ? 'انطباعات وشهادات أصحاب الفضيلة العلماء حول المركز والمكتبة والمشاريع الخيرية'
+                    : 'Impressions and authentic testimonials from distinguished scholars regarding Markaz Dawah & Islamic Library.')}
+                </p>
+              </div>
+
+              {/* Search Bar for 100+ Scholars */}
+              {Array.isArray(settings?.ulma_quotes) && settings.ulma_quotes.length > 0 && (
+                <div className="max-w-md mx-auto relative">
+                  <MagnifyingGlassIcon className="w-5 h-5 text-slate-400 absolute start-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <input
+                    type="text"
+                    dir="auto"
+                    value={scholarSearch}
+                    onChange={(e) => setScholarSearch(e.target.value)}
+                    placeholder={
+                      currentLang === 'ur'
+                        ? 'عالم کا نام، عہدہ یا رائے تلاش کریں...'
+                        : (currentLang === 'ar' ? 'ابحث عن اسم العالم أو شهادته...' : 'Search scholars by name, title, or quote...')
+                    }
+                    className="w-full ps-11 pe-4 py-2.5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-sm text-slate-800 dark:text-slate-200 outline-none focus:ring-2 focus:ring-amber-500 shadow-xs transition"
+                  />
+                  {scholarSearch && (
+                    <button
+                      type="button"
+                      onClick={() => setScholarSearch('')}
+                      className="absolute end-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
+              )}
+            </header>
+
+            {/* Scholars Grid with Live Filter */}
+            {(() => {
+              const allQuotes = Array.isArray(settings?.ulma_quotes)
+                ? settings.ulma_quotes.filter(q => q.name?.trim() || q.quote?.trim())
+                : [];
+              const term = scholarSearch.toLowerCase().trim();
+              const filtered = term
+                ? allQuotes.filter(q =>
+                    (q.name && q.name.toLowerCase().includes(term)) ||
+                    (q.designation && q.designation.toLowerCase().includes(term)) ||
+                    (q.quote && q.quote.toLowerCase().includes(term)) ||
+                    (q.source_text && q.source_text.toLowerCase().includes(term))
+                  )
+                : allQuotes;
+
+              if (allQuotes.length === 0) {
+                return (
+                  <div className="rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-12 text-center space-y-3">
+                    <ChatBubbleLeftRightIcon className="w-12 h-12 text-slate-300 dark:text-slate-700 mx-auto" />
+                    <h3 className="text-base font-bold text-slate-700 dark:text-slate-300">
+                      {currentLang === 'ur' ? 'ابھی کوئی رائے شامل نہیں کی گئی' : 'No Scholarly Testimonials Published Yet'}
+                    </h3>
+                    <p className="text-xs text-slate-400">
+                      {currentLang === 'ur' ? 'ایڈمن پینل سے علماء کی آراء شامل ہونے کے بعد یہاں ظاہر ہوں گی۔' : 'Check back soon for statements from esteemed scholars.'}
+                    </p>
+                  </div>
+                );
+              }
+
+              if (filtered.length === 0) {
+                return (
+                  <div className="rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-8 text-center space-y-2">
+                    <p className="text-sm font-semibold text-slate-600 dark:text-slate-400">
+                      {currentLang === 'ur' ? `"${scholarSearch}" کے لیے کوئی عالم نہیں ملا` : `No scholars found matching "${scholarSearch}"`}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => setScholarSearch('')}
+                      className="text-xs text-amber-600 font-bold hover:underline"
+                    >
+                      {currentLang === 'ur' ? 'تمام علماء دکھائیں' : 'Show All Scholars'}
+                    </button>
+                  </div>
+                );
+              }
+
+              return (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between text-xs text-slate-500 px-1">
+                    <span>
+                      {currentLang === 'ur'
+                        ? `کل ${filtered.length} علماء کی آراء موجود ہیں`
+                        : `Showing ${filtered.length} scholarly testimonials`}
+                    </span>
+                    {scholarSearch && (
+                      <span className="font-semibold text-amber-600">
+                        {currentLang === 'ur' ? 'فلٹر شدہ نتائج' : 'Filtered Results'}
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    {filtered.map((q, idx) => (
+                      <div
+                        key={idx}
+                        className="relative rounded-2xl border border-amber-100 dark:border-amber-900/40 bg-white dark:bg-slate-900 p-6 shadow-xs hover:shadow-md transition-shadow space-y-4 flex flex-col justify-between"
+                      >
+                        <div className="absolute top-4 right-5 text-amber-200 dark:text-amber-900/60 text-5xl font-serif leading-none select-none pointer-events-none" aria-hidden="true">
+                          "
+                        </div>
+
+                        {q.quote && (
+                          <blockquote
+                            dir="rtl"
+                            className="text-slate-800 dark:text-slate-200 text-sm sm:text-base leading-loose font-urdu relative z-10"
+                          >
+                            {q.quote}
+                          </blockquote>
+                        )}
+
+                        <div className="flex items-center gap-3 pt-3 border-t border-amber-100 dark:border-amber-900/40">
+                          {q.image_url ? (
+                            <img
+                              src={q.image_url}
+                              alt={q.name}
+                              className="w-12 h-12 rounded-full object-cover border-2 border-amber-200 dark:border-amber-700 shadow-sm flex-shrink-0"
+                              onError={(e) => { e.target.style.display = 'none'; }}
+                            />
+                          ) : (
+                            <div className="w-12 h-12 rounded-full bg-amber-100 dark:bg-amber-900/40 flex items-center justify-center border-2 border-amber-200 dark:border-amber-700 flex-shrink-0">
+                              <span className="text-amber-700 dark:text-amber-400 text-lg font-bold">
+                                {q.name?.charAt(0) || '؟'}
+                              </span>
+                            </div>
+                          )}
+
+                          <div className="min-w-0 flex-1" dir="rtl">
+                            {q.name && (
+                              <h4 className="font-bold text-slate-900 dark:text-white text-base truncate font-urdu">
+                                {q.name}
+                              </h4>
+                            )}
+                            {q.designation && (
+                              <p className="text-xs text-amber-700 dark:text-amber-400 font-urdu truncate font-medium">
+                                {q.designation}
+                              </p>
+                            )}
+                            {q.source_text && (
+                              <p className="text-xs text-slate-400 dark:text-slate-500 truncate font-urdu mt-0.5">
+                                — {q.source_text}
+                              </p>
+                            )}
+                          </div>
+
+                          {q.source_url && (
+                            <a
+                              href={q.source_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="ms-auto flex-shrink-0 p-2 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-500 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/40 transition shadow-2xs"
+                              title="View Document / Video Source"
+                            >
+                              <ArrowTopRightOnSquareIcon className="w-4 h-4" />
+                            </a>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
           </div>
         )}
       </div>
