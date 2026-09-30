@@ -23,6 +23,9 @@ import {
   TrashIcon,
   ChatBubbleLeftRightIcon,
   MagnifyingGlassIcon,
+  PhotoIcon,
+  ArrowUpTrayIcon,
+  DocumentTextIcon,
 } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
 import aboutService from '../../api/aboutService';
@@ -35,6 +38,7 @@ const EMPTY_QUOTE = () => ({
   source_text: '',
   source_url: '',
   image_url: '',
+  document_image_url: '',
 });
 
 const DRAFT_STORAGE_KEY = 'kil_about_cms_draft';
@@ -135,6 +139,8 @@ export default function AboutSettingsPage() {
   const [isQuoteModalOpen, setIsQuoteModalOpen] = useState(false);
   const [editingQuoteIndex, setEditingQuoteIndex] = useState(null);
   const [quoteFormData, setQuoteFormData] = useState(EMPTY_QUOTE());
+  const [uploadingDoc, setUploadingDoc] = useState(false);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
 
   // Load from backend & check draft
   useEffect(() => {
@@ -338,6 +344,56 @@ export default function AboutSettingsPage() {
     if (window.confirm('کیا آپ واقعی اس عالم کی رائے کو فہرست سے حذف کرنا چاہتے ہیں؟')) {
       setUlmaQuotes(prev => prev.filter((_, i) => i !== index));
       toast.success('رائے حذف کر دی گئی');
+    }
+  };
+
+  const handleUploadDocumentImage = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      toast.error('براہ کرم تصویر والی فائل منتخب کریں (PNG, JPG, WebP)');
+      return;
+    }
+    try {
+      setUploadingDoc(true);
+      const res = await aboutService.uploadImage(file);
+      if (res?.url) {
+        setQuoteFormData(prev => ({ ...prev, document_image_url: res.url }));
+        toast.success('اصل مکتوب کی تصویر کامیابی سے اپلوڈ ہو گئی');
+      } else {
+        toast.error('اپلوڈ میں مسئلہ پیش آیا');
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error(err?.response?.data?.detail || err.message || 'تصویر اپلوڈ نہیں ہو سکی');
+    } finally {
+      setUploadingDoc(false);
+      e.target.value = '';
+    }
+  };
+
+  const handleUploadScholarPhoto = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      toast.error('براہ کرم تصویر والی فائل منتخب کریں');
+      return;
+    }
+    try {
+      setUploadingPhoto(true);
+      const res = await aboutService.uploadImage(file);
+      if (res?.url) {
+        setQuoteFormData(prev => ({ ...prev, image_url: res.url }));
+        toast.success('عالم کی تصویر اپلوڈ ہو گئی');
+      } else {
+        toast.error('اپلوڈ میں مسئلہ پیش آیا');
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error(err?.response?.data?.detail || err.message || 'تصویر اپلوڈ نہیں ہو سکی');
+    } finally {
+      setUploadingPhoto(false);
+      e.target.value = '';
     }
   };
 
@@ -674,11 +730,18 @@ export default function AboutSettingsPage() {
                               <p className="font-bold text-slate-900 dark:text-white text-sm font-urdu truncate">
                                 {q.name || '(نام درج نہیں)'}
                               </p>
-                              {q.designation && (
-                                <p className="text-[11px] text-amber-700 dark:text-amber-400 font-urdu truncate">
-                                  {q.designation}
-                                </p>
-                              )}
+                              <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
+                                {q.designation && (
+                                  <span className="text-[11px] text-amber-700 dark:text-amber-400 font-urdu truncate">
+                                    {q.designation}
+                                  </span>
+                                )}
+                                {q.document_image_url && (
+                                  <span className="inline-flex items-center gap-1 px-1.5 py-0.2 rounded-md bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 text-[10px] font-bold">
+                                    📜 اصل مکتوب
+                                  </span>
+                                )}
+                              </div>
                             </div>
                           </div>
                         </td>
@@ -1232,31 +1295,48 @@ export default function AboutSettingsPage() {
 
             {/* Modal Body Form */}
             <form onSubmit={handleSaveQuoteFromModal} className="space-y-4">
-              {/* Photo preview + Photo URL */}
-              <div className="flex items-center gap-3.5 p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-700/80">
-                <div className="flex-shrink-0">
-                  {quoteFormData.image_url ? (
-                    <img
-                      src={quoteFormData.image_url}
-                      alt="Preview"
-                      className="w-14 h-14 rounded-full object-cover border-2 border-amber-300 dark:border-amber-700 shadow-sm"
-                      onError={(e) => { e.target.style.display = 'none'; }}
-                    />
-                  ) : (
-                    <div className="w-14 h-14 rounded-full bg-amber-100 dark:bg-amber-900/40 flex items-center justify-center border-2 border-dashed border-amber-300 dark:border-amber-700">
-                      <UserCircleIcon className="w-8 h-8 text-amber-500" />
-                    </div>
-                  )}
+              {/* Scholar Photo preview + Upload + URL */}
+              <div className="flex flex-col sm:flex-row sm:items-center gap-3.5 p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-700/80">
+                <div className="flex items-center gap-3">
+                  <div className="flex-shrink-0">
+                    {quoteFormData.image_url ? (
+                      <img
+                        src={quoteFormData.image_url}
+                        alt="Scholar Photo"
+                        className="w-14 h-14 rounded-full object-cover border-2 border-amber-300 dark:border-amber-700 shadow-sm"
+                        onError={(e) => { e.target.style.display = 'none'; }}
+                      />
+                    ) : (
+                      <div className="w-14 h-14 rounded-full bg-amber-100 dark:bg-amber-900/40 flex items-center justify-center border-2 border-dashed border-amber-300 dark:border-amber-700">
+                        <UserCircleIcon className="w-8 h-8 text-amber-500" />
+                      </div>
+                    )}
+                  </div>
+                  <div className="sm:hidden">
+                    <label className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs font-bold transition cursor-pointer">
+                      <ArrowUpTrayIcon className="w-3.5 h-3.5" />
+                      <span>{uploadingPhoto ? 'اپلوڈ...' : 'تصویر منتخب کریں'}</span>
+                      <input type="file" accept="image/*" disabled={uploadingPhoto} onChange={handleUploadScholarPhoto} className="hidden" />
+                    </label>
+                  </div>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-1">
-                    تصویر کا لنک (Photo URL - اختیاری)
-                  </label>
+
+                <div className="flex-1 min-w-0 space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">
+                      عالم کی تصویر (Scholar Photo)
+                    </label>
+                    <label className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 text-xs font-bold hover:bg-emerald-100 transition cursor-pointer">
+                      {uploadingPhoto ? <ArrowPathIcon className="w-3.5 h-3.5 animate-spin" /> : <ArrowUpTrayIcon className="w-3.5 h-3.5" />}
+                      <span>{uploadingPhoto ? 'اپلوڈ ہو رہی ہے...' : 'براہ راست تصویر اپلوڈ کریں'}</span>
+                      <input type="file" accept="image/*" disabled={uploadingPhoto} onChange={handleUploadScholarPhoto} className="hidden" />
+                    </label>
+                  </div>
                   <input
                     type="url"
                     value={quoteFormData.image_url}
                     onChange={(e) => setQuoteFormData(prev => ({ ...prev, image_url: e.target.value }))}
-                    placeholder="https://.../scholar.jpg"
+                    placeholder="یا تصویر کا لنک درج کریں (https://.../photo.jpg)"
                     className="w-full px-3 py-1.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs text-slate-800 dark:text-slate-200 outline-none focus:ring-2 focus:ring-amber-500"
                   />
                 </div>
@@ -1293,18 +1373,104 @@ export default function AboutSettingsPage() {
                 </div>
               </div>
 
-              {/* Quote Text */}
+              {/* 📜 NEW: DIRECT UPLOAD FOR HANDWRITTEN LETTER / DOCUMENT IMAGE */}
+              <div className="p-4 rounded-2xl border-2 border-dashed border-amber-300 dark:border-amber-800/80 bg-amber-50/60 dark:bg-amber-950/20 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <DocumentTextIcon className="w-5 h-5 text-amber-700 dark:text-amber-400" />
+                    <div>
+                      <h4 className="text-xs font-bold text-amber-950 dark:text-amber-200">
+                        اصل دستی تحریر / مکتوب کی تصویر (Original Handwritten Letter Image)
+                      </h4>
+                      <p className="text-[11px] text-amber-800/80 dark:text-amber-400/80">
+                        اگر عالم نے ہاتھ سے لکھ کر مکتوب دیا ہے تو خط کی تصویر براہِ راست اپنے موبائل یا کمپیوٹر سے اپلوڈ کریں
+                      </p>
+                    </div>
+                  </div>
+                  {quoteFormData.document_image_url && (
+                    <button
+                      type="button"
+                      onClick={() => setQuoteFormData(prev => ({ ...prev, document_image_url: '' }))}
+                      className="text-[11px] font-bold text-red-600 hover:underline px-2 py-1 rounded-lg hover:bg-red-50"
+                    >
+                      تصویر ہٹائیں ✕
+                    </button>
+                  )}
+                </div>
+
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                  <label className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold transition cursor-pointer shadow-sm disabled:opacity-50">
+                    {uploadingDoc ? (
+                      <>
+                        <ArrowPathIcon className="w-4 h-4 animate-spin" />
+                        <span>اپلوڈ ہو رہا ہے...</span>
+                      </>
+                    ) : (
+                      <>
+                        <ArrowUpTrayIcon className="w-4 h-4" />
+                        <span>{quoteFormData.document_image_url ? 'دوسری تصویر منتخب کریں' : 'دستی مکتوب کی تصویر اپلوڈ کریں'}</span>
+                      </>
+                    )}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      disabled={uploadingDoc}
+                      onChange={handleUploadDocumentImage}
+                      className="hidden"
+                    />
+                  </label>
+
+                  {quoteFormData.document_image_url ? (
+                    <div className="flex items-center gap-3 p-2 rounded-xl bg-white dark:bg-slate-900 border border-amber-200 dark:border-amber-800 shadow-2xs flex-1">
+                      <img
+                        src={quoteFormData.document_image_url}
+                        alt="Handwritten Letter Preview"
+                        className="w-12 h-12 object-cover rounded-lg border border-amber-300 flex-shrink-0"
+                        onError={(e) => { e.target.style.display = 'none'; }}
+                      />
+                      <div className="min-w-0 flex-1">
+                        <span className="text-xs font-bold text-emerald-700 dark:text-emerald-400 block truncate">
+                          ✓ دستی مکتوب محفوظ ہے
+                        </span>
+                        <a
+                          href={quoteFormData.document_image_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-[11px] text-amber-700 dark:text-amber-400 font-semibold hover:underline inline-flex items-center gap-1"
+                        >
+                          <span>اصل تصویر مکمل دیکھیں</span>
+                          <ArrowTopRightOnSquareIcon className="w-3 h-3" />
+                        </a>
+                      </div>
+                    </div>
+                  ) : (
+                    <span className="text-xs text-slate-400 italic">
+                      کوئی تصویر منتخب نہیں (اختیاری)
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Clean Readable Quote Text */}
               <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                  رائے / تأثر <span className="text-red-500">*</span>
-                </label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
+                    صاف ٹائپ شدہ متن / نقلِ تحریر (Clean Readable Text) <span className="text-red-500">*</span>
+                  </label>
+                  <span className="text-[11px] text-slate-400">
+                    عام قارئین کی آسانی کے لیے
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-500 mb-1.5 leading-relaxed">
+                  اگر اوپر دستی خط کی تصویر لگائی ہے، تو اس کا مکمل متن یہاں صاف الفاظ میں ٹائپ کریں تاکہ ہر عام صارف آسانی سے پڑھ سکے۔
+                </p>
                 <textarea
                   rows={4}
                   required
                   dir="rtl"
                   value={quoteFormData.quote}
                   onChange={(e) => setQuoteFormData(prev => ({ ...prev, quote: e.target.value }))}
-                  placeholder="عالم کے تأثرات اور رائے یہاں اردو یا عربی میں درج کریں..."
+                  placeholder="عالم کے تأثرات یا خط کا مکمل متن یہاں اردو یا عربی میں صاف ٹائپ کریں..."
                   className="w-full p-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm leading-relaxed text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-amber-500 font-urdu resize-none"
                 />
               </div>

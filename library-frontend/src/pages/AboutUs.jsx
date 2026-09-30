@@ -14,6 +14,8 @@ import {
   SparklesIcon,
   ChatBubbleLeftRightIcon,
   MagnifyingGlassIcon,
+  XMarkIcon,
+  DocumentTextIcon,
 } from '@heroicons/react/24/outline';
 import aboutService from '../api/aboutService';
 import { AuthContext } from '../context/AuthProvider';
@@ -85,6 +87,7 @@ export default function AboutUs() {
   const tabFromUrl = searchParams.get('tab');
   const [activeTab, setActiveTab] = useState(tabFromUrl || 'about');
   const [scholarSearch, setScholarSearch] = useState('');
+  const [selectedLetterModal, setSelectedLetterModal] = useState(null);
 
   useEffect(() => {
     const t = searchParams.get('tab');
@@ -372,13 +375,56 @@ export default function AboutUs() {
                       {settings.ulma_quotes
                         .filter(q => q.name?.trim() || q.quote?.trim())
                         .map((q, idx) => (
-                          <div key={idx} className="relative rounded-2xl border border-amber-100 dark:border-amber-900/40 bg-white dark:bg-slate-900 p-5 sm:p-6 shadow-xs hover:shadow-md transition-shadow space-y-4">
+                          <div key={idx} className="relative rounded-2xl border border-amber-100 dark:border-amber-900/40 bg-white dark:bg-slate-900 p-5 sm:p-6 shadow-xs hover:shadow-md transition-shadow space-y-4 flex flex-col justify-between">
                             <div className="absolute top-4 right-5 text-amber-200 dark:text-amber-900/60 text-5xl font-serif leading-none select-none pointer-events-none" aria-hidden="true">"</div>
                             {q.quote && (
                               <blockquote dir="rtl" className="text-slate-800 dark:text-slate-200 text-sm sm:text-base leading-loose font-urdu relative z-10">
                                 {q.quote}
                               </blockquote>
                             )}
+
+                            {/* 📜 Handwritten Letter Thumbnail & Zoom Button */}
+                            {q.document_image_url && (
+                              <div className="rounded-xl border border-amber-200 dark:border-amber-800/60 bg-amber-50/60 dark:bg-amber-950/20 p-2.5 flex items-center justify-between gap-2.5">
+                                <div className="flex items-center gap-2 min-w-0">
+                                  <img
+                                    src={q.document_image_url}
+                                    alt="Original Handwritten Letter"
+                                    className="w-11 h-11 rounded-lg object-cover border border-amber-300 shadow-2xs cursor-pointer hover:opacity-90 flex-shrink-0"
+                                    onClick={() => setSelectedLetterModal({
+                                      imageUrl: q.document_image_url,
+                                      scholarName: q.name,
+                                      designation: q.designation,
+                                      quote: q.quote,
+                                    })}
+                                    onError={(e) => { e.target.style.display = 'none'; }}
+                                  />
+                                  <div className="min-w-0" dir="rtl">
+                                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200 block font-urdu truncate">
+                                      📜 اصل دستی مکتوب
+                                    </span>
+                                    <span className="text-[10px] text-slate-400 block truncate">
+                                      Original Handwritten Letter
+                                    </span>
+                                  </div>
+                                </div>
+
+                                <button
+                                  type="button"
+                                  onClick={() => setSelectedLetterModal({
+                                    imageUrl: q.document_image_url,
+                                    scholarName: q.name,
+                                    designation: q.designation,
+                                    quote: q.quote,
+                                  })}
+                                  className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-[11px] font-bold transition shadow-2xs flex-shrink-0 cursor-pointer"
+                                >
+                                  <span>اصل مکتوب دیکھیں</span>
+                                  <ArrowTopRightOnSquareIcon className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            )}
+
                             <div className="flex items-center gap-3 pt-2 border-t border-amber-100 dark:border-amber-900/40">
                               {q.image_url ? (
                                 <img src={q.image_url} alt={q.name} className="w-11 h-11 rounded-full object-cover border-2 border-amber-200 dark:border-amber-700 shadow-sm flex-shrink-0" onError={e => { e.target.style.display = 'none'; }} />
@@ -598,6 +644,48 @@ export default function AboutUs() {
                           </blockquote>
                         )}
 
+                        {/* 📜 Handwritten Letter Thumbnail & Zoom Button */}
+                        {q.document_image_url && (
+                          <div className="rounded-xl border border-amber-200 dark:border-amber-800/60 bg-amber-50/60 dark:bg-amber-950/20 p-2.5 flex items-center justify-between gap-2.5">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <img
+                                src={q.document_image_url}
+                                alt="Original Handwritten Letter"
+                                className="w-11 h-11 rounded-lg object-cover border border-amber-300 shadow-2xs cursor-pointer hover:opacity-90 flex-shrink-0"
+                                onClick={() => setSelectedLetterModal({
+                                  imageUrl: q.document_image_url,
+                                  scholarName: q.name,
+                                  designation: q.designation,
+                                  quote: q.quote,
+                                })}
+                                onError={(e) => { e.target.style.display = 'none'; }}
+                              />
+                              <div className="min-w-0" dir="rtl">
+                                <span className="text-xs font-bold text-slate-800 dark:text-slate-200 block font-urdu truncate">
+                                  📜 اصل دستی مکتوب
+                                </span>
+                                <span className="text-[10px] text-slate-400 block truncate">
+                                  Original Handwritten Letter
+                                </span>
+                              </div>
+                            </div>
+
+                            <button
+                              type="button"
+                              onClick={() => setSelectedLetterModal({
+                                imageUrl: q.document_image_url,
+                                scholarName: q.name,
+                                designation: q.designation,
+                                quote: q.quote,
+                              })}
+                              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-[11px] font-bold transition shadow-2xs flex-shrink-0 cursor-pointer"
+                            >
+                              <span>اصل مکتوب دیکھیں</span>
+                              <ArrowTopRightOnSquareIcon className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        )}
+
                         <div className="flex items-center gap-3 pt-3 border-t border-amber-100 dark:border-amber-900/40">
                           {q.image_url ? (
                             <img
@@ -653,6 +741,69 @@ export default function AboutUs() {
           </div>
         )}
       </div>
+
+      {/* ================= LIGHTBOX MODAL: ORIGINAL HANDWRITTEN LETTER ================= */}
+      {selectedLetterModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-slate-950/85 backdrop-blur-md animate-in fade-in duration-200"
+          onClick={() => setSelectedLetterModal(null)}
+        >
+          <div
+            className="relative max-w-4xl w-full max-h-[92vh] flex flex-col bg-white dark:bg-slate-900 rounded-3xl overflow-hidden shadow-2xl border border-slate-200 dark:border-slate-800 animate-in zoom-in-95 duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Lightbox Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/90">
+              <div dir="rtl">
+                <span className="text-xs font-bold text-amber-600 dark:text-amber-400 block font-urdu">
+                  اصل دستی تحریر / مکتوب
+                </span>
+                <h3 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white font-urdu">
+                  {selectedLetterModal.scholarName}
+                  {selectedLetterModal.designation && (
+                    <span className="text-xs font-normal text-slate-500 dark:text-slate-400 ms-2">
+                      ({selectedLetterModal.designation})
+                    </span>
+                  )}
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedLetterModal(null)}
+                className="p-2 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-slate-800 transition cursor-pointer"
+                title="بند کریں (Close)"
+              >
+                <XMarkIcon className="w-6 h-6" />
+              </button>
+            </div>
+
+            {/* Lightbox Image Viewport */}
+            <div className="flex-1 overflow-auto p-4 sm:p-6 bg-slate-950 flex justify-center items-center">
+              <img
+                src={selectedLetterModal.imageUrl}
+                alt="Original handwritten letter"
+                className="max-h-[72vh] w-auto max-w-full object-contain rounded-xl shadow-2xl border border-slate-800"
+              />
+            </div>
+
+            {/* Lightbox Footer */}
+            <div className="px-6 py-3 bg-slate-50 dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 flex flex-wrap items-center justify-between gap-3 text-xs">
+              <p className="text-slate-500 dark:text-slate-400 font-urdu text-[11px]" dir="rtl">
+                نوٹ: قارئین کی آسانی کے لیے اس مکتوب کا مکمل متن صاف الفاظ میں نیچے اور مرکزی صفحے پر درج ہے۔
+              </p>
+              <a
+                href={selectedLetterModal.imageUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-amber-700 dark:text-amber-400 font-bold hover:underline inline-flex items-center gap-1.5 ms-auto"
+              >
+                <span>اصل تصویر نئی ونڈو میں کھولیں</span>
+                <ArrowTopRightOnSquareIcon className="w-3.5 h-3.5" />
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
