@@ -451,12 +451,28 @@ def get_calendar_archive(
         {"month_number": 12, "key": "dhul_hijjah", "ur": "ذو الحجة", "en": "Dhul Hijjah"},
     ]
 
+    gregorian_definitions = [
+        {"month_number": 1, "key": "january", "ur": "جنوری", "en": "January"},
+        {"month_number": 2, "key": "february", "ur": "فروری", "en": "February"},
+        {"month_number": 3, "key": "march", "ur": "مارچ", "en": "March"},
+        {"month_number": 4, "key": "april", "ur": "اپریل", "en": "April"},
+        {"month_number": 5, "key": "may", "ur": "مئی", "en": "May"},
+        {"month_number": 6, "key": "june", "ur": "جون", "en": "June"},
+        {"month_number": 7, "key": "july", "ur": "جولائی", "en": "July"},
+        {"month_number": 8, "key": "august", "ur": "اگست", "en": "August"},
+        {"month_number": 9, "key": "september", "ur": "ستمبر", "en": "September"},
+        {"month_number": 10, "key": "october", "ur": "اکتوبر", "en": "October"},
+        {"month_number": 11, "key": "november", "ur": "نومبر", "en": "November"},
+        {"month_number": 12, "key": "december", "ur": "دسمبر", "en": "December"},
+    ]
+
     all_items_dict = [it.to_dict() for it in items_db]
 
     return {
         "current_calendar": current_calendar,
         "items": all_items_dict,
         "month_definitions": month_definitions,
+        "gregorian_definitions": gregorian_definitions,
         "total_count": len(items_db)
     }
 
@@ -805,7 +821,7 @@ def upload_dated_item(
         elif not calculated_year:
             calculated_year = "2026"
     elif not calculated_year:
-        calculated_year = "1448" if safe_type in ["moon", "calendar"] else "2026"
+        calculated_year = "1448" if safe_type == "moon" else str(datetime.now().year)
 
     # If this is calendar and show_on_home is set to True, unmark others so only this is active
     if safe_type == "calendar" and show_on_home:

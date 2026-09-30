@@ -367,14 +367,16 @@ export default function AboutUs() {
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                      {settings.ulma_quotes
-                        .map((q, origIdx) => ({ ...q, originalIndex: origIdx }))
-                        .filter(q => q.name?.trim() || q.quote?.trim())
-                        .filter(q => {
-                          if (currentLang === 'en') return q.language === 'en' || q.language === 'all' || !q.language;
+                      {(() => {
+                        const validQuotes = settings.ulma_quotes
+                          .map((q, origIdx) => ({ ...q, originalIndex: origIdx }))
+                          .filter(q => q.name?.trim() || q.quote?.trim());
+                        const langFiltered = validQuotes.filter(q => {
+                          if (currentLang === 'en') return q.language === 'en' || q.language === 'all';
                           return (q.language || 'ur') === 'ur' || q.language === 'all';
-                        })
-                        .map((q) => (
+                        });
+                        const toShow = langFiltered.length > 0 ? langFiltered : validQuotes;
+                        return toShow.map((q) => (
                           <div key={q.originalIndex} className="relative rounded-2xl border border-amber-100 dark:border-amber-900/40 bg-white dark:bg-slate-900 p-5 sm:p-6 shadow-xs hover:shadow-md transition-shadow space-y-4 flex flex-col justify-between">
                             <div className="absolute top-4 right-5 text-amber-200 dark:text-amber-900/60 text-5xl font-serif leading-none select-none pointer-events-none" aria-hidden="true">"</div>
                             {q.quote && (
@@ -480,7 +482,8 @@ export default function AboutUs() {
                               )}
                             </div>
                           </div>
-                        ))}
+                        ));
+                      })()}
                     </div>
                   </section>
                 )}
@@ -645,16 +648,17 @@ export default function AboutUs() {
                 : [];
               const langFiltered = publicLangFilter === 'all'
                 ? allQuotes
-                : allQuotes.filter(q => (q.language || 'ur') === publicLangFilter || q.language === 'all');
+                : allQuotes.filter(q => (q.language || 'ur') === publicLangFilter || q.language === 'all' || !q.language);
+              const pool = (langFiltered.length > 0 || publicLangFilter === 'all') ? langFiltered : allQuotes;
               const term = scholarSearch.toLowerCase().trim();
               const filtered = term
-                ? langFiltered.filter(q =>
+                ? pool.filter(q =>
                     (q.name && q.name.toLowerCase().includes(term)) ||
                     (q.designation && q.designation.toLowerCase().includes(term)) ||
                     (q.quote && q.quote.toLowerCase().includes(term)) ||
                     (q.source_text && q.source_text.toLowerCase().includes(term))
                   )
-                : langFiltered;
+                : pool;
 
               if (allQuotes.length === 0) {
                 return (

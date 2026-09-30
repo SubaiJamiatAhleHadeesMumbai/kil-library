@@ -221,12 +221,14 @@ const GalleryManagementPage = () => {
   });
   const [moonSaving, setMoonSaving] = useState(false);
 
-  // Calendar Form State (12 Months)
+  // Calendar Form State (12 Months - Gregorian/English & Hijri)
   const calendarFileInputRef = useRef(null);
+  const currentMonthKey = GREGORIAN_MONTHS[new Date().getMonth()]?.key || 'january';
+  const currentYearVal = String(new Date().getFullYear());
   const [calendarForm, setCalendarForm] = useState({
     file: null,
-    hijri_month: 'ramadan',
-    year: '1448',
+    hijri_month: currentMonthKey,
+    year: currentYearVal,
     title_en: '',
     title_ur: '',
     show_on_home: true,
@@ -645,20 +647,21 @@ const GalleryManagementPage = () => {
       payload.append('year', calendarForm.year || '1448');
       payload.append('show_on_home', String(calendarForm.show_on_home));
 
-      const foundMonth = ISLAMIC_MONTHS.find(m => m.key === calendarForm.hijri_month);
-      const rawMonth = foundMonth ? foundMonth.label.replace(/^\d+\.\s*/, '') : '';
-      const urduName = rawMonth.split('(')[0]?.trim() || '';
-      const engName = rawMonth.split('(')[1]?.replace(')', '')?.trim() || '';
+      const gregMonth = GREGORIAN_MONTHS.find(m => m.key === calendarForm.hijri_month);
+      const islmMonth = ISLAMIC_MONTHS.find(m => m.key === calendarForm.hijri_month);
+      const engName = gregMonth?.en || islmMonth?.label.replace(/^\d+\.\s*/, '').split('(')[1]?.replace(')', '')?.trim() || calendarForm.hijri_month;
+      const urduName = gregMonth?.ur || islmMonth?.label.replace(/^\d+\.\s*/, '').split('(')[0]?.trim() || calendarForm.hijri_month;
+      const yr = calendarForm.year || currentYearVal;
 
-      payload.append('title_en', calendarForm.title_en.trim() || `Islamic Calendar ${engName} ${calendarForm.year || '1448'}`);
-      payload.append('title_ur', calendarForm.title_ur.trim() || `اسلامی کیلنڈر ${urduName} ${calendarForm.year || '1448'}ھ`);
+      payload.append('title_en', calendarForm.title_en.trim() || `Calendar ${engName} ${yr}`);
+      payload.append('title_ur', calendarForm.title_ur.trim() || `کیلنڈر ${urduName} ${yr}`);
 
       await galleryService.uploadDatedItem(payload);
-      showNotification('Islamic Calendar poster uploaded successfully! 📅');
+      showNotification('Calendar poster uploaded successfully! 📅');
       setCalendarForm({
         file: null,
-        hijri_month: 'ramadan',
-        year: '1448',
+        hijri_month: currentMonthKey,
+        year: currentYearVal,
         title_en: '',
         title_ur: '',
         show_on_home: true,
@@ -2216,24 +2219,33 @@ const GalleryManagementPage = () => {
 
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Islamic Month (اسلامی مہینہ) *
+                    Select Month (ماہ کا انتخاب — انگریزی و اسلامی) *
                   </label>
                   <select
                     value={calendarForm.hijri_month}
                     onChange={(e) => setCalendarForm({ ...calendarForm, hijri_month: e.target.value })}
                     className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-800"
                   >
-                    {ISLAMIC_MONTHS.map((m) => (
-                      <option key={m.key} value={m.key}>
-                        {m.label}
-                      </option>
-                    ))}
+                    <optgroup label="English / Gregorian Months (بارہ انگریزی مہینے)">
+                      {GREGORIAN_MONTHS.map((m) => (
+                        <option key={m.key} value={m.key}>
+                          {m.index}. {m.en} — {m.ur}
+                        </option>
+                      ))}
+                    </optgroup>
+                    <optgroup label="Islamic / Hijri Months (بارہ اسلامی مہینے)">
+                      {ISLAMIC_MONTHS.map((m) => (
+                        <option key={m.key} value={m.key}>
+                          {m.label}
+                        </option>
+                      ))}
+                    </optgroup>
                   </select>
                 </div>
 
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Hijri Year (ہجری سال) *
+                    Year (سال — e.g. 2026 / 1448) *
                   </label>
                   <input
                     type="text"
@@ -2241,7 +2253,7 @@ const GalleryManagementPage = () => {
                     value={calendarForm.year}
                     onChange={(e) => setCalendarForm({ ...calendarForm, year: e.target.value })}
                     className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-mono text-slate-800"
-                    placeholder="1448"
+                    placeholder="2026"
                   />
                 </div>
               </div>
@@ -2283,16 +2295,16 @@ const GalleryManagementPage = () => {
             <div className="flex items-center justify-between gap-3 flex-wrap">
               <div>
                 <h3 className="text-base font-bold text-slate-800">
-                  12 Islamic Months Calendar Overview (سالانہ بارہ مہینے)
+                  12 Months Calendar Overview (سالانہ بارہ مہینے — انگریزی تقویم)
                 </h3>
                 <p className="text-xs text-slate-500">
-                  جس ماہ کے پوسٹر پر "Live" کا نشان ہوگا، پبلک ویب سائٹ پر سب سے پہلے وہی دکھائی دے گا۔ آپ 1-کلک میں کسی بھی مہینے کو لائیو کر سکتے ہیں۔
+                  انگریزی مہینوں (January تا December) کے مطابق ماہانہ کیلنڈرز۔ جس ماہ پر "Live Now" کا بیج ہوگا، وہی پبلک پیج پر خودکار نظر آئے گا۔
                 </p>
               </div>
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-              {ISLAMIC_MONTHS.map((m) => {
+              {GREGORIAN_MONTHS.map((m) => {
                 const uploadedItem = calendarList.find(
                   (it) => String(it.hijri_month || '').toLowerCase() === m.key
                 );
@@ -2312,8 +2324,8 @@ const GalleryManagementPage = () => {
                     <div>
                       {/* Month Header */}
                       <div className="flex items-center justify-between gap-1 mb-2">
-                        <span className="text-xs font-bold text-slate-800 font-urdu truncate" dir="rtl">
-                          {m.label}
+                        <span className="text-xs font-bold text-slate-800 truncate">
+                          {m.index}. {m.en} ({m.ur})
                         </span>
                         {isLive && (
                           <span className="inline-flex items-center gap-1 rounded-full bg-teal-600 text-white px-2 py-0.5 text-[9px] font-extrabold uppercase shadow-2xs">
@@ -2332,7 +2344,7 @@ const GalleryManagementPage = () => {
                         >
                           <img
                             src={toAbsoluteUrl(uploadedItem.image_url)}
-                            alt={uploadedItem.title?.en || m.label}
+                            alt={uploadedItem.title?.en || m.en}
                             className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
                           />
                           <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
@@ -2348,7 +2360,7 @@ const GalleryManagementPage = () => {
                           className="aspect-4/3 w-full rounded-xl border-2 border-dashed border-slate-200 bg-slate-100/50 flex flex-col items-center justify-center text-slate-400 hover:border-teal-400 hover:text-teal-600 hover:bg-teal-50/30 transition cursor-pointer p-3 text-center"
                         >
                           <CalendarDaysIcon className="w-7 h-7 mb-1 stroke-1" />
-                          <span className="text-[11px] font-bold">+ Upload Poster</span>
+                          <span className="text-[11px] font-bold">+ Upload {m.en}</span>
                         </div>
                       )}
                     </div>

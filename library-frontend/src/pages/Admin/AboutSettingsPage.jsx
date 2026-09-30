@@ -131,7 +131,7 @@ export default function AboutSettingsPage() {
   });
 
   const [adminTab, setAdminTab] = useState('content');
-  const [ulmaQuotes, setUlmaQuotes] = useState([EMPTY_QUOTE()]);
+  const [ulmaQuotes, setUlmaQuotes] = useState([]);
 
   // Ulama Pro UX: Search, Pagination & Modal Editor
   const [quoteSearch, setQuoteSearch] = useState('');
@@ -152,6 +152,14 @@ export default function AboutSettingsPage() {
         setLoading(true);
         const data = await aboutService.getAboutSettings();
         setFullSettings(data || {});
+
+        // Always load and sync scholars quotes from backend regardless of content draft
+        const backendQuotes = data?.ulma_quotes;
+        if (Array.isArray(backendQuotes)) {
+          setUlmaQuotes(backendQuotes.filter(q => q.name?.trim() || q.quote?.trim()));
+        } else {
+          setUlmaQuotes([]);
+        }
 
         const backendLangs = data?.languages || {};
         const legacyTitle = data?.title || data?.hero?.title || 'مرکز الدعوۃ الاسلامیۃ والخیریہ (سونس، کھیڈ - رتناگری)';
@@ -180,7 +188,7 @@ export default function AboutSettingsPage() {
           },
         };
 
-        // Check if there is a local draft
+        // Check if there is a local draft for content
         try {
           const draftJson = localStorage.getItem(DRAFT_STORAGE_KEY);
           if (draftJson) {
@@ -199,10 +207,6 @@ export default function AboutSettingsPage() {
 
         setLangData(initialLangs);
         setOriginalLangData(initialLangs);
-        const backendQuotes = data?.ulma_quotes;
-        if (Array.isArray(backendQuotes) && backendQuotes.length > 0) {
-          setUlmaQuotes(backendQuotes);
-        }
       } catch (err) {
         console.error(err);
         toast.error('Failed to load About settings');
@@ -349,7 +353,7 @@ export default function AboutSettingsPage() {
       };
       const res = await aboutService.updateAboutSettings(payload);
       setFullSettings(res?.settings || payload);
-      setUlmaQuotes(cleaned.length > 0 ? cleaned : [EMPTY_QUOTE()]);
+      setUlmaQuotes(cleaned);
       if (successMessage) toast.success(successMessage);
       return true;
     } catch (err) {

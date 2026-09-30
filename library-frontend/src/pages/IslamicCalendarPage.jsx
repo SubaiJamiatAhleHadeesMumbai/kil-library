@@ -24,20 +24,32 @@ const resolveImageUrl = (value) => {
   return API_BASE_URL + cleanPath;
 };
 
-const ISLAMIC_MONTHS = [
-  { number: 1, key: 'muharram', ur: 'محرم الحرام', en: 'Muharram' },
-  { number: 2, key: 'safar', ur: 'صفر المظفر', en: 'Safar' },
-  { number: 3, key: 'rabi_al_awwal', ur: 'ربيع الأول', en: 'Rabi-ul-Awwal' },
-  { number: 4, key: 'rabi_al_thani', ur: 'ربيع الثاني', en: 'Rabi-us-Sani' },
-  { number: 5, key: 'jumada_al_awwal', ur: 'جمادى الأولى', en: 'Jumada al-Ula' },
-  { number: 6, key: 'jumada_al_thani', ur: 'جمادى الثانية', en: 'Jumada al-Thani' },
-  { number: 7, key: 'rajab', ur: 'رجب المرجب', en: 'Rajab' },
-  { number: 8, key: 'shaban', ur: 'شعبان المعظم', en: "Sha'ban" },
-  { number: 9, key: 'ramadan', ur: 'رمضان المبارک', en: 'Ramadan' },
-  { number: 10, key: 'shawwal', ur: 'شوال المکرم', en: 'Shawwal' },
-  { number: 11, key: 'dhul_qadah', ur: 'ذو القعدة', en: "Dhul Qi'dah" },
-  { number: 12, key: 'dhul_hijjah', ur: 'ذو الحجة', en: 'Dhul Hijjah' },
-];
+const MONTH_METADATA = {
+  january: { en: 'January', ur: 'جنوری', num: 1 },
+  february: { en: 'February', ur: 'فروری', num: 2 },
+  march: { en: 'March', ur: 'مارچ', num: 3 },
+  april: { en: 'April', ur: 'اپریل', num: 4 },
+  may: { en: 'May', ur: 'مئی', num: 5 },
+  june: { en: 'June', ur: 'جون', num: 6 },
+  july: { en: 'July', ur: 'جولائی', num: 7 },
+  august: { en: 'August', ur: 'اگست', num: 8 },
+  september: { en: 'September', ur: 'ستمبر', num: 9 },
+  october: { en: 'October', ur: 'اکتوبر', num: 10 },
+  november: { en: 'November', ur: 'نومبر', num: 11 },
+  december: { en: 'December', ur: 'دسمبر', num: 12 },
+  muharram: { en: 'Muharram', ur: 'محرم الحرام', num: 1 },
+  safar: { en: 'Safar', ur: 'صفر المظفر', num: 2 },
+  rabi_al_awwal: { en: 'Rabi-ul-Awwal', ur: 'ربيع الأول', num: 3 },
+  rabi_al_thani: { en: 'Rabi-us-Sani', ur: 'ربيع الثاني', num: 4 },
+  jumada_al_awwal: { en: 'Jumada al-Ula', ur: 'جمادى الأولى', num: 5 },
+  jumada_al_thani: { en: 'Jumada al-Thani', ur: 'جمادى الثانية', num: 6 },
+  rajab: { en: 'Rajab', ur: 'رجب المرجب', num: 7 },
+  shaban: { en: "Sha'ban", ur: 'شعبان المعظم', num: 8 },
+  ramadan: { en: 'Ramadan', ur: 'رمضان المبارک', num: 9 },
+  shawwal: { en: 'Shawwal', ur: 'شوال المکرم', num: 10 },
+  dhul_qadah: { en: "Dhul Qi'dah", ur: 'ذو القعدة', num: 11 },
+  dhul_hijjah: { en: 'Dhul Hijjah', ur: 'ذو الحجة', num: 12 },
+};
 
 export default function IslamicCalendarPage() {
   const { currentLang, isRtl } = useLanguage();
@@ -45,11 +57,9 @@ export default function IslamicCalendarPage() {
   const [calendarData, setCalendarData] = useState({
     current_calendar: null,
     items: [],
-    month_definitions: ISLAMIC_MONTHS,
   });
 
   const [selectedItem, setSelectedItem] = useState(null);
-  const [selectedMonthKey, setSelectedMonthKey] = useState(null);
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
 
   useEffect(() => {
@@ -60,14 +70,13 @@ export default function IslamicCalendarPage() {
     try {
       setLoading(true);
       const res = await galleryService.getCalendarArchive();
-      setCalendarData(res);
+      setCalendarData(res || { items: [] });
 
+      const uploaded = (res?.items || []).filter((it) => Boolean(it.image_url));
       if (res?.current_calendar) {
         setSelectedItem(res.current_calendar);
-        setSelectedMonthKey(res.current_calendar.hijri_month);
-      } else if (res?.items && res.items.length > 0) {
-        setSelectedItem(res.items[0]);
-        setSelectedMonthKey(res.items[0].hijri_month);
+      } else if (uploaded.length > 0) {
+        setSelectedItem(uploaded[0]);
       }
     } catch (err) {
       console.error('Error loading calendar data:', err);
@@ -76,34 +85,16 @@ export default function IslamicCalendarPage() {
     }
   };
 
-  const itemsByMonth = useMemo(() => {
-    const map = {};
-    (calendarData.items || []).forEach((item) => {
-      const k = String(item.hijri_month || '').toLowerCase().trim();
-      if (k) map[k] = item;
-    });
-    return map;
-  }, [calendarData.items]);
-
-  const handleSelectMonth = (monthDef) => {
-    setSelectedMonthKey(monthDef.key);
-    const item = itemsByMonth[monthDef.key];
-    if (item) {
-      setSelectedItem(item);
-    } else {
-      setSelectedItem(null);
-    }
-  };
-
   const resolveText = (val, lang = 'en', fallback = '') => {
     if (!val) return fallback;
     if (typeof val === 'string') return val.trim() || fallback;
     if (typeof val === 'object') {
-      const preferred = lang === 'ar'
-        ? (val.ar || val.ur || val.en)
-        : lang === 'ur'
-        ? (val.ur || val.en || val.ar)
-        : (val.en || val.ur || val.ar);
+      const preferred =
+        lang === 'ar'
+          ? val.ar || val.ur || val.en
+          : lang === 'ur'
+          ? val.ur || val.en || val.ar
+          : val.en || val.ur || val.ar;
       if (typeof preferred === 'string' && preferred.trim()) return preferred.trim();
       for (const k of ['ur', 'en', 'ar', ...Object.keys(val)]) {
         if (typeof val[k] === 'string' && val[k].trim()) return val[k].trim();
@@ -113,16 +104,36 @@ export default function IslamicCalendarPage() {
     return String(val);
   };
 
+  // Only consider items that actually have an uploaded image
+  const uploadedItems = useMemo(() => {
+    return (calendarData.items || []).filter((item) => Boolean(item.image_url));
+  }, [calendarData.items]);
+
+  const activePoster = selectedItem || calendarData.current_calendar || (uploadedItems.length > 0 ? uploadedItems[0] : null);
+  const isLiveActive = activePoster?.id === calendarData.current_calendar?.id;
+
+  const getMonthDisplayName = (item) => {
+    if (!item) return '';
+    const key = String(item.hijri_month || '').toLowerCase().trim();
+    const meta = MONTH_METADATA[key];
+    if (meta) {
+      return currentLang === 'ur'
+        ? `${meta.ur} (${meta.en})`
+        : `${meta.en} (${meta.ur})`;
+    }
+    return resolveText(item.title, currentLang) || item.title_ur || item.title_en || item.hijri_month || 'Calendar';
+  };
+
   const handleShare = (e, item) => {
     if (e) e.stopPropagation();
-    const title = resolveText(item?.title, currentLang) || item?.title_ur || item?.title_en || 'Islamic Calendar';
-    const text = encodeURIComponent(`*${title}*\nMarkaz Ahle Hadees Kokan - Islamic Calendar\n` + window.location.href);
+    const title = getMonthDisplayName(item);
+    const text = encodeURIComponent(`*${title}*\nMarkaz Ahle Hadees Kokan — Calendar\n${window.location.href}`);
     window.open(`https://api.whatsapp.com/send?text=${text}`, '_blank');
   };
 
   const handleDownload = (e, item) => {
     if (e) e.stopPropagation();
-    const title = resolveText(item?.title, 'en') || item?.title_en || 'islamic-calendar';
+    const title = item?.title_en || item?.hijri_month || 'calendar';
     const link = document.createElement('a');
     link.href = resolveImageUrl(item.image_url);
     link.download = `${title}.jpg`;
@@ -132,213 +143,187 @@ export default function IslamicCalendarPage() {
     document.body.removeChild(link);
   };
 
-  const activePoster = selectedItem || calendarData.current_calendar;
-  const isLiveActive = activePoster?.id === calendarData.current_calendar?.id;
-
   return (
-    <div className="min-h-screen bg-slate-50/50 pb-20 pt-6 sm:pt-10 font-sans" dir={isRtl ? 'rtl' : 'ltr'}>
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 space-y-8">
-        <div className="text-center max-w-3xl mx-auto space-y-3">
-          <div className="inline-flex items-center gap-2 rounded-full bg-emerald-50 border border-emerald-200/80 px-4 py-1.5 text-xs font-bold text-emerald-800 shadow-2xs">
-            <CalendarDaysIcon className="w-4 h-4 text-emerald-600" />
+    <div className="bg-slate-50/50 dark:bg-slate-950 py-4 sm:py-6 font-sans transition-colors" dir={isRtl ? 'rtl' : 'ltr'}>
+      <div className="mx-auto max-w-5xl px-3 sm:px-6 space-y-4 sm:space-y-5">
+        
+        {/* Compact Header */}
+        <div className="text-center space-y-1.5 max-w-2xl mx-auto">
+          <div className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800/60 px-3 py-1 text-[11px] font-bold text-emerald-800 dark:text-emerald-300 shadow-2xs">
+            <CalendarDaysIcon className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
             <span>
               {currentLang === 'ur'
-                ? 'مرکز اہل حدیث کوکن • اسلامی تقویم'
-                : 'Markaz Ahle Hadees Kokan • Islamic Calendar'}
+                ? 'مرکز اہل حدیث کوکن • ماہانہ و اسلامی تقویم'
+                : 'Markaz Ahle Hadees Kokan • Monthly Calendar'}
             </span>
           </div>
 
-          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-slate-900 tracking-tight">
-            {currentLang === 'ur' ? 'مرکز اہل حدیث کوکن — اسلامی کیلنڈر' : 'Markaz Ahle Hadees Kokan — Islamic Calendar'}
+          <h1 className="text-xl sm:text-2xl lg:text-3xl font-black text-slate-900 dark:text-white tracking-tight">
+            {currentLang === 'ur' ? 'مرکز اہل حدیث کوکن — ماہانہ کیلنڈر' : 'Markaz Ahle Hadees Kokan — Monthly Calendar'}
           </h1>
 
-          <p className="text-sm sm:text-base text-slate-600 leading-relaxed max-w-2xl mx-auto font-medium">
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 leading-relaxed font-medium">
             {currentLang === 'ur'
-              ? 'سال کے بارہ مہینوں کا مستند اسلامی و ہجری کیلنڈر۔ نیچے دیے گئے مہینوں پر کلک کر کے کسی بھی ماہ کا کیلنڈر دیکھیں۔'
-              : 'Official 12-month Hijri and Islamic calendar declarations. Select any month below to view and download posters.'}
+              ? 'سرکاری ماہانہ تقویم و کیلنڈر۔ نیچے دیا گیا پوسٹر دیکھیں یا زوم کریں۔'
+              : 'Official monthly Islamic calendar declarations and prayer schedules.'}
           </p>
         </div>
 
-        <div className="rounded-3xl border border-slate-200/80 bg-white p-4 sm:p-5 shadow-xs">
-          <div className="flex items-center justify-between gap-3 mb-3">
-            <h3 className="text-xs font-black uppercase tracking-wider text-slate-500">
-              12 Islamic Months (بارہ اسلامی مہینے)
-            </h3>
-            {calendarData.current_calendar && (
-              <span className="inline-flex items-center gap-1.5 text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                <span>Live Month: {resolveText(calendarData.current_calendar.title, currentLang) || calendarData.current_calendar.title_ur || calendarData.current_calendar.title_en || 'Islamic Calendar'}</span>
-              </span>
-            )}
-          </div>
-
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2 sm:gap-2.5">
-            {ISLAMIC_MONTHS.map((m) => {
-              const uploadedItem = itemsByMonth[m.key];
-              const isSelected = selectedMonthKey === m.key;
-              const isCurrentLive = uploadedItem && uploadedItem.id === calendarData.current_calendar?.id;
+        {/* Uploaded Months Pills Selector — ONLY rendered if multiple images are uploaded */}
+        {uploadedItems.length > 1 && (
+          <div className="flex items-center justify-center gap-1.5 sm:gap-2 flex-wrap">
+            {uploadedItems.map((item) => {
+              const isSelected = activePoster?.id === item.id;
+              const isLive = item.id === calendarData.current_calendar?.id;
+              const label = getMonthDisplayName(item);
 
               return (
                 <button
-                  key={m.key}
+                  key={item.id}
                   type="button"
-                  onClick={() => handleSelectMonth(m)}
-                  className={`group relative flex flex-col items-start p-2.5 rounded-2xl border text-start transition-all cursor-pointer ${
+                  onClick={() => setSelectedItem(item)}
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer shadow-2xs ${
                     isSelected
-                      ? 'bg-slate-900 border-slate-900 text-white shadow-md'
-                      : isCurrentLive
-                      ? 'bg-emerald-50/70 border-emerald-300 text-slate-800 hover:bg-emerald-100/60'
-                      : uploadedItem
-                      ? 'bg-white border-slate-200 text-slate-800 hover:border-slate-300 hover:bg-slate-50'
-                      : 'bg-slate-50/60 border-dashed border-slate-200 text-slate-400 hover:border-slate-300'
+                      ? 'bg-slate-900 dark:bg-emerald-600 text-white shadow-xs'
+                      : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
                   }`}
                 >
-                  <div className="w-full flex items-center justify-between gap-1 mb-1">
+                  {isLive && (
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                  )}
+                  <span>{label}</span>
+                  {item.year && <span className="opacity-70 text-[10px]">({item.year})</span>}
+                  {isLive && (
                     <span
-                      className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded-md ${
-                        isSelected ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'
+                      className={`text-[9px] font-black uppercase px-1.5 py-0.5 rounded-md ${
+                        isSelected
+                          ? 'bg-emerald-500 text-white'
+                          : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
                       }`}
                     >
-                      #{m.number}
+                      LIVE
                     </span>
-                    {isCurrentLive && (
-                      <span className="text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded-full bg-emerald-600 text-white shadow-2xs">
-                        LIVE
-                      </span>
-                    )}
-                  </div>
-
-                  <span className="text-xs sm:text-sm font-urdu font-bold truncate w-full" dir="rtl">
-                    {m.ur}
-                  </span>
-                  <span
-                    className={`text-[11px] font-semibold truncate w-full ${
-                      isSelected ? 'text-slate-300' : 'text-slate-500'
-                    }`}
-                  >
-                    {m.en}
-                  </span>
+                  )}
                 </button>
               );
             })}
           </div>
-        </div>
+        )}
 
+        {/* Loading Spinner */}
         {loading ? (
-          <div className="py-20 text-center text-slate-400">
-            <div className="inline-block w-8 h-8 border-4 border-slate-300 border-t-emerald-600 rounded-full animate-spin mb-3" />
-            <p className="text-sm font-semibold">Loading Islamic Calendar...</p>
+          <div className="py-16 text-center text-slate-400">
+            <div className="inline-block w-7 h-7 border-3 border-slate-300 border-t-emerald-600 rounded-full animate-spin mb-2" />
+            <p className="text-xs font-semibold">Loading Calendar...</p>
           </div>
         ) : activePoster ? (
-          <div className="rounded-3xl border border-slate-200/80 bg-white p-5 sm:p-8 shadow-md">
-            <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 pb-6 mb-6 border-b border-slate-100">
-              <div className="space-y-1.5">
-                <div className="flex items-center gap-2 flex-wrap">
-                  {isLiveActive ? (
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-600 text-white shadow-xs">
-                      <SparklesIcon className="w-3.5 h-3.5" />
-                      <span>Current Active Month • جاری ماہ</span>
-                    </span>
-                  ) : (
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-700">
-                      <CalendarDaysIcon className="w-3.5 h-3.5 text-slate-500" />
-                      <span>Archived Month</span>
-                    </span>
-                  )}
-                  {activePoster.year && (
-                    <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-700">
-                      {activePoster.year}
-                    </span>
-                  )}
-                </div>
-
-                <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
-                  {resolveText(activePoster.title, currentLang) || activePoster.title_ur || activePoster.title_en || 'Islamic Calendar'}
-                </h2>
-                {(activePoster.caption_en || activePoster.caption_ur || activePoster.caption) && (
-                  <p className="text-xs sm:text-sm text-slate-500">
-                    {resolveText(activePoster.caption, currentLang) || activePoster.caption_ur || activePoster.caption_en}
-                  </p>
+          /* ================= COMPACT CALENDAR VIEW ================= */
+          <div className="rounded-2xl sm:rounded-3xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-md overflow-hidden transition-all">
+            
+            {/* Top Info & Action Toolbar */}
+            <div className="px-4 py-3 sm:px-6 sm:py-3.5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between gap-3 flex-wrap bg-slate-50/70 dark:bg-slate-800/40">
+              <div className="flex items-center gap-2 min-w-0">
+                {isLiveActive ? (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-600 text-white shadow-2xs">
+                    <SparklesIcon className="w-3 h-3" />
+                    <span>{currentLang === 'ur' ? 'جاری ماہ • Live' : 'Live Month'}</span>
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300">
+                    <CalendarDaysIcon className="w-3 h-3 text-slate-500" />
+                    <span>{activePoster.year || ''}</span>
+                  </span>
                 )}
+                <h2 className="text-xs sm:text-sm font-black text-slate-900 dark:text-white truncate">
+                  {getMonthDisplayName(activePoster)}
+                </h2>
               </div>
 
-              <div className="flex items-center gap-2 w-full sm:w-auto flex-wrap">
+              {/* Action Buttons */}
+              <div className="flex items-center gap-1.5 sm:gap-2">
                 <button
                   type="button"
                   onClick={() => setIsLightboxOpen(true)}
-                  className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold transition shadow-sm cursor-pointer"
+                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold transition shadow-xs cursor-pointer"
+                  title="Full View (HD)"
                 >
-                  <EyeIcon className="w-4 h-4" />
-                  <span>Full View (HD)</span>
+                  <EyeIcon className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Zoom HD</span>
                 </button>
 
                 <button
                   type="button"
                   onClick={(e) => handleDownload(e, activePoster)}
-                  className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition cursor-pointer"
+                  className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold transition cursor-pointer"
                   title="Download Poster"
                 >
-                  <ArrowDownTrayIcon className="w-4 h-4" />
+                  <ArrowDownTrayIcon className="w-3.5 h-3.5" />
                   <span className="hidden sm:inline">Download</span>
                 </button>
 
                 <button
                   type="button"
                   onClick={(e) => handleShare(e, activePoster)}
-                  className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition cursor-pointer"
+                  className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition cursor-pointer"
                   title="Share on WhatsApp"
                 >
-                  <ShareIcon className="w-4 h-4" />
-                  <span>Share</span>
+                  <ShareIcon className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Share</span>
                 </button>
               </div>
             </div>
 
+            {/* Poster Canvas — Constrained Height so NO endless scroll is needed! */}
             <div
               onClick={() => setIsLightboxOpen(true)}
-              className="group relative max-w-4xl mx-auto rounded-2xl overflow-hidden bg-slate-950 border border-slate-200/80 shadow-lg cursor-pointer flex items-center justify-center min-h-[360px] sm:min-h-[520px]"
+              className="group relative bg-slate-950 flex items-center justify-center p-2 sm:p-4 cursor-pointer overflow-hidden select-none"
+              style={{ maxHeight: 'calc(65vh)' }}
             >
               <img
                 src={resolveImageUrl(activePoster.image_url)}
-                alt={activePoster.title_en || 'Islamic Calendar'}
-                className="w-full h-auto max-h-[780px] object-contain transition-transform duration-500 group-hover:scale-101"
+                alt={activePoster.title_en || 'Calendar Poster'}
+                className="w-auto h-auto max-w-full max-h-[58vh] object-contain rounded-lg transition-transform duration-300 group-hover:scale-[1.01]"
                 loading="eager"
               />
 
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent flex items-end p-4 sm:p-6 opacity-90 group-hover:opacity-100 transition-opacity pointer-events-none">
-                <span className="inline-flex items-center gap-2 text-xs font-bold text-white/95 bg-black/75 backdrop-blur-md px-3.5 py-2 rounded-xl border border-white/20 shadow-md">
-                  <MagnifyingGlassPlusIcon className="w-4 h-4 text-emerald-400" />
-                  <span>Click to Zoom & View Full Poster</span>
-                </span>
+              <div className="absolute bottom-3 end-3 bg-black/80 backdrop-blur-md px-3 py-1.5 rounded-xl border border-white/20 text-white text-[11px] font-bold flex items-center gap-1.5 opacity-90 group-hover:opacity-100 transition shadow-md pointer-events-none">
+                <MagnifyingGlassPlusIcon className="w-3.5 h-3.5 text-emerald-400" />
+                <span>Click to Zoom & View Fullscreen</span>
               </div>
             </div>
           </div>
         ) : (
-          <div className="rounded-3xl border border-dashed border-slate-300 bg-white p-12 text-center space-y-3">
-            <CalendarDaysIcon className="w-12 h-12 mx-auto text-slate-300" />
-            <h3 className="text-base font-bold text-slate-700">
-              No calendar poster uploaded for this month yet.
+          /* Empty State if NO posters uploaded at all */
+          <div className="rounded-3xl border border-dashed border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-8 sm:p-12 text-center space-y-3 max-w-lg mx-auto shadow-xs">
+            <div className="w-14 h-14 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 flex items-center justify-center mx-auto">
+              <CalendarDaysIcon className="w-7 h-7" />
+            </div>
+            <h3 className="text-sm sm:text-base font-bold text-slate-800 dark:text-white">
+              {currentLang === 'ur' ? 'ابھی کوئی کیلنڈر پوسٹر دستیاب نہیں ہے' : 'No Calendar Posters Published Yet'}
             </h3>
-            <p className="text-xs text-slate-500">
-              The administration will publish the official Islamic calendar declaration for this month soon.
+            <p className="text-xs text-slate-500 max-w-sm mx-auto leading-relaxed">
+              {currentLang === 'ur'
+                ? 'انتظامیہ کی جانب سے ماہانہ و اسلامی تقویم کا پوسٹر جلد جاری کیا جائے گا۔'
+                : 'The administration will publish the official calendar poster soon. Please check back later.'}
             </p>
           </div>
         )}
 
+        {/* ================= FULLSCREEN LIGHTBOX MODAL ================= */}
         {isLightboxOpen && activePoster && createPortal(
           <div
             className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/95 backdrop-blur-md animate-in fade-in duration-200"
             onClick={() => setIsLightboxOpen(false)}
           >
             <div
-              className="relative max-w-5xl w-full bg-slate-900 rounded-3xl overflow-hidden border border-slate-800 shadow-2xl flex flex-col max-h-[95vh]"
+              className="relative max-w-5xl w-full bg-slate-900 rounded-2xl sm:rounded-3xl overflow-hidden border border-slate-800 shadow-2xl flex flex-col max-h-[95vh]"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="p-3 sm:p-4 flex items-center justify-between border-b border-slate-800 bg-slate-900/90 text-white">
                 <div className="flex items-center gap-2">
                   <CalendarDaysIcon className="w-5 h-5 text-emerald-400" />
-                  <span className="font-bold text-sm sm:text-base">
-                    {activePoster.title_ur || activePoster.title_en}
+                  <span className="font-bold text-xs sm:text-sm">
+                    {getMonthDisplayName(activePoster)}
                   </span>
                 </div>
 
@@ -346,7 +331,7 @@ export default function IslamicCalendarPage() {
                   <button
                     type="button"
                     onClick={(e) => handleDownload(e, activePoster)}
-                    className="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white transition cursor-pointer"
+                    className="p-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white transition cursor-pointer"
                     title="Download"
                   >
                     <ArrowDownTrayIcon className="w-4 h-4" />
@@ -354,7 +339,7 @@ export default function IslamicCalendarPage() {
                   <button
                     type="button"
                     onClick={(e) => handleShare(e, activePoster)}
-                    className="p-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white transition cursor-pointer"
+                    className="p-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white transition cursor-pointer"
                     title="Share"
                   >
                     <ShareIcon className="w-4 h-4" />
@@ -362,7 +347,7 @@ export default function IslamicCalendarPage() {
                   <button
                     type="button"
                     onClick={() => setIsLightboxOpen(false)}
-                    className="p-2 rounded-xl bg-white/10 hover:bg-rose-600 text-white transition cursor-pointer"
+                    className="p-1.5 rounded-xl bg-white/10 hover:bg-rose-600 text-white transition cursor-pointer"
                     title="Close"
                   >
                     <XMarkIcon className="w-4 h-4" />
@@ -373,7 +358,7 @@ export default function IslamicCalendarPage() {
               <div className="flex-1 overflow-auto p-2 sm:p-4 flex items-center justify-center bg-black/90">
                 <img
                   src={resolveImageUrl(activePoster.image_url)}
-                  alt={activePoster.title_en}
+                  alt={activePoster.title_en || 'Calendar'}
                   className="max-w-full max-h-[82vh] object-contain rounded-lg"
                 />
               </div>
