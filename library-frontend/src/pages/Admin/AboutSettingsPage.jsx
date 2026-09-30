@@ -39,15 +39,15 @@ const EMPTY_QUOTE = () => ({
   source_url: '',
   image_url: '',
   document_image_url: '',
-  language: 'ur',
+  language: 'all',
 });
 
 const DRAFT_STORAGE_KEY = 'kil_about_cms_draft';
 
 const SUPPORTED_LANGS = [
-  { code: 'ur', label: 'اردو (Urdu)', flag: '🇵🇰', dir: 'rtl', isDefault: true },
-  { code: 'en', label: 'English', flag: '🇬🇧', dir: 'ltr' },
-  { code: 'ar', label: 'العربية (Arabic)', flag: '🇸🇦', dir: 'rtl' },
+  { code: 'ur', label: 'اردو (Urdu)', dir: 'rtl', isDefault: true },
+  { code: 'en', label: 'English', dir: 'ltr' },
+  { code: 'ar', label: 'العربية (Arabic)', dir: 'rtl' },
 ];
 
 // Helper to count words from HTML string
@@ -1499,12 +1499,23 @@ export default function AboutSettingsPage() {
 
                 <div className="flex-1 min-w-0 space-y-1.5">
                   <div className="flex items-center justify-between">
-                    <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">
-                      عالم کی تصویر (Scholar Photo)
-                    </label>
+                    <div className="flex items-center gap-2">
+                      <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">
+                        عالم کی تصویر (اختیاری / Optional)
+                      </label>
+                      {quoteFormData.image_url && (
+                        <button
+                          type="button"
+                          onClick={() => setQuoteFormData(prev => ({ ...prev, image_url: '' }))}
+                          className="text-[11px] font-bold text-red-600 hover:underline px-1.5 py-0.5 rounded-md hover:bg-red-50 dark:hover:bg-red-950/40"
+                        >
+                          تصویر ہٹائیں ✕
+                        </button>
+                      )}
+                    </div>
                     <label className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 text-xs font-bold hover:bg-emerald-100 transition cursor-pointer">
                       {uploadingPhoto ? <ArrowPathIcon className="w-3.5 h-3.5 animate-spin" /> : <ArrowUpTrayIcon className="w-3.5 h-3.5" />}
-                      <span>{uploadingPhoto ? 'اپلوڈ ہو رہی ہے...' : 'براہ راست تصویر اپلوڈ کریں'}</span>
+                      <span>{uploadingPhoto ? 'اپلوڈ ہو رہی ہے...' : 'تصویر اپلوڈ کریں'}</span>
                       <input type="file" accept="image/*" disabled={uploadingPhoto} onChange={handleUploadScholarPhoto} className="hidden" />
                     </label>
                   </div>
@@ -1512,7 +1523,7 @@ export default function AboutSettingsPage() {
                     type="url"
                     value={quoteFormData.image_url}
                     onChange={(e) => setQuoteFormData(prev => ({ ...prev, image_url: e.target.value }))}
-                    placeholder="یا تصویر کا لنک درج کریں (https://.../photo.jpg)"
+                    placeholder="یا تصویر کا لنک درج کریں (اختیاری / Optional)"
                     className="w-full px-3 py-1.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs text-slate-800 dark:text-slate-200 outline-none focus:ring-2 focus:ring-amber-500"
                   />
                 </div>
@@ -1522,11 +1533,10 @@ export default function AboutSettingsPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                    عالم کا نام / Scholar Name <span className="text-red-500">*</span>
+                    عالم کا نام / Scholar Name
                   </label>
                   <input
                     type="text"
-                    required
                     dir={quoteFormData.language === 'en' ? 'ltr' : 'auto'}
                     value={quoteFormData.name}
                     onChange={(e) => setQuoteFormData(prev => ({ ...prev, name: e.target.value }))}
@@ -1631,7 +1641,7 @@ export default function AboutSettingsPage() {
               <div>
                 <div className="flex items-center justify-between mb-1">
                   <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
-                    صاف ٹائپ شدہ متن / نقلِ تحریر (Clean Readable Text) <span className="text-red-500">*</span>
+                    صاف ٹائپ شدہ متن / نقلِ تحریر (Clean Readable Text)
                   </label>
                   <span className="text-[11px] text-slate-400">
                     عام قارئین کی آسانی کے لیے
@@ -1642,7 +1652,6 @@ export default function AboutSettingsPage() {
                 </p>
                 <textarea
                   rows={4}
-                  required
                   dir={quoteFormData.language === 'en' ? 'ltr' : 'rtl'}
                   value={quoteFormData.quote}
                   onChange={(e) => setQuoteFormData(prev => ({ ...prev, quote: e.target.value }))}

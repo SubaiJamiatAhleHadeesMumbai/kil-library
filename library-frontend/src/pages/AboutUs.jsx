@@ -187,7 +187,7 @@ export default function AboutUs() {
   return (
     <div className="min-h-screen bg-slate-50/60 dark:bg-slate-950 pb-20 font-sans">
       {/* ================= HERO BANNER ================= */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-[#064E3B] via-[#047857] to-[#059669] text-white py-14 sm:py-18">
+      <section className="relative overflow-hidden bg-gradient-to-br from-[#064E3B] via-[#047857] to-[#059669] text-white py-12 sm:py-16 pb-16 sm:pb-20">
         <div className="absolute inset-0 bg-[radial-gradient(#6ee7b7_1px,transparent_1px)] [background-size:24px_24px] opacity-15 pointer-events-none" />
         <div className="absolute -top-24 -right-24 w-96 h-96 bg-emerald-400/20 rounded-full blur-3xl pointer-events-none" />
         
@@ -224,10 +224,10 @@ export default function AboutUs() {
       </section>
 
       {/* ================= MAIN CONTENT CONTAINER ================= */}
-      <div className="app-shell-container -mt-6 space-y-6">
+      <div className="app-shell-container relative z-20 -mt-8 sm:-mt-10 space-y-6">
 
         {/* ================= 4 TABS: ABOUT | CALENDAR | JUMAH | MOON ================= */}
-        <div className="flex items-center gap-1.5 p-1.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xs overflow-x-auto no-scrollbar">
+        <div className="relative z-20 flex items-center gap-1.5 p-1.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-md overflow-x-auto no-scrollbar">
           <button
             type="button"
             onClick={() => handleTabChange('about')}
@@ -379,7 +379,7 @@ export default function AboutUs() {
                         return toShow.map((q) => (
                           <div
                             key={q.originalIndex}
-                            className="relative rounded-3xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 sm:p-6 shadow-xs hover:shadow-md transition-all space-y-4 flex flex-col justify-between"
+                            className="relative rounded-3xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 sm:p-6 shadow-xs hover:shadow-md transition-all space-y-4"
                           >
                             {/* Scholar Info & Quotation Mark */}
                             <div className="flex items-start justify-between gap-3">
@@ -416,15 +416,6 @@ export default function AboutUs() {
                               </div>
 
                               <div className="flex items-center gap-1.5 flex-shrink-0">
-                                {q.language === 'en' ? (
-                                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
-                                    English
-                                  </span>
-                                ) : (
-                                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-50 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 font-urdu">
-                                    اردو
-                                  </span>
-                                )}
                                 <div className="text-emerald-300/80 dark:text-emerald-800 text-3xl font-serif leading-none select-none pointer-events-none" aria-hidden="true">
                                   "
                                 </div>
@@ -487,48 +478,50 @@ export default function AboutUs() {
                               </div>
                             )}
 
-                            {/* Footer / Actions */}
-                            <div className="flex items-center justify-between gap-3 pt-2.5 border-t border-slate-100 dark:border-slate-800/80 text-xs">
-                              <div>
-                                {q.source_url && (
-                                  <a
-                                    href={q.source_url}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-bold transition shadow-2xs ${
-                                      (q.source_url.toLowerCase().includes('.pdf') || q.source_url.includes('/pdfs/'))
-                                        ? 'bg-emerald-50 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100'
-                                        : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200'
-                                    }`}
-                                    title={(q.source_url.toLowerCase().includes('.pdf') || q.source_url.includes('/pdfs/')) ? "دستاویز پی ڈی ایف دیکھیں" : "ماخذ لنک"}
+                            {/* Footer / Actions — Only show if source_url exists OR user is Admin */}
+                            {Boolean(q.source_url || isAdmin) && (
+                              <div className="flex items-center justify-between gap-3 pt-2.5 border-t border-slate-100 dark:border-slate-800/80 text-xs">
+                                <div>
+                                  {q.source_url && (
+                                    <a
+                                      href={q.source_url}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-bold transition shadow-2xs ${
+                                        (q.source_url.toLowerCase().includes('.pdf') || q.source_url.includes('/pdfs/'))
+                                          ? 'bg-emerald-50 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100'
+                                          : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200'
+                                      }`}
+                                      title={(q.source_url.toLowerCase().includes('.pdf') || q.source_url.includes('/pdfs/')) ? "دستاویز پی ڈی ایف دیکھیں" : "ماخذ لنک"}
+                                    >
+                                      {(q.source_url.toLowerCase().includes('.pdf') || q.source_url.includes('/pdfs/')) ? (
+                                        <>
+                                          <span className="font-urdu">📄 پی ڈی ایف دیکھیں</span>
+                                          <ArrowTopRightOnSquareIcon className="w-3.5 h-3.5" />
+                                        </>
+                                      ) : (
+                                        <>
+                                          <span>Source Link</span>
+                                          <ArrowTopRightOnSquareIcon className="w-3.5 h-3.5" />
+                                        </>
+                                      )}
+                                    </a>
+                                  )}
+                                </div>
+
+                                {isAdmin && (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDeleteQuoteFromPublic(q.originalIndex)}
+                                    className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 hover:text-red-700 transition cursor-pointer text-xs font-bold"
+                                    title={currentLang === 'ur' ? 'ڈیٹا بیس سے یہ رائے مستقل حذف کریں' : 'Delete testimonial permanently from database'}
                                   >
-                                    {(q.source_url.toLowerCase().includes('.pdf') || q.source_url.includes('/pdfs/')) ? (
-                                      <>
-                                        <span className="font-urdu">📄 پی ڈی ایف دیکھیں</span>
-                                        <ArrowTopRightOnSquareIcon className="w-3.5 h-3.5" />
-                                      </>
-                                    ) : (
-                                      <>
-                                        <span>Source Link</span>
-                                        <ArrowTopRightOnSquareIcon className="w-3.5 h-3.5" />
-                                      </>
-                                    )}
-                                  </a>
+                                    <TrashIcon className="w-3.5 h-3.5" />
+                                    <span className="hidden sm:inline">Delete</span>
+                                  </button>
                                 )}
                               </div>
-
-                              {isAdmin && (
-                                <button
-                                  type="button"
-                                  onClick={() => handleDeleteQuoteFromPublic(q.originalIndex)}
-                                  className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 hover:text-red-700 transition cursor-pointer text-xs font-bold"
-                                  title={currentLang === 'ur' ? 'ڈیٹا بیس سے یہ رائے مستقل حذف کریں' : 'Delete testimonial permanently from database'}
-                                >
-                                  <TrashIcon className="w-3.5 h-3.5" />
-                                  <span className="hidden sm:inline">Delete</span>
-                                </button>
-                              )}
-                            </div>
+                            )}
                           </div>
                         ));
                       })()}
@@ -758,9 +751,9 @@ export default function AboutUs() {
                     {filtered.map((q) => (
                       <div
                         key={q.originalIndex}
-                        className="relative rounded-3xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-xs hover:shadow-md transition-all duration-300 space-y-4 flex flex-col justify-between group"
+                        className="relative rounded-3xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-xs hover:shadow-md transition-all duration-300 space-y-4 group"
                       >
-                        {/* Top: Scholar Identity & Language / Watermark Quote */}
+                        {/* Top: Scholar Identity & Watermark Quote */}
                         <div className="flex items-start justify-between gap-3">
                           <div className="flex items-center gap-3 min-w-0">
                             {q.image_url ? (
@@ -795,15 +788,6 @@ export default function AboutUs() {
                           </div>
 
                           <div className="flex items-center gap-1.5 flex-shrink-0">
-                            {q.language === 'en' ? (
-                              <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
-                                English
-                              </span>
-                            ) : (
-                              <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-50 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 font-urdu">
-                                اردو
-                              </span>
-                            )}
                             <div className="text-emerald-300/80 dark:text-emerald-800 text-3xl font-serif leading-none select-none pointer-events-none" aria-hidden="true">
                               "
                             </div>
@@ -866,48 +850,50 @@ export default function AboutUs() {
                           </div>
                         )}
 
-                        {/* Footer / Actions */}
-                        <div className="flex items-center justify-between gap-3 pt-2.5 border-t border-slate-100 dark:border-slate-800/80 text-xs">
-                          <div>
-                            {q.source_url && (
-                              <a
-                                href={q.source_url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-bold transition shadow-2xs ${
-                                  (q.source_url.toLowerCase().includes('.pdf') || q.source_url.includes('/pdfs/'))
-                                    ? 'bg-emerald-50 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100'
-                                    : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200'
-                                }`}
-                                title={(q.source_url.toLowerCase().includes('.pdf') || q.source_url.includes('/pdfs/')) ? "دستاویز پی ڈی ایف دیکھیں" : "ماخذ لنک"}
+                        {/* Footer / Actions — Only show if source_url exists OR user is Admin */}
+                        {Boolean(q.source_url || isAdmin) && (
+                          <div className="flex items-center justify-between gap-3 pt-2.5 border-t border-slate-100 dark:border-slate-800/80 text-xs">
+                            <div>
+                              {q.source_url && (
+                                <a
+                                  href={q.source_url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-bold transition shadow-2xs ${
+                                    (q.source_url.toLowerCase().includes('.pdf') || q.source_url.includes('/pdfs/'))
+                                      ? 'bg-emerald-50 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100'
+                                      : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200'
+                                  }`}
+                                  title={(q.source_url.toLowerCase().includes('.pdf') || q.source_url.includes('/pdfs/')) ? "دستاویز پی ڈی ایف دیکھیں" : "ماخذ لنک"}
+                                >
+                                  {(q.source_url.toLowerCase().includes('.pdf') || q.source_url.includes('/pdfs/')) ? (
+                                    <>
+                                      <span className="font-urdu">📄 پی ڈی ایف دیکھیں</span>
+                                      <ArrowTopRightOnSquareIcon className="w-3.5 h-3.5" />
+                                    </>
+                                  ) : (
+                                    <>
+                                      <span>Source Link</span>
+                                      <ArrowTopRightOnSquareIcon className="w-3.5 h-3.5" />
+                                    </>
+                                  )}
+                                </a>
+                              )}
+                            </div>
+
+                            {isAdmin && (
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteQuoteFromPublic(q.originalIndex)}
+                                className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-red-50 dark:bg-red-950/40 text-red-600 hover:bg-red-100 transition shadow-2xs cursor-pointer text-xs font-semibold"
+                                title={currentLang === 'ur' ? 'ڈیٹا بیس سے یہ رائے مستقل حذف کریں' : 'Delete testimonial permanently from database'}
                               >
-                                {(q.source_url.toLowerCase().includes('.pdf') || q.source_url.includes('/pdfs/')) ? (
-                                  <>
-                                    <span className="font-urdu">📄 پی ڈی ایف دیکھیں</span>
-                                    <ArrowTopRightOnSquareIcon className="w-3.5 h-3.5" />
-                                  </>
-                                ) : (
-                                  <>
-                                    <span>Source Link</span>
-                                    <ArrowTopRightOnSquareIcon className="w-3.5 h-3.5" />
-                                  </>
-                                )}
-                              </a>
+                                <TrashIcon className="w-3.5 h-3.5" />
+                                <span>حذف کریں</span>
+                              </button>
                             )}
                           </div>
-
-                          {isAdmin && (
-                            <button
-                              type="button"
-                              onClick={() => handleDeleteQuoteFromPublic(q.originalIndex)}
-                              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-red-50 dark:bg-red-950/40 text-red-600 hover:bg-red-100 transition shadow-2xs cursor-pointer text-xs font-semibold"
-                              title={currentLang === 'ur' ? 'ڈیٹا بیس سے یہ رائے مستقل حذف کریں' : 'Delete testimonial permanently from database'}
-                            >
-                              <TrashIcon className="w-3.5 h-3.5" />
-                              <span>حذف کریں</span>
-                            </button>
-                          )}
-                        </div>
+                        )}
                       </div>
                     ))}
                   </div>

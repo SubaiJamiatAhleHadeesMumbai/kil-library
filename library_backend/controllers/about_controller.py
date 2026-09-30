@@ -138,7 +138,7 @@ def _write_settings_to_disk(payload):
 
 
 def _merge_about_settings(payload: dict):
-    merged = copy.deepcopy(get_default_about_settings())
+    merged = copy.deepcopy(_load_settings_from_disk())
     if not isinstance(payload, dict):
         raise HTTPException(status_code=400, detail="Invalid payload")
 
