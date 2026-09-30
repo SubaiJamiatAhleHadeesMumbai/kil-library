@@ -752,9 +752,9 @@ export default function AboutSettingsPage() {
               <button
                 type="button"
                 onClick={() => { setQuoteLangFilter('all'); setQuotePage(1); }}
-                className={`px-3 py-1 rounded-xl text-xs font-bold transition cursor-pointer ${
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
                   quoteLangFilter === 'all'
-                    ? 'bg-amber-600 text-white shadow-xs'
+                    ? 'bg-emerald-700 text-white shadow-xs'
                     : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200'
                 }`}
               >
@@ -763,24 +763,24 @@ export default function AboutSettingsPage() {
               <button
                 type="button"
                 onClick={() => { setQuoteLangFilter('ur'); setQuotePage(1); }}
-                className={`px-3 py-1 rounded-xl text-xs font-bold transition cursor-pointer ${
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
                   quoteLangFilter === 'ur'
-                    ? 'bg-emerald-600 text-white shadow-xs'
+                    ? 'bg-emerald-700 text-white shadow-xs'
                     : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200'
                 }`}
               >
-                🇵🇰 اردو ({ulmaQuotes.filter(q => (q.language || 'ur') === 'ur').length})
+                اردو ({ulmaQuotes.filter(q => (q.language || 'ur') === 'ur').length})
               </button>
               <button
                 type="button"
                 onClick={() => { setQuoteLangFilter('en'); setQuotePage(1); }}
-                className={`px-3 py-1 rounded-xl text-xs font-bold transition cursor-pointer ${
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
                   quoteLangFilter === 'en'
-                    ? 'bg-blue-600 text-white shadow-xs'
+                    ? 'bg-emerald-700 text-white shadow-xs'
                     : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200'
                 }`}
               >
-                🇬🇧 English ({ulmaQuotes.filter(q => q.language === 'en').length})
+                English ({ulmaQuotes.filter(q => q.language === 'en').length})
               </button>
             </div>
           </div>
@@ -847,16 +847,16 @@ export default function AboutSettingsPage() {
                               </p>
                               <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
                                 {q.language === 'en' ? (
-                                  <span className="inline-flex items-center px-1.5 py-0.5 rounded-md bg-blue-100 dark:bg-blue-950/60 text-blue-800 dark:text-blue-300 text-[10px] font-bold">
-                                    🇬🇧 English
+                                  <span className="inline-flex items-center px-1.5 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[10px] font-bold">
+                                    English
                                   </span>
                                 ) : q.language === 'all' ? (
-                                  <span className="inline-flex items-center px-1.5 py-0.5 rounded-md bg-purple-100 dark:bg-purple-950/60 text-purple-800 dark:text-purple-300 text-[10px] font-bold">
-                                    🌐 تمام زبانیں
+                                  <span className="inline-flex items-center px-1.5 py-0.5 rounded-md bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 text-[10px] font-bold">
+                                    تمام زبانیں
                                   </span>
                                 ) : (
-                                  <span className="inline-flex items-center px-1.5 py-0.5 rounded-md bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 text-[10px] font-bold">
-                                    🇵🇰 اردو
+                                  <span className="inline-flex items-center px-1.5 py-0.5 rounded-md bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 text-[10px] font-bold font-urdu">
+                                    اردو
                                   </span>
                                 )}
                                 {q.designation && (
@@ -1436,37 +1436,37 @@ export default function AboutSettingsPage() {
                   <button
                     type="button"
                     onClick={() => setQuoteFormData(prev => ({ ...prev, language: 'ur' }))}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-1.5 ${
+                    className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-1.5 ${
                       (quoteFormData.language || 'ur') === 'ur'
-                        ? 'bg-emerald-600 text-white shadow-xs'
+                        ? 'bg-emerald-700 text-white shadow-xs'
                         : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100'
                     }`}
                   >
-                    <span>🇵🇰 اردو (Urdu)</span>
+                    <span>اردو (Urdu)</span>
                   </button>
 
                   <button
                     type="button"
                     onClick={() => setQuoteFormData(prev => ({ ...prev, language: 'en' }))}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-1.5 ${
+                    className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-1.5 ${
                       quoteFormData.language === 'en'
-                        ? 'bg-blue-600 text-white shadow-xs'
+                        ? 'bg-emerald-700 text-white shadow-xs'
                         : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100'
                     }`}
                   >
-                    <span>🇬🇧 English</span>
+                    <span>English</span>
                   </button>
 
                   <button
                     type="button"
                     onClick={() => setQuoteFormData(prev => ({ ...prev, language: 'all' }))}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-1.5 ${
+                    className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-1.5 ${
                       quoteFormData.language === 'all'
-                        ? 'bg-purple-600 text-white shadow-xs'
+                        ? 'bg-emerald-700 text-white shadow-xs'
                         : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100'
                     }`}
                   >
-                    <span>🌐 تمام زبانیں (Urdu & English)</span>
+                    <span>تمام زبانیں (All)</span>
                   </button>
                 </div>
               </div>

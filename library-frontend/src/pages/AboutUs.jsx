@@ -377,27 +377,82 @@ export default function AboutUs() {
                         });
                         const toShow = langFiltered.length > 0 ? langFiltered : validQuotes;
                         return toShow.map((q) => (
-                          <div key={q.originalIndex} className="relative rounded-2xl border border-amber-100 dark:border-amber-900/40 bg-white dark:bg-slate-900 p-5 sm:p-6 shadow-xs hover:shadow-md transition-shadow space-y-4 flex flex-col justify-between">
-                            <div className="absolute top-4 right-5 text-amber-200 dark:text-amber-900/60 text-5xl font-serif leading-none select-none pointer-events-none" aria-hidden="true">"</div>
+                          <div
+                            key={q.originalIndex}
+                            className="relative rounded-3xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 sm:p-6 shadow-xs hover:shadow-md transition-all space-y-4 flex flex-col justify-between"
+                          >
+                            {/* Scholar Info & Quotation Mark */}
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="flex items-center gap-3 min-w-0">
+                                {q.image_url ? (
+                                  <img
+                                    src={q.image_url}
+                                    alt={q.name}
+                                    className="w-12 h-12 rounded-2xl object-cover border-2 border-emerald-200/80 dark:border-emerald-800 shadow-2xs flex-shrink-0"
+                                    onError={(e) => { e.target.style.display = 'none'; }}
+                                  />
+                                ) : (
+                                  <div className="w-12 h-12 rounded-2xl bg-emerald-50 dark:bg-emerald-950/50 border-2 border-emerald-200/80 dark:border-emerald-800 flex items-center justify-center flex-shrink-0 shadow-2xs">
+                                    <span className="text-emerald-800 dark:text-emerald-300 text-base font-black font-urdu">
+                                      {q.name?.charAt(0) || '؟'}
+                                    </span>
+                                  </div>
+                                )}
+                                <div className="min-w-0" dir={q.language === 'en' ? 'ltr' : 'rtl'}>
+                                  <h4 className={`font-black text-slate-900 dark:text-white text-base leading-tight truncate ${q.language === 'en' ? 'font-sans' : 'font-urdu'}`}>
+                                    {q.name || '(نام درج نہیں)'}
+                                  </h4>
+                                  {q.designation && (
+                                    <p className={`text-xs font-semibold text-emerald-800 dark:text-emerald-400 truncate mt-0.5 ${q.language === 'en' ? 'font-sans' : 'font-urdu'}`}>
+                                      {q.designation}
+                                    </p>
+                                  )}
+                                  {q.source_text && (
+                                    <p className={`text-[11px] text-slate-400 dark:text-slate-500 truncate mt-0.5 ${q.language === 'en' ? 'font-sans' : 'font-urdu'}`}>
+                                      — {q.source_text}
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+
+                              <div className="flex items-center gap-1.5 flex-shrink-0">
+                                {q.language === 'en' ? (
+                                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+                                    English
+                                  </span>
+                                ) : (
+                                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-50 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 font-urdu">
+                                    اردو
+                                  </span>
+                                )}
+                                <div className="text-emerald-300/80 dark:text-emerald-800 text-3xl font-serif leading-none select-none pointer-events-none" aria-hidden="true">
+                                  "
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Quote Excerpt */}
                             {q.quote && (
-                              <blockquote
-                                dir={q.language === 'en' ? 'ltr' : 'rtl'}
-                                className={`text-slate-800 dark:text-slate-200 text-sm sm:text-base leading-loose relative z-10 ${
-                                  q.language === 'en' ? 'font-sans' : 'font-urdu'
-                                }`}
-                              >
-                                {q.quote}
-                              </blockquote>
+                              <div className="border-s-3 border-emerald-500/80 ps-3.5 py-0.5">
+                                <blockquote
+                                  dir={q.language === 'en' ? 'ltr' : 'rtl'}
+                                  className={`text-slate-800 dark:text-slate-200 text-sm sm:text-base leading-relaxed ${
+                                    q.language === 'en' ? 'font-sans' : 'font-urdu leading-loose'
+                                  }`}
+                                >
+                                  {q.quote}
+                                </blockquote>
+                              </div>
                             )}
 
-                            {/* 📜 Handwritten Letter Thumbnail & Zoom Button */}
+                            {/* 📜 Handwritten Letter Attachment */}
                             {q.document_image_url && (
-                              <div className="rounded-xl border border-amber-200 dark:border-amber-800/60 bg-amber-50/60 dark:bg-amber-950/20 p-2.5 flex items-center justify-between gap-2.5">
+                              <div className="rounded-2xl border border-slate-200/90 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/40 p-2.5 flex items-center justify-between gap-2.5">
                                 <div className="flex items-center gap-2 min-w-0">
                                   <img
                                     src={q.document_image_url}
                                     alt="Original Handwritten Letter"
-                                    className="w-11 h-11 rounded-lg object-cover border border-amber-300 shadow-2xs cursor-pointer hover:opacity-90 flex-shrink-0"
+                                    className="w-11 h-11 rounded-xl object-cover border border-emerald-200 dark:border-emerald-800 shadow-2xs cursor-pointer hover:opacity-90 flex-shrink-0 transition"
                                     onClick={() => setSelectedLetterModal({
                                       imageUrl: q.document_image_url,
                                       scholarName: q.name,
@@ -410,8 +465,8 @@ export default function AboutUs() {
                                     <span className="text-xs font-bold text-slate-800 dark:text-slate-200 block font-urdu truncate">
                                       📜 اصل دستی مکتوب
                                     </span>
-                                    <span className="text-[10px] text-slate-400 block truncate">
-                                      Original Handwritten Letter
+                                    <span className="text-[10px] text-slate-500 dark:text-slate-400 block truncate">
+                                      تصویر پر کلک کر کے مکمل پڑھیں
                                     </span>
                                   </div>
                                 </div>
@@ -424,60 +479,53 @@ export default function AboutUs() {
                                     designation: q.designation,
                                     quote: q.quote,
                                   })}
-                                  className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-[11px] font-bold transition shadow-2xs flex-shrink-0 cursor-pointer"
+                                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-emerald-700 hover:bg-emerald-600 text-white text-[11px] font-bold transition shadow-xs flex-shrink-0 cursor-pointer"
                                 >
-                                  <span>اصل مکتوب دیکھیں</span>
+                                  <span>مکتوب دیکھیں</span>
                                   <ArrowTopRightOnSquareIcon className="w-3.5 h-3.5" />
                                 </button>
                               </div>
                             )}
 
-                            <div className="flex items-center gap-3 pt-2 border-t border-amber-100 dark:border-amber-900/40">
-                              {q.image_url ? (
-                                <img src={q.image_url} alt={q.name} className="w-11 h-11 rounded-full object-cover border-2 border-amber-200 dark:border-amber-700 shadow-sm flex-shrink-0" onError={e => { e.target.style.display = 'none'; }} />
-                              ) : (
-                                <div className="w-11 h-11 rounded-full bg-amber-100 dark:bg-amber-900/40 flex items-center justify-center border-2 border-amber-200 dark:border-amber-700 flex-shrink-0">
-                                  <span className="text-amber-600 dark:text-amber-400 text-lg font-bold">{q.name?.charAt(0) || '؟'}</span>
-                                </div>
-                              )}
-                              <div className="min-w-0" dir="rtl">
-                                {q.name && <p className="font-bold text-slate-900 dark:text-white text-sm truncate font-urdu">{q.name}</p>}
-                                <div className="flex items-center gap-1.5 flex-wrap">
-                                  {q.designation && <span className="text-xs text-amber-700 dark:text-amber-400 font-urdu truncate">{q.designation}</span>}
-                                  {q.language === 'en' && <span className="text-[10px] font-bold text-blue-600">🇬🇧 English</span>}
-                                </div>
-                                {q.source_text && <p className="text-xs text-slate-400 dark:text-slate-500 truncate font-urdu">— {q.source_text}</p>}
+                            {/* Footer / Actions */}
+                            <div className="flex items-center justify-between gap-3 pt-2.5 border-t border-slate-100 dark:border-slate-800/80 text-xs">
+                              <div>
+                                {q.source_url && (
+                                  <a
+                                    href={q.source_url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-bold transition shadow-2xs ${
+                                      (q.source_url.toLowerCase().includes('.pdf') || q.source_url.includes('/pdfs/'))
+                                        ? 'bg-emerald-50 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100'
+                                        : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200'
+                                    }`}
+                                    title={(q.source_url.toLowerCase().includes('.pdf') || q.source_url.includes('/pdfs/')) ? "دستاویز پی ڈی ایف دیکھیں" : "ماخذ لنک"}
+                                  >
+                                    {(q.source_url.toLowerCase().includes('.pdf') || q.source_url.includes('/pdfs/')) ? (
+                                      <>
+                                        <span className="font-urdu">📄 پی ڈی ایف دیکھیں</span>
+                                        <ArrowTopRightOnSquareIcon className="w-3.5 h-3.5" />
+                                      </>
+                                    ) : (
+                                      <>
+                                        <span>Source Link</span>
+                                        <ArrowTopRightOnSquareIcon className="w-3.5 h-3.5" />
+                                      </>
+                                    )}
+                                  </a>
+                                )}
                               </div>
-                              {q.source_url && (
-                                <a
-                                  href={q.source_url}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className={`ms-auto flex-shrink-0 inline-flex items-center gap-1 transition ${
-                                    (q.source_url.toLowerCase().includes('.pdf') || q.source_url.includes('/pdfs/'))
-                                      ? 'px-2 py-1 rounded-lg bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-400 border border-rose-200 dark:border-rose-900/50 hover:bg-rose-100 text-[11px] font-bold'
-                                      : 'p-1.5 rounded-lg text-slate-400 hover:text-amber-600'
-                                  }`}
-                                  title={(q.source_url.toLowerCase().includes('.pdf') || q.source_url.includes('/pdfs/')) ? "دستاویز پی ڈی ایف دیکھیں" : "ماخذ لنک"}
-                                >
-                                  {(q.source_url.toLowerCase().includes('.pdf') || q.source_url.includes('/pdfs/')) ? (
-                                    <>
-                                      <span>📄 پی ڈی ایف</span>
-                                      <ArrowTopRightOnSquareIcon className="w-3 h-3" />
-                                    </>
-                                  ) : (
-                                    <ArrowTopRightOnSquareIcon className="w-4 h-4" />
-                                  )}
-                                </a>
-                              )}
+
                               {isAdmin && (
                                 <button
                                   type="button"
                                   onClick={() => handleDeleteQuoteFromPublic(q.originalIndex)}
-                                  className="p-1.5 rounded-lg text-red-500 hover:bg-red-50 dark:hover:bg-red-950/40 hover:text-red-700 transition cursor-pointer flex-shrink-0"
-                                  title="ڈیٹا بیس سے حذف کریں (Delete from database)"
+                                  className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 hover:text-red-700 transition cursor-pointer text-xs font-bold"
+                                  title={currentLang === 'ur' ? 'ڈیٹا بیس سے یہ رائے مستقل حذف کریں' : 'Delete testimonial permanently from database'}
                                 >
-                                  <TrashIcon className="w-4 h-4" />
+                                  <TrashIcon className="w-3.5 h-3.5" />
+                                  <span className="hidden sm:inline">Delete</span>
                                 </button>
                               )}
                             </div>
@@ -608,8 +656,8 @@ export default function AboutUs() {
                   onClick={() => setPublicLangFilter('all')}
                   className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
                     publicLangFilter === 'all'
-                      ? 'bg-amber-600 text-white shadow-xs'
-                      : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100'
+                      ? 'bg-emerald-700 text-white shadow-xs'
+                      : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
                   }`}
                 >
                   <span>{currentLang === 'ur' ? 'تمام زبانیں (All)' : 'All Languages'}</span>
@@ -619,22 +667,22 @@ export default function AboutUs() {
                   onClick={() => setPublicLangFilter('ur')}
                   className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
                     publicLangFilter === 'ur'
-                      ? 'bg-emerald-600 text-white shadow-xs'
-                      : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100'
+                      ? 'bg-emerald-700 text-white shadow-xs'
+                      : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
                   }`}
                 >
-                  <span>🇵🇰 اردو (Urdu)</span>
+                  <span className="font-urdu">اردو (Urdu)</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => setPublicLangFilter('en')}
                   className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
                     publicLangFilter === 'en'
-                      ? 'bg-blue-600 text-white shadow-xs'
-                      : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100'
+                      ? 'bg-emerald-700 text-white shadow-xs'
+                      : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
                   }`}
                 >
-                  <span>🇬🇧 English</span>
+                  <span>English</span>
                 </button>
               </div>
             </header>
@@ -710,38 +758,80 @@ export default function AboutUs() {
                     {filtered.map((q) => (
                       <div
                         key={q.originalIndex}
-                        className="relative rounded-2xl border border-amber-100 dark:border-amber-900/40 bg-white dark:bg-slate-900 p-6 shadow-xs hover:shadow-md transition-shadow space-y-4 flex flex-col justify-between"
+                        className="relative rounded-3xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-xs hover:shadow-md transition-all duration-300 space-y-4 flex flex-col justify-between group"
                       >
-                        <div className="flex items-center justify-between">
-                          <div className="text-amber-200 dark:text-amber-900/60 text-4xl font-serif leading-none select-none pointer-events-none" aria-hidden="true">
-                            "
+                        {/* Top: Scholar Identity & Language / Watermark Quote */}
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex items-center gap-3 min-w-0">
+                            {q.image_url ? (
+                              <img
+                                src={q.image_url}
+                                alt={q.name}
+                                className="w-13 h-13 rounded-full object-cover border-2 border-emerald-500/40 shadow-xs flex-shrink-0"
+                                onError={(e) => { e.target.style.display = 'none'; }}
+                              />
+                            ) : (
+                              <div className="w-13 h-13 rounded-full bg-emerald-100 dark:bg-emerald-950/60 flex items-center justify-center border-2 border-emerald-500/30 flex-shrink-0">
+                                <span className="text-emerald-800 dark:text-emerald-300 text-lg font-bold">
+                                  {q.name?.charAt(0) || 'ع'}
+                                </span>
+                              </div>
+                            )}
+                            <div className="min-w-0" dir={q.language === 'en' ? 'ltr' : 'rtl'}>
+                              <h4 className={`font-black text-slate-900 dark:text-white text-base leading-tight truncate ${q.language === 'en' ? 'font-sans' : 'font-urdu'}`}>
+                                {q.name || '(نام درج نہیں)'}
+                              </h4>
+                              {q.designation && (
+                                <p className={`text-xs font-semibold text-emerald-800 dark:text-emerald-400 truncate mt-0.5 ${q.language === 'en' ? 'font-sans' : 'font-urdu'}`}>
+                                  {q.designation}
+                                </p>
+                              )}
+                              {q.source_text && (
+                                <p className={`text-[11px] text-slate-400 dark:text-slate-500 truncate mt-0.5 ${q.language === 'en' ? 'font-sans' : 'font-urdu'}`}>
+                                  — {q.source_text}
+                                </p>
+                              )}
+                            </div>
                           </div>
-                          {q.language === 'en' && (
-                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
-                              🇬🇧 English
-                            </span>
-                          )}
+
+                          <div className="flex items-center gap-1.5 flex-shrink-0">
+                            {q.language === 'en' ? (
+                              <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+                                English
+                              </span>
+                            ) : (
+                              <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-50 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 font-urdu">
+                                اردو
+                              </span>
+                            )}
+                            <div className="text-emerald-300/80 dark:text-emerald-800 text-3xl font-serif leading-none select-none pointer-events-none" aria-hidden="true">
+                              "
+                            </div>
+                          </div>
                         </div>
 
+                        {/* Quote Excerpt */}
                         {q.quote && (
-                          <blockquote
-                            dir={q.language === 'en' ? 'ltr' : 'rtl'}
-                            className={`text-slate-800 dark:text-slate-200 text-sm sm:text-base leading-loose relative z-10 ${
-                              q.language === 'en' ? 'font-sans' : 'font-urdu'
-                            }`}
-                          >
-                            {q.quote}
-                          </blockquote>
+                          <div className="border-s-3 border-emerald-500/80 ps-3.5 py-0.5">
+                            <blockquote
+                              dir={q.language === 'en' ? 'ltr' : 'rtl'}
+                              className={`text-slate-800 dark:text-slate-200 text-sm sm:text-base leading-relaxed ${
+                                q.language === 'en' ? 'font-sans' : 'font-urdu leading-loose'
+                              }`}
+                            >
+                              {q.quote}
+                            </blockquote>
+                          </div>
                         )}
 
-                        {/* 📜 Handwritten Letter Thumbnail & Zoom Button */}
+                        {/* 📜 Handwritten Letter Attachment */}
                         {q.document_image_url && (
-                          <div className="rounded-xl border border-amber-200 dark:border-amber-800/60 bg-amber-50/60 dark:bg-amber-950/20 p-2.5 flex items-center justify-between gap-2.5">
+                          <div className="rounded-2xl border border-slate-200/90 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/40 p-2.5 flex items-center justify-between gap-2.5">
                             <div className="flex items-center gap-2 min-w-0">
                               <img
                                 src={q.document_image_url}
                                 alt="Original Handwritten Letter"
-                                className="w-11 h-11 rounded-lg object-cover border border-amber-300 shadow-2xs cursor-pointer hover:opacity-90 flex-shrink-0"
+                                className="w-11 h-11 rounded-xl object-cover border border-emerald-200 dark:border-emerald-800 shadow-2xs cursor-pointer hover:opacity-90 flex-shrink-0 transition"
                                 onClick={() => setSelectedLetterModal({
                                   imageUrl: q.document_image_url,
                                   scholarName: q.name,
@@ -754,8 +844,8 @@ export default function AboutUs() {
                                 <span className="text-xs font-bold text-slate-800 dark:text-slate-200 block font-urdu truncate">
                                   📜 اصل دستی مکتوب
                                 </span>
-                                <span className="text-[10px] text-slate-400 block truncate">
-                                  Original Handwritten Letter
+                                <span className="text-[10px] text-slate-500 dark:text-slate-400 block truncate">
+                                  تصویر پر کلک کر کے مکمل پڑھیں
                                 </span>
                               </div>
                             </div>
@@ -768,79 +858,53 @@ export default function AboutUs() {
                                 designation: q.designation,
                                 quote: q.quote,
                               })}
-                              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-[11px] font-bold transition shadow-2xs flex-shrink-0 cursor-pointer"
+                              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-emerald-700 hover:bg-emerald-600 text-white text-[11px] font-bold transition shadow-xs flex-shrink-0 cursor-pointer"
                             >
-                              <span>اصل مکتوب دیکھیں</span>
+                              <span>مکتوب دیکھیں</span>
                               <ArrowTopRightOnSquareIcon className="w-3.5 h-3.5" />
                             </button>
                           </div>
                         )}
 
-                        <div className="flex items-center gap-3 pt-3 border-t border-amber-100 dark:border-amber-900/40">
-                          {q.image_url ? (
-                            <img
-                              src={q.image_url}
-                              alt={q.name}
-                              className="w-12 h-12 rounded-full object-cover border-2 border-amber-200 dark:border-amber-700 shadow-sm flex-shrink-0"
-                              onError={(e) => { e.target.style.display = 'none'; }}
-                            />
-                          ) : (
-                            <div className="w-12 h-12 rounded-full bg-amber-100 dark:bg-amber-900/40 flex items-center justify-center border-2 border-amber-200 dark:border-amber-700 flex-shrink-0">
-                              <span className="text-amber-700 dark:text-amber-400 text-lg font-bold">
-                                {q.name?.charAt(0) || '؟'}
-                              </span>
-                            </div>
-                          )}
-
-                          <div className="min-w-0 flex-1" dir={q.language === 'en' ? 'ltr' : 'rtl'}>
-                            {q.name && (
-                              <h4 className={`font-bold text-slate-900 dark:text-white text-base truncate ${q.language === 'en' ? 'font-sans' : 'font-urdu'}`}>
-                                {q.name}
-                              </h4>
-                            )}
-                            {q.designation && (
-                              <p className={`text-xs text-amber-700 dark:text-amber-400 truncate font-medium ${q.language === 'en' ? 'font-sans' : 'font-urdu'}`}>
-                                {q.designation}
-                              </p>
-                            )}
-                            {q.source_text && (
-                              <p className={`text-xs text-slate-400 dark:text-slate-500 truncate mt-0.5 ${q.language === 'en' ? 'font-sans' : 'font-urdu'}`}>
-                                — {q.source_text}
-                              </p>
+                        {/* Footer / Actions */}
+                        <div className="flex items-center justify-between gap-3 pt-2.5 border-t border-slate-100 dark:border-slate-800/80 text-xs">
+                          <div>
+                            {q.source_url && (
+                              <a
+                                href={q.source_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-bold transition shadow-2xs ${
+                                  (q.source_url.toLowerCase().includes('.pdf') || q.source_url.includes('/pdfs/'))
+                                    ? 'bg-emerald-50 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100'
+                                    : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200'
+                                }`}
+                                title={(q.source_url.toLowerCase().includes('.pdf') || q.source_url.includes('/pdfs/')) ? "دستاویز پی ڈی ایف دیکھیں" : "ماخذ لنک"}
+                              >
+                                {(q.source_url.toLowerCase().includes('.pdf') || q.source_url.includes('/pdfs/')) ? (
+                                  <>
+                                    <span className="font-urdu">📄 پی ڈی ایف دیکھیں</span>
+                                    <ArrowTopRightOnSquareIcon className="w-3.5 h-3.5" />
+                                  </>
+                                ) : (
+                                  <>
+                                    <span>Source Link</span>
+                                    <ArrowTopRightOnSquareIcon className="w-3.5 h-3.5" />
+                                  </>
+                                )}
+                              </a>
                             )}
                           </div>
-
-                          {q.source_url && (
-                            <a
-                              href={q.source_url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className={`ms-auto flex-shrink-0 inline-flex items-center gap-1.5 transition ${
-                                (q.source_url.toLowerCase().includes('.pdf') || q.source_url.includes('/pdfs/'))
-                                  ? 'px-2.5 py-1.5 rounded-xl bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-400 border border-rose-200 dark:border-rose-900/50 hover:bg-rose-100 text-xs font-bold'
-                                  : 'p-2 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-500 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/40 shadow-2xs'
-                              }`}
-                              title={(q.source_url.toLowerCase().includes('.pdf') || q.source_url.includes('/pdfs/')) ? "دستاویز پی ڈی ایف دیکھیں" : "View Document / Source"}
-                            >
-                              {(q.source_url.toLowerCase().includes('.pdf') || q.source_url.includes('/pdfs/')) ? (
-                                <>
-                                  <span className="font-urdu">📄 پی ڈی ایف دیکھیں</span>
-                                  <ArrowTopRightOnSquareIcon className="w-3.5 h-3.5" />
-                                </>
-                              ) : (
-                                <ArrowTopRightOnSquareIcon className="w-4 h-4" />
-                              )}
-                            </a>
-                          )}
 
                           {isAdmin && (
                             <button
                               type="button"
                               onClick={() => handleDeleteQuoteFromPublic(q.originalIndex)}
-                              className="p-2 rounded-xl bg-red-50 dark:bg-red-950/40 text-red-500 hover:text-red-700 hover:bg-red-100 transition shadow-2xs cursor-pointer flex-shrink-0"
+                              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-red-50 dark:bg-red-950/40 text-red-600 hover:bg-red-100 transition shadow-2xs cursor-pointer text-xs font-semibold"
                               title={currentLang === 'ur' ? 'ڈیٹا بیس سے یہ رائے مستقل حذف کریں' : 'Delete testimonial permanently from database'}
                             >
-                              <TrashIcon className="w-4 h-4" />
+                              <TrashIcon className="w-3.5 h-3.5" />
+                              <span>حذف کریں</span>
                             </button>
                           )}
                         </div>
