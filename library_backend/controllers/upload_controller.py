@@ -21,7 +21,7 @@ async def upload_image(file: UploadFile = File(...)):
 
 
 # --- 2. PDF UPLOAD ---
-@router.post("/pdf", dependencies=[Depends(require_permission("FILE_UPLOAD"))])
+@router.post("/pdf", dependencies=[Depends(require_permission("FILE_UPLOAD", "HOMEPAGE_CONTENT_MANAGE", "HOMEPAGE_BRANDING_MANAGE", "BOOK_MANAGE"))])
 async def upload_pdf(file: UploadFile = File(...)):
     await validate_pdf(file)
     url = smart_upload(file, folder="booknest/pdfs")

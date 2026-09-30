@@ -17,6 +17,14 @@ const aboutService = {
     });
     return response.data;
   },
+  uploadPdf: async (file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const response = await api.post('/api/upload/pdf', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return response.data;
+  },
 };
 
 export default aboutService;

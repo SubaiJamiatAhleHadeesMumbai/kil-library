@@ -141,6 +141,7 @@ export default function AboutSettingsPage() {
   const [quoteFormData, setQuoteFormData] = useState(EMPTY_QUOTE());
   const [uploadingDoc, setUploadingDoc] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [uploadingPdf, setUploadingPdf] = useState(false);
 
   // Load from backend & check draft
   useEffect(() => {
@@ -393,6 +394,31 @@ export default function AboutSettingsPage() {
       toast.error(err?.response?.data?.detail || err.message || 'تصویر اپلوڈ نہیں ہو سکی');
     } finally {
       setUploadingPhoto(false);
+      e.target.value = '';
+    }
+  };
+
+  const handleUploadSourcePdf = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) {
+      toast.error('براہ کرم پی ڈی ایف فائل منتخب کریں (Only .pdf files)');
+      return;
+    }
+    try {
+      setUploadingPdf(true);
+      const res = await aboutService.uploadPdf(file);
+      if (res?.url) {
+        setQuoteFormData(prev => ({ ...prev, source_url: res.url }));
+        toast.success('پی ڈی ایف دستاویز کامیابی سے اپلوڈ ہو گئی');
+      } else {
+        toast.error('پی ڈی ایف اپلوڈ میں مسئلہ پیش آیا');
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error(err?.response?.data?.detail || err.message || 'پی ڈی ایف اپلوڈ نہیں ہو سکی');
+    } finally {
+      setUploadingPdf(false);
       e.target.value = '';
     }
   };
@@ -766,9 +792,13 @@ export default function AboutSettingsPage() {
                                 href={q.source_url}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="flex items-center gap-1 text-[10px] text-blue-600 hover:underline"
+                                className={`inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded-md ${
+                                  q.source_url.toLowerCase().includes('.pdf') || q.source_url.includes('/pdfs/')
+                                    ? 'bg-rose-100 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 hover:bg-rose-200'
+                                    : 'text-blue-600 hover:underline'
+                                }`}
                               >
-                                <span>Link</span>
+                                <span>{q.source_url.toLowerCase().includes('.pdf') || q.source_url.includes('/pdfs/') ? '📄 PDF' : 'Link'}</span>
                                 <ArrowTopRightOnSquareIcon className="w-3 h-3" />
                               </a>
                             )}
@@ -1491,16 +1521,54 @@ export default function AboutSettingsPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                    ماخذ لنک (Source URL - اختیاری)
-                  </label>
-                  <input
-                    type="url"
-                    value={quoteFormData.source_url}
-                    onChange={(e) => setQuoteFormData(prev => ({ ...prev, source_url: e.target.value }))}
-                    placeholder="https://youtube.com/... یا PDF"
-                    className="w-full px-3.5 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-amber-500"
-                  />
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
+                      ماخذ لنک یا پی ڈی ایف (Source Link / PDF)
+                    </label>
+                    <label className="inline-flex items-center gap-1 text-[11px] font-bold text-rose-700 dark:text-rose-400 hover:underline cursor-pointer">
+                      {uploadingPdf ? <ArrowPathIcon className="w-3.5 h-3.5 animate-spin" /> : <ArrowUpTrayIcon className="w-3.5 h-3.5" />}
+                      <span>{uploadingPdf ? 'پی ڈی ایف اپلوڈ ہو رہی ہے...' : '📄 پی ڈی ایف اپلوڈ کریں'}</span>
+                      <input
+                        type="file"
+                        accept="application/pdf,.pdf"
+                        disabled={uploadingPdf}
+                        onChange={handleUploadSourcePdf}
+                        className="hidden"
+                      />
+                    </label>
+                  </div>
+                  
+                  {quoteFormData.source_url && (quoteFormData.source_url.toLowerCase().includes('.pdf') || quoteFormData.source_url.includes('/pdfs/')) ? (
+                    <div className="flex items-center justify-between gap-2 px-3 py-1.5 rounded-xl border border-rose-200 dark:border-rose-900/60 bg-rose-50/60 dark:bg-rose-950/20 text-xs">
+                      <div className="flex items-center gap-1.5 truncate text-rose-800 dark:text-rose-300 font-medium">
+                        <span className="font-bold">📄 پی ڈی ایف دستاویز منسلک ہے</span>
+                        <a
+                          href={quoteFormData.source_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="hover:underline text-[11px]"
+                        >
+                          (کھولیں ↗)
+                        </a>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setQuoteFormData(prev => ({ ...prev, source_url: '' }))}
+                        className="text-[11px] font-bold text-red-500 hover:text-red-700"
+                        title="پی ڈی ایف ہٹائیں"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ) : (
+                    <input
+                      type="url"
+                      value={quoteFormData.source_url}
+                      onChange={(e) => setQuoteFormData(prev => ({ ...prev, source_url: e.target.value }))}
+                      placeholder="پی ڈی ایف اپلوڈ کریں یا لنک درج کریں (https://...)"
+                      className="w-full px-3.5 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-amber-500"
+                    />
+                  )}
                 </div>
               </div>
 

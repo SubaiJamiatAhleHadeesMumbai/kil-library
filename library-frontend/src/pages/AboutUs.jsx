@@ -439,8 +439,25 @@ export default function AboutUs() {
                                 {q.source_text && <p className="text-xs text-slate-400 dark:text-slate-500 truncate font-urdu">— {q.source_text}</p>}
                               </div>
                               {q.source_url && (
-                                <a href={q.source_url} target="_blank" rel="noopener noreferrer" className="ml-auto flex-shrink-0 p-1.5 rounded-lg text-slate-400 hover:text-amber-600 transition" title="View Source">
-                                  <ArrowTopRightOnSquareIcon className="w-4 h-4" />
+                                <a
+                                  href={q.source_url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className={`ms-auto flex-shrink-0 inline-flex items-center gap-1 transition ${
+                                    (q.source_url.toLowerCase().includes('.pdf') || q.source_url.includes('/pdfs/'))
+                                      ? 'px-2 py-1 rounded-lg bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-400 border border-rose-200 dark:border-rose-900/50 hover:bg-rose-100 text-[11px] font-bold'
+                                      : 'p-1.5 rounded-lg text-slate-400 hover:text-amber-600'
+                                  }`}
+                                  title={(q.source_url.toLowerCase().includes('.pdf') || q.source_url.includes('/pdfs/')) ? "دستاویز پی ڈی ایف دیکھیں" : "ماخذ لنک"}
+                                >
+                                  {(q.source_url.toLowerCase().includes('.pdf') || q.source_url.includes('/pdfs/')) ? (
+                                    <>
+                                      <span>📄 پی ڈی ایف</span>
+                                      <ArrowTopRightOnSquareIcon className="w-3 h-3" />
+                                    </>
+                                  ) : (
+                                    <ArrowTopRightOnSquareIcon className="w-4 h-4" />
+                                  )}
                                 </a>
                               )}
                             </div>
@@ -725,10 +742,21 @@ export default function AboutUs() {
                               href={q.source_url}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="ms-auto flex-shrink-0 p-2 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-500 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/40 transition shadow-2xs"
-                              title="View Document / Video Source"
+                              className={`ms-auto flex-shrink-0 inline-flex items-center gap-1.5 transition ${
+                                (q.source_url.toLowerCase().includes('.pdf') || q.source_url.includes('/pdfs/'))
+                                  ? 'px-2.5 py-1.5 rounded-xl bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-400 border border-rose-200 dark:border-rose-900/50 hover:bg-rose-100 text-xs font-bold'
+                                  : 'p-2 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-500 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/40 shadow-2xs'
+                              }`}
+                              title={(q.source_url.toLowerCase().includes('.pdf') || q.source_url.includes('/pdfs/')) ? "دستاویز پی ڈی ایف دیکھیں" : "View Document / Source"}
                             >
-                              <ArrowTopRightOnSquareIcon className="w-4 h-4" />
+                              {(q.source_url.toLowerCase().includes('.pdf') || q.source_url.includes('/pdfs/')) ? (
+                                <>
+                                  <span className="font-urdu">📄 پی ڈی ایف دیکھیں</span>
+                                  <ArrowTopRightOnSquareIcon className="w-3.5 h-3.5" />
+                                </>
+                              ) : (
+                                <ArrowTopRightOnSquareIcon className="w-4 h-4" />
+                              )}
                             </a>
                           )}
                         </div>
