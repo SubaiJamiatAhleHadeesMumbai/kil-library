@@ -37,6 +37,9 @@ const LibrarySearchStrip = ({
   enableVoice = true,
   enableDeepSearch = true,
   enableSuggestions = true,
+  categories = [],
+  selectedCategory = "all",
+  onSelectCategory,
 }) => {
   const navigate = useNavigate();
   const [localValue, setLocalValue] = useState(searchTerm);
@@ -225,6 +228,29 @@ const LibrarySearchStrip = ({
               ) : null}
             </div>
           </div>
+
+          {/* ================= CATEGORY QUICK PILLS ================= */}
+          {categories && categories.length > 0 && onSelectCategory && (
+            <div className="mt-3 flex items-center gap-1.5 overflow-x-auto no-scrollbar py-1 px-1">
+              {categories.slice(0, 10).map((cat) => {
+                const isSelected = selectedCategory === cat.value;
+                return (
+                  <button
+                    key={cat.value}
+                    type="button"
+                    onClick={() => onSelectCategory(cat.value)}
+                    className={`whitespace-nowrap rounded-full px-3.5 py-1 text-xs font-bold transition-all shrink-0 cursor-pointer ${
+                      isSelected
+                        ? "bg-gradient-to-r from-emerald-600 to-teal-700 text-white shadow-md shadow-emerald-950/20 ring-2 ring-emerald-400/40"
+                        : "bg-white/90 hover:bg-emerald-50 text-slate-700 hover:text-emerald-700 border border-slate-200/80 shadow-2xs"
+                    }`}
+                  >
+                    {cat.label}
+                  </button>
+                );
+              })}
+            </div>
+          )}
 
           {/* ================= SUGGESTIONS DROPDOWN ================= */}
           <AnimatePresence>

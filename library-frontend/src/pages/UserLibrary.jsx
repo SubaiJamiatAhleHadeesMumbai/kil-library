@@ -38,8 +38,6 @@ import {
 } from "@heroicons/react/24/outline";
 
 import {
-  LockClosedIcon as LockSolid,
-  LockOpenIcon as LockOpenSolid,
   BookmarkIcon as BookmarkSolid,
 } from "@heroicons/react/24/solid";
 
@@ -96,154 +94,8 @@ const safeBookText = (value, fallback = "") => {
   return str.length ? str : fallback;
 };
 
-// ==========================================
-// 1. PUBLIC BOOK CARD COMPONENT (Clean UI)
-// ==========================================
-const PublicBookCard = ({
-  book,
-  onClick,
-  isFavorite = false,
-  onToggleFavorite,
-  className = "",
-}) => {
-  const [imgSrc, setImgSrc] = useState(null);
-  const [imgLoaded, setImgLoaded] = useState(false);
+import PublicBookCard from "../components/public/PublicBookCard";
 
-  const title = useMemo(() => safeBookText(book?.title, "Untitled Book"), [book]);
-  const author = useMemo(() => safeBookText(book?.author, "Unknown Author"), [book]);
-  const isRestricted = !!book?.is_restricted;
-  const userHasAccess = !!book?.user_has_access;
-  const hasDigitalPdf = Boolean(book?.pdf_url || book?.pdf_file || book?.txt_file_url || book?.txt_file);
-
-  useEffect(() => {
-    setImgLoaded(false);
-
-    if (!book) {
-      setImgSrc(FALLBACK_NO_COVER);
-      return;
-    }
-
-    const rawUrl = book.cover_image_url || book.cover_image;
-    if (!rawUrl) {
-      setImgSrc(FALLBACK_NO_COVER);
-      return;
-    }
-
-    if (typeof rawUrl === "string" && rawUrl.startsWith("http")) {
-      setImgSrc(rawUrl);
-      return;
-    }
-
-    const path = String(rawUrl);
-    const cleanPath = path.startsWith("/") ? path : `/${path}`;
-    setImgSrc(`${API_BASE_URL}${cleanPath}`);
-  }, [book]);
-
-  const handleImageError = () => {
-    setImgSrc(FALLBACK_BROKEN);
-    setImgLoaded(true);
-  };
-
-  const handleCardClick = () => {
-    if (!hasDigitalPdf) {
-      showUpcomingToast();
-    }
-    if (typeof onClick === "function") onClick();
-  };
-
-  return (
-    <div
-      onClick={handleCardClick}
-      className={`group relative mx-auto w-full max-w-[340px] overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-xs transition-all duration-300 cursor-pointer hover:shadow-xl hover:border-slate-300 sm:max-w-none ${className}`}
-    >
-      {/* Badges - Only Restricted or Upcoming */}
-      <div className="absolute top-2 left-2 z-20 flex flex-col gap-1 sm:top-3 sm:left-3">
-        {isRestricted && (
-          userHasAccess ? (
-            <div className="flex items-center gap-1 rounded-full bg-emerald-600 px-2.5 py-1 text-[10px] font-extrabold text-white shadow-md sm:px-3 sm:py-1.5 sm:text-[11px]">
-              <LockOpenSolid className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-              <span>Unlocked</span>
-            </div>
-          ) : (
-            <div className="flex items-center gap-1 rounded-full bg-red-600 px-2.5 py-1 text-[10px] font-extrabold text-white shadow-md sm:px-3 sm:py-1.5 sm:text-[11px]">
-              <LockSolid className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-              <span>Restricted</span>
-            </div>
-          )
-        )}
-
-        {!hasDigitalPdf && (
-          <div className="rounded-full bg-slate-900/90 text-amber-300 px-2.5 py-0.5 text-[10px] font-bold shadow-sm backdrop-blur-xs flex items-center gap-1 border border-slate-700">
-            <span>⏳</span> <span>عنقریب...</span>
-          </div>
-        )}
-      </div>
-
-      {/* Favorite / Bookmark Button */}
-      {typeof onToggleFavorite === "function" && (
-        <button
-          onClick={(e) => onToggleFavorite(e, book?.id)}
-          className={`absolute bottom-2 right-2 z-20 rounded-full p-2 shadow-md transition-all duration-200 sm:bottom-3 sm:right-3 ${
-            isFavorite
-              ? "bg-emerald-50 text-emerald-600 border border-emerald-300 ring-2 ring-emerald-500/20"
-              : "bg-white/95 text-slate-500 hover:text-emerald-600 border border-slate-200 hover:bg-white hover:shadow-lg"
-          }`}
-          title={isFavorite ? "Saved in Favorites" : "Save to Favorites"}
-        >
-          {isFavorite ? (
-            <BookmarkSolid className="h-4 w-4 text-emerald-600" />
-          ) : (
-            <BookmarkOutline className="h-4 w-4 text-slate-600 hover:text-emerald-600" />
-          )}
-        </button>
-      )}
-
-      {/* COVER AREA */}
-      <div className="relative flex justify-center bg-gradient-to-b from-[#F8F9FA] to-white px-3 pb-2 pt-4 transition-colors group-hover:from-[#F1F3F5] sm:px-4 sm:pb-3 sm:pt-5">
-        <div className="relative aspect-[2/3] w-[118px] overflow-hidden rounded-2xl bg-gray-100 shadow-md transition-all duration-300 group-hover:-translate-y-1 group-hover:shadow-xl sm:w-[150px] md:w-[175px] lg:w-[185px]">
-          {!imgLoaded && (
-            <div className="absolute inset-0 bg-slate-200 animate-pulse" />
-          )}
-
-          {imgSrc && (
-            <img
-              src={imgSrc}
-              alt={title}
-              onError={handleImageError}
-              onLoad={() => setImgLoaded(true)}
-              className={`w-full h-full transition-opacity duration-300 ${
-                imgLoaded ? "opacity-100" : "opacity-0"
-              }`}
-              style={{ objectFit: "contain", background: "#e5e7eb" }}
-              loading="lazy"
-            />
-          )}
-
-          {/* Hover overlay */}
-          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/25 transition flex items-center justify-center">
-            <span className="rounded-full bg-black/60 px-3 py-1.5 text-[11px] font-bold text-white opacity-0 transition group-hover:opacity-100 sm:px-4 sm:py-2">
-              {hasDigitalPdf ? "Click to View" : "عنقریب..."}
-            </span>
-          </div>
-        </div>
-      </div>
-
-      {/* Details */}
-      <div className="flex flex-grow flex-col px-3 pb-4 text-center sm:px-4 sm:pb-5">
-        <h3
-          className="mb-1.5 line-clamp-2 font-serif text-[0.95rem] font-extrabold leading-snug text-[#002147] transition-colors group-hover:text-emerald-700 sm:text-sm md:text-base"
-          style={{
-            fontFamily: '"Jameel Noori Nastaleeq", "Noto Naskh Arabic", serif',
-          }}
-        >
-          {title}
-        </h3>
-
-        <p className="line-clamp-1 text-[11px] text-gray-500 sm:text-xs">{author}</p>
-      </div>
-    </div>
-  );
-};
 
 // ==========================================
 // 2. MAIN USER LIBRARY COMPONENT
@@ -566,27 +418,32 @@ const UserLibrary = () => {
           HERO SECTION: DYNAMIC ACCORDING TO ACTIVE LAYOUT
       ======================================================== */}
       {activeLayout === "option2" ? (
-        /* OPTION 2: MINIMALIST COMPACT BANNER (NO SEARCH IN HERO) */
-        <div className="relative bg-[#0F172A] pt-6 pb-8 sm:pt-10 sm:pb-12 px-4 rounded-b-[2rem] shadow-xl overflow-hidden text-center">
-          <div className="absolute inset-0 opacity-20 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] mix-blend-overlay" />
-          <div className="absolute top-0 right-0 w-96 h-96 bg-emerald-500/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+        /* OPTION 2: MINIMALIST ROYAL ISLAMIC BANNER */
+        <div className="relative bg-gradient-to-b from-[#031525] via-[#052827] to-[#020d18] pt-6 pb-8 sm:pt-10 sm:pb-12 px-4 rounded-b-[2rem] shadow-2xl border-b border-amber-500/20 overflow-hidden text-center">
+          <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#d4af37_1px,transparent_1px)] [background-size:24px_24px] pointer-events-none" />
+          <div className="absolute top-0 right-1/4 w-96 h-96 bg-emerald-500/15 rounded-full blur-3xl -translate-y-1/2 pointer-events-none" />
           <div className="relative z-10 max-w-4xl mx-auto">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-bold uppercase tracking-wider mb-2 sm:mb-3">
-              <BookOpenIcon className="w-4 h-4" /> Digital Library
+            <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-amber-500/15 border border-amber-400/30 text-amber-300 text-xs font-bold tracking-wide mb-2 sm:mb-3 backdrop-blur-sm shadow-xs">
+              <BookOpenIcon className="w-4 h-4 text-amber-400" />
+              <span>مرکز اہل حدیث کوکن • ڈیجیٹل کتب خانہ</span>
             </div>
-            <h1 className="text-2xl sm:text-4xl md:text-5xl font-extrabold text-white leading-tight">
-              Discover Islamic{" "}
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400">
-                Knowledge
-              </span>
+            <h1
+              className="text-2xl sm:text-4xl md:text-5xl font-extrabold text-white leading-tight drop-shadow-md"
+              style={{ fontFamily: "'Noto Nastaliq Urdu', 'Jameel Noori Nastaleeq', serif" }}
+            >
+              کوکن اسلامک لائبریری
             </h1>
+            <p className="mt-2 text-xs sm:text-sm text-emerald-200/90 font-medium">
+              7,800+ مستند اسلامی کتب، تفاسیر اور علمی مخطوطات کا ذخیرہ
+            </p>
           </div>
         </div>
       ) : (
-        /* OPTION 1 & OPTION 3: CLASSIC/STICKY HERO (WITH SINGLE SEARCH STRIP) */
-        <div className="relative bg-[#0F172A] pt-8 pb-14 sm:pt-12 sm:pb-24 px-4 rounded-b-[2rem] sm:rounded-b-[2.5rem] shadow-xl overflow-hidden">
-          <div className="absolute inset-0 opacity-20 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] mix-blend-overlay" />
-          <div className="absolute top-0 right-0 w-96 h-96 bg-emerald-500/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+        /* OPTION 1 & OPTION 3: ROYAL ISLAMIC HERO (WITH EMBEDDED SEARCH & PILLS) */
+        <div className="relative bg-gradient-to-b from-[#031525] via-[#052827] to-[#020d18] pt-8 pb-12 sm:pt-12 sm:pb-20 px-4 rounded-b-[2rem] sm:rounded-b-[2.5rem] shadow-2xl border-b border-amber-500/20 overflow-hidden">
+          <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#d4af37_1px,transparent_1px)] [background-size:24px_24px] pointer-events-none" />
+          <div className="absolute top-0 right-1/4 w-96 h-96 bg-emerald-500/15 rounded-full blur-3xl -translate-y-1/2 pointer-events-none" />
+          <div className="absolute bottom-0 left-1/4 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl translate-y-1/2 pointer-events-none" />
 
           <div className="relative z-10 max-w-4xl mx-auto text-center">
             <motion.div
@@ -594,26 +451,33 @@ const UserLibrary = () => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.7 }}
             >
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-bold uppercase tracking-wider mb-3 sm:mb-4">
-                <BookOpenIcon className="w-4 h-4" /> Digital Library
+              <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-amber-500/15 border border-amber-400/30 text-amber-300 text-xs font-bold tracking-wide mb-3 sm:mb-4 backdrop-blur-sm shadow-xs">
+                <BookOpenIcon className="w-4 h-4 text-amber-400" />
+                <span>مرکز اہل حدیث کوکن • ڈیجیٹل کتب خانہ</span>
               </div>
 
-              <h1 className="text-2xl sm:text-4xl md:text-6xl font-extrabold text-white mb-4 sm:mb-6 leading-tight">
-                Discover Islamic{" "}
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400">
-                  Knowledge
-                </span>
+              <h1
+                className="text-2xl sm:text-4xl md:text-5xl font-extrabold text-white mb-3 sm:mb-4 leading-tight drop-shadow-md"
+                style={{ fontFamily: "'Noto Nastaliq Urdu', 'Jameel Noori Nastaleeq', serif" }}
+              >
+                کوکن اسلامک لائبریری
               </h1>
+              <p className="text-xs sm:text-sm text-emerald-200/90 font-medium max-w-2xl mx-auto leading-relaxed">
+                مستند اسلامی علوم، تفاسیر، کتبِ احادیث، فقہ اور فتاویٰ کا جدید اور تیز ترین ڈیجیٹل ذخیرہ۔
+              </p>
             </motion.div>
 
-            <div className="mx-auto mt-4 sm:mt-8 max-w-4xl">
+            <div className="mx-auto mt-6 sm:mt-8 max-w-4xl">
               <LibrarySearchStrip
                 searchTerm={searchTerm}
                 onSearchChange={setSearchTerm}
                 title="Library Search"
                 subtitle="Search the library collection"
                 description="Search by title, author, language, category, and deep-book content with a premium discovery experience."
-                placeholder="Search by title, author, or ISBN..."
+                placeholder="کتاب کا نام، مصنف یا موضوع تلاش کریں..."
+                categories={categories}
+                selectedCategory={selectedCategory}
+                onSelectCategory={setSelectedCategory}
                 showHint={true}
               />
             </div>
@@ -629,7 +493,10 @@ const UserLibrary = () => {
             onSearchChange={setSearchTerm}
             title="Library Search"
             subtitle="Search the library collection"
-            placeholder="Search by title, author, or ISBN..."
+            placeholder="کتاب کا نام، مصنف یا موضوع تلاش کریں..."
+            categories={categories}
+            selectedCategory={selectedCategory}
+            onSelectCategory={setSelectedCategory}
             showHint={false}
           />
         </div>

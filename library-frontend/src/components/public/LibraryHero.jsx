@@ -1,6 +1,10 @@
 import React, { useEffect, useState } from "react";
 import {
   BuildingLibraryIcon,
+  BookOpenIcon,
+  BoltIcon,
+  ScaleIcon,
+  ArrowDownTrayIcon,
 } from "@heroicons/react/24/solid";
 import { motion, useScroll, useTransform } from "framer-motion";
 import settingsService from "../../api/settingsService";
@@ -8,17 +12,15 @@ import settingsService from "../../api/settingsService";
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || (import.meta.env.PROD ? "" : "http://127.0.0.1:8000");
 
 const STAR_COLORS = [
-  "rgba(255,255,255,.9)",
-  "rgba(173,216,230,.9)",
-  "rgba(244,162,97,.9)",
-  "rgba(180,130,255,.9)",
+  "rgba(255, 230, 160, 0.8)",
+  "rgba(212, 175, 55, 0.7)",
+  "rgba(255, 255, 255, 0.85)",
+  "rgba(110, 231, 183, 0.75)",
 ];
 
 const LibraryHero = ({ config }) => {
   const [heroSettings, setHeroSettings] = useState(config || null);
   const [mouse, setMouse] = useState({ x: 0, y: 0 });
-  const [night] = useState(true);
-  const [shoot, setShoot] = useState(false);
 
   // If no config passed directly, load from settingsService
   useEffect(() => {
@@ -41,26 +43,17 @@ const LibraryHero = ({ config }) => {
   useEffect(() => {
     const move = (e) => {
       setMouse({
-        x: (e.clientX / window.innerWidth - 0.5) * 12,
-        y: (e.clientY / window.innerHeight - 0.5) * 12,
+        x: (e.clientX / window.innerWidth - 0.5) * 8,
+        y: (e.clientY / window.innerHeight - 0.5) * 8,
       });
     };
     window.addEventListener("mousemove", move);
     return () => window.removeEventListener("mousemove", move);
   }, []);
 
-  /* ================= Shooting Star ================= */
-  useEffect(() => {
-    const t = setInterval(() => {
-      setShoot(true);
-      setTimeout(() => setShoot(false), 1200);
-    }, Math.random() * 6000 + 5000);
-    return () => clearInterval(t);
-  }, []);
-
   /* ================= Scroll Zoom ================= */
   const { scrollY } = useScroll();
-  const scale = useTransform(scrollY, [0, 300], [1, 0.93]);
+  const scale = useTransform(scrollY, [0, 300], [1, 0.96]);
 
   // Derived Dynamic Properties
   const rawBanner = heroSettings?.banner_image_url || "";
@@ -72,13 +65,13 @@ const LibraryHero = ({ config }) => {
 
   const overlayOpacity = Number.isFinite(Number(heroSettings?.banner_overlay_opacity))
     ? Math.min(1, Math.max(0.1, Number(heroSettings.banner_overlay_opacity) / 100))
-    : 0.7;
+    : 0.75;
 
   const resolveText = (val, fallback = "") => {
     if (!val) return fallback;
     if (typeof val === "string") return val.trim() || fallback;
     if (typeof val === "object") {
-      const preferred = val.en || val.ur || val.ar;
+      const preferred = val.ur || val.ar || val.en;
       if (typeof preferred === "string" && preferred.trim()) return preferred.trim();
       for (const k of Object.keys(val)) {
         if (typeof val[k] === "string" && val[k].trim()) return val[k].trim();
@@ -90,30 +83,29 @@ const LibraryHero = ({ config }) => {
 
   const showStars = heroSettings?.show_stars !== false;
   const showBadge = heroSettings?.show_badge !== false;
-  const badgeText = resolveText(heroSettings?.badge, "MARKAZ AHLE HADEES KOKAN");
+  const badgeText = resolveText(heroSettings?.badge, "مرکز اہل حدیث کوکن • ڈیجیٹل کتب خانہ");
   const showAyah = heroSettings?.show_ayah !== false;
   const ayahArabic = resolveText(heroSettings?.ayah_arabic, "يَا أَيُّهَا الَّذِينَ آمَنُوا أَطِيعُوا اللَّهَ وَأَطِيعُوا الرَّسُولَ");
-  const ayahTranslation = resolveText(heroSettings?.ayah_translation, "");
-  const title = resolveText(heroSettings?.title, "Kokan Islamic Library");
-  const description = resolveText(heroSettings?.description, "Explore curated Islamic knowledge with a calm, modern reading experience.");
-  const showCta = heroSettings?.show_cta === true;
-  const ctaText = resolveText(heroSettings?.cta_text, "Explore Catalog");
+  const ayahTranslation = resolveText(heroSettings?.ayah_translation, "اے ایمان والو! اللہ کی اطاعت کرو اور رسول کی اطاعت کرو");
+  const title = resolveText(heroSettings?.title, "کوکن اسلامک لائبریری");
+  const description = resolveText(heroSettings?.description, "مستند اسلامی علوم، تفاسیر، کتبِ احادیث، فقہ اور فتاویٰ کا جدید اور تیز ترین ڈیجیٹل ذخیرہ۔");
+  const showCta = heroSettings?.show_cta !== false;
+  const ctaText = resolveText(heroSettings?.cta_text, "کتب خانہ دیکھیں");
   const ctaLink = heroSettings?.cta_link || "/library";
-  const secondaryCtaText = resolveText(heroSettings?.secondary_cta_text, "Ask a Question");
+  const secondaryCtaText = resolveText(heroSettings?.secondary_cta_text, "دار الافتاء • سوال پوچھیں");
   const secondaryCtaLink = heroSettings?.secondary_cta_link || "/fatawa";
-  const spotlightColor = heroSettings?.spotlight_color || "#f5d9a6";
 
   return (
     <motion.div
       style={{ scale }}
-      className="relative w-full overflow-hidden rounded-3xl bg-[#000814] shadow-2xl border border-white/10"
+      className="relative w-full overflow-hidden rounded-[2.5rem] bg-gradient-to-b from-[#031525] via-[#052827] to-[#020d18] shadow-2xl border border-amber-500/20"
     >
       {/* ================= BACKGROUND ================= */}
       <div
         className="absolute inset-0"
         style={{
           transform: `translate(${mouse.x}px, ${mouse.y}px)`,
-          transition: "transform .2s ease-out",
+          transition: "transform .25s ease-out",
         }}
       >
         {/* Banner Image (if provided) */}
@@ -123,134 +115,92 @@ const LibraryHero = ({ config }) => {
               className="absolute inset-0 bg-cover bg-center transition-all duration-700"
               style={{ backgroundImage: `url(${bannerUrl})` }}
             />
-            {/* Dark Overlay with Configurable Opacity */}
             <div
-              className="absolute inset-0 bg-[#000814] transition-opacity duration-300"
+              className="absolute inset-0 bg-gradient-to-b from-[#031525]/90 via-[#052827]/85 to-[#020d18]/95"
               style={{ opacity: overlayOpacity }}
             />
           </>
         ) : (
-          /* Default Deep Aurora Mesh */
+          /* Subtle Islamic Radial Ambient Glow */
           <div
-            className="absolute inset-0 opacity-70"
+            className="absolute inset-0"
             style={{
               background: `
-                radial-gradient(ellipse 90% 70% at 50% -20%, rgba(245,217,166,0.18), transparent 70%),
-                radial-gradient(ellipse 70% 50% at 10% 30%, rgba(6,182,212,0.14), transparent 60%),
-                radial-gradient(ellipse 60% 50% at 90% 40%, rgba(139,92,246,0.12), transparent 60%),
-                radial-gradient(ellipse 80% 60% at 50% 100%, rgba(15,23,42,0.9), transparent 80%),
-                linear-gradient(180deg, #000814 0%, #031329 50%, #000814 100%)
+                radial-gradient(circle at 50% 15%, rgba(212, 175, 55, 0.18), transparent 60%),
+                radial-gradient(circle at 15% 45%, rgba(16, 185, 129, 0.16), transparent 50%),
+                radial-gradient(circle at 85% 55%, rgba(245, 158, 11, 0.12), transparent 50%),
+                linear-gradient(180deg, #031525 0%, #062b28 50%, #020d18 100%)
               `,
             }}
           />
         )}
 
-        {/* Ambient Stars & Particle Effects */}
+        {/* Subtle Islamic Arabesque Geometric Watermark Pattern */}
+        <div 
+          className="absolute inset-0 opacity-[0.045] pointer-events-none mix-blend-overlay"
+          style={{
+            backgroundImage: `url("data:image/svg+xml,%3Csvg width='80' height='80' viewBox='0 0 80 80' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23d4af37' fill-opacity='1' fill-rule='evenodd'%3E%3Cpath d='M0 40L40 0l40 40-40 40L0 40zm40-28.284L11.716 40 40 68.284 68.284 40 40 11.716zm0 14.142L25.858 40 40 54.142 54.142 40 40 25.858z'/%3E%3C/g%3E%3C/svg%3E")`,
+            backgroundRepeat: "repeat",
+          }}
+        />
+
+        {/* Soft Warm Ambient Lights (Stars) */}
         {showStars && (
           <>
-            {/* AI SCANNING LINES */}
-            <div className="absolute inset-0 pointer-events-none">
-              <div className="absolute w-full h-[2px] bg-cyan-400/20 animate-scanY" />
-              <div className="absolute h-full w-[2px] bg-blue-400/15 animate-scanX" />
-            </div>
-
-            {/* BINARY CODE RAIN */}
-            {[...Array(10)].map((_, i) => (
-              <span
-                key={i}
-                className="absolute hidden text-[10px] font-mono text-green-400/10 animate-binary sm:block"
-                style={{
-                  left: `${(i * 10 + 5) % 100}%`,
-                  animationDelay: `${i * 0.3}s`,
-                }}
-              >
-                0101 101
-              </span>
-            ))}
-
-            {/* STARS */}
-            {[...Array(26)].map((_, i) => (
+            {[...Array(18)].map((_, i) => (
               <span
                 key={i}
                 className="absolute rounded-full animate-star"
                 style={{
-                  width: `${(i % 3) + 1}px`,
-                  height: `${(i % 3) + 1}px`,
-                  left: `${(i * 17) % 100}%`,
-                  top: `${(i * 23) % 100}%`,
+                  width: `${(i % 3) + 1.5}px`,
+                  height: `${(i % 3) + 1.5}px`,
+                  left: `${(i * 19 + 7) % 96}%`,
+                  top: `${(i * 23 + 11) % 90}%`,
                   backgroundColor: STAR_COLORS[i % STAR_COLORS.length],
-                  boxShadow: `0 0 6px ${STAR_COLORS[i % STAR_COLORS.length]}`,
-                  animationDuration: `${(i % 10) + 18}s`,
+                  boxShadow: `0 0 8px ${STAR_COLORS[i % STAR_COLORS.length]}`,
+                  animationDuration: `${(i % 8) + 14}s`,
                 }}
               />
             ))}
-
-            {/* SOFT FLOATING ORBS */}
-            {[...Array(2)].map((_, i) => (
-              <span
-                key={`orb-${i}`}
-                className="absolute rounded-full bg-cyan-300/10 blur-3xl animate-orb"
-                style={{
-                  width: `${140 + i * 34}px`,
-                  height: `${140 + i * 34}px`,
-                  left: `${12 + i * 46}%`,
-                  top: `${10 + i * 14}%`,
-                  animationDelay: `${i * 1.2}s`,
-                }}
-              />
-            ))}
-
-            {/* SHOOTING STAR */}
-            {shoot && (
-              <span
-                className="absolute w-40 h-[2px]"
-                style={{
-                  top: "20%",
-                  left: "65%",
-                  background: "linear-gradient(90deg,white,transparent)",
-                  animation: "shoot 1.2s ease-out",
-                }}
-              />
-            )}
           </>
         )}
 
-        {/* Vignette */}
+        {/* Outer Vignette */}
         <div
-          className="absolute inset-0"
+          className="absolute inset-0 pointer-events-none"
           style={{
-            background: "radial-gradient(circle,transparent 55%,rgba(0,0,0,.75))",
+            background: "radial-gradient(circle at center, transparent 60%, rgba(2, 13, 24, 0.85) 100%)",
           }}
         />
       </div>
 
       {/* ================= CONTENT ================= */}
       <div className="relative z-10 mx-auto max-w-7xl px-4 py-8 sm:py-12 md:py-16">
-        <div className="mx-auto max-w-4xl rounded-[2.5rem] border border-white/15 bg-slate-900/40 p-6 shadow-[0_30px_90px_-30px_rgba(0,0,0,0.8)] backdrop-blur-xl sm:p-8 md:p-12">
+        <div className="mx-auto max-w-4xl rounded-[2.5rem] border border-amber-500/25 bg-slate-950/60 p-6 shadow-[0_30px_90px_-20px_rgba(0,0,0,0.85)] backdrop-blur-2xl sm:p-8 md:p-12">
           <div className="flex flex-col items-center justify-between gap-4 text-center md:gap-6">
             
-            {/* TOP BADGE */}
+            {/* TOP ISLAMIC BADGE */}
             {showBadge && badgeText && (
               <motion.div 
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-4 py-1.5 text-[11px] sm:text-xs font-bold uppercase tracking-[0.25em] text-cyan-200/90 backdrop-blur-md shadow-xs"
+                className="inline-flex items-center gap-2 rounded-full border border-amber-400/30 bg-gradient-to-r from-amber-500/15 via-emerald-500/15 to-amber-500/15 px-4 py-1.5 text-[11px] sm:text-xs font-bold tracking-wide text-amber-200 backdrop-blur-md shadow-sm"
               >
-                <BuildingLibraryIcon className="h-4 w-4 text-[#F4A261]" />
-                {badgeText}
+                <BuildingLibraryIcon className="h-4 w-4 text-amber-400" />
+                <span>{badgeText}</span>
               </motion.div>
             )}
 
             <div className="relative w-full">
-              {/* Subtle Glowing Center Accent */}
+              {/* Soft Center Gold Aura */}
               <div
-                className="absolute left-1/2 top-1 -translate-x-1/2 h-32 w-32 rounded-full blur-3xl opacity-25 animate-pulse sm:h-44 sm:w-44 md:-top-6 md:h-56 md:w-56"
+                className="absolute left-1/2 top-0 -translate-x-1/2 h-36 w-36 rounded-full blur-3xl opacity-20 pointer-events-none sm:h-52 sm:w-52 md:h-64 md:w-64"
                 style={{
-                  background: `radial-gradient(circle,${spotlightColor},transparent 70%)`,
+                  background: "radial-gradient(circle, #D4AF37, transparent 70%)",
                 }}
               />
 
-              {/* QURANIC AYAH / HADITH (ARABIC) */}
+              {/* QURANIC AYAH (GOLDEN NASKH/AMIRI CALLIGRAPHY) */}
               {showAyah && ayahArabic && (
                 <div className="mb-4">
                   <motion.h2
@@ -258,24 +208,26 @@ const LibraryHero = ({ config }) => {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.7 }}
                     dir="rtl"
-                    className="relative mx-auto max-w-2xl text-base sm:text-lg md:text-xl leading-relaxed text-[#F4A261] font-serif font-medium tracking-wide drop-shadow-sm"
+                    className="relative mx-auto max-w-2xl text-lg sm:text-xl md:text-2xl leading-relaxed font-serif font-bold tracking-wide drop-shadow-md text-transparent bg-clip-text bg-gradient-to-r from-amber-100 via-amber-300 to-amber-100"
+                    style={{ fontFamily: "'Amiri', 'Traditional Arabic', serif" }}
                   >
                     {ayahArabic}
                   </motion.h2>
 
-                  {/* OPTIONAL TRANSLATION */}
+                  {/* TRANSLATION */}
                   {ayahTranslation && (
                     <motion.p
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
                       transition={{ delay: 0.1, duration: 0.7 }}
-                      className="mt-1 text-xs sm:text-sm text-cyan-200/80 font-sans italic max-w-xl mx-auto"
+                      className="mt-1.5 text-xs sm:text-sm text-emerald-200/90 font-serif leading-relaxed max-w-xl mx-auto"
+                      style={{ fontFamily: "'Noto Nastaliq Urdu', 'Jameel Noori Nastaleeq', serif" }}
                     >
-                      "{ayahTranslation}"
+                      {ayahTranslation}
                     </motion.p>
                   )}
 
-                  <div className="mx-auto mt-3 h-[2px] w-16 bg-gradient-to-r from-transparent via-cyan-400/90 to-transparent sm:w-28" />
+                  <div className="mx-auto mt-3 h-[2px] w-20 sm:w-32 bg-gradient-to-r from-transparent via-amber-400/80 to-transparent" />
                 </div>
               )}
 
@@ -284,7 +236,8 @@ const LibraryHero = ({ config }) => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.15, duration: 0.8 }}
-                className="mx-auto mt-2 max-w-2xl text-xl sm:text-2xl md:text-3xl font-bold leading-tight text-white drop-shadow-md tracking-tight"
+                className="mx-auto mt-2 max-w-2xl text-2xl sm:text-3xl md:text-4xl font-extrabold leading-tight text-white drop-shadow-md tracking-tight"
+                style={{ fontFamily: "'Noto Nastaliq Urdu', 'Jameel Noori Nastaleeq', 'Inter', sans-serif" }}
               >
                 {title}
               </motion.h1>
@@ -295,11 +248,37 @@ const LibraryHero = ({ config }) => {
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.25, duration: 0.8 }}
-                  className="mx-auto mt-2.5 max-w-xl text-xs sm:text-sm leading-relaxed text-slate-200/90 font-normal"
+                  className="mx-auto mt-3 max-w-xl text-xs sm:text-sm leading-relaxed text-slate-200/90 font-normal font-serif"
+                  style={{ fontFamily: "'Noto Nastaliq Urdu', 'Jameel Noori Nastaleeq', sans-serif" }}
                 >
                   {description}
                 </motion.p>
               )}
+
+              {/* 4 LIVE PLATFORM FEATURE PILLS */}
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3, duration: 0.8 }}
+                className="mt-5 flex flex-wrap items-center justify-center gap-2 sm:gap-2.5 text-[11px] sm:text-xs font-semibold text-slate-300"
+              >
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-950/40 px-3 py-1 text-emerald-200 backdrop-blur-sm shadow-xs">
+                  <BookOpenIcon className="h-3.5 w-3.5 text-emerald-400" />
+                  <span>7,800+ کتب و رسائل</span>
+                </span>
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/30 bg-amber-950/40 px-3 py-1 text-amber-200 backdrop-blur-sm shadow-xs">
+                  <BoltIcon className="h-3.5 w-3.5 text-amber-400" />
+                  <span>سپر فاسٹ ڈیجیٹل ریڈر</span>
+                </span>
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-teal-500/30 bg-teal-950/40 px-3 py-1 text-teal-200 backdrop-blur-sm shadow-xs">
+                  <ScaleIcon className="h-3.5 w-3.5 text-teal-400" />
+                  <span>دار الافتاء و شرعی رہنمائی</span>
+                </span>
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-blue-500/30 bg-blue-950/40 px-3 py-1 text-blue-200 backdrop-blur-sm shadow-xs">
+                  <ArrowDownTrayIcon className="h-3.5 w-3.5 text-blue-400" />
+                  <span>100% مفت ڈاؤن لوڈ</span>
+                </span>
+              </motion.div>
 
               {/* ACTION BUTTONS (CTA) */}
               {showCta && (
@@ -312,16 +291,18 @@ const LibraryHero = ({ config }) => {
                   {ctaText && (
                     <a
                       href={ctaLink}
-                      className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-emerald-500 to-teal-500 px-6 py-2.5 text-xs sm:text-sm font-bold text-white shadow-lg shadow-emerald-950/40 hover:from-emerald-400 hover:to-teal-400 transition-all active:scale-95"
+                      className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-amber-500 via-emerald-600 to-teal-600 px-6 py-2.5 text-xs sm:text-sm font-bold text-white shadow-lg shadow-emerald-950/50 hover:brightness-110 transition-all active:scale-95"
                     >
+                      <BookOpenIcon className="h-4 w-4" />
                       <span>{ctaText}</span>
                     </a>
                   )}
                   {secondaryCtaText && (
                     <a
                       href={secondaryCtaLink}
-                      className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 backdrop-blur-md px-5 py-2.5 text-xs sm:text-sm font-semibold text-white hover:bg-white/20 transition-all active:scale-95"
+                      className="inline-flex items-center gap-2 rounded-full border border-amber-400/30 bg-white/10 backdrop-blur-md px-5 py-2.5 text-xs sm:text-sm font-semibold text-amber-100 hover:bg-white/20 transition-all active:scale-95"
                     >
+                      <ScaleIcon className="h-4 w-4 text-amber-400" />
                       <span>{secondaryCtaText}</span>
                     </a>
                   )}
@@ -332,47 +313,13 @@ const LibraryHero = ({ config }) => {
         </div>
       </div>
 
-      {/* ================= CSS KEYFRAMES ================= */}
+      {/* ================= CSS ANIMATIONS ================= */}
       <style>{`
-        @keyframes gradientMove {
-          0% { background-position: 0% 50%; }
-          50% { background-position: 100% 50%; }
-          100% { background-position: 0% 50%; }
-        }
-        @keyframes scanY {
-          from { top: -10%; }
-          to { top: 110%; }
-        }
-        .animate-scanY { animation: scanY 8s linear infinite; }
-
-        @keyframes scanX {
-          from { left: -10%; }
-          to { left: 110%; }
-        }
-        .animate-scanX { animation: scanX 12s linear infinite; }
-
         @keyframes star {
-          from { transform: translateY(0); opacity: .4; }
+          from { transform: translateY(0); opacity: .3; }
           to { transform: translateY(-120vh); opacity: 0; }
         }
         .animate-star { animation: star linear infinite; }
-
-        @keyframes shoot {
-          from { transform: translate(0,0); opacity: 1; }
-          to { transform: translate(-600px,300px); opacity: 0; }
-        }
-
-        @keyframes binary {
-          from { top: -10%; opacity: .1; }
-          to { top: 110%; opacity: .35; }
-        }
-        .animate-binary { animation: binary 10s linear infinite; }
-
-        @keyframes orb {
-          0%, 100% { transform: translateY(0) translateX(0) scale(1); opacity: .35; }
-          50% { transform: translateY(-18px) translateX(10px) scale(1.05); opacity: .6; }
-        }
-        .animate-orb { animation: orb 10s ease-in-out infinite; }
       `}</style>
     </motion.div>
   );
