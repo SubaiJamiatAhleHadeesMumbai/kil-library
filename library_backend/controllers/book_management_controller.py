@@ -185,7 +185,7 @@ async def create_book(
             download_price=float(download_price) if download_price is not None else 0.0,
             download_upi_id=download_upi_id.strip() if download_upi_id else None,
             is_digital=bool(is_digital) or bool(pdf_url or txt_file_url),
-            is_approved=False,
+            is_approved=bool(current_user and hasattr(current_user, 'role') and current_user.role and current_user.role.name.lower() in ['admin', 'superadmin', 'editor', 'manager']),
 
             # Saved URLs
             cover_image_url=cover_image_url,
@@ -627,8 +627,8 @@ async def update_book(
             if old_txt and old_txt != new_txt:
                 smart_delete(old_txt)
 
-    # Approval Logic - Admin updates auto-approve; Staff updates require review
-    is_admin = bool(current_user and hasattr(current_user, 'role') and current_user.role and current_user.role.name.lower() in ['admin', 'superadmin'])
+    # Approval Logic - Admin and trusted staff updates auto-approve
+    is_admin = bool(current_user and hasattr(current_user, 'role') and current_user.role and current_user.role.name.lower() in ['admin', 'superadmin', 'editor', 'manager'])
 
     existing_req = db.query(request_model.UploadRequest).filter(
         request_model.UploadRequest.book_id == book_id
