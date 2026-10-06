@@ -31,7 +31,7 @@ async def upload_pdf(file: UploadFile = File(...)):
 
 
 # --- 3. CHUNKED UPLOAD (For 100MB to 1GB+ Large PDFs - Zero 413 Errors) ---
-@router.post("/chunk", dependencies=[Depends(require_permission("FILE_UPLOAD"))])
+@router.post("/chunk", dependencies=[Depends(require_permission("FILE_UPLOAD", "BOOK_MANAGE"))])
 async def upload_chunk(
     chunk: UploadFile = File(...),
     upload_id: str = Form(...),
@@ -65,7 +65,7 @@ async def upload_chunk(
 
 
 # --- 4. CHUNKED UPLOAD COMPLETE (Assemble, Compress <=100MB, Upload R2 & Purge Raw) ---
-@router.post("/chunk/complete", dependencies=[Depends(require_permission("FILE_UPLOAD"))])
+@router.post("/chunk/complete", dependencies=[Depends(require_permission("FILE_UPLOAD", "BOOK_MANAGE"))])
 async def complete_chunk_upload(
     upload_id: str = Form(...),
     filename: str = Form(...),

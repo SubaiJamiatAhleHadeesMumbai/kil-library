@@ -5,8 +5,8 @@ import gc
 from typing import Union, Tuple, Optional
 from fastapi import UploadFile
 
-# Strict 50 MB Threshold in Bytes (Any file > 50MB is optimized to save cloud storage)
-MAX_UNCOMPRESSED_SIZE = 50 * 1024 * 1024  # 52,428,800 bytes
+# Strict 250 MB Threshold in Bytes (Files up to 250MB are preserved in original HD quality for instant R2 cloud upload)
+MAX_UNCOMPRESSED_SIZE = 250 * 1024 * 1024  # 262,144,000 bytes
 STREAM_CHUNK_SIZE = 8 * 1024 * 1024        # 8 MB streaming buffer for low-RAM usage
 
 

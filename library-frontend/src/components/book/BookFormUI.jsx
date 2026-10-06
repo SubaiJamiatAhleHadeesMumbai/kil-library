@@ -241,13 +241,13 @@ const FileDropZone = ({
                 <p className={`text-[11px] font-bold px-3 py-1.5 rounded-full ${a.badge} max-w-[180px] truncate`}>{localName}</p>
                 {typeof fileSizeMb === 'number' && (
                   <div className="mt-1.5">
-                    {fileSizeMb <= 100 ? (
+                    {fileSizeMb <= 250 ? (
                       <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
-                        🟢 {fileSizeMb} MB (Original HD - No Compression)
+                        🟢 {fileSizeMb} MB (Original HD - Fast Cloud Sync)
                       </span>
                     ) : (
                       <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-sky-100 text-sky-800 border border-sky-200">
-                        ⚡ {fileSizeMb} MB (&gt;100MB - Smart HD Compression)
+                        ⚡ {fileSizeMb} MB (&gt;250MB - Smart Compression)
                       </span>
                     )}
                   </div>
@@ -542,9 +542,9 @@ const BookFormUI = ({
                 <div className="flex items-center justify-between mt-3 text-[11px] text-slate-400 font-semibold">
                   <span>
                     {pdfFileSizeMb
-                      ? (pdfFileSizeMb <= 100
-                          ? `🟢 Original HD Quality Preserved (${pdfFileSizeMb} MB <= 100MB)`
-                          : `⚡ Smart HD Optimization Active (${pdfFileSizeMb} MB > 100MB)`)
+                      ? (pdfFileSizeMb <= 250
+                          ? `🟢 Original HD Quality Preserved (${pdfFileSizeMb} MB)`
+                          : `⚡ Smart Optimization Active (${pdfFileSizeMb} MB > 250MB)`)
                       : "Multi-storage auto sync (R2 / Cloudinary / Local)"}
                   </span>
                   <span className="text-slate-300 font-mono">
