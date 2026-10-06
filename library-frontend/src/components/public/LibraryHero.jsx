@@ -221,7 +221,7 @@ const LibraryHero = ({ config }) => {
                       animate={{ opacity: 1 }}
                       transition={{ delay: 0.1, duration: 0.7 }}
                       className="mt-1.5 text-xs sm:text-sm text-emerald-200/90 font-serif leading-relaxed max-w-xl mx-auto"
-                      style={{ fontFamily: "'Mehr Nastaliq Web', 'Mehr', 'Jameel Noori Nastaleeq', 'Noto Nastaliq Urdu', serif" }}
+                      style={{ fontFamily: "'Noto Nastaliq Urdu', 'Mehr Nastaliq Web', 'Mehr', 'Jameel Noori Nastaleeq', serif" }}
                     >
                       {ayahTranslation}
                     </motion.p>
@@ -236,8 +236,8 @@ const LibraryHero = ({ config }) => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.15, duration: 0.8 }}
-                className="mx-auto mt-2 max-w-2xl text-2xl sm:text-3xl md:text-4xl font-extrabold leading-tight text-white drop-shadow-md tracking-tight"
-                style={{ fontFamily: "'Mehr Nastaliq Web', 'Mehr', 'Jameel Noori Nastaleeq', 'Noto Nastaliq Urdu', 'Inter', sans-serif" }}
+                className="mx-auto mt-2 max-w-2xl text-2xl sm:text-3xl md:text-4xl font-extrabold leading-relaxed text-white drop-shadow-md"
+                style={{ fontFamily: "'Noto Nastaliq Urdu', 'Mehr Nastaliq Web', 'Mehr', 'Jameel Noori Nastaleeq', serif" }}
               >
                 {title}
               </motion.h1>
@@ -249,7 +249,7 @@ const LibraryHero = ({ config }) => {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.25, duration: 0.8 }}
                   className="mx-auto mt-3 max-w-xl text-xs sm:text-sm leading-relaxed text-slate-200/90 font-normal font-serif"
-                  style={{ fontFamily: "'Mehr Nastaliq Web', 'Mehr', 'Jameel Noori Nastaleeq', 'Noto Nastaliq Urdu', sans-serif" }}
+                  style={{ fontFamily: "'Noto Nastaliq Urdu', 'Mehr Nastaliq Web', 'Mehr', 'Jameel Noori Nastaleeq', serif" }}
                 >
                   {description}
                 </motion.p>

@@ -86,9 +86,9 @@ const NavItem = ({ to, label, icon: Icon, onClick }) => {
           )}
           <span 
             style={isUrdu ? { 
-              fontFamily: "'Mehr Nastaliq Web', 'Mehr', 'Noto Nastaliq Urdu', serif", 
-              fontSize: "1.02rem", 
-              lineHeight: 1.3 
+              fontFamily: "'Noto Nastaliq Urdu', 'Mehr Nastaliq Web', 'Mehr', serif", 
+              fontSize: "1.05rem", 
+              lineHeight: 1.4 
             } : undefined}
           >
             {displayLabel}
@@ -370,10 +370,10 @@ const UserNavbar = () => {
                     <span
                       style={{ 
                         fontSize: "clamp(0.72rem, 3.2vw, 1.15rem)",
-                        fontFamily: language === 'ur' ? "'Mehr Nastaliq Web', 'Mehr', 'Noto Nastaliq Urdu', serif" : undefined,
-                        lineHeight: language === 'ur' ? 1.4 : 1.2
+                        fontFamily: language === 'ur' ? "'Noto Nastaliq Urdu', 'Mehr Nastaliq Web', 'Mehr', serif" : undefined,
+                        lineHeight: language === 'ur' ? 1.5 : 1.2
                       }}
-                      className="font-extrabold text-[#002147] tracking-tight leading-tight line-clamp-2 break-words"
+                      className="font-extrabold text-[#002147] leading-tight line-clamp-2 break-words"
                       title={brandTitle}
                     >
                       {brandTitle}
@@ -381,7 +381,7 @@ const UserNavbar = () => {
                     {showSiteSubtitle && brandSub && (
                       <span 
                         style={{
-                          fontFamily: language === 'ur' ? "'Mehr Nastaliq Web', 'Mehr', 'Noto Nastaliq Urdu', serif" : undefined
+                          fontFamily: language === 'ur' ? "'Noto Nastaliq Urdu', 'Mehr Nastaliq Web', 'Mehr', serif" : undefined
                         }}
                         className="text-[9px] sm:text-[10px] text-slate-500 font-bold uppercase tracking-wider line-clamp-1 break-words"
                       >
@@ -739,7 +739,7 @@ const UserNavbar = () => {
                     <HandCoinIcon className="w-4 h-4 text-rose-600 group-hover:text-white group-hover:scale-110 transition-transform" />
                     <span 
                       className="text-[11px] font-bold"
-                      style={language === 'ur' ? { fontFamily: "'Mehr Nastaliq Web', 'Mehr', 'Noto Nastaliq Urdu', serif", fontSize: "0.85rem", lineHeight: 1.2 } : undefined}
+                      style={language === 'ur' ? { fontFamily: "'Noto Nastaliq Urdu', 'Mehr Nastaliq Web', 'Mehr', serif", fontSize: "0.9rem", lineHeight: 1.3 } : undefined}
                     >
                       {donateButtonText}
                     </span>
@@ -1108,7 +1108,7 @@ const UserNavbar = () => {
                         className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-rose-50 text-rose-600 font-bold text-sm border border-rose-100"
                     >
                         <HandCoinIcon className="w-5 h-5 text-rose-600" />
-                        <span style={language === 'ur' ? { fontFamily: "'Mehr Nastaliq Web', 'Mehr', 'Noto Nastaliq Urdu', serif", fontSize: "1.05rem" } : undefined}>
+                        <span style={language === 'ur' ? { fontFamily: "'Noto Nastaliq Urdu', 'Mehr Nastaliq Web', 'Mehr', serif", fontSize: "1.05rem" } : undefined}>
                           {donateButtonText}
                         </span>
                     </button>

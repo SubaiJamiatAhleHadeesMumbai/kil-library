@@ -267,7 +267,7 @@ const BookDetail = () => {
                                 )}
                             </div>
                             
-                            <h1 className={`text-xl sm:text-2xl font-bold text-slate-900 leading-snug mb-2 ${langClass}`} style={{ fontFamily: isRTL ? '"Jameel Noori Nastaleeq", "Noto Naskh Arabic", serif' : 'inherit' }}>
+                            <h1 className={`text-xl sm:text-2xl font-bold text-slate-900 leading-snug mb-2 ${langClass}`} style={{ fontFamily: isRTL ? '"Noto Nastaliq Urdu", "Jameel Noori Nastaleeq", "Noto Naskh Arabic", serif' : 'inherit' }}>
                                 {book.title}
                             </h1>
                             <p className="text-xs sm:text-sm text-slate-600 font-normal">
@@ -478,10 +478,10 @@ const BookDetail = () => {
                                 <div className="w-16 h-16 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center text-3xl mb-4 shadow-sm border border-amber-100">
                                     ⏳
                                 </div>
-                                <h3 className="text-3xl font-black text-slate-900 mb-2 font-serif" style={{ fontFamily: '"Jameel Noori Nastaleeq", "Noto Naskh Arabic", serif' }}>
+                                <h3 className="text-3xl font-black text-slate-900 mb-2 font-serif" style={{ fontFamily: '"Noto Nastaliq Urdu", "Jameel Noori Nastaleeq", "Noto Naskh Arabic", serif' }}>
                                     عنقریب...
                                 </h3>
-                                <p className="text-lg text-slate-600 max-w-md leading-relaxed font-serif" style={{ fontFamily: '"Jameel Noori Nastaleeq", "Noto Naskh Arabic", serif' }}>
+                                <p className="text-lg text-slate-600 max-w-md leading-relaxed font-serif" style={{ fontFamily: '"Noto Nastaliq Urdu", "Jameel Noori Nastaleeq", "Noto Naskh Arabic", serif' }}>
                                     اس کتاب کی پی ڈی ایف جلد ہی دستیاب ہوگی ان شاء اللہ
                                 </p>
                             </div>

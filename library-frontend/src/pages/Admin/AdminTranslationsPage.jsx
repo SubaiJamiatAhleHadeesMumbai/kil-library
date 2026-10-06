@@ -434,7 +434,7 @@ const AdminTranslationsPage = () => {
                             value={item.ur || ''}
                             onChange={(e) => handleCellChange(item.id, 'ur', e.target.value)}
                             placeholder="اردو ترجمہ درج کریں..."
-                            style={{ fontFamily: '"Jameel Noori Nastaleeq", "Noto Nastaliq Urdu", serif' }}
+                            style={{ fontFamily: '"Noto Nastaliq Urdu", "Jameel Noori Nastaleeq", serif' }}
                             className="w-full p-2 bg-slate-50 border border-slate-200 rounded-xl text-sm leading-relaxed text-slate-900 focus:bg-white focus:border-[#002147] outline-none transition resize-none text-right"
                           />
                           {!item.ur && (
@@ -583,7 +583,7 @@ const AdminTranslationsPage = () => {
                   placeholder="مثال: مکمل نگارخانہ دیکھیں"
                   value={newUr}
                   onChange={(e) => setNewUr(e.target.value)}
-                  style={{ fontFamily: '"Jameel Noori Nastaleeq", "Noto Nastaliq Urdu", serif' }}
+                  style={{ fontFamily: '"Noto Nastaliq Urdu", "Jameel Noori Nastaleeq", serif' }}
                   className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm leading-relaxed text-slate-900 outline-none focus:bg-white focus:border-[#002147] resize-none text-right"
                 />
               </div>

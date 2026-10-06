@@ -19,7 +19,7 @@ export const DEFAULT_UI_SETTINGS = {
   spacing_density: "comfortable", // "compact" | "comfortable" | "spacious"
   font_scale: "normal", // "compact" | "normal" | "spacious"
   arabic_font: "Noto Naskh Arabic",
-  urdu_font: "Mehr Nastaliq Web",
+  urdu_font: "Noto Nastaliq Urdu",
   default_language: "en",
   enabled_languages: ["en", "ur", "ar"],
   theme_mode: "light",

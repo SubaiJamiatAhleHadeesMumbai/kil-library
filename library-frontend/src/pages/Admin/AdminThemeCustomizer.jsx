@@ -543,8 +543,9 @@ const AdminThemeCustomizer = () => {
                   onChange={(e) => handleFieldChange("urdu_font", e.target.value)}
                   className="w-full border border-slate-200 rounded-xl p-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 >
-                  <option value="Jameel Noori Nastaleeq">Jameel Noori Nastaleeq (Recommended)</option>
-                  <option value="Noto Nastaliq Urdu">Noto Nastaliq Urdu (Google)</option>
+                  <option value="Noto Nastaliq Urdu">Noto Nastaliq Urdu (Google - Recommended)</option>
+                  <option value="Jameel Noori Nastaleeq">Jameel Noori Nastaleeq</option>
+                  <option value="Mehr Nastaliq Web">Mehr Nastaliq Web</option>
                 </select>
                 <p className="text-xs text-slate-400 mt-1 font-urdu text-end text-lg leading-loose">
                   یہ اردو فونٹ کا نمونہ ہے — نستعلیق خط

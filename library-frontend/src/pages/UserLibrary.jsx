@@ -73,7 +73,7 @@ const showUpcomingToast = () => {
       color: "#38BDF8",
       fontSize: "20px",
       fontWeight: "bold",
-      fontFamily: '"Mehr Nastaliq Web", "Mehr", "Noto Nastaliq Urdu", "Jameel Noori Nastaleeq", serif',
+      fontFamily: '"Noto Nastaliq Urdu", "Mehr Nastaliq Web", "Mehr", "Jameel Noori Nastaleeq", serif',
       padding: "12px 24px",
       boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.3)"
     }
@@ -429,7 +429,7 @@ const UserLibrary = () => {
             </div>
             <h1
               className="text-2xl sm:text-4xl md:text-5xl font-extrabold text-white leading-tight drop-shadow-md"
-              style={{ fontFamily: "'Mehr Nastaliq Web', 'Mehr', 'Noto Nastaliq Urdu', 'Jameel Noori Nastaleeq', serif" }}
+              style={{ fontFamily: "'Noto Nastaliq Urdu', 'Mehr Nastaliq Web', 'Mehr', 'Jameel Noori Nastaleeq', serif" }}
             >
               کوکن اسلامک لائبریری
             </h1>
@@ -458,7 +458,7 @@ const UserLibrary = () => {
 
               <h1
                 className="text-2xl sm:text-4xl md:text-5xl font-extrabold text-white mb-3 sm:mb-4 leading-tight drop-shadow-md"
-                style={{ fontFamily: "'Mehr Nastaliq Web', 'Mehr', 'Noto Nastaliq Urdu', 'Jameel Noori Nastaleeq', serif" }}
+                style={{ fontFamily: "'Noto Nastaliq Urdu', 'Mehr Nastaliq Web', 'Mehr', 'Jameel Noori Nastaleeq', serif" }}
               >
                 کوکن اسلامک لائبریری
               </h1>

@@ -137,7 +137,7 @@ const StandardFormattedText = ({
     '2':  'text-[1.65rem] sm:text-[1.85rem] md:text-[2.0rem] leading-[3.2] sm:leading-[3.4]',
   };
   const currentSizeClass = fontSizes[zoomLevel] || fontSizes['0'];
-  const uniformNastaleeqFont = "'Jameel Noori Nastaleeq', 'JameelNoori', 'Gulzar', 'Noto Nastaliq Urdu', serif";
+  const uniformNastaleeqFont = "'Noto Nastaliq Urdu', 'Mehr Nastaliq Web', 'Jameel Noori Nastaleeq', 'JameelNoori', 'Gulzar', serif";
 
   const highlightContent = (content) => {
     if (!content) return null;

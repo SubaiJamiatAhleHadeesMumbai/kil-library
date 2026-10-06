@@ -989,8 +989,8 @@ const PublicHome = () => {
                 <div className="mb-6 flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-slate-200/80 pb-5">
                   <div>
                     <h3
-                      className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight"
-                      style={{ fontFamily: isRTL ? (currentLang === 'ar' ? "'Noto Naskh Arabic', serif" : "'Mehr Nastaliq Web', 'Mehr', 'Noto Nastaliq Urdu', 'JameelNoori', serif") : "inherit" }}
+                      className="text-2xl sm:text-3xl font-extrabold text-slate-900 leading-snug"
+                      style={{ fontFamily: isRTL ? (currentLang === 'ar' ? "'Noto Naskh Arabic', serif" : "'Noto Nastaliq Urdu', 'Mehr Nastaliq Web', 'Mehr', 'JameelNoori', serif") : "inherit" }}
                     >
                       {resolveMultilingualText(fatawaConfig.title) || getLangText('شرعی مسائل اور مستند رہنمائی', 'الفتاوى الشرعية والاستشارات', 'Authentic Islamic Rulings & Inquiries')}
                     </h3>
@@ -1132,8 +1132,8 @@ const PublicHome = () => {
                       {resolveMultilingualText(aboutConfig.title, 'مرکز کا تعارف')}
                     </p>
                     <h3
-                      className="section-title text-xl sm:text-2xl font-extrabold text-slate-900 mt-1"
-                      style={{ fontFamily: "'Mehr Nastaliq Web', 'Mehr', 'Noto Nastaliq Urdu', 'JameelNoori', serif" }}
+                      className="section-title text-xl sm:text-2xl font-extrabold text-slate-900 mt-1 leading-snug"
+                      style={{ fontFamily: "'Noto Nastaliq Urdu', 'Mehr Nastaliq Web', 'Mehr', 'JameelNoori', serif" }}
                     >
                       {resolveMultilingualText(aboutContent?.hero?.title, 'مرکز الدعوۃ الاسلامیۃ والخیریہ (سونس، کھیڈ - رتناگری)')}
                     </h3>
@@ -1206,7 +1206,7 @@ const PublicHome = () => {
 
                       <span
                         className="text-xs sm:text-sm font-semibold text-[#8B6E32]"
-                        style={{ fontFamily: "'Mehr Nastaliq Web', 'Mehr', 'Noto Nastaliq Urdu', serif" }}
+                        style={{ fontFamily: "'Noto Nastaliq Urdu', 'Mehr Nastaliq Web', 'Mehr', serif" }}
                       >
                         مرکز کے تفصیلی اغراض و مقاصد اور شاخیں ←
                       </span>

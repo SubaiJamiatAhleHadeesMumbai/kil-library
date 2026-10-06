@@ -524,7 +524,7 @@ button,
 body.lang-ur, body.lang-ur *,
 body.font-urdu, body.font-urdu *,
 html[lang="ur"] body, html[lang="ur"] body * {
-  font-family: 'Mehr Nastaliq Web', 'Mehr', 'Noto Nastaliq Urdu', 'Jameel Noori Nastaleeq', 'JameelNoori', serif !important;
+  font-family: 'Noto Nastaliq Urdu', 'Mehr Nastaliq Web', 'Mehr', 'Jameel Noori Nastaleeq', 'JameelNoori', serif !important;
   letter-spacing: normal !important;
 }
 

@@ -60,7 +60,7 @@ const showUpcomingToast = () => {
       color: "#FBBF24",
       fontSize: "18px",
       fontWeight: "bold",
-      fontFamily: '"Mehr Nastaliq Web", "Mehr", "Noto Nastaliq Urdu", "Jameel Noori Nastaleeq", serif',
+      fontFamily: '"Noto Nastaliq Urdu", "Mehr Nastaliq Web", "Mehr", "Jameel Noori Nastaleeq", serif',
       padding: "12px 24px",
       boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.4)"
     }
@@ -229,8 +229,8 @@ const PublicBookCard = ({
         <h3
           className="mb-1.5 line-clamp-2 text-[0.95rem] font-bold leading-snug text-slate-900 transition-colors group-hover:text-emerald-700 sm:text-sm md:text-base"
           style={{
-            fontFamily: "'Mehr Nastaliq Web', 'Mehr', 'Noto Nastaliq Urdu', 'Jameel Noori Nastaleeq', serif",
-            lineHeight: "1.7",
+            fontFamily: "'Noto Nastaliq Urdu', 'Mehr Nastaliq Web', 'Mehr', 'Jameel Noori Nastaleeq', serif",
+            lineHeight: "1.85",
           }}
         >
           {title}

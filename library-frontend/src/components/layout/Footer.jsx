@@ -263,7 +263,7 @@ const Footer = () => {
         </p>
         <p 
           className="text-amber-300/80 font-medium"
-          style={{ fontFamily: "'Mehr Nastaliq Web', 'Mehr', 'Noto Nastaliq Urdu', serif" }}
+          style={{ fontFamily: "'Noto Nastaliq Urdu', 'Mehr Nastaliq Web', 'Mehr', serif" }}
         >
           خدمتِ دینِ حق اور اشاعتِ علومِ نبویہ کے لیے وقف
         </p>
