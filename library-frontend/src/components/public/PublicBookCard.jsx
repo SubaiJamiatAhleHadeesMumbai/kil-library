@@ -229,7 +229,7 @@ const PublicBookCard = ({
         <h3
           className="mb-1.5 line-clamp-2 text-[0.95rem] font-bold leading-snug text-slate-900 transition-colors group-hover:text-emerald-700 sm:text-sm md:text-base"
           style={{
-            fontFamily: '"Mehr Nastaliq Web', 'Mehr', 'Noto Nastaliq Urdu', 'Jameel Noori Nastaleeq', serif",
+            fontFamily: "'Mehr Nastaliq Web', 'Mehr', 'Noto Nastaliq Urdu', 'Jameel Noori Nastaleeq', serif",
             lineHeight: "1.7",
           }}
         >
