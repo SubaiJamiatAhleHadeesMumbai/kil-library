@@ -73,13 +73,24 @@ const NewspaperClippingsHomeSection = ({ config = {} }) => {
     <section className="py-6 px-4 max-w-7xl mx-auto font-sans">
       {/* Section Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
-        <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
-          {title}
-        </h2>
+        <div>
+          <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+            {title}
+          </h2>
+          {subtitle && (
+            <p 
+              className="text-sm font-bold text-slate-600 mt-1" 
+              style={{ fontFamily: "'Mehr Nastaliq Web', 'Mehr', 'Noto Nastaliq Urdu', serif" }}
+              dir="rtl"
+            >
+              {subtitle}
+            </p>
+          )}
+        </div>
 
         <Link
           to="/clippings"
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#002147] text-white font-bold text-xs hover:bg-slate-900 transition-all shadow-sm hover:shadow-md shrink-0 self-start sm:self-auto"
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#002147] hover:bg-[#031525] text-amber-300 font-bold text-xs border border-amber-500/30 transition-all shadow-sm hover:shadow-md shrink-0 self-start sm:self-auto"
         >
           <span>View All</span>
           <ArrowRightIcon className="w-3.5 h-3.5" />
@@ -107,7 +118,7 @@ const NewspaperClippingsHomeSection = ({ config = {} }) => {
                 whileHover={{ y: -4 }}
                 transition={{ duration: 0.2 }}
                 onClick={() => openLightbox(clipping)}
-                className="bg-white rounded-3xl border border-slate-200/90 shadow-xs hover:shadow-xl transition-all duration-300 overflow-hidden flex flex-col group cursor-pointer"
+                className="bg-white rounded-3xl border border-slate-200/90 hover:border-amber-400/80 shadow-xs hover:shadow-[0_14px_34px_rgba(212,175,55,0.14)] transition-all duration-300 overflow-hidden flex flex-col group cursor-pointer"
               >
                 {/* Image Container with Newspaper Stamp */}
                 <div className="relative aspect-4/3 bg-slate-100 overflow-hidden">

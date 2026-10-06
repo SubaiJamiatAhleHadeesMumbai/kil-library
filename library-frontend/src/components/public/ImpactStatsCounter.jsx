@@ -3,7 +3,8 @@ import {
   BookOpenIcon,
   NewspaperIcon,
   AcademicCapIcon,
-  UserGroupIcon
+  UserGroupIcon,
+  SparklesIcon
 } from "@heroicons/react/24/outline";
 
 const DEFAULT_STATS = [
@@ -59,25 +60,40 @@ const ImpactStatsCounter = ({ config = {} }) => {
 
   return (
     <section className="py-8 px-4 max-w-7xl mx-auto font-sans">
-      <div className="rounded-3xl bg-[#001D3D] p-6 sm:p-8 text-white shadow-xl relative overflow-hidden border border-blue-900/50">
-        {/* Subtle glow */}
-        <div className="absolute top-0 right-0 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="rounded-[2.5rem] bg-gradient-to-br from-[#031525] via-[#052827] to-[#041d24] p-6 sm:p-10 text-white shadow-[0_20px_50px_rgba(0,0,0,0.35)] relative overflow-hidden border border-amber-500/25">
+        {/* Subtle royal ambient glow */}
+        <div className="absolute top-0 right-0 w-96 h-96 bg-amber-400/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
 
-        <div className="relative z-10 grid grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8 divide-y sm:divide-y-0 sm:divide-x divide-white/10">
+        {/* Small top badge */}
+        <div className="relative z-10 flex justify-center mb-6">
+          <div className="inline-flex items-center gap-2 px-4 py-1 rounded-full bg-amber-500/10 text-amber-300 text-xs font-bold border border-amber-500/30 backdrop-blur-md">
+            <SparklesIcon className="w-3.5 h-3.5 text-amber-400" />
+            <span style={{ fontFamily: "'Mehr Nastaliq Web', 'Mehr', 'Noto Nastaliq Urdu', serif" }}>
+              مرکز کے علمی و دعوتی اعداد و شمار
+            </span>
+          </div>
+        </div>
+
+        <div className="relative z-10 grid grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8 divide-y sm:divide-y-0 sm:divide-x sm:divide-x-reverse rtl:divide-x-reverse divide-amber-500/15">
           {stats.map((item, idx) => {
             const Icon = item.icon;
             return (
-              <div key={idx} className={`space-y-2 text-center ${idx !== 0 ? "pt-4 sm:pt-0 sm:pl-6" : ""}`}>
-                <div className="w-12 h-12 rounded-2xl bg-white/10 text-emerald-400 mx-auto flex items-center justify-center border border-white/10 shadow-inner">
+              <div key={idx} className={`space-y-2.5 text-center ${idx !== 0 ? "pt-4 sm:pt-0 sm:px-4" : "sm:px-4"}`}>
+                <div className="w-13 h-13 rounded-2xl bg-gradient-to-tr from-amber-500/20 to-emerald-500/20 text-amber-300 mx-auto flex items-center justify-center border border-amber-400/30 shadow-[inset_0_1px_3px_rgba(255,255,255,0.2)]">
                   <Icon className="w-6 h-6 stroke-[2]" />
                 </div>
-                <div className="text-2xl sm:text-3xl font-black text-amber-300 font-mono tracking-tight">
+                <div className="text-2xl sm:text-4xl font-black text-amber-300 font-mono tracking-tight drop-shadow-[0_2px_10px_rgba(212,175,55,0.35)]">
                   {item.value}
                 </div>
                 <p className="text-xs sm:text-sm font-bold text-slate-200">
                   {item.label}
                 </p>
-                <p className="text-xs font-urdu text-slate-400" dir="rtl">
+                <p 
+                  className="text-xs sm:text-sm font-bold text-amber-300/80 leading-relaxed" 
+                  style={{ fontFamily: "'Mehr Nastaliq Web', 'Mehr', 'Noto Nastaliq Urdu', serif" }}
+                  dir="rtl"
+                >
                   {item.labelUrdu}
                 </p>
               </div>

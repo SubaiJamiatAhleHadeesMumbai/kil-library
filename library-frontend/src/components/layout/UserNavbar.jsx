@@ -59,6 +59,7 @@ const NavItem = ({ to, label, icon: Icon, onClick }) => {
   const displayLabel = typeof label === 'object' && label !== null
     ? (label.en || label.ur || label.ar || '')
     : String(label || '');
+  const isUrdu = /[\u0600-\u06FF]/.test(displayLabel);
 
   return (
     <NavLink
@@ -68,8 +69,8 @@ const NavItem = ({ to, label, icon: Icon, onClick }) => {
         relative flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-bold transition-all duration-300
         ${
           isActive
-            ? "text-[#002147] bg-blue-50/80"
-            : "text-slate-500 hover:text-[#002147] hover:bg-slate-50"
+            ? "text-[#002147] bg-amber-50/80 border border-amber-200/60 shadow-2xs"
+            : "text-slate-600 hover:text-[#002147] hover:bg-slate-50"
         }
       `}
     >
@@ -78,15 +79,23 @@ const NavItem = ({ to, label, icon: Icon, onClick }) => {
           {Icon && (
             <Icon
               className={`h-4 w-4 transition-colors ${
-                isActive ? "text-[#002147]" : "text-slate-400"
+                isActive ? "text-amber-600" : "text-slate-400"
               }`}
             />
           )}
-          <span>{displayLabel}</span>
+          <span 
+            style={isUrdu ? { 
+              fontFamily: "'Mehr Nastaliq Web', 'Mehr', 'Noto Nastaliq Urdu', serif", 
+              fontSize: "1.02rem", 
+              lineHeight: 1.3 
+            } : undefined}
+          >
+            {displayLabel}
+          </span>
           {isActive && (
             <motion.div
               layoutId="active-nav-pill"
-              className="absolute inset-0 rounded-xl bg-blue-50/50 -z-10 border border-blue-100/50"
+              className="absolute inset-0 rounded-xl bg-amber-50/50 -z-10 border border-amber-300/40"
               transition={{ type: "spring", stiffness: 300, damping: 30 }}
             />
           )}
@@ -333,7 +342,7 @@ const UserNavbar = () => {
         <TopAnnouncementBar config={announcementConfig} />
 
         {/* MAIN NAVBAR */}
-        <nav className="bg-white/95 backdrop-blur-xl border-b border-slate-200/60 shadow-xs transition-all duration-300">
+        <nav className="bg-white/95 backdrop-blur-xl border-b border-amber-500/20 shadow-xs transition-all duration-300">
           <div className="app-shell-container">
             <div className="flex items-center justify-between min-h-[4.25rem] py-2 gap-2">
               
@@ -341,7 +350,7 @@ const UserNavbar = () => {
               <div className="flex items-center min-w-0 flex-1 lg:flex-none">
                 <Link to="/" className="flex items-center gap-2 sm:gap-3 group min-w-0 flex-1 lg:flex-none" onClick={() => setIsMobileMenuOpen(false)}>
                   <div className="relative shrink-0 flex-shrink-0">
-                    <div className="absolute inset-0 rounded-full bg-blue-400/20 blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                    <div className="absolute inset-0 rounded-full bg-amber-400/20 blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                     <img
                       src={brandLogoUrl}
                       alt="Logo"
@@ -349,7 +358,7 @@ const UserNavbar = () => {
                         height: `clamp(32px, 8vw, ${logoSizePx}px)`,
                         width: `clamp(32px, 8vw, ${logoSizePx}px)`,
                       }}
-                      className="relative z-10 object-contain bg-white rounded-full border border-slate-100 shadow-xs group-hover:scale-105 transition-transform duration-300 shrink-0"
+                      className="relative z-10 object-contain bg-white rounded-full border border-amber-100 shadow-xs group-hover:scale-105 transition-transform duration-300 shrink-0"
                       onError={(e) => {
                         e.currentTarget.onerror = null;
                         e.currentTarget.src = MARKAZ_LOGO_URL;
@@ -358,14 +367,23 @@ const UserNavbar = () => {
                   </div>
                   <div className="flex flex-col justify-center leading-tight min-w-0 flex-1">
                     <span
-                      style={{ fontSize: "clamp(0.72rem, 3.2vw, 1.125rem)" }}
+                      style={{ 
+                        fontSize: "clamp(0.72rem, 3.2vw, 1.15rem)",
+                        fontFamily: language === 'ur' ? "'Mehr Nastaliq Web', 'Mehr', 'Noto Nastaliq Urdu', serif" : undefined,
+                        lineHeight: language === 'ur' ? 1.4 : 1.2
+                      }}
                       className="font-extrabold text-[#002147] tracking-tight leading-tight line-clamp-2 break-words"
                       title={brandTitle}
                     >
                       {brandTitle}
                     </span>
                     {showSiteSubtitle && brandSub && (
-                      <span className="text-[9px] sm:text-[10px] text-slate-500 font-bold uppercase tracking-wider line-clamp-1 break-words">
+                      <span 
+                        style={{
+                          fontFamily: language === 'ur' ? "'Mehr Nastaliq Web', 'Mehr', 'Noto Nastaliq Urdu', serif" : undefined
+                        }}
+                        className="text-[9px] sm:text-[10px] text-slate-500 font-bold uppercase tracking-wider line-clamp-1 break-words"
+                      >
                         {brandSub}
                       </span>
                     )}
