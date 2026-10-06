@@ -34,7 +34,7 @@ services:
       db:
         condition: service_healthy
     ports:
-      - "127.0.0.1:8000:8000"
+      - "127.0.0.1:8005:8000"
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-library_user}:${POSTGRES_PASSWORD:-library_secure_password_2026}@db:5432/${POSTGRES_DB:-library_db}
       SECRET_KEY: ${SECRET_KEY:-super_secret_production_key_change_me_12345}
