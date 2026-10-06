@@ -41,6 +41,7 @@ import NotificationBell from "../common/NotificationBell";
 import LanguageSwitcher from "../common/LanguageSwitcher";
 import { useLanguage } from "../../context/LanguageContext";
 import DonationModal from "../donation/DonationModal";
+import HandCoinIcon from "../common/HandCoinIcon";
 import UniversalSearchModal from "../common/UniversalSearchModal";
 import TopAnnouncementBar from "../common/TopAnnouncementBar";
 import MobileBottomNav from "./MobileBottomNav";
@@ -732,11 +733,16 @@ const UserNavbar = () => {
                 {showDonateButton && (
                   <button
                     onClick={() => setIsDonationOpen(true)}
-                    className="group flex items-center gap-1 px-2.5 py-1.5 bg-gradient-to-r from-rose-50 to-pink-50 text-rose-700 rounded-full hover:from-rose-600 hover:to-pink-600 hover:text-white transition-all duration-300 border border-rose-200/80 hover:border-transparent shadow-2xs hover:shadow-xs cursor-pointer"
+                    className="group flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-rose-50 to-pink-50 text-rose-700 rounded-full hover:from-rose-600 hover:to-pink-600 hover:text-white transition-all duration-300 border border-rose-200/80 hover:border-transparent shadow-2xs hover:shadow-xs cursor-pointer"
                     title={donateButtonText}
                   >
-                    <HeartIcon className="w-3 h-3 text-rose-500 group-hover:text-white group-hover:scale-110 transition-transform" />
-                    <span className="text-[11px] font-bold">{donateButtonText}</span>
+                    <HandCoinIcon className="w-4 h-4 text-rose-600 group-hover:text-white group-hover:scale-110 transition-transform" />
+                    <span 
+                      className="text-[11px] font-bold"
+                      style={language === 'ur' ? { fontFamily: "'Mehr Nastaliq Web', 'Mehr', 'Noto Nastaliq Urdu', serif", fontSize: "0.85rem", lineHeight: 1.2 } : undefined}
+                    >
+                      {donateButtonText}
+                    </span>
                   </button>
                 )}
 
@@ -1101,8 +1107,10 @@ const UserNavbar = () => {
                         }}
                         className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-rose-50 text-rose-600 font-bold text-sm border border-rose-100"
                     >
-                        <HeartIcon className="w-4 h-4" />
-                        Donate
+                        <HandCoinIcon className="w-5 h-5 text-rose-600" />
+                        <span style={language === 'ur' ? { fontFamily: "'Mehr Nastaliq Web', 'Mehr', 'Noto Nastaliq Urdu', serif", fontSize: "1.05rem" } : undefined}>
+                          {donateButtonText}
+                        </span>
                     </button>
                     
                     {isAuth && (

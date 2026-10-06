@@ -22,6 +22,7 @@ import {
 import toast from 'react-hot-toast';
 import settingsService from '../api/settingsService';
 import TopAnnouncementBar from '../components/common/TopAnnouncementBar';
+import HandCoinIcon from '../components/common/HandCoinIcon';
 
 const ANNOUNCEMENT_THEMES = [
   { id: 'emerald', label: 'Emerald Islamic Green', bgClass: 'bg-emerald-950 border-emerald-800 text-emerald-200' },
@@ -502,7 +503,7 @@ const AdminNavigationSettingsPage = () => {
                     className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
                   />
                   <div className="flex items-center gap-1.5 text-xs font-bold text-slate-700">
-                    <HeartIcon className="w-4 h-4 text-rose-500" />
+                    <HandCoinIcon className="w-4 h-4 text-rose-500" />
                     <span>Donate Button</span>
                   </div>
                 </label>

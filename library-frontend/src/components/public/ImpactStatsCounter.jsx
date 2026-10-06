@@ -6,6 +6,7 @@ import {
   UserGroupIcon,
   SparklesIcon
 } from "@heroicons/react/24/outline";
+import { useLanguage } from "../../context/LanguageContext";
 
 const DEFAULT_STATS = [
   {
@@ -39,6 +40,9 @@ const DEFAULT_STATS = [
 ];
 
 const ImpactStatsCounter = ({ config = {} }) => {
+  const { language } = useLanguage();
+  const isUrdu = language === 'ur';
+
   // If explicitly hidden by admin
   if (config?.enabled === false) {
     return null;
@@ -59,7 +63,7 @@ const ImpactStatsCounter = ({ config = {} }) => {
   });
 
   return (
-    <section className="py-8 px-4 max-w-7xl mx-auto font-sans">
+    <section className="py-8 px-4 max-w-7xl mx-auto">
       <div className="rounded-[2.5rem] bg-gradient-to-br from-[#031525] via-[#052827] to-[#041d24] p-6 sm:p-10 text-white shadow-[0_20px_50px_rgba(0,0,0,0.35)] relative overflow-hidden border border-amber-500/25">
         {/* Subtle royal ambient glow */}
         <div className="absolute top-0 right-0 w-96 h-96 bg-amber-400/10 rounded-full blur-3xl pointer-events-none" />
@@ -67,9 +71,9 @@ const ImpactStatsCounter = ({ config = {} }) => {
 
         {/* Small top badge */}
         <div className="relative z-10 flex justify-center mb-6">
-          <div className="inline-flex items-center gap-2 px-4 py-1 rounded-full bg-amber-500/10 text-amber-300 text-xs font-bold border border-amber-500/30 backdrop-blur-md">
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-amber-500/10 text-amber-300 text-xs font-bold border border-amber-500/30 backdrop-blur-md">
             <SparklesIcon className="w-3.5 h-3.5 text-amber-400" />
-            <span style={{ fontFamily: "'Mehr Nastaliq Web', 'Mehr', 'Noto Nastaliq Urdu', serif" }}>
+            <span className={isUrdu ? "font-urdu text-sm" : ""}>
               مرکز کے علمی و دعوتی اعداد و شمار
             </span>
           </div>
@@ -86,16 +90,26 @@ const ImpactStatsCounter = ({ config = {} }) => {
                 <div className="text-2xl sm:text-4xl font-black text-amber-300 font-mono tracking-tight drop-shadow-[0_2px_10px_rgba(212,175,55,0.35)]">
                   {item.value}
                 </div>
-                <p className="text-xs sm:text-sm font-bold text-slate-200">
-                  {item.label}
-                </p>
-                <p 
-                  className="text-xs sm:text-sm font-bold text-amber-300/80 leading-relaxed" 
-                  style={{ fontFamily: "'Mehr Nastaliq Web', 'Mehr', 'Noto Nastaliq Urdu', serif" }}
-                  dir="rtl"
-                >
-                  {item.labelUrdu}
-                </p>
+                {isUrdu ? (
+                  <p 
+                    className="text-sm sm:text-base font-bold text-slate-100 leading-loose font-urdu" 
+                    dir="rtl"
+                  >
+                    {item.labelUrdu}
+                  </p>
+                ) : (
+                  <>
+                    <p className="text-xs sm:text-sm font-bold text-slate-200">
+                      {item.label}
+                    </p>
+                    <p 
+                      className="text-xs sm:text-sm font-bold text-amber-300/80 leading-relaxed font-urdu" 
+                      dir="rtl"
+                    >
+                      {item.labelUrdu}
+                    </p>
+                  </>
+                )}
               </div>
             );
           })}

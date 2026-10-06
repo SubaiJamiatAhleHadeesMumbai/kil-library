@@ -70,17 +70,16 @@ const NewspaperClippingsHomeSection = ({ config = {} }) => {
   }
 
   return (
-    <section className="py-6 px-4 max-w-7xl mx-auto font-sans">
+    <section className="py-6 px-4 max-w-7xl mx-auto">
       {/* Section Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
         <div>
-          <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+          <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold text-slate-900 font-urdu leading-loose">
             {title}
           </h2>
           {subtitle && (
             <p 
-              className="text-sm font-bold text-slate-600 mt-1" 
-              style={{ fontFamily: "'Mehr Nastaliq Web', 'Mehr', 'Noto Nastaliq Urdu', serif" }}
+              className="text-sm sm:text-base font-medium text-slate-600 mt-0.5 font-urdu leading-relaxed" 
               dir="rtl"
             >
               {subtitle}
@@ -92,8 +91,8 @@ const NewspaperClippingsHomeSection = ({ config = {} }) => {
           to="/clippings"
           className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#002147] hover:bg-[#031525] text-amber-300 font-bold text-xs border border-amber-500/30 transition-all shadow-sm hover:shadow-md shrink-0 self-start sm:self-auto"
         >
-          <span>View All</span>
-          <ArrowRightIcon className="w-3.5 h-3.5" />
+          <span className="font-urdu text-xs sm:text-sm">تمام تراشے دیکھیں</span>
+          <ArrowRightIcon className="w-3.5 h-3.5 rotate-180" />
         </Link>
       </div>
 
@@ -152,23 +151,27 @@ const NewspaperClippingsHomeSection = ({ config = {} }) => {
                   {/* Hover Overlay Hint */}
                   <div className="absolute inset-0 bg-emerald-950/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center text-white gap-1.5 font-bold text-xs backdrop-blur-xs">
                     <EyeIcon className="w-5 h-5" />
-                    <span>Click to Zoom HD</span>
+                    <span className="font-urdu text-sm">بڑا کرکے پڑھیں</span>
                   </div>
                 </div>
 
                 {/* Card Body */}
                 <div className="p-4 sm:p-5 flex-1 flex flex-col justify-between space-y-3">
                   <div className="space-y-1.5">
-                    <span className="inline-block bg-emerald-50 text-emerald-800 text-[10px] font-extrabold px-2.5 py-0.5 rounded-full">
-                      {clipping.category || "Media Report"}
+                    <span className="inline-block bg-emerald-50 text-emerald-800 text-[10px] font-bold px-2.5 py-0.5 rounded-full font-urdu">
+                      {clipping.category || "اخباری رپورٹ"}
                     </span>
-                    <h3 className="font-bold text-slate-900 text-sm leading-snug line-clamp-2 group-hover:text-emerald-700 transition-colors" title={clipping.title}>
+                    <h3 
+                      className="font-bold text-slate-900 text-base sm:text-lg leading-loose line-clamp-2 group-hover:text-emerald-800 transition-colors font-urdu" 
+                      dir="rtl"
+                      title={clipping.title}
+                    >
                       {clipping.title}
                     </h3>
                   </div>
 
                   <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-400 font-medium">
-                    <span className="text-emerald-600 font-bold group-hover:underline">Read Clipping →</span>
+                    <span className="text-emerald-700 font-bold group-hover:underline font-urdu text-sm">تراشہ پڑھیں ←</span>
                     <span className="text-[11px] font-mono text-slate-400">HD Image</span>
                   </div>
                 </div>
