@@ -990,7 +990,7 @@ const PublicHome = () => {
                   <div>
                     <h3
                       className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight"
-                      style={{ fontFamily: isRTL ? (currentLang === 'ar' ? "'Noto Naskh Arabic', serif" : "'Noto Nastaliq Urdu', 'JameelNoori', serif") : "inherit" }}
+                      style={{ fontFamily: isRTL ? (currentLang === 'ar' ? "'Noto Naskh Arabic', serif" : "'Mehr Nastaliq Web', 'Mehr', 'Noto Nastaliq Urdu', 'JameelNoori', serif") : "inherit" }}
                     >
                       {resolveMultilingualText(fatawaConfig.title) || getLangText('شرعی مسائل اور مستند رہنمائی', 'الفتاوى الشرعية والاستشارات', 'Authentic Islamic Rulings & Inquiries')}
                     </h3>
@@ -1133,7 +1133,7 @@ const PublicHome = () => {
                     </p>
                     <h3
                       className="section-title text-xl sm:text-2xl font-extrabold text-slate-900 mt-1"
-                      style={{ fontFamily: "'Noto Nastaliq Urdu', 'JameelNoori', serif" }}
+                      style={{ fontFamily: "'Mehr Nastaliq Web', 'Mehr', 'Noto Nastaliq Urdu', 'JameelNoori', serif" }}
                     >
                       {resolveMultilingualText(aboutContent?.hero?.title, 'مرکز الدعوۃ الاسلامیۃ والخیریہ (سونس، کھیڈ - رتناگری)')}
                     </h3>
@@ -1206,7 +1206,7 @@ const PublicHome = () => {
 
                       <span
                         className="text-xs sm:text-sm font-semibold text-[#8B6E32]"
-                        style={{ fontFamily: "'Noto Nastaliq Urdu', serif" }}
+                        style={{ fontFamily: "'Mehr Nastaliq Web', 'Mehr', 'Noto Nastaliq Urdu', serif" }}
                       >
                         مرکز کے تفصیلی اغراض و مقاصد اور شاخیں ←
                       </span>

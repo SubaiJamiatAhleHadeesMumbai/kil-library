@@ -13,6 +13,24 @@
     
     <style>
       @font-face {
+        font-family: 'Mehr Nastaliq Web';
+        src: url('/fonts/mehr-nastaliq.woff2') format('woff2'),
+             url('https://cdn.jsdelivr.net/npm/mehr-nastaliq/fonts/mehr.woff2') format('woff2');
+        font-weight: normal;
+        font-style: normal;
+        font-display: swap;
+      }
+
+      @font-face {
+        font-family: 'Mehr';
+        src: url('/fonts/mehr-nastaliq.woff2') format('woff2'),
+             url('https://cdn.jsdelivr.net/npm/mehr-nastaliq/fonts/mehr.woff2') format('woff2');
+        font-weight: normal;
+        font-style: normal;
+        font-display: swap;
+      }
+
+      @font-face {
         font-family: 'Jameel Noori Nastaleeq';
         src: url('/fonts/jameel-noori-nastaleeq.woff2') format('woff2'),
              url('https://cdn.jsdelivr.net/npm/jameel-noori/fonts/jameel-noori-nastaleeq4.woff2') format('woff2');
@@ -30,9 +48,9 @@
         font-display: swap;
       }
 
-      .urdu-font, body.font-urdu, .font-urdu {
-        font-family: 'Jameel Noori Nastaleeq', 'JameelNoori', 'Gulzar', 'Noto Nastaliq Urdu', serif !important;
-        line-height: 2.4;
+      .urdu-font, body.font-urdu, .font-urdu, [lang="ur"] {
+        font-family: 'Mehr Nastaliq Web', 'Mehr', 'Jameel Noori Nastaleeq', 'JameelNoori', 'Noto Nastaliq Urdu', serif !important;
+        line-height: 2.2;
       }
       body.font-arabic, .font-arabic {
         font-family: 'Amiri', 'Noto Sans Arabic', 'Almarai', serif !important;

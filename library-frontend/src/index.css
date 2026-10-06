@@ -519,8 +519,8 @@ button,
 /* ============================================================
    URDU & ARABIC RTL & TYPOGRAPHY ENHANCEMENTS
    ============================================================ */
-.font-urdu {
-  font-family: 'Jameel Noori Nastaleeq', 'JameelNoori', 'Gulzar', 'Noto Nastaliq Urdu', serif;
+.font-urdu, .font-mehr {
+  font-family: 'Mehr Nastaliq Web', 'Mehr', 'Jameel Noori Nastaleeq', 'JameelNoori', 'Gulzar', 'Noto Nastaliq Urdu', serif;
   direction: rtl;
   line-height: 2.2;
   font-feature-settings: "kern" 1, "liga" 1;
@@ -535,8 +535,10 @@ button,
   transform: rotate(180deg);
 }
 
-[dir="rtl"] body.lang-ur {
-  font-family: 'Jameel Noori Nastaleeq', 'Noto Nastaliq Urdu', serif;
+[dir="rtl"] body.lang-ur,
+body.lang-ur,
+.lang-ur {
+  font-family: 'Mehr Nastaliq Web', 'Mehr', 'Jameel Noori Nastaleeq', 'Noto Nastaliq Urdu', serif;
   line-height: 2.0;
 }
 
