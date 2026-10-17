@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   BuildingLibraryIcon,
   BookOpenIcon,
@@ -8,6 +9,7 @@ import {
 } from "@heroicons/react/24/solid";
 import { motion, useScroll, useTransform } from "framer-motion";
 import settingsService from "../../api/settingsService";
+import { useLanguage } from "../../context/LanguageContext";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || (import.meta.env.PROD ? "" : "http://127.0.0.1:8000");
 
@@ -19,8 +21,18 @@ const STAR_COLORS = [
 ];
 
 const LibraryHero = ({ config }) => {
+  const { language, isRTL } = useLanguage();
   const [heroSettings, setHeroSettings] = useState(config || null);
   const [mouse, setMouse] = useState({ x: 0, y: 0 });
+  const [searchQuery, setSearchQuery] = useState("");
+  const navigate = useNavigate();
+
+  const handleSearchSubmit = (e) => {
+    e?.preventDefault();
+    if (searchQuery.trim()) {
+      navigate(`/library?search=${encodeURIComponent(searchQuery.trim())}`);
+    }
+  };
 
   // If no config passed directly, load from settingsService
   useEffect(() => {
@@ -67,12 +79,26 @@ const LibraryHero = ({ config }) => {
     ? Math.min(1, Math.max(0.1, Number(heroSettings.banner_overlay_opacity) / 100))
     : 0.75;
 
-  const resolveText = (val, fallback = "") => {
+  const resolveText = (val, fallbacks = {}) => {
+    const fallback = typeof fallbacks === "string" 
+      ? fallbacks 
+      : (fallbacks[language] || fallbacks.ur || fallbacks.en || "");
+
     if (!val) return fallback;
     if (typeof val === "string") return val.trim() || fallback;
     if (typeof val === "object") {
-      const preferred = val.ur || val.ar || val.en;
-      if (typeof preferred === "string" && preferred.trim()) return preferred.trim();
+      // 1. Exact match for current active language
+      const current = val[language];
+      if (typeof current === "string" && current.trim()) return current.trim();
+      
+      // 2. Language-ranked secondary fallbacks
+      const secondary = language === "en" 
+        ? (val.en || val.ur || val.ar) 
+        : language === "ar" 
+        ? (val.ar || val.ur || val.en) 
+        : (val.ur || val.ar || val.en);
+      if (typeof secondary === "string" && secondary.trim()) return secondary.trim();
+
       for (const k of Object.keys(val)) {
         if (typeof val[k] === "string" && val[k].trim()) return val[k].trim();
       }
@@ -81,24 +107,86 @@ const LibraryHero = ({ config }) => {
     return String(val);
   };
 
-  const showStars = heroSettings?.show_stars !== false;
+  const showStars = false;
   const showBadge = heroSettings?.show_badge !== false;
-  const badgeText = resolveText(heroSettings?.badge, "مرکز اہل حدیث کوکن • ڈیجیٹل کتب خانہ");
+  const badgeText = resolveText(heroSettings?.badge, {
+    ur: "مرکز اہل حدیث کوکن",
+    en: "Markaz Ahle Hadees Kokan",
+    ar: "مركز أهل الحديث كوكان",
+  });
   const showAyah = heroSettings?.show_ayah !== false;
-  const ayahArabic = resolveText(heroSettings?.ayah_arabic, "يَا أَيُّهَا الَّذِينَ آمَنُوا أَطِيعُوا اللَّهَ وَأَطِيعُوا الرَّسُولَ");
-  const ayahTranslation = resolveText(heroSettings?.ayah_translation, "اے ایمان والو! اللہ کی اطاعت کرو اور رسول کی اطاعت کرو");
-  const title = resolveText(heroSettings?.title, "کوکن اسلامک لائبریری");
-  const description = resolveText(heroSettings?.description, "مستند اسلامی علوم، تفاسیر، کتبِ احادیث، فقہ اور فتاویٰ کا جدید اور تیز ترین ڈیجیٹل ذخیرہ۔");
+  const ayahArabic = resolveText(heroSettings?.ayah_arabic, "بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ");
+  const ayahTranslation = resolveText(heroSettings?.ayah_translation, {
+    ur: "اے ایمان والو! اللہ کی اطاعت کرو اور رسول کی اطاعت کرو",
+    en: "O you who believe! Obey Allah and obey the Messenger",
+    ar: "يَا أَيُّهَا الَّذِينَ آمَنُوا أَطِيعُوا اللَّهَ وَأَطِيعُوا الرَّسُولَ",
+  });
+  const title = resolveText(heroSettings?.title, {
+    ur: "کوکن اسلامک لائبریری",
+    en: "Kokan Islamic Library",
+    ar: "مكتبة كوكان الإسلامية",
+  });
+  const description = resolveText(heroSettings?.description, {
+    ur: "مستند اسلامی علوم، تفاسیر، کتبِ احادیث، فقہ اور فتاویٰ کا جدید اور تیز ترین ڈیجیٹل ذخیرہ۔",
+    en: "A modern digital repository of authentic Islamic sciences, Tafseer, Hadith collections, Fiqh, and Fatawa.",
+    ar: "مستودع رقمي حديث للعلوم الإسلامية الأصيلة، التفاسير، كتب الحديث، الفقه والفتاوى.",
+  });
   const showCta = heroSettings?.show_cta !== false;
-  const ctaText = resolveText(heroSettings?.cta_text, "کتب خانہ دیکھیں");
+  const ctaText = resolveText(heroSettings?.cta_text, {
+    ur: "کتب خانہ دیکھیں 📖",
+    en: "Explore Library 📖",
+    ar: "تصفح المكتبة 📖",
+  });
   const ctaLink = heroSettings?.cta_link || "/library";
-  const secondaryCtaText = resolveText(heroSettings?.secondary_cta_text, "دار الافتاء • سوال پوچھیں");
+  const secondaryCtaText = resolveText(heroSettings?.secondary_cta_text, {
+    ur: "دار الافتاء • سوال پوچھیں ⚖️",
+    en: "Dar-ul-Ifta • Ask Fatwa ⚖️",
+    ar: "دار الإفتاء • اسأل فتوى ⚖️",
+  });
   const secondaryCtaLink = heroSettings?.secondary_cta_link || "/fatawa";
+
+  const searchPlaceholder = resolveText(null, {
+    ur: "کتاب، مصنف، یا موضوع تلاش فرمائیں... (مثال: صحیح بخاری، توحید، فقہ)",
+    en: "Search books, authors, or topics... (e.g. Sahih Bukhari, Tawheed, Fiqh)",
+    ar: "ابحث عن كتاب، مؤلف، أو موضوع... (مثال: صحيح البخاري، التوحيد، الفقه)",
+  });
+
+  const searchBtnText = resolveText(null, {
+    ur: "تلاش کریں 🔍",
+    en: "Search 🔍",
+    ar: "بحث 🔍",
+  });
+
+  const popularTopicsLabel = resolveText(null, {
+    ur: "مقبول موضوعات:",
+    en: "Popular Topics:",
+    ar: "مواضيع شائعة:",
+  });
+
+  const popularTopics = language === "en" ? [
+    { name: "Sahih Bukhari", icon: "📖", query: "Sahih Bukhari" },
+    { name: "Tawheed & Aqeedah", icon: "🕋", query: "Tawheed" },
+    { name: "Tafsir Ibn Kathir", icon: "📜", query: "Tafsir" },
+    { name: "Shariah Fatawa", icon: "⚖️", query: "Fatawa" },
+    { name: "Sunnah vs Bidah", icon: "🌿", query: "Sunnah" },
+  ] : language === "ar" ? [
+    { name: "صحيح البخاري", icon: "📖", query: "صحيح البخاري" },
+    { name: "العقيدة والتوحيد", icon: "🕋", query: "التوحيد" },
+    { name: "تفسير ابن كثير", icon: "📜", query: "التفسير" },
+    { name: "الفتاوى الشرعية", icon: "⚖️", query: "فتاوى" },
+    { name: "السنة والبدعة", icon: "🌿", query: "السنة" },
+  ] : [
+    { name: "صحیح بخاری", icon: "📖", query: "صحیح بخاری" },
+    { name: "عقیدہ و توحید", icon: "🕋", query: "عقیدہ" },
+    { name: "تفسیر ابن کثیر", icon: "📜", query: "تفسیر" },
+    { name: "فتاویٰ شرعیہ", icon: "⚖️", query: "فتاویٰ" },
+    { name: "ردِ شرک و بدعت", icon: "🌿", query: "بدعت" },
+  ];
 
   return (
     <motion.div
       style={{ scale }}
-      className="relative w-full overflow-hidden rounded-[2.5rem] bg-gradient-to-b from-[#031525] via-[#052827] to-[#020d18] shadow-2xl border border-amber-500/20"
+      className="relative w-full overflow-hidden rounded-[2.5rem] bg-gradient-to-b from-[#f2f8f5] to-[#fafaf9] shadow-xs border border-slate-200/80"
     >
       {/* ================= BACKGROUND ================= */}
       <div
@@ -108,209 +196,178 @@ const LibraryHero = ({ config }) => {
           transition: "transform .25s ease-out",
         }}
       >
-        {/* Banner Image (if provided) */}
-        {bannerUrl ? (
-          <>
-            <div
-              className="absolute inset-0 bg-cover bg-center transition-all duration-700"
-              style={{ backgroundImage: `url(${bannerUrl})` }}
-            />
-            <div
-              className="absolute inset-0 bg-gradient-to-b from-[#031525]/90 via-[#052827]/85 to-[#020d18]/95"
-              style={{ opacity: overlayOpacity }}
-            />
-          </>
-        ) : (
-          /* Subtle Islamic Radial Ambient Glow */
-          <div
-            className="absolute inset-0"
-            style={{
-              background: `
-                radial-gradient(circle at 50% 15%, rgba(212, 175, 55, 0.18), transparent 60%),
-                radial-gradient(circle at 15% 45%, rgba(16, 185, 129, 0.16), transparent 50%),
-                radial-gradient(circle at 85% 55%, rgba(245, 158, 11, 0.12), transparent 50%),
-                linear-gradient(180deg, #031525 0%, #062b28 50%, #020d18 100%)
-              `,
-            }}
-          />
-        )}
-
-        {/* Subtle Islamic Arabesque Geometric Watermark Pattern */}
-        <div 
-          className="absolute inset-0 opacity-[0.045] pointer-events-none mix-blend-overlay"
-          style={{
-            backgroundImage: `url("data:image/svg+xml,%3Csvg width='80' height='80' viewBox='0 0 80 80' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23d4af37' fill-opacity='1' fill-rule='evenodd'%3E%3Cpath d='M0 40L40 0l40 40-40 40L0 40zm40-28.284L11.716 40 40 68.284 68.284 40 40 11.716zm0 14.142L25.858 40 40 54.142 54.142 40 40 25.858z'/%3E%3C/g%3E%3C/svg%3E")`,
-            backgroundRepeat: "repeat",
-          }}
-        />
-
-        {/* Soft Warm Ambient Lights (Stars) */}
-        {showStars && (
-          <>
-            {[...Array(18)].map((_, i) => (
-              <span
-                key={i}
-                className="absolute rounded-full animate-star"
-                style={{
-                  width: `${(i % 3) + 1.5}px`,
-                  height: `${(i % 3) + 1.5}px`,
-                  left: `${(i * 19 + 7) % 96}%`,
-                  top: `${(i * 23 + 11) % 90}%`,
-                  backgroundColor: STAR_COLORS[i % STAR_COLORS.length],
-                  boxShadow: `0 0 8px ${STAR_COLORS[i % STAR_COLORS.length]}`,
-                  animationDuration: `${(i % 8) + 14}s`,
-                }}
-              />
-            ))}
-          </>
-        )}
-
-        {/* Outer Vignette */}
+        {/* Subtle Islamic Ambient Glow (Noor & Forest Emerald) */}
         <div
-          className="absolute inset-0 pointer-events-none"
+          className="absolute inset-0"
           style={{
-            background: "radial-gradient(circle at center, transparent 60%, rgba(2, 13, 24, 0.85) 100%)",
+            background: `
+              radial-gradient(circle at 50% 15%, rgba(16, 185, 129, 0.08), transparent 65%),
+              radial-gradient(circle at 15% 45%, rgba(16, 185, 129, 0.05), transparent 50%),
+              radial-gradient(circle at 85% 55%, rgba(6, 78, 59, 0.05), transparent 50%),
+              linear-gradient(180deg, #f2f8f5 0%, #fafaf9 100%)
+            `,
           }}
         />
       </div>
 
-      {/* ================= CONTENT ================= */}
-      <div className="relative z-10 mx-auto max-w-7xl px-4 py-8 sm:py-12 md:py-16">
-        <div className="mx-auto max-w-4xl rounded-[2.5rem] border border-amber-500/25 bg-slate-950/60 p-6 shadow-[0_30px_90px_-20px_rgba(0,0,0,0.85)] backdrop-blur-2xl sm:p-8 md:p-12">
-          <div className="flex flex-col items-center justify-between gap-4 text-center md:gap-6">
-            
-            {/* TOP ISLAMIC BADGE */}
-            {showBadge && badgeText && (
-              <motion.div 
-                initial={{ opacity: 0, y: -10 }}
+      {/* ================= CONTENT (100% OPEN SULTANI FRAME - NO NESTED BOX) ================= */}
+      <div className="relative z-10 mx-auto max-w-5xl px-4 py-8 sm:py-12 md:py-16 text-center flex flex-col items-center justify-center">
+        {/* Soft Center Gold Aura */}
+        <div
+          className="absolute left-1/2 top-0 -translate-x-1/2 h-44 w-44 rounded-full blur-3xl opacity-10 pointer-events-none sm:h-64 sm:w-64 md:h-80 md:w-80"
+          style={{
+            background: "radial-gradient(circle, #D4AF37, transparent 70%)",
+          }}
+        />
+
+        {/* TOP BISMILLAH & AYAH (AMIRI CALLIGRAPHY) */}
+        {showAyah && (
+          <div className="mb-3">
+            <motion.div 
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="text-2xl sm:text-3xl md:text-4xl text-amber-600 font-serif tracking-widest drop-shadow-xs mb-1"
+              style={{ fontFamily: "'Amiri', 'Traditional Arabic', serif" }}
+            >
+              ❖ بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ ❖
+            </motion.div>
+
+            {ayahArabic && (
+              <motion.h2
+                initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="inline-flex items-center gap-2 rounded-full border border-amber-400/30 bg-gradient-to-r from-amber-500/15 via-emerald-500/15 to-amber-500/15 px-4 py-1.5 text-[11px] sm:text-xs font-bold tracking-wide text-amber-200 backdrop-blur-md shadow-sm"
+                transition={{ duration: 0.6 }}
+                dir="rtl"
+                className="text-lg sm:text-xl md:text-2xl font-serif font-bold tracking-wide text-emerald-950 leading-relaxed"
+                style={{ fontFamily: "'Amiri', 'Traditional Arabic', serif" }}
               >
-                <BuildingLibraryIcon className="h-4 w-4 text-amber-400" />
-                <span>{badgeText}</span>
-              </motion.div>
+                {ayahArabic}
+              </motion.h2>
             )}
 
-            <div className="relative w-full">
-              {/* Soft Center Gold Aura */}
-              <div
-                className="absolute left-1/2 top-0 -translate-x-1/2 h-36 w-36 rounded-full blur-3xl opacity-20 pointer-events-none sm:h-52 sm:w-52 md:h-64 md:w-64"
+            {ayahTranslation && (
+              <motion.p
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.1, duration: 0.6 }}
+                className="mt-1 text-xs sm:text-sm text-slate-600 leading-relaxed max-w-xl mx-auto"
                 style={{
-                  background: "radial-gradient(circle, #D4AF37, transparent 70%)",
+                  fontFamily: isRTL ? "'Gulzar', 'Noto Nastaliq Urdu', serif" : undefined,
+                  lineHeight: isRTL ? 2.3 : 1.5,
                 }}
-              />
-
-              {/* QURANIC AYAH (GOLDEN NASKH/AMIRI CALLIGRAPHY) */}
-              {showAyah && ayahArabic && (
-                <div className="mb-4">
-                  <motion.h2
-                    initial={{ opacity: 0, y: 15 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.7 }}
-                    dir="rtl"
-                    className="relative mx-auto max-w-2xl text-lg sm:text-xl md:text-2xl leading-relaxed font-serif font-bold tracking-wide drop-shadow-md text-transparent bg-clip-text bg-gradient-to-r from-amber-100 via-amber-300 to-amber-100"
-                    style={{ fontFamily: "'Amiri', 'Traditional Arabic', serif" }}
-                  >
-                    {ayahArabic}
-                  </motion.h2>
-
-                  {/* TRANSLATION */}
-                  {ayahTranslation && (
-                    <motion.p
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ delay: 0.1, duration: 0.7 }}
-                      className="mt-1.5 text-xs sm:text-sm text-emerald-200/90 font-serif leading-relaxed max-w-xl mx-auto"
-                      style={{ fontFamily: "'Noto Nastaliq Urdu', 'Mehr Nastaliq Web', 'Mehr', 'Jameel Noori Nastaleeq', serif" }}
-                    >
-                      {ayahTranslation}
-                    </motion.p>
-                  )}
-
-                  <div className="mx-auto mt-3 h-[2px] w-20 sm:w-32 bg-gradient-to-r from-transparent via-amber-400/80 to-transparent" />
-                </div>
-              )}
-
-              {/* MAIN HERO TITLE */}
-              <motion.h1
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.15, duration: 0.8 }}
-                className="mx-auto mt-2 max-w-2xl text-2xl sm:text-3xl md:text-4xl font-extrabold leading-relaxed text-white drop-shadow-md"
-                style={{ fontFamily: "'Noto Nastaliq Urdu', 'Mehr Nastaliq Web', 'Mehr', 'Jameel Noori Nastaleeq', serif" }}
               >
-                {title}
-              </motion.h1>
+                {ayahTranslation}
+              </motion.p>
+            )}
 
-              {/* SUBTITLE / DESCRIPTION */}
-              {description && (
-                <motion.p 
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.25, duration: 0.8 }}
-                  className="mx-auto mt-3 max-w-xl text-xs sm:text-sm leading-relaxed text-slate-200/90 font-normal font-serif"
-                  style={{ fontFamily: "'Noto Nastaliq Urdu', 'Mehr Nastaliq Web', 'Mehr', 'Jameel Noori Nastaleeq', serif" }}
-                >
-                  {description}
-                </motion.p>
-              )}
-
-              {/* 4 LIVE PLATFORM FEATURE PILLS */}
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3, duration: 0.8 }}
-                className="mt-5 flex flex-wrap items-center justify-center gap-2 sm:gap-2.5 text-[11px] sm:text-xs font-semibold text-slate-300"
-              >
-                <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-950/40 px-3 py-1 text-emerald-200 backdrop-blur-sm shadow-xs">
-                  <BookOpenIcon className="h-3.5 w-3.5 text-emerald-400" />
-                  <span>7,800+ کتب و رسائل</span>
-                </span>
-                <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/30 bg-amber-950/40 px-3 py-1 text-amber-200 backdrop-blur-sm shadow-xs">
-                  <BoltIcon className="h-3.5 w-3.5 text-amber-400" />
-                  <span>سپر فاسٹ ڈیجیٹل ریڈر</span>
-                </span>
-                <span className="inline-flex items-center gap-1.5 rounded-full border border-teal-500/30 bg-teal-950/40 px-3 py-1 text-teal-200 backdrop-blur-sm shadow-xs">
-                  <ScaleIcon className="h-3.5 w-3.5 text-teal-400" />
-                  <span>دار الافتاء و شرعی رہنمائی</span>
-                </span>
-                <span className="inline-flex items-center gap-1.5 rounded-full border border-blue-500/30 bg-blue-950/40 px-3 py-1 text-blue-200 backdrop-blur-sm shadow-xs">
-                  <ArrowDownTrayIcon className="h-3.5 w-3.5 text-blue-400" />
-                  <span>100% مفت ڈاؤن لوڈ</span>
-                </span>
-              </motion.div>
-
-              {/* ACTION BUTTONS (CTA) */}
-              {showCta && (
-                <motion.div
-                  initial={{ opacity: 0, y: 15 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.35, duration: 0.8 }}
-                  className="mt-6 flex flex-wrap items-center justify-center gap-3"
-                >
-                  {ctaText && (
-                    <a
-                      href={ctaLink}
-                      className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-amber-500 via-emerald-600 to-teal-600 px-6 py-2.5 text-xs sm:text-sm font-bold text-white shadow-lg shadow-emerald-950/50 hover:brightness-110 transition-all active:scale-95"
-                    >
-                      <BookOpenIcon className="h-4 w-4" />
-                      <span>{ctaText}</span>
-                    </a>
-                  )}
-                  {secondaryCtaText && (
-                    <a
-                      href={secondaryCtaLink}
-                      className="inline-flex items-center gap-2 rounded-full border border-amber-400/30 bg-white/10 backdrop-blur-md px-5 py-2.5 text-xs sm:text-sm font-semibold text-amber-100 hover:bg-white/20 transition-all active:scale-95"
-                    >
-                      <ScaleIcon className="h-4 w-4 text-amber-400" />
-                      <span>{secondaryCtaText}</span>
-                    </a>
-                  )}
-                </motion.div>
-              )}
-            </div>
+            <div className="mx-auto mt-3 h-[2px] w-24 sm:w-36 bg-gradient-to-r from-transparent via-emerald-700/30 to-transparent" />
           </div>
-        </div>
+        )}
+
+        {/* MAIN HERO TITLE (Reactive Typography) */}
+        <motion.h1
+          initial={{ opacity: 0, y: 18 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.15, duration: 0.7 }}
+          className={`mx-auto my-2 text-3xl sm:text-5xl md:text-6xl font-extrabold text-emerald-950 drop-shadow-xs ${
+            isRTL ? "leading-[2.1] sm:leading-[2.3]" : "leading-tight"
+          }`}
+          style={{ fontFamily: isRTL ? "'Gulzar', 'Noto Nastaliq Urdu', serif" : undefined }}
+        >
+          {title}
+        </motion.h1>
+
+        {/* SUBTITLE / DESCRIPTION */}
+        {description && (
+          <motion.p 
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.22, duration: 0.7 }}
+            className="mx-auto mb-7 max-w-3xl text-sm sm:text-base md:text-lg text-slate-600 font-normal"
+            style={{
+              fontFamily: isRTL ? "'Gulzar', 'Noto Nastaliq Urdu', serif" : undefined,
+              lineHeight: isRTL ? 2.2 : 1.6,
+            }}
+          >
+            {description}
+          </motion.p>
+        )}
+
+        {/* WORLD-CLASS CLEAN SEARCH BAR */}
+        <motion.form
+          initial={{ opacity: 0, y: 15 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.28, duration: 0.7 }}
+          onSubmit={handleSearchSubmit}
+          className="relative mx-auto mb-6 w-full max-w-2xl px-2"
+          dir={isRTL ? "rtl" : "ltr"}
+        >
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder={searchPlaceholder}
+            className={`w-full rounded-full border border-slate-300 focus:border-emerald-700 bg-white py-3.5 sm:py-4 text-sm sm:text-base text-slate-900 placeholder-slate-400 outline-none shadow-lg shadow-emerald-950/5 focus:shadow-xl transition-all font-sans ${
+              isRTL ? "pe-6 ps-36" : "ps-6 pe-36"
+            }`}
+          />
+          <button
+            type="submit"
+            className={`absolute top-1/2 -translate-y-1/2 rounded-full bg-emerald-800 hover:bg-emerald-900 px-6 py-2.5 text-xs sm:text-sm font-bold text-white shadow-md hover:brightness-105 active:scale-95 transition-all cursor-pointer ${
+              isRTL ? "start-4" : "end-4"
+            }`}
+          >
+            {searchBtnText}
+          </button>
+        </motion.form>
+
+        {/* QUICK SUBJECT TAGS (Clean Pills) */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.32, duration: 0.7 }}
+          className="flex items-center justify-center flex-wrap gap-2 sm:gap-2.5 mb-7"
+        >
+          <span 
+            className="text-xs sm:text-sm font-bold text-slate-600 me-1"
+            style={{ fontFamily: isRTL ? "'Gulzar', 'Noto Nastaliq Urdu', serif" : undefined }}
+          >
+            {popularTopicsLabel}
+          </span>
+          {popularTopics.map((topic) => (
+            <button
+              key={topic.name}
+              type="button"
+              onClick={() => navigate(`/library?search=${encodeURIComponent(topic.query)}`)}
+              className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white hover:bg-emerald-50 hover:border-emerald-300 px-3 py-1 text-xs sm:text-sm font-medium text-slate-700 hover:text-emerald-900 transition-all cursor-pointer shadow-2xs"
+              style={{ fontFamily: isRTL ? "'Gulzar', 'Noto Nastaliq Urdu', serif" : undefined }}
+            >
+              <span>{topic.icon}</span>
+              <span>{topic.name}</span>
+            </button>
+          ))}
+        </motion.div>
+
+        {/* 4 ROYAL METRIC BADGES (Clean White Badges) */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.36, duration: 0.7 }}
+          className="flex items-center justify-center flex-wrap gap-2.5 sm:gap-3"
+        >
+          <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white/90 px-4 py-1.5 text-xs sm:text-sm text-slate-700 shadow-2xs">
+            <span>📚</span> <strong className="text-emerald-950 font-bold">7,800+</strong> <span>{language === 'en' ? 'Books & Treatises' : language === 'ar' ? 'كتاب ورسالة' : 'کتب و رسائل'}</span>
+          </div>
+          <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white/90 px-4 py-1.5 text-xs sm:text-sm text-slate-700 shadow-2xs">
+            <span>⚡</span> <strong className="text-emerald-950 font-bold">{language === 'en' ? 'Super Fast' : language === 'ar' ? 'فائق السرعة' : 'سپر فاسٹ'}</strong> <span>{language === 'en' ? 'Smart Reader' : language === 'ar' ? 'القارئ الذكي' : 'ڈیجیٹل ریڈر'}</span>
+          </div>
+          <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white/90 px-4 py-1.5 text-xs sm:text-sm text-slate-700 shadow-2xs">
+            <span>⚖️</span> <strong className="text-emerald-950 font-bold">{language === 'en' ? 'Dar-ul-Ifta' : language === 'ar' ? 'دار الإفتاء' : 'دار الافتاء'}</strong> <span>{language === 'en' ? '& Research' : language === 'ar' ? 'والبحوث' : 'و تحقیق'}</span>
+          </div>
+          <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white/90 px-4 py-1.5 text-xs sm:text-sm text-slate-700 shadow-2xs">
+            <span>📥</span> <strong className="text-emerald-950 font-bold">{language === 'en' ? '100% Free' : language === 'ar' ? 'مجاني 100%' : '100% مفت'}</strong> <span>{language === 'en' ? 'Downloads' : language === 'ar' ? 'تحميل' : 'ڈاؤن لوڈ'}</span>
+          </div>
+        </motion.div>
       </div>
 
       {/* ================= CSS ANIMATIONS ================= */}

@@ -1,7 +1,7 @@
 {
-  "theme": "night",
-  "theme_palette": "rose",
-  "accent_color": "#072ff2",
+  "theme": "emerald",
+  "theme_palette": "emerald_gold",
+  "accent_color": "#D4AF37",
   "heading_style": "sans",
   "background_style": "glass",
   "button_style": "glass",
@@ -21,23 +21,23 @@
     "hero": {
       "enabled": true,
       "order": 5,
-      "badge": "MARKAZ AHLE HADEES KOKAN",
+      "badge": "مرکز اہل حدیث کوکن",
       "show_badge": true,
-      "ayah_arabic": "\u064a\u064e\u0627 \u0623\u064e\u064a\u064f\u0651\u0647\u064e\u0627 \u0627\u0644\u064e\u0651\u0630\u0650\u064a\u0646\u064e \u0622\u0645\u064e\u0646\u064f\u0648\u0627 \u0623\u064e\u0637\u0650\u064a\u0639\u064f\u0648\u0627 \u0627\u0644\u0644\u064e\u0651\u0647\u064e \u0648\u064e\u0623\u064e\u0637\u0650\u064a\u0639\u064f\u0648\u0627 \u0627\u0644\u0631\u064e\u0651\u0633\u064f\u0648\u0644\u064e",
-      "ayah_translation": "",
+      "ayah_arabic": "بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ",
+      "ayah_translation": "یَا أَيُّهَا الَّذِینَ آمَنُوا أَطِیعُوا اللَّهَ وَأَطِیعُوا الرَّسُولَ (اے ایمان والو! اللہ اور رسول کی اطاعت کرو)",
       "show_ayah": true,
-      "title": "Welcome to the future of the library",
-      "description": "Main landing intro and spotlight area",
+      "title": "کوکن اسلامک لائبریری",
+      "description": "مستند اسلامی علوم، تفاسیر، کتبِ احادیث، فقہ اور فتاویٰ کا جدید اور تیز ترین ڈیجیٹل ذخیرہ۔",
       "banner_image_url": "",
       "banner_overlay_opacity": 75,
       "show_stars": true,
-      "subtitle": "A modern, intelligent reading experience",
-      "cta_label": "Explore the catalog",
-      "primary_cta_label": "Explore the catalog",
+      "subtitle": "ڈیجیٹل کتب خانہ",
+      "cta_label": "کتب خانہ دیکھیں 📖",
+      "primary_cta_label": "کتب خانہ دیکھیں 📖",
       "primary_cta_url": "/books",
-      "secondary_cta_label": "Request access",
-      "secondary_cta_url": "/contact",
-      "spotlight_color": "#2227bf"
+      "secondary_cta_label": "دار الافتاء و تحقیق ⚖️",
+      "secondary_cta_url": "/fatawa",
+      "spotlight_color": "#064E3B"
     },
     "posters": {
       "enabled": false,
@@ -54,11 +54,11 @@
       "description": "Search, filters, and discovery tools"
     },
     "featured": {
-      "enabled": false,
+      "enabled": true,
       "order": 2,
-      "title": "Library Highlights",
-      "subtitle": "Recommended by the library team",
-      "description": "Curated recommended titles"
+      "title": "منتخب کتب (Featured Books)",
+      "subtitle": "علمائے کرام اور لائبریری ٹیم کی خاص سفارشات",
+      "description": "لائبریری کی اہم اور منتخب کتب"
     },
     "gallery": {
       "enabled": true,
@@ -167,13 +167,13 @@
     "snippet_context_chars": 80
   },
   "ui_settings": {
-    "primary_color": "#1E3A8A",
-    "primary_hover": "#172554",
-    "primary_light": "#EEF4FF",
-    "secondary_color": "#0F766E",
-    "accent_color": "#38BDF8",
-    "border_radius": "sharp",
-    "spacing_density": "compact",
+    "primary_color": "#064E3B",
+    "primary_hover": "#022C22",
+    "primary_light": "#ECFDF5",
+    "secondary_color": "#047857",
+    "accent_color": "#D4AF37",
+    "border_radius": "rounded",
+    "spacing_density": "comfortable",
     "font_scale": "normal",
     "arabic_font": "Noto Naskh Arabic",
     "urdu_font": "Noto Nastaliq Urdu",

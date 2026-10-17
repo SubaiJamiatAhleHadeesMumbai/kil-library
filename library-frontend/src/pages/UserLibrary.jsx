@@ -10,6 +10,7 @@ import settingsService from "../api/settingsService";
 import { useBookSearch } from "../hooks/useBookSearch";
 import useAuth from "../hooks/useAuth";
 import { useTheme } from "../context/ThemeContext";
+import { useLanguage } from "../context/LanguageContext";
 
 // --- Components ---
 import RestrictedAccessFlow from "../components/book/RestrictedAccessFlow";
@@ -105,6 +106,7 @@ const UserLibrary = () => {
   const location = useLocation();
   const [searchParams] = useSearchParams();
   const { isAuth, user } = useAuth();
+  const { language, isRTL } = useLanguage();
   const isAdmin = Boolean(user && (user.role === 'admin' || user.is_superuser || user.is_staff || user.role === 'ADMIN'));
 
   // --- THEME & SEARCH BAR LAYOUT OPTIONS (1, 2, 3) ---
@@ -382,7 +384,7 @@ const UserLibrary = () => {
   }, [selectedCategory, categories]);
 
   return (
-    <div className="min-h-screen bg-[#F8F9FC] font-sans text-slate-800 pb-24 relative">
+    <div className="min-h-screen bg-transparent font-sans text-[#fcf8f0] pb-24 relative">
       {/* 🛠️ ADMIN REALTIME LAYOUT CONTROLLER */}
       {isAdmin && (
         <div className="bg-slate-900 text-white px-3 py-2 border-b border-slate-800 text-xs flex flex-wrap items-center justify-between gap-2 z-40 relative">
@@ -425,16 +427,18 @@ const UserLibrary = () => {
           <div className="relative z-10 max-w-4xl mx-auto">
             <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-amber-500/15 border border-amber-400/30 text-amber-300 text-xs font-bold tracking-wide mb-2 sm:mb-3 backdrop-blur-sm shadow-xs">
               <BookOpenIcon className="w-4 h-4 text-amber-400" />
-              <span>مرکز اہل حدیث کوکن • ڈیجیٹل کتب خانہ</span>
+              <span>{language === 'en' ? 'Markaz Ahle Hadees Kokan • Digital Library' : language === 'ar' ? 'مركز أهل الحديث كوكان • المكتبة الرقمية' : 'مرکز اہل حدیث کوکن • ڈیجیٹل کتب خانہ'}</span>
             </div>
             <h1
-              className="text-2xl sm:text-4xl md:text-5xl font-extrabold text-white leading-tight drop-shadow-md"
-              style={{ fontFamily: "'Noto Nastaliq Urdu', 'Mehr Nastaliq Web', 'Mehr', 'Jameel Noori Nastaleeq', serif" }}
+              className={`text-2xl sm:text-4xl md:text-5xl font-extrabold text-white drop-shadow-md ${
+                isRTL ? "leading-[2.1] sm:leading-[2.3]" : "leading-tight"
+              }`}
+              style={{ fontFamily: isRTL ? "'Noto Nastaliq Urdu', 'Mehr Nastaliq Web', 'Mehr', 'Jameel Noori Nastaleeq', serif" : undefined }}
             >
-              کوکن اسلامک لائبریری
+              {language === 'en' ? 'Kokan Islamic Library' : language === 'ar' ? 'مكتبة كوكان الإسلامية' : 'کوکن اسلامک لائبریری'}
             </h1>
             <p className="mt-2 text-xs sm:text-sm text-emerald-200/90 font-medium">
-              7,800+ مستند اسلامی کتب، تفاسیر اور علمی مخطوطات کا ذخیرہ
+              {language === 'en' ? '7,800+ authentic Islamic books, tafseer, and classical manuscripts' : language === 'ar' ? 'أكثر من 7,800 كتاب وتفسير ومخطوطة إسلامية أصيلة' : '7,800+ مستند اسلامی کتب، تفاسیر اور علمی مخطوطات کا ذخیرہ'}
             </p>
           </div>
         </div>
@@ -453,17 +457,19 @@ const UserLibrary = () => {
             >
               <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-amber-500/15 border border-amber-400/30 text-amber-300 text-xs font-bold tracking-wide mb-3 sm:mb-4 backdrop-blur-sm shadow-xs">
                 <BookOpenIcon className="w-4 h-4 text-amber-400" />
-                <span>مرکز اہل حدیث کوکن • ڈیجیٹل کتب خانہ</span>
+                <span>{language === 'en' ? 'Markaz Ahle Hadees Kokan • Digital Library' : language === 'ar' ? 'مركز أهل الحديث كوكان • المكتبة الرقمية' : 'مرکز اہل حدیث کوکن • ڈیجیٹل کتب خانہ'}</span>
               </div>
 
               <h1
-                className="text-2xl sm:text-4xl md:text-5xl font-extrabold text-white mb-3 sm:mb-4 leading-tight drop-shadow-md"
-                style={{ fontFamily: "'Noto Nastaliq Urdu', 'Mehr Nastaliq Web', 'Mehr', 'Jameel Noori Nastaleeq', serif" }}
+                className={`text-2xl sm:text-4xl md:text-5xl font-extrabold text-white mb-3 sm:mb-4 drop-shadow-md ${
+                  isRTL ? "leading-[2.1] sm:leading-[2.3]" : "leading-tight"
+                }`}
+                style={{ fontFamily: isRTL ? "'Noto Nastaliq Urdu', 'Mehr Nastaliq Web', 'Mehr', 'Jameel Noori Nastaleeq', serif" : undefined }}
               >
-                کوکن اسلامک لائبریری
+                {language === 'en' ? 'Kokan Islamic Library' : language === 'ar' ? 'مكتبة كوكان الإسلامية' : 'کوکن اسلامک لائبریری'}
               </h1>
               <p className="text-xs sm:text-sm text-emerald-200/90 font-medium max-w-2xl mx-auto leading-relaxed">
-                مستند اسلامی علوم، تفاسیر، کتبِ احادیث، فقہ اور فتاویٰ کا جدید اور تیز ترین ڈیجیٹل ذخیرہ۔
+                {language === 'en' ? 'A modern, high-speed digital repository of authentic Islamic sciences, Tafseer, Hadith collections, Fiqh, and Fatawa.' : language === 'ar' ? 'مستودع رقمي حديث وسريع للعلوم الإسلامية الأصيلة، التفاسير، كتب الحديث، الفقه والفتاوى.' : 'مستند اسلامی علوم، تفاسیر، کتبِ احادیث، فقہ اور فتاویٰ کا جدید اور تیز ترین ڈیجیٹل ذخیرہ۔'}
               </p>
             </motion.div>
 
@@ -509,7 +515,7 @@ const UserLibrary = () => {
         <motion.div
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
-          className="rounded-2xl border border-white/70 bg-white/95 p-2 sm:p-2.5 shadow-[0_12px_35px_-24px_rgba(15,23,42,0.4)] backdrop-blur-xl flex flex-col gap-2 justify-between items-stretch md:flex-row md:items-center md:gap-3"
+          className="rounded-2xl border border-amber-500/30 bg-[#07241b]/95 p-2 sm:p-2.5 shadow-2xl backdrop-blur-xl flex flex-col gap-2 justify-between items-stretch md:flex-row md:items-center md:gap-3 text-white"
         >
           {/* OPTION 1: LIVE SEARCH SLIDES IN ONLY WHEN SCROLLED PAST HERO (ZERO DUPLICATE AT TOP) */}
           <AnimatePresence>
@@ -521,20 +527,20 @@ const UserLibrary = () => {
                 transition={{ duration: 0.2 }}
                 className="relative flex-1 min-w-[200px]"
               >
-                <div className="relative flex items-center rounded-xl bg-slate-100/90 border border-slate-200/90 focus-within:border-emerald-500 focus-within:bg-white focus-within:ring-2 focus-within:ring-emerald-500/20 transition-all px-3 py-1.5">
-                  <MagnifyingGlassIcon className="w-4 h-4 text-slate-400 flex-shrink-0" />
+                <div className="relative flex items-center rounded-xl bg-[#041610] border border-amber-500/30 focus-within:border-amber-400 focus-within:bg-[#051e15] focus-within:ring-2 focus-within:ring-amber-500/20 transition-all px-3 py-1.5">
+                  <MagnifyingGlassIcon className="w-4 h-4 text-amber-400/80 flex-shrink-0" />
                   <input
                     type="text"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     placeholder="Quick search books..."
-                    className="w-full bg-transparent px-2 py-0.5 text-xs sm:text-sm text-slate-800 outline-none placeholder:text-slate-400 font-medium"
+                    className="w-full bg-transparent px-2 py-0.5 text-xs sm:text-sm text-white outline-none placeholder:text-emerald-200/50 font-medium"
                   />
                   {searchTerm && (
                     <button
                       type="button"
                       onClick={() => setSearchTerm("")}
-                      className="p-1 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-200/70 transition cursor-pointer"
+                      className="p-1 rounded-full text-amber-200/60 hover:text-white hover:bg-emerald-900/60 transition cursor-pointer"
                       title="Clear search"
                     >
                       <XMarkIcon className="w-3.5 h-3.5" />
@@ -548,24 +554,24 @@ const UserLibrary = () => {
           {/* Filters (Language & Category) */}
           <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap sm:flex-nowrap flex-1">
             <select
-              className="flex-1 sm:flex-initial min-w-[120px] rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs sm:text-sm font-medium outline-none transition hover:border-emerald-500 cursor-pointer"
+              className="flex-1 sm:flex-initial min-w-[120px] rounded-lg border border-amber-500/30 bg-[#041610] text-[#fcf8f0] px-2.5 py-1.5 text-xs sm:text-sm font-medium outline-none transition hover:border-amber-400 cursor-pointer"
               value={selectedLanguage}
               onChange={(e) => setSelectedLanguage(e.target.value)}
             >
-              <option value="all">🌐 All Languages</option>
-              <option value="urdu">Urdu (اردو)</option>
-              <option value="arabic">Arabic (عربی)</option>
-              <option value="english">English (انگریزی)</option>
-              <option value="hindi">Hindi (ہندی)</option>
+              <option value="all" className="bg-[#041610] text-white">🌐 All Languages</option>
+              <option value="urdu" className="bg-[#041610] text-white">Urdu (اردو)</option>
+              <option value="arabic" className="bg-[#041610] text-white">Arabic (عربی)</option>
+              <option value="english" className="bg-[#041610] text-white">English (انگریزی)</option>
+              <option value="hindi" className="bg-[#041610] text-white">Hindi (ہندی)</option>
             </select>
 
             <select
-              className="flex-1 sm:flex-initial max-w-[200px] rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs sm:text-sm font-medium outline-none transition hover:border-emerald-500 cursor-pointer"
+              className="flex-1 sm:flex-initial max-w-[200px] rounded-lg border border-amber-500/30 bg-[#041610] text-[#fcf8f0] px-2.5 py-1.5 text-xs sm:text-sm font-medium outline-none transition hover:border-amber-400 cursor-pointer"
               value={selectedCategory}
               onChange={(e) => setSelectedCategory(e.target.value)}
             >
               {categories.map((cat) => (
-                <option key={cat.value} value={cat.value}>
+                <option key={cat.value} value={cat.value} className="bg-[#041610] text-white">
                   {cat.label}
                 </option>
               ))}
@@ -573,15 +579,15 @@ const UserLibrary = () => {
           </div>
 
           {/* Controls (View Toggle & Sort) */}
-          <div className="flex items-center justify-between sm:justify-end gap-2 border-t border-slate-100 pt-1.5 md:border-t-0 md:pt-0">
+          <div className="flex items-center justify-between sm:justify-end gap-2 border-t border-amber-500/20 pt-1.5 md:border-t-0 md:pt-0">
             {/* View Toggle */}
-            <div className="flex rounded-xl bg-slate-100 p-0.5">
+            <div className="flex rounded-xl bg-[#041610] p-0.5 border border-amber-500/25">
               <button
                 onClick={() => setViewMode("grid")}
                 className={`p-1.5 rounded-md transition-all cursor-pointer ${
                   viewMode === "grid"
-                    ? "bg-white shadow text-emerald-600"
-                    : "text-slate-400 hover:text-slate-600"
+                    ? "bg-amber-500 text-slate-950 font-bold shadow-sm"
+                    : "text-amber-200/60 hover:text-white"
                 }`}
                 title="Grid view"
               >
@@ -592,8 +598,8 @@ const UserLibrary = () => {
                 onClick={() => setViewMode("list")}
                 className={`p-1.5 rounded-md transition-all cursor-pointer ${
                   viewMode === "list"
-                    ? "bg-white shadow text-emerald-600"
-                    : "text-slate-400 hover:text-slate-600"
+                    ? "bg-amber-500 text-slate-950 font-bold shadow-sm"
+                    : "text-amber-200/60 hover:text-white"
                 }`}
                 title="List view"
               >
@@ -602,17 +608,17 @@ const UserLibrary = () => {
             </div>
 
             {/* Sort */}
-            <div className="flex items-center gap-1.5 whitespace-nowrap rounded-lg border border-slate-200 bg-slate-50 px-2 py-1.5 sm:px-2.5">
-              <ArrowsUpDownIcon className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-slate-400" />
+            <div className="flex items-center gap-1.5 whitespace-nowrap rounded-lg border border-amber-500/30 bg-[#041610] px-2 py-1.5 sm:px-2.5">
+              <ArrowsUpDownIcon className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-amber-400" />
               <select
-                className="bg-transparent text-xs sm:text-sm font-medium text-slate-700 outline-none cursor-pointer"
+                className="bg-transparent text-xs sm:text-sm font-medium text-white outline-none cursor-pointer"
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
               >
-                <option value="newest">Newest First</option>
-                <option value="oldest">Serial # (1, 2, 3...)</option>
-                <option value="az">Title (A-Z)</option>
-                <option value="favorites">My Favorites</option>
+                <option value="newest" className="bg-[#041610] text-white">Newest First</option>
+                <option value="oldest" className="bg-[#041610] text-white">Serial # (1, 2, 3...)</option>
+                <option value="az" className="bg-[#041610] text-white">Title (A-Z)</option>
+                <option value="favorites" className="bg-[#041610] text-white">My Favorites</option>
               </select>
             </div>
           </div>
@@ -633,7 +639,7 @@ const UserLibrary = () => {
             <button
               type="button"
               onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-full bg-[#002147] hover:bg-[#003366] text-white font-bold text-xs shadow-2xl border border-white/20 transition-all hover:scale-105 cursor-pointer active:scale-95"
+              className="flex items-center gap-2 px-4 py-2.5 rounded-full bg-[#07241b] hover:bg-[#0a3528] text-amber-300 font-bold text-xs shadow-2xl border border-amber-500/30 transition-all hover:scale-105 cursor-pointer active:scale-95"
               title="Jump to Search"
             >
               <MagnifyingGlassIcon className="w-4 h-4 text-emerald-400" />
@@ -647,30 +653,30 @@ const UserLibrary = () => {
       <div id="book-grid-container" className="max-w-7xl mx-auto px-4 mt-6 md:mt-12 space-y-8">
         
         {/* Active Catalog Header */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200 pb-4 bg-white/60 p-4 rounded-2xl border border-slate-100 shadow-2xs">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-amber-500/20 pb-4 bg-[#07241b]/80 p-4 rounded-2xl border border-amber-500/25 shadow-lg backdrop-blur-md">
           <div>
             <div className="flex items-center gap-2.5">
-              <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+              <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
                 {activeCategoryLabel}
               </h2>
               {selectedCategory !== "all" && (
                 <button
                   onClick={() => setSelectedCategory("all")}
-                  className="text-xs bg-slate-100 hover:bg-slate-200 text-slate-600 px-2.5 py-1 rounded-full font-bold transition-colors"
+                  className="text-xs bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-400/30 px-2.5 py-1 rounded-full font-bold transition-colors cursor-pointer"
                 >
                   Show All
                 </button>
               )}
             </div>
-            <p className="text-xs sm:text-sm text-slate-500 mt-1">
-              Showing <span className="font-bold text-slate-900">{finalDisplayBooks.length > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0}</span> - <span className="font-bold text-slate-900">{Math.min(currentPage * itemsPerPage, finalDisplayBooks.length)}</span> of <span className="font-bold text-slate-900">{finalDisplayBooks.length}</span> total books
+            <p className="text-xs sm:text-sm text-emerald-200/70 mt-1">
+              Showing <span className="font-bold text-amber-300">{finalDisplayBooks.length > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0}</span> - <span className="font-bold text-amber-300">{Math.min(currentPage * itemsPerPage, finalDisplayBooks.length)}</span> of <span className="font-bold text-amber-300">{finalDisplayBooks.length}</span> total books
             </p>
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
             {/* Books Per Page Selector */}
-            <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-xl border border-slate-200 shadow-2xs">
-              <span className="text-xs font-semibold text-slate-500">Books per page:</span>
+            <div className="flex items-center gap-2 bg-[#041610] px-3 py-1.5 rounded-xl border border-amber-500/25 shadow-2xs">
+              <span className="text-xs font-semibold text-emerald-200/70">Books per page:</span>
               <div className="relative inline-block">
                 <select
                   value={itemsPerPage}
@@ -679,18 +685,18 @@ const UserLibrary = () => {
                     setCurrentPage(1);
                     scrollToTop();
                   }}
-                  className="bg-slate-50 border border-slate-300 hover:border-slate-400 text-slate-800 text-xs font-bold rounded-lg px-2.5 py-1 pr-7 appearance-none cursor-pointer outline-none focus:ring-2 focus:ring-[#002147]"
+                  className="bg-[#07241b] border border-amber-500/30 hover:border-amber-400 text-white text-xs font-bold rounded-lg px-2.5 py-1 pr-7 appearance-none cursor-pointer outline-none focus:ring-2 focus:ring-amber-500/40"
                 >
-                  <option value={10}>10</option>
-                  <option value={25}>25</option>
-                  <option value={50}>50</option>
-                  <option value={100}>100</option>
+                  <option value={10} className="bg-[#041610] text-white">10</option>
+                  <option value={25} className="bg-[#041610] text-white">25</option>
+                  <option value={50} className="bg-[#041610] text-white">50</option>
+                  <option value={100} className="bg-[#041610] text-white">100</option>
                 </select>
-                <ChevronDownIcon className="w-3.5 h-3.5 text-slate-500 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <ChevronDownIcon className="w-3.5 h-3.5 text-amber-300 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
               </div>
             </div>
 
-            <span className="text-xs font-bold text-slate-600 bg-slate-100 px-3 py-2 rounded-xl">
+            <span className="text-xs font-bold text-amber-200 bg-[#041610] border border-amber-500/25 px-3 py-2 rounded-xl">
               Page {currentPage} of {totalPages}
             </span>
           </div>
@@ -702,12 +708,12 @@ const UserLibrary = () => {
             {[...Array(10)].map((_, i) => (
               <div
                 key={i}
-                className="bg-white rounded-2xl border border-slate-200/90 p-3 space-y-3 shadow-2xs"
+                className="bg-[#07241b]/80 rounded-2xl border border-amber-500/20 p-3 space-y-3 shadow-md"
               >
-                <div className="aspect-[2/3] rounded-xl bg-slate-200" />
+                <div className="aspect-[2/3] rounded-xl bg-emerald-950/60" />
                 <div className="space-y-2">
-                  <div className="h-3.5 bg-slate-200 rounded-md w-4/5" />
-                  <div className="h-2.5 bg-slate-100 rounded-md w-1/2" />
+                  <div className="h-3.5 bg-emerald-950/80 rounded-md w-4/5" />
+                  <div className="h-2.5 bg-emerald-950/60 rounded-md w-1/2" />
                 </div>
               </div>
             ))}
@@ -736,7 +742,7 @@ const UserLibrary = () => {
                     exit={{ opacity: 0 }}
                     className={`group relative ${
                       viewMode === "list"
-                        ? "flex bg-white p-3 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-all"
+                        ? "flex bg-[#07241b]/90 p-3 rounded-2xl border border-amber-500/25 shadow-md hover:border-amber-400/50 hover:bg-[#093024] transition-all text-white"
                         : ""
                     }`}
                   >
@@ -763,38 +769,38 @@ const UserLibrary = () => {
                       {viewMode === "list" && (
                         <div className="flex-1 flex flex-col justify-center py-1">
                           <div className="flex justify-between items-start">
-                            <span className="text-[10px] font-bold text-emerald-600 uppercase bg-emerald-50 px-2 py-0.5 rounded-full mb-1">
+                            <span className="text-[10px] font-bold text-amber-300 uppercase bg-amber-500/15 border border-amber-400/30 px-2 py-0.5 rounded-full mb-1">
                               {safeCategory(book)}
                             </span>
                             {book.is_restricted && (
                               book.user_has_access ? (
-                                <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                                <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-300 bg-emerald-500/20 px-2 py-0.5 rounded-full border border-emerald-400/30">
                                   <LockOpenOutline className="w-3.5 h-3.5" />
                                   <span>Unlocked</span>
                                 </span>
                               ) : (
-                                <LockOutline className="w-4 h-4 text-red-500" />
+                                <LockOutline className="w-4 h-4 text-red-400" />
                               )
                             )}
                           </div>
 
-                          <h3 className="font-bold text-slate-800 leading-tight mb-1 line-clamp-2">
+                          <h3 className="font-bold text-white leading-tight mb-1 line-clamp-2">
                             {safeBookText(book?.title, "Untitled Book")}
                           </h3>
 
-                          <p className="text-xs text-slate-500 mb-2">
+                          <p className="text-xs text-emerald-200/80 mb-2">
                             By {safeBookText(book?.author, "Unknown Author")}
                             {book.translator && ` (ترجمہ: ${safeBookText(book.translator)})`}
                           </p>
 
-                          <p className="text-xs text-slate-400 line-clamp-2 mb-2">
+                          <p className="text-xs text-amber-200/60 line-clamp-2 mb-2">
                             {book.description || `Publisher: ${book.publisher || 'N/A'}`}
                           </p>
 
                           <div className="mt-auto flex items-center gap-2">
                             {book.pdf_url || book.txt_file_url ? (
                               <button
-                                className="text-xs font-bold text-emerald-600 hover:underline"
+                                className="text-xs font-bold text-amber-400 hover:text-amber-300 transition-colors"
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   navigate(`/read/${book.id}`);
@@ -804,7 +810,7 @@ const UserLibrary = () => {
                               </button>
                             ) : (
                               <button
-                                className="text-xs font-bold text-amber-600 inline-flex items-center gap-1"
+                                className="text-xs font-bold text-amber-400 inline-flex items-center gap-1"
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   showUpcomingToast();
@@ -814,17 +820,17 @@ const UserLibrary = () => {
                               </button>
                             )}
 
-                            <span className="text-slate-300">•</span>
+                            <span className="text-amber-500/40">•</span>
 
                             <button
                               className={`inline-flex items-center gap-1 text-xs font-bold transition-colors ${
-                                favorites.includes(book.id) ? "text-emerald-600" : "text-slate-500 hover:text-emerald-600"
+                                favorites.includes(book.id) ? "text-amber-400" : "text-amber-200/60 hover:text-amber-300"
                               }`}
                               onClick={(e) => toggleFavorite(e, book.id)}
                             >
                               {favorites.includes(book.id) ? (
                                 <>
-                                  <BookmarkSolid className="h-4 w-4 text-emerald-600" />
+                                  <BookmarkSolid className="h-4 w-4 text-amber-400" />
                                   <span>Saved</span>
                                 </>
                               ) : (
@@ -845,10 +851,10 @@ const UserLibrary = () => {
 
             {/* 📄 CLEAN PAGINATION BAR WITH ROWS PER PAGE DROPDOWN */}
             {finalDisplayBooks.length > 0 && (
-              <div className="mt-12 flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-slate-200 pt-6 bg-slate-50/50 p-4 rounded-2xl border border-slate-100">
+              <div className="mt-12 flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-amber-500/20 pt-6 bg-[#07241b]/80 p-4 rounded-2xl border border-amber-500/25 shadow-lg backdrop-blur-md">
                 {/* Books Per Page Dropdown */}
                 <div className="flex items-center gap-2">
-                  <span className="text-xs font-semibold text-slate-500">Books per page:</span>
+                  <span className="text-xs font-semibold text-emerald-200/70">Books per page:</span>
                   <div className="relative inline-block">
                     <select
                       value={itemsPerPage}
@@ -857,16 +863,16 @@ const UserLibrary = () => {
                         setCurrentPage(1);
                         scrollToTop();
                       }}
-                      className="bg-white border border-slate-300 hover:border-slate-400 text-slate-800 text-xs font-bold rounded-lg px-3 py-1.5 pr-8 appearance-none cursor-pointer outline-none shadow-2xs focus:ring-2 focus:ring-[#002147]"
+                      className="bg-[#041610] border border-amber-500/30 hover:border-amber-400 text-white text-xs font-bold rounded-lg px-3 py-1.5 pr-8 appearance-none cursor-pointer outline-none shadow-2xs focus:ring-2 focus:ring-amber-500/40"
                     >
-                      <option value={10}>10</option>
-                      <option value={25}>25</option>
-                      <option value={50}>50</option>
-                      <option value={100}>100</option>
+                      <option value={10} className="bg-[#041610] text-white">10</option>
+                      <option value={25} className="bg-[#041610] text-white">25</option>
+                      <option value={50} className="bg-[#041610] text-white">50</option>
+                      <option value={100} className="bg-[#041610] text-white">100</option>
                     </select>
-                    <ChevronDownIcon className="w-3.5 h-3.5 text-slate-500 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    <ChevronDownIcon className="w-3.5 h-3.5 text-amber-300 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                   </div>
-                  <span className="text-xs text-slate-400 ml-2">
+                  <span className="text-xs text-amber-200/60 ml-2">
                     Showing {(currentPage - 1) * itemsPerPage + 1} - {Math.min(currentPage * itemsPerPage, finalDisplayBooks.length)} of {finalDisplayBooks.length}
                   </span>
                 </div>
@@ -881,7 +887,7 @@ const UserLibrary = () => {
                       }
                     }}
                     disabled={currentPage === 1}
-                    className="inline-flex items-center gap-1 px-3.5 py-2 rounded-xl text-xs font-bold border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-xs"
+                    className="inline-flex items-center gap-1 px-3.5 py-2 rounded-xl text-xs font-bold border border-amber-500/30 bg-[#041610] text-amber-200 hover:bg-emerald-900/60 hover:text-amber-300 hover:border-amber-400 disabled:opacity-30 disabled:cursor-not-allowed transition-all shadow-xs cursor-pointer"
                   >
                     <ChevronLeftIcon className="w-4 h-4" />
                     <span>Previous</span>
@@ -903,17 +909,17 @@ const UserLibrary = () => {
                         <button
                           key={1}
                           onClick={() => { setCurrentPage(1); scrollToTop(); }}
-                          className={`w-8 h-8 rounded-lg text-xs font-bold transition-all ${
+                          className={`w-8 h-8 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                             currentPage === 1
-                              ? "bg-[#002147] text-white shadow-sm"
-                              : "bg-white text-slate-700 border border-slate-200 hover:bg-slate-50"
+                              ? "bg-amber-500 text-slate-950 shadow-md font-extrabold"
+                              : "bg-[#041610] text-amber-200/80 border border-amber-500/30 hover:bg-emerald-900/60 hover:text-amber-300"
                           }`}
                         >
                           1
                         </button>
                       );
                       if (startPage > 2) {
-                        pages.push(<span key="dots-start" className="px-1 text-slate-400 text-xs">...</span>);
+                        pages.push(<span key="dots-start" className="px-1 text-amber-200/40 text-xs">...</span>);
                       }
                     }
 
@@ -922,10 +928,10 @@ const UserLibrary = () => {
                         <button
                           key={p}
                           onClick={() => { setCurrentPage(p); scrollToTop(); }}
-                          className={`w-8 h-8 rounded-lg text-xs font-bold transition-all ${
+                          className={`w-8 h-8 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                             currentPage === p
-                              ? "bg-[#002147] text-white shadow-sm"
-                              : "bg-white text-slate-700 border border-slate-200 hover:bg-slate-50"
+                              ? "bg-amber-500 text-slate-950 shadow-md font-extrabold"
+                              : "bg-[#041610] text-amber-200/80 border border-amber-500/30 hover:bg-emerald-900/60 hover:text-amber-300"
                           }`}
                         >
                           {p}
@@ -935,16 +941,16 @@ const UserLibrary = () => {
 
                     if (endPage < totalPages) {
                       if (endPage < totalPages - 1) {
-                        pages.push(<span key="dots-end" className="px-1 text-slate-400 text-xs">...</span>);
+                        pages.push(<span key="dots-end" className="px-1 text-amber-200/40 text-xs">...</span>);
                       }
                       pages.push(
                         <button
                           key={totalPages}
                           onClick={() => { setCurrentPage(totalPages); scrollToTop(); }}
-                          className={`w-8 h-8 rounded-lg text-xs font-bold transition-all ${
+                          className={`w-8 h-8 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                             currentPage === totalPages
-                              ? "bg-[#002147] text-white shadow-sm"
-                              : "bg-white text-slate-700 border border-slate-200 hover:bg-slate-50"
+                              ? "bg-amber-500 text-slate-950 shadow-md font-extrabold"
+                              : "bg-[#041610] text-amber-200/80 border border-amber-500/30 hover:bg-emerald-900/60 hover:text-amber-300"
                           }`}
                         >
                           {totalPages}
@@ -964,7 +970,7 @@ const UserLibrary = () => {
                       }
                     }}
                     disabled={currentPage === totalPages}
-                    className="inline-flex items-center gap-1 px-3.5 py-2 rounded-xl text-xs font-bold border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-xs"
+                    className="inline-flex items-center gap-1 px-3.5 py-2 rounded-xl text-xs font-bold border border-amber-500/30 bg-[#041610] text-amber-200 hover:bg-emerald-900/60 hover:text-amber-300 hover:border-amber-400 disabled:opacity-30 disabled:cursor-not-allowed transition-all shadow-xs cursor-pointer"
                   >
                     <span>Next</span>
                     <ChevronRightIcon className="w-4 h-4" />
@@ -975,10 +981,10 @@ const UserLibrary = () => {
           </div>
         ) : (
           /* Empty State */
-          <div className="text-center py-24 bg-white rounded-3xl shadow-sm border border-slate-100">
-            <FaceFrownIcon className="h-16 w-16 text-slate-300 mx-auto mb-4" />
-            <h3 className="text-2xl font-bold text-slate-800">No books found</h3>
-            <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
+          <div className="text-center py-20 bg-[#07241b]/80 rounded-3xl shadow-xl border border-amber-500/25 p-8 backdrop-blur-sm text-white">
+            <FaceFrownIcon className="h-16 w-16 text-amber-400/60 mx-auto mb-4" />
+            <h3 className="text-2xl font-bold text-white">No books found</h3>
+            <p className="text-xs text-emerald-200/70 mt-1 max-w-sm mx-auto">
               No books matched the selected filters.
             </p>
             <button
@@ -987,7 +993,7 @@ const UserLibrary = () => {
                 setSelectedCategory("all");
                 setSelectedLanguage("all");
               }}
-              className="mt-6 px-8 py-3 bg-emerald-600 text-white rounded-xl font-bold shadow-lg hover:bg-emerald-700 text-sm"
+              className="mt-6 px-8 py-3 bg-gradient-to-r from-amber-500 to-amber-700 text-slate-950 rounded-xl font-bold shadow-lg hover:brightness-110 text-sm transition-all cursor-pointer"
             >
               Clear Filters
             </button>
@@ -1003,7 +1009,7 @@ const UserLibrary = () => {
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.5 }}
             onClick={scrollToTop}
-            className="fixed bottom-8 right-8 z-50 p-4 bg-[#002147] text-white rounded-full shadow-2xl hover:bg-blue-900 transition-colors border-2 border-white/20"
+            className="fixed bottom-8 right-8 z-50 p-4 bg-gradient-to-r from-amber-500 to-amber-700 text-slate-950 rounded-full shadow-2xl hover:brightness-110 transition-all border border-amber-400/40 cursor-pointer"
             title="Scroll to top"
           >
             <ArrowUpIcon className="w-6 h-6" />

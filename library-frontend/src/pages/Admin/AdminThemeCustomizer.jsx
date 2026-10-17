@@ -25,6 +25,13 @@ import settingsService from "../../api/settingsService";
 
 const PRESET_PALETTES = [
   {
+    name: "👑 Sultani Emerald & Royal Gold",
+    primary: "#064E3B",
+    primary_hover: "#022C22",
+    secondary: "#047857",
+    accent: "#D4AF37",
+  },
+  {
     name: "Classic Markaz Navy",
     primary: "#002147",
     primary_hover: "#003166",

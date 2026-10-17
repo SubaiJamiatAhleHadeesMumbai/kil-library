@@ -5,11 +5,11 @@ import { Link } from 'react-router-dom';
 
 const THEMES = {
   emerald: {
-    bar: 'bg-emerald-950 text-emerald-100 border-b border-emerald-800/60 shadow-xs',
-    badge: 'bg-emerald-800/90 text-emerald-200 border border-emerald-600/50',
-    link: 'text-emerald-300 hover:text-white',
-    accentText: 'text-emerald-300',
-    closeBtn: 'text-emerald-400 hover:text-white hover:bg-emerald-800/50',
+    bar: 'bg-[#031811] text-amber-100 border-b border-amber-500/25 shadow-xs',
+    badge: 'bg-amber-500/20 text-amber-300 border border-amber-500/30',
+    link: 'text-amber-300 hover:text-white',
+    accentText: 'text-amber-300',
+    closeBtn: 'text-amber-400 hover:text-white hover:bg-emerald-800/50',
   },
   navy: {
     bar: 'bg-[#001428] text-cyan-100 border-b border-cyan-900/60 shadow-xs',

@@ -4,23 +4,27 @@
    DESIGN TOKENS
    ============================================================ */
 :root {
-  --primary:        #002147;
-  --primary-hover:  #003166;
-  --primary-light:  #EEF4FF;
-  --accent:         #2D89C8;
-  --accent-hover:   #1a6ea8;
+  --primary:        #064e3b;
+  --primary-hover:  #022c22;
+  --primary-light:  #0a3628;
+  --accent:         #d4af37;
+  --accent-hover:   #b45309;
+  --gold-royal:     #d4af37;
+  --gold-gradient:  linear-gradient(135deg, #dfba73 0%, #cda34f 50%, #9e7529 100%);
+  --gold-glow:      rgba(205, 163, 79, 0.35);
   --success:        #10b981;
   --warning:        #f59e0b;
   --danger:         #ef4444;
-  --surface:        #ffffff;
-  --surface-alt:    #F8FAFC;
-  --border:         #e2e8f0;
-  --text-primary:   #0f172a;
-  --text-secondary: #64748b;
-  --text-muted:     #94a3b8;
-  --shadow-sm:      0 1px 3px 0 rgb(0 0 0 / 0.08), 0 1px 2px -1px rgb(0 0 0 / 0.08);
-  --shadow-md:      0 4px 16px -2px rgb(0 0 0 / 0.10), 0 2px 6px -2px rgb(0 0 0 / 0.06);
-  --shadow-lg:      0 10px 30px -4px rgb(0 0 0 / 0.12), 0 4px 10px -4px rgb(0 0 0 / 0.08);
+  --surface:        #07241b;
+  --surface-alt:    #041610;
+  --border:         rgba(212, 175, 55, 0.25);
+  --border-gold:    rgba(212, 175, 55, 0.35);
+  --text-primary:   #fcf8f0;
+  --text-secondary: #c9baa4;
+  --text-muted:     #8f9e97;
+  --shadow-sm:      0 1px 3px 0 rgb(0 0 0 / 0.3), 0 1px 2px -1px rgb(0 0 0 / 0.3);
+  --shadow-md:      0 4px 16px -2px rgb(0 0 0 / 0.4), 0 2px 6px -2px rgb(0 0 0 / 0.3);
+  --shadow-lg:      0 10px 30px -4px rgb(0 0 0 / 0.5), 0 4px 10px -4px rgb(0 0 0 / 0.4);
   --radius-sm:      0.625rem;
   --radius-md:      0.875rem;
   --radius-lg:      1rem;
@@ -53,10 +57,12 @@ body {
   font-size: clamp(0.875rem, 0.84rem + 0.18vw, 0.94rem);
   line-height: 1.6;
   font-weight: 400;
-  color: var(--text-primary);
-  background-color: var(--surface-alt);
+  color: #0f172a;
+  background-color: #fafaf9;
   overflow-x: hidden;
+  position: relative;
 }
+
 
 /* ============================================================
    HIDE SCROLLBAR UTILITIES (Cross-Browser)
@@ -198,14 +204,14 @@ select {
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #f1f5f9;
+  background: #041610;
 }
 ::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
+  background: #0d382b;
   border-radius: 999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: #145945;
 }
 
 /* ============================================================
@@ -307,10 +313,11 @@ select {
 }
 
 .card {
-  background: white;
+  background: var(--surface);
   border-radius: var(--radius-xl);
   border: 1px solid var(--border);
   box-shadow: var(--shadow-sm);
+  color: var(--text-primary);
   transition: box-shadow 0.2s ease, transform 0.2s ease;
 }
 
@@ -523,14 +530,17 @@ button,
 .font-mehr, .font-mehr *,
 body.lang-ur, body.lang-ur *,
 body.font-urdu, body.font-urdu *,
-html[lang="ur"] body, html[lang="ur"] body * {
-  font-family: 'Noto Nastaliq Urdu', 'Mehr Nastaliq Web', 'Mehr', 'Jameel Noori Nastaleeq', 'JameelNoori', serif !important;
+html[lang="ur"] body, html[lang="ur"] body *,
+[dir="rtl"]:not(.font-arabic):not([lang="ar"]),
+[dir="rtl"]:not(.font-arabic):not([lang="ar"]) * {
+  font-family: 'Gulzar', 'Noto Nastaliq Urdu', 'Mehr Nastaliq Web', 'Mehr', 'Jameel Noori Nastaleeq', serif !important;
   letter-spacing: normal !important;
 }
 
-.font-urdu, .font-mehr, body.lang-ur, body.font-urdu {
+.font-urdu, .font-mehr, body.lang-ur, body.font-urdu,
+[dir="rtl"]:not(.font-arabic):not([lang="ar"]) {
   direction: rtl;
-  line-height: 2.1;
+  line-height: 2.3;
   font-feature-settings: "kern" 1, "liga" 1;
 }
 
@@ -538,17 +548,19 @@ html[lang="ur"] body, html[lang="ur"] body * {
 html[lang="ur"] h1, html[lang="ur"] h2, html[lang="ur"] h3,
 body.lang-ur h1, body.lang-ur h2, body.lang-ur h3,
 .font-urdu h1, .font-urdu h2, .font-urdu h3 {
-  line-height: 2.0 !important;
+  line-height: 2.2 !important;
   letter-spacing: normal !important;
 }
 
 html[lang="ur"] p, body.lang-ur p, .font-urdu p {
-  line-height: 2.1 !important;
+  line-height: 2.3 !important;
 }
 
-.font-arabic {
-  font-family: 'Noto Naskh Arabic', 'Amiri', 'Scheherazade New', serif;
-  line-height: 1.85;
+.font-arabic, .font-arabic *,
+html[lang="ar"] body, html[lang="ar"] body *,
+[lang="ar"], [lang="ar"] * {
+  font-family: 'Amiri', 'Traditional Arabic', serif !important;
+  line-height: 1.9;
 }
 
 [dir="rtl"] .rtl\:rotate-180 {
@@ -556,8 +568,24 @@ html[lang="ur"] p, body.lang-ur p, .font-urdu p {
 }
 
 [dir="rtl"] body.lang-ar {
-  font-family: 'Noto Naskh Arabic', 'Amiri', serif;
-  line-height: 1.85;
+  font-family: 'Amiri', 'Traditional Arabic', serif;
+  line-height: 1.9;
+}
+
+/* 3D Realistic Book Cover Lift Effect */
+.book-cover-3d {
+  box-shadow: 
+    -4px 4px 10px rgba(0,0,0,0.12),
+    -1px 1px 2px rgba(0,0,0,0.08),
+    inset 2px 0 3px rgba(255,255,255,0.2);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+.book-card:hover .book-cover-3d,
+.group:hover .book-cover-3d {
+  transform: translateY(-6px) rotate(-1deg);
+  box-shadow: 
+    -8px 12px 20px rgba(6, 78, 59, 0.18),
+    -2px 2px 4px rgba(0,0,0,0.1);
 }
 
 /* ============================================================
@@ -591,3 +619,51 @@ html[lang="ur"] p, body.lang-ur p, .font-urdu p {
   animation: shimmer 1.5s infinite;
 }
 
+/* ============================================================
+   ROYAL ISLAMIC HERITAGE STYLES & ACCENTS
+   ============================================================ */
+.bg-gold-gradient {
+  background: var(--gold-gradient) !important;
+}
+
+.text-gold-gradient {
+  background: var(--gold-gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.border-gold-royal {
+  border-color: var(--border-gold) !important;
+}
+
+.shadow-royal-gold {
+  box-shadow: 0 10px 30px -5px var(--gold-glow);
+}
+
+.royal-ribbon-tag {
+  position: absolute;
+  top: 0;
+  left: 18px;
+  width: 22px;
+  height: 32px;
+  background: var(--gold-gradient);
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 80%, 0 100%);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.25);
+  z-index: 25;
+}
+
+.royal-divider-star {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin: 2rem 0;
+}
+
+.royal-divider-star::before,
+.royal-divider-star::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--border-gold), transparent);
+}

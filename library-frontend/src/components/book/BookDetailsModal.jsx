@@ -302,7 +302,7 @@ const BookDetailsModal = ({
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           onClick={handleClose}
-          className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md"
+          className="fixed inset-0 z-[100] flex items-center justify-center p-3 pb-20 sm:p-4 bg-black/60 backdrop-blur-md"
         >
         <motion.div
           initial={{ scale: 0.9, opacity: 0, y: 20 }}
@@ -310,7 +310,7 @@ const BookDetailsModal = ({
           exit={{ scale: 0.9, opacity: 0, y: 20 }}
           transition={{ type: "spring", stiffness: 300, damping: 30 }}
           onClick={(e) => e.stopPropagation()}
-          className="bg-white rounded-3xl shadow-2xl w-full max-w-5xl overflow-hidden relative h-[90vh] max-h-[780px] border border-slate-200/80 flex flex-col"
+          className="bg-white rounded-3xl shadow-2xl w-full max-w-5xl overflow-hidden relative h-[85vh] sm:h-[90vh] max-h-[780px] border border-slate-200/80 flex flex-col"
         >
           {/* âœ… PREMIUM STICKY HEADER */}
           <motion.div 

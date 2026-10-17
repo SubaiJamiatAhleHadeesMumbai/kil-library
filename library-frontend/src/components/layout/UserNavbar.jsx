@@ -67,11 +67,11 @@ const NavItem = ({ to, label, icon: Icon, onClick }) => {
       to={to}
       onClick={onClick}
       className={({ isActive }) => `
-        relative flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-bold transition-all duration-300
+        relative flex items-center gap-2 px-3 py-2 text-sm font-bold transition-all duration-300
         ${
           isActive
-            ? "text-[#002147] bg-amber-50/80 border border-amber-200/60 shadow-2xs"
-            : "text-slate-600 hover:text-[#002147] hover:bg-slate-50"
+            ? "text-emerald-900 font-extrabold"
+            : "text-slate-600 hover:text-emerald-800"
         }
       `}
     >
@@ -80,23 +80,23 @@ const NavItem = ({ to, label, icon: Icon, onClick }) => {
           {Icon && (
             <Icon
               className={`h-4 w-4 transition-colors ${
-                isActive ? "text-amber-600" : "text-slate-400"
+                isActive ? "text-emerald-700" : "text-slate-400 group-hover:text-emerald-700"
               }`}
             />
           )}
           <span 
             style={isUrdu ? { 
-              fontFamily: "'Noto Nastaliq Urdu', 'Mehr Nastaliq Web', 'Mehr', serif", 
-              fontSize: "1.05rem", 
-              lineHeight: 1.4 
+              fontFamily: "'Gulzar', 'Noto Nastaliq Urdu', serif", 
+              fontSize: "1.08rem", 
+              lineHeight: 1.5 
             } : undefined}
           >
             {displayLabel}
           </span>
           {isActive && (
             <motion.div
-              layoutId="active-nav-pill"
-              className="absolute inset-0 rounded-xl bg-amber-50/50 -z-10 border border-amber-300/40"
+              layoutId="active-nav-underline"
+              className="absolute bottom-0 inset-x-2 h-[2.5px] bg-gradient-to-r from-emerald-600 via-emerald-800 to-emerald-600 rounded-full shadow-xs"
               transition={{ type: "spring", stiffness: 300, damping: 30 }}
             />
           )}
@@ -343,7 +343,7 @@ const UserNavbar = () => {
         <TopAnnouncementBar config={announcementConfig} />
 
         {/* MAIN NAVBAR */}
-        <nav className="bg-white/95 backdrop-blur-xl border-b border-amber-500/20 shadow-xs transition-all duration-300">
+        <nav className="bg-white/95 backdrop-blur-xl border-b border-slate-200/90 shadow-2xs transition-all duration-300 text-slate-800">
           <div className="app-shell-container">
             <div className="flex items-center justify-between min-h-[4.25rem] py-2 gap-2">
               
@@ -351,7 +351,7 @@ const UserNavbar = () => {
               <div className="flex items-center min-w-0 flex-1 lg:flex-none">
                 <Link to="/" className="flex items-center gap-2 sm:gap-3 group min-w-0 flex-1 lg:flex-none" onClick={() => setIsMobileMenuOpen(false)}>
                   <div className="relative shrink-0 flex-shrink-0">
-                    <div className="absolute inset-0 rounded-full bg-amber-400/20 blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                    <div className="absolute inset-0 rounded-full bg-emerald-500/10 blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                     <img
                       src={brandLogoUrl}
                       alt="Logo"
@@ -359,21 +359,23 @@ const UserNavbar = () => {
                         height: `clamp(32px, 8vw, ${logoSizePx}px)`,
                         width: `clamp(32px, 8vw, ${logoSizePx}px)`,
                       }}
-                      className="relative z-10 object-contain bg-white rounded-full border border-amber-100 shadow-xs group-hover:scale-105 transition-transform duration-300 shrink-0"
+                      className="relative z-10 object-contain bg-white rounded-full border border-slate-200 shadow-xs group-hover:scale-105 transition-transform duration-300 shrink-0"
                       onError={(e) => {
                         e.currentTarget.onerror = null;
                         e.currentTarget.src = MARKAZ_LOGO_URL;
                       }}
                     />
                   </div>
-                  <div className="flex flex-col justify-center leading-tight min-w-0 flex-1">
+                  <div className="flex flex-col justify-center min-w-0 flex-1 py-0.5 overflow-visible">
                     <span
                       style={{ 
-                        fontSize: "clamp(0.72rem, 3.2vw, 1.15rem)",
-                        fontFamily: language === 'ur' ? "'Noto Nastaliq Urdu', 'Mehr Nastaliq Web', 'Mehr', serif" : undefined,
-                        lineHeight: language === 'ur' ? 1.5 : 1.2
+                        fontSize: "clamp(0.75rem, 3.2vw, 1.18rem)",
+                        fontFamily: language === 'ur' ? "'Gulzar', 'Noto Nastaliq Urdu', serif" : undefined,
+                        lineHeight: language === 'ur' ? 2.0 : 1.25,
+                        paddingTop: language === 'ur' ? "2px" : "0px",
+                        paddingBottom: language === 'ur' ? "2px" : "0px",
                       }}
-                      className="font-extrabold text-[#002147] leading-tight line-clamp-2 break-words"
+                      className="font-extrabold text-emerald-950 line-clamp-2 break-words overflow-visible"
                       title={brandTitle}
                     >
                       {brandTitle}
@@ -381,9 +383,9 @@ const UserNavbar = () => {
                     {showSiteSubtitle && brandSub && (
                       <span 
                         style={{
-                          fontFamily: language === 'ur' ? "'Noto Nastaliq Urdu', 'Mehr Nastaliq Web', 'Mehr', serif" : undefined
+                          fontFamily: language === 'ur' ? "'Gulzar', 'Noto Nastaliq Urdu', serif" : undefined
                         }}
-                        className="text-[9px] sm:text-[10px] text-slate-500 font-bold uppercase tracking-wider line-clamp-1 break-words"
+                        className="text-[9px] sm:text-[10px] text-emerald-700/80 font-bold uppercase tracking-wider line-clamp-1 break-words"
                       >
                         {brandSub}
                       </span>
@@ -418,16 +420,16 @@ const UserNavbar = () => {
                       location.pathname === '/calendar' ||
                       location.pathname === '/moon' ||
                       location.pathname === '/juma-list'
-                        ? "text-[var(--primary,#002147)] bg-blue-50/80"
-                        : "text-slate-600 hover:text-[var(--primary,#002147)] hover:bg-slate-50"
+                        ? "text-emerald-900 font-extrabold"
+                        : "text-slate-600 hover:text-emerald-800"
                     }`}
                     aria-expanded={isAboutDropdownOpen}
                   >
-                    <InformationCircleIcon className={`h-4 w-4 transition-colors ${isAboutDropdownOpen ? "text-[var(--primary,#002147)]" : "text-slate-400"}`} />
+                    <InformationCircleIcon className={`h-4 w-4 transition-colors ${isAboutDropdownOpen ? "text-emerald-700" : "text-slate-400"}`} />
                     <span>{t("about") || "About"}</span>
                     <ChevronDownIcon
                       className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 ${
-                        isAboutDropdownOpen ? "rotate-180 text-[var(--primary,#002147)]" : ""
+                        isAboutDropdownOpen ? "rotate-180 text-emerald-700" : ""
                       }`}
                     />
                   </button>
@@ -439,23 +441,23 @@ const UserNavbar = () => {
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: 6, scale: 0.96 }}
                         transition={{ duration: 0.18, ease: "easeOut" }}
-                        className="absolute start-0 mt-1.5 w-64 bg-white/95 backdrop-blur-xl rounded-2xl shadow-xl border border-slate-100/90 p-2 z-[110] overflow-hidden ring-1 ring-black/5"
+                        className="absolute start-0 mt-1.5 w-64 bg-white/98 backdrop-blur-2xl rounded-2xl shadow-xl border border-slate-200/90 p-2 z-[110] overflow-hidden text-slate-800"
                       >
                         <div className="space-y-1">
                           {/* 1. About Markaz */}
                           <Link
                             to="/about"
                             onClick={() => setIsAboutDropdownOpen(false)}
-                            className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-blue-50/80 transition-all duration-200 group"
+                            className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-emerald-900/60 hover:border-amber-500/30 border border-transparent transition-all duration-200 group"
                           >
-                            <div className="h-9 w-9 rounded-xl bg-blue-100/70 text-blue-700 flex items-center justify-center flex-shrink-0 group-hover:scale-105 group-hover:bg-blue-600 group-hover:text-white transition-all shadow-sm">
+                            <div className="h-9 w-9 rounded-xl bg-emerald-950/80 border border-amber-500/20 text-amber-400 flex items-center justify-center flex-shrink-0 group-hover:scale-105 group-hover:bg-amber-500 group-hover:text-slate-950 transition-all shadow-sm">
                               <InformationCircleIcon className="h-5 w-5" />
                             </div>
                             <div className="flex flex-col text-start">
-                              <span className="text-xs font-bold text-slate-800 group-hover:text-blue-900 transition-colors">
+                              <span className="text-xs font-bold text-white group-hover:text-amber-300 transition-colors">
                                 {language === 'ur' ? 'تعارف مرکز' : (language === 'ar' ? 'عن المركز' : 'About Markaz')}
                               </span>
-                              <span className="text-[10px] text-slate-400 font-medium">
+                              <span className="text-[10px] text-amber-200/70 font-medium">
                                 Mission, History & Aims
                               </span>
                             </div>
@@ -465,16 +467,16 @@ const UserNavbar = () => {
                           <Link
                             to="/juma-list"
                             onClick={() => setIsAboutDropdownOpen(false)}
-                            className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-emerald-50/80 transition-all duration-200 group"
+                            className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-emerald-900/60 hover:border-amber-500/30 border border-transparent transition-all duration-200 group"
                           >
-                            <div className="h-9 w-9 rounded-xl bg-emerald-100/70 text-emerald-700 flex items-center justify-center flex-shrink-0 group-hover:scale-105 group-hover:bg-emerald-600 group-hover:text-white transition-all shadow-sm">
+                            <div className="h-9 w-9 rounded-xl bg-emerald-950/80 border border-amber-500/20 text-emerald-400 flex items-center justify-center flex-shrink-0 group-hover:scale-105 group-hover:bg-amber-500 group-hover:text-slate-950 transition-all shadow-sm">
                               <CalendarDaysIcon className="h-5 w-5" />
                             </div>
                             <div className="flex flex-col text-start">
-                              <span className="text-xs font-bold text-slate-800 group-hover:text-emerald-900 transition-colors">
+                              <span className="text-xs font-bold text-white group-hover:text-amber-300 transition-colors">
                                 {language === 'ur' ? 'خطباتِ جمعہ' : (language === 'ar' ? 'جدول خطب الجمعة' : 'Jumah Schedule')}
                               </span>
-                              <span className="text-[10px] text-slate-400 font-medium">
+                              <span className="text-[10px] text-amber-200/70 font-medium">
                                 {language === 'ur' ? 'اوقاتِ خطبہ و مساجد' : (language === 'ar' ? 'مواعيد الخطب والأئمة' : 'Khutbah timings & Imams')}
                               </span>
                             </div>
@@ -484,16 +486,16 @@ const UserNavbar = () => {
                           <Link
                             to="/moon"
                             onClick={() => setIsAboutDropdownOpen(false)}
-                            className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-amber-50/80 transition-all duration-200 group"
+                            className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-emerald-900/60 hover:border-amber-500/30 border border-transparent transition-all duration-200 group"
                           >
-                            <div className="h-9 w-9 rounded-xl bg-amber-100/70 text-amber-800 flex items-center justify-center flex-shrink-0 group-hover:scale-105 group-hover:bg-amber-600 group-hover:text-white transition-all shadow-sm">
+                            <div className="h-9 w-9 rounded-xl bg-emerald-950/80 border border-amber-500/20 text-amber-400 flex items-center justify-center flex-shrink-0 group-hover:scale-105 group-hover:bg-amber-500 group-hover:text-slate-950 transition-all shadow-sm">
                               <MoonIcon className="h-5 w-5" />
                             </div>
                             <div className="flex flex-col text-start">
-                              <span className="text-xs font-bold text-slate-800 group-hover:text-amber-900 transition-colors">
+                              <span className="text-xs font-bold text-white group-hover:text-amber-300 transition-colors">
                                 {language === 'ur' ? 'رؤیتِ ہلال' : (language === 'ar' ? 'إعلانات رؤية الهلال' : 'Moon Announcements')}
                               </span>
-                              <span className="text-[10px] text-slate-400 font-medium">
+                              <span className="text-[10px] text-amber-200/70 font-medium">
                                 {language === 'ur' ? 'ہلال کمیٹی کے سرکاری اعلانات' : (language === 'ar' ? 'البيانات الرسمية للأهلة' : 'Official Hijri declarations')}
                               </span>
                             </div>
@@ -503,16 +505,16 @@ const UserNavbar = () => {
                           <Link
                             to="/calendar"
                             onClick={() => setIsAboutDropdownOpen(false)}
-                            className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-teal-50/80 transition-all duration-200 group"
+                            className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-emerald-900/60 hover:border-amber-500/30 border border-transparent transition-all duration-200 group"
                           >
-                            <div className="h-9 w-9 rounded-xl bg-teal-100/70 text-teal-800 flex items-center justify-center flex-shrink-0 group-hover:scale-105 group-hover:bg-teal-600 group-hover:text-white transition-all shadow-sm">
+                            <div className="h-9 w-9 rounded-xl bg-emerald-950/80 border border-amber-500/20 text-teal-300 flex items-center justify-center flex-shrink-0 group-hover:scale-105 group-hover:bg-amber-500 group-hover:text-slate-950 transition-all shadow-sm">
                               <CalendarDaysIcon className="h-5 w-5" />
                             </div>
                             <div className="flex flex-col text-start">
-                              <span className="text-xs font-bold text-slate-800 group-hover:text-teal-900 transition-colors">
+                              <span className="text-xs font-bold text-white group-hover:text-amber-300 transition-colors">
                                 {language === 'ur' ? 'اسلامی تقویم (کیلنڈر)' : (language === 'ar' ? 'التقويم الهجري' : 'Islamic Calendar')}
                               </span>
-                              <span className="text-[10px] text-slate-400 font-medium">
+                              <span className="text-[10px] text-amber-200/70 font-medium">
                                 {language === 'ur' ? 'سال کے ۱۲ مہینوں کے پوسٹرز' : (language === 'ar' ? 'ملصقات التقويم لـ ١٢ شهراً' : '12 Months Calendar Posters')}
                               </span>
                             </div>
@@ -522,16 +524,16 @@ const UserNavbar = () => {
                           <Link
                             to="/about?tab=ulama"
                             onClick={() => setIsAboutDropdownOpen(false)}
-                            className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-amber-50/80 transition-all duration-200 group"
+                            className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-emerald-900/60 hover:border-amber-500/30 border border-transparent transition-all duration-200 group"
                           >
-                            <div className="h-9 w-9 rounded-xl bg-amber-100/70 text-amber-800 flex items-center justify-center flex-shrink-0 group-hover:scale-105 group-hover:bg-amber-600 group-hover:text-white transition-all shadow-sm">
+                            <div className="h-9 w-9 rounded-xl bg-emerald-950/80 border border-amber-500/20 text-amber-400 flex items-center justify-center flex-shrink-0 group-hover:scale-105 group-hover:bg-amber-500 group-hover:text-slate-950 transition-all shadow-sm">
                               <ChatBubbleLeftRightIcon className="h-5 w-5" />
                             </div>
                             <div className="flex flex-col text-start">
-                              <span className="text-xs font-bold text-slate-800 group-hover:text-amber-900 transition-colors">
+                              <span className="text-xs font-bold text-white group-hover:text-amber-300 transition-colors">
                                 {language === 'ur' ? 'علماء کی آراء' : (language === 'ar' ? 'آراء العلماء' : 'Scholarly Opinions')}
                               </span>
-                              <span className="text-[10px] text-slate-400 font-medium">
+                              <span className="text-[10px] text-amber-200/70 font-medium">
                                 {language === 'ur' ? 'مرکز کے بارے میں تاثرات' : (language === 'ar' ? 'شهادات وانطباعات' : 'Scholarly Testimonials')}
                               </span>
                             </div>
@@ -577,16 +579,16 @@ const UserNavbar = () => {
                       onClick={() => setIsSocialDropdownOpen((prev) => !prev)}
                       className={`relative flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-bold transition-all duration-200 cursor-pointer ${
                         isSocialDropdownOpen
-                          ? "text-[var(--primary,#002147)] bg-blue-50/80"
-                          : "text-slate-600 hover:text-[var(--primary,#002147)] hover:bg-slate-50"
+                          ? "text-emerald-900 font-extrabold"
+                          : "text-slate-600 hover:text-emerald-800"
                       }`}
                       aria-expanded={isSocialDropdownOpen}
                     >
-                      <Squares2X2Icon className={`h-4 w-4 transition-colors ${isSocialDropdownOpen ? "text-[var(--primary,#002147)]" : "text-slate-400"}`} />
+                      <Squares2X2Icon className={`h-4 w-4 transition-colors ${isSocialDropdownOpen ? "text-emerald-700" : "text-slate-400"}`} />
                       <span>{t("more") || "More"}</span>
                       <ChevronDownIcon
                         className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 ${
-                          isSocialDropdownOpen ? "rotate-180 text-[var(--primary,#002147)]" : ""
+                          isSocialDropdownOpen ? "rotate-180 text-emerald-700" : ""
                         }`}
                       />
                     </button>
@@ -598,7 +600,7 @@ const UserNavbar = () => {
                           animate={{ opacity: 1, y: 0, scale: 1 }}
                           exit={{ opacity: 0, y: 6, scale: 0.96 }}
                           transition={{ duration: 0.18, ease: "easeOut" }}
-                          className="absolute start-0 mt-1.5 w-64 bg-white/95 backdrop-blur-xl rounded-2xl shadow-xl border border-slate-100/90 p-2 z-[110] overflow-hidden ring-1 ring-black/5"
+                          className="absolute start-0 mt-1.5 w-64 bg-white/98 backdrop-blur-2xl rounded-2xl shadow-xl border border-slate-200/90 p-2 z-[110] overflow-hidden text-slate-800"
                         >
                           <div className="space-y-1">
 
@@ -606,16 +608,16 @@ const UserNavbar = () => {
                             <Link
                               to="/education"
                               onClick={() => setIsSocialDropdownOpen(false)}
-                              className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-blue-50/80 transition-all duration-200 group"
+                              className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-emerald-900/60 hover:border-amber-500/30 border border-transparent transition-all duration-200 group"
                             >
-                              <div className="h-9 w-9 rounded-xl bg-blue-100/70 text-blue-700 flex items-center justify-center flex-shrink-0 group-hover:scale-105 group-hover:bg-blue-600 group-hover:text-white transition-all shadow-sm">
+                              <div className="h-9 w-9 rounded-xl bg-emerald-950/80 border border-amber-500/20 text-blue-400 flex items-center justify-center flex-shrink-0 group-hover:scale-105 group-hover:bg-amber-500 group-hover:text-slate-950 transition-all shadow-sm">
                                 <AcademicCapIcon className="h-5 w-5" />
                               </div>
                               <div className="flex flex-col text-start">
-                                <span className="text-xs font-bold text-slate-800 group-hover:text-blue-900 transition-colors">
+                                <span className="text-xs font-bold text-white group-hover:text-amber-300 transition-colors">
                                   {t("education_taleem") || (language === 'ur' ? 'تعلیم و رہنمائی' : language === 'ar' ? 'التعليم والإرشاد' : 'Education & Guidance')}
                                 </span>
-                                <span className="text-[10px] text-slate-400 font-medium">
+                                <span className="text-[10px] text-amber-200/70 font-medium">
                                   Taleem & Guidance
                                 </span>
                               </div>
@@ -625,16 +627,16 @@ const UserNavbar = () => {
                             <Link
                               to="/social-work"
                               onClick={() => setIsSocialDropdownOpen(false)}
-                              className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-emerald-50/80 transition-all duration-200 group"
+                              className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-emerald-900/60 hover:border-amber-500/30 border border-transparent transition-all duration-200 group"
                             >
-                              <div className="h-9 w-9 rounded-xl bg-emerald-100/70 text-emerald-700 flex items-center justify-center flex-shrink-0 group-hover:scale-105 group-hover:bg-emerald-600 transition-all shadow-sm p-1.5">
-                                <img src="/icons/social-work.png" alt="Social Work" className="w-full h-full object-contain group-hover:brightness-0 group-hover:invert transition-all" />
+                              <div className="h-9 w-9 rounded-xl bg-emerald-950/80 border border-amber-500/20 text-emerald-400 flex items-center justify-center flex-shrink-0 group-hover:scale-105 group-hover:bg-amber-500 transition-all shadow-sm p-1.5">
+                                <img src="/icons/social-work.png" alt="Social Work" className="w-full h-full object-contain brightness-0 invert" />
                               </div>
                               <div className="flex flex-col text-left">
-                                <span className="text-xs font-bold text-slate-800 group-hover:text-emerald-900 transition-colors">
+                                <span className="text-xs font-bold text-white group-hover:text-amber-300 transition-colors">
                                   {t("social_work")}
                                 </span>
-                                <span className="text-[10px] text-slate-400 font-medium">
+                                <span className="text-[10px] text-amber-200/70 font-medium">
                                   Welfare & Relief Drives
                                 </span>
                               </div>
@@ -644,16 +646,16 @@ const UserNavbar = () => {
                             <Link
                               to="/clippings"
                               onClick={() => setIsSocialDropdownOpen(false)}
-                              className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-amber-50/80 transition-all duration-200 group"
+                              className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-emerald-900/60 hover:border-amber-500/30 border border-transparent transition-all duration-200 group"
                             >
-                              <div className="h-9 w-9 rounded-xl bg-amber-100/70 text-amber-800 flex items-center justify-center flex-shrink-0 group-hover:scale-105 group-hover:bg-amber-600 group-hover:text-white transition-all shadow-sm">
+                              <div className="h-9 w-9 rounded-xl bg-emerald-950/80 border border-amber-500/20 text-amber-400 flex items-center justify-center flex-shrink-0 group-hover:scale-105 group-hover:bg-amber-500 group-hover:text-slate-950 transition-all shadow-sm">
                                 <NewspaperIcon className="h-5 w-5" />
                               </div>
                               <div className="flex flex-col text-start">
-                                <span className="text-xs font-bold text-slate-800 group-hover:text-amber-900 transition-colors">
+                                <span className="text-xs font-bold text-white group-hover:text-amber-300 transition-colors">
                                   Newspaper Clippings
                                 </span>
-                                <span className="text-[10px] text-slate-400 font-medium">
+                                <span className="text-[10px] text-amber-200/70 font-medium">
                                   اخباری تراشے و پریس کٹنگس
                                 </span>
                               </div>
@@ -664,16 +666,16 @@ const UserNavbar = () => {
                               <Link
                                 to="/activities"
                                 onClick={() => setIsSocialDropdownOpen(false)}
-                                className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-purple-50/80 transition-all duration-200 group"
+                                className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-emerald-900/60 hover:border-amber-500/30 border border-transparent transition-all duration-200 group"
                               >
-                                <div className="h-9 w-9 rounded-xl bg-purple-100/70 text-purple-700 flex items-center justify-center flex-shrink-0 group-hover:scale-105 group-hover:bg-purple-600 group-hover:text-white transition-all shadow-sm">
+                                <div className="h-9 w-9 rounded-xl bg-emerald-950/80 border border-amber-500/20 text-purple-400 flex items-center justify-center flex-shrink-0 group-hover:scale-105 group-hover:bg-amber-500 group-hover:text-slate-950 transition-all shadow-sm">
                                   <EllipsisHorizontalCircleIcon className="h-5 w-5" />
                                 </div>
                                 <div className="flex flex-col text-start">
-                                  <span className="text-xs font-bold text-slate-800 group-hover:text-purple-900 transition-colors">
+                                  <span className="text-xs font-bold text-white group-hover:text-amber-300 transition-colors">
                                     {t("activities")}
                                   </span>
-                                  <span className="text-[10px] text-slate-400 font-medium">
+                                  <span className="text-[10px] text-amber-200/70 font-medium">
                                     Events & Gatherings
                                   </span>
                                 </div>
@@ -685,16 +687,16 @@ const UserNavbar = () => {
                               <Link
                                 to="/posts"
                                 onClick={() => setIsSocialDropdownOpen(false)}
-                                className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-rose-50/80 transition-all duration-200 group"
+                                className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-emerald-900/60 hover:border-amber-500/30 border border-transparent transition-all duration-200 group"
                               >
-                                <div className="h-9 w-9 rounded-xl bg-rose-100/70 text-rose-700 flex items-center justify-center flex-shrink-0 group-hover:scale-105 group-hover:bg-rose-600 group-hover:text-white transition-all shadow-sm">
+                                <div className="h-9 w-9 rounded-xl bg-emerald-950/80 border border-amber-500/20 text-rose-400 flex items-center justify-center flex-shrink-0 group-hover:scale-105 group-hover:bg-amber-500 group-hover:text-slate-950 transition-all shadow-sm">
                                   <MegaphoneIcon className="h-5 w-5" />
                                 </div>
                                 <div className="flex flex-col text-start">
-                                  <span className="text-xs font-bold text-slate-800 group-hover:text-rose-900 transition-colors">
+                                  <span className="text-xs font-bold text-white group-hover:text-amber-300 transition-colors">
                                     {t("updates")}
                                   </span>
-                                  <span className="text-[10px] text-slate-400 font-medium">
+                                  <span className="text-[10px] text-amber-200/70 font-medium">
                                     News & Circulars
                                   </span>
                                 </div>
@@ -716,14 +718,14 @@ const UserNavbar = () => {
                   <button
                     type="button"
                     onClick={() => setIsUniversalSearchOpen(true)}
-                    className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-slate-100/80 hover:bg-white text-slate-600 hover:text-[#002147] border border-slate-200/80 hover:border-blue-300 text-xs transition-all duration-200 shadow-2xs hover:shadow-xs cursor-pointer group"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#031d15]/90 hover:bg-emerald-950 text-slate-200 hover:text-white border border-emerald-500/30 hover:border-emerald-400/60 text-xs transition-all duration-200 shadow-2xs cursor-pointer group"
                     title={t("search_placeholder") + " (Ctrl+K)"}
                   >
-                    <MagnifyingGlassIcon className="w-3.5 h-3.5 text-blue-600 group-hover:scale-110 transition-transform" />
-                    <span className="hidden xl:inline text-[11px] text-slate-400 font-semibold group-hover:text-slate-600">
+                    <MagnifyingGlassIcon className="w-3.5 h-3.5 text-emerald-400 group-hover:scale-110 transition-transform" />
+                    <span className="hidden xl:inline text-[11px] text-slate-300 font-semibold group-hover:text-white">
                       Search
                     </span>
-                    <kbd className="hidden xl:inline-flex items-center px-1 py-0.2 text-[8px] font-bold text-slate-400 bg-white border border-slate-200 rounded">
+                    <kbd className="hidden xl:inline-flex items-center px-1.5 py-0.5 text-[8px] font-bold text-slate-300 bg-emerald-950/80 border border-emerald-500/30 rounded">
                       ⌘K
                     </kbd>
                   </button>
@@ -733,13 +735,13 @@ const UserNavbar = () => {
                 {showDonateButton && (
                   <button
                     onClick={() => setIsDonationOpen(true)}
-                    className="group flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-rose-50 to-pink-50 text-rose-700 rounded-full hover:from-rose-600 hover:to-pink-600 hover:text-white transition-all duration-300 border border-rose-200/80 hover:border-transparent shadow-2xs hover:shadow-xs cursor-pointer"
+                    className="group flex items-center gap-1.5 px-3.5 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-900 rounded-full transition-all duration-300 border border-emerald-200/90 shadow-2xs cursor-pointer"
                     title={donateButtonText}
                   >
-                    <HandCoinIcon className="w-4 h-4 text-rose-600 group-hover:text-white group-hover:scale-110 transition-transform" />
+                    <HandCoinIcon className="w-4 h-4 text-emerald-700 group-hover:scale-110 transition-transform" />
                     <span 
-                      className="text-[11px] font-bold"
-                      style={language === 'ur' ? { fontFamily: "'Noto Nastaliq Urdu', 'Mehr Nastaliq Web', 'Mehr', serif", fontSize: "0.9rem", lineHeight: 1.3 } : undefined}
+                      className="text-[11px] font-bold text-emerald-900"
+                      style={language === 'ur' ? { fontFamily: "'Gulzar', 'Noto Nastaliq Urdu', serif", fontSize: "0.95rem", lineHeight: 1.4 } : undefined}
                     >
                       {donateButtonText}
                     </span>
@@ -747,7 +749,7 @@ const UserNavbar = () => {
                 )}
 
                 {/* VISUALLY UNIFIED ACCOUNT & CONTROLS CLUSTER */}
-                <div className="flex items-center gap-1.5 p-1 rounded-full bg-slate-100/70 border border-slate-200/80 shadow-2xs">
+                <div className="flex items-center gap-1.5 p-1 rounded-full bg-slate-50 border border-slate-200 shadow-2xs">
                   {/* Language Switcher */}
                   {showLanguageSwitcher && <LanguageSwitcher />}
 
@@ -760,13 +762,13 @@ const UserNavbar = () => {
                       <div ref={profileRef} className="relative">
                         <button
                           onClick={() => setIsProfileOpen((p) => !p)}
-                          className="flex items-center gap-1 p-0.5 rounded-full hover:bg-white transition-all group cursor-pointer focus:outline-none"
+                          className="flex items-center gap-1 p-0.5 rounded-full hover:bg-emerald-900/60 transition-all group cursor-pointer focus:outline-none"
                           aria-expanded={isProfileOpen}
                         >
-                          <div className="h-7 w-7 rounded-full bg-gradient-to-br from-[#002147] to-blue-900 text-white flex items-center justify-center border border-white shadow-xs font-extrabold text-[11px]">
+                          <div className="h-7 w-7 rounded-full bg-gradient-to-br from-amber-500 to-amber-700 text-slate-950 flex items-center justify-center border border-amber-400/50 shadow-xs font-extrabold text-[11px]">
                             {user?.username?.[0]?.toUpperCase() || "U"}
                           </div>
-                          <ChevronDownIcon className={`w-3 h-3 text-slate-400 transition-transform duration-200 ${isProfileOpen ? 'rotate-180 text-[#002147]' : ''}`} />
+                          <ChevronDownIcon className={`w-3 h-3 text-amber-200/60 transition-transform duration-200 ${isProfileOpen ? 'rotate-180 text-amber-300' : ''}`} />
                         </button>
 
                         <AnimatePresence>
@@ -776,23 +778,23 @@ const UserNavbar = () => {
                               animate={{ opacity: 1, y: 0, scale: 1 }}
                               exit={{ opacity: 0, y: 6, scale: 0.96 }}
                               transition={{ duration: 0.15, ease: "easeOut" }}
-                              className="absolute end-0 mt-2 w-60 bg-white/95 backdrop-blur-xl rounded-2xl shadow-xl border border-slate-200/90 p-1.5 z-[110] overflow-hidden ring-1 ring-black/5"
+                              className="absolute end-0 mt-2 w-60 bg-[#051c14]/98 backdrop-blur-2xl rounded-2xl shadow-2xl border border-amber-500/30 p-1.5 z-[110] overflow-hidden ring-1 ring-amber-400/20 text-white"
                             >
                               {/* User Header Info Card */}
-                              <div className="px-3.5 py-3 bg-gradient-to-br from-slate-50 to-blue-50/40 rounded-xl border border-slate-100 mb-1">
+                              <div className="px-3.5 py-3 bg-[#07241b] rounded-xl border border-amber-500/25 mb-1">
                                 <div className="flex items-center justify-between gap-2 mb-1">
-                                  <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Signed in as</span>
+                                  <span className="text-[10px] uppercase font-bold text-amber-200/60 tracking-wider">Signed in as</span>
                                   <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${
                                     isUserAdmin(user)
-                                      ? 'bg-indigo-100 text-indigo-800'
-                                      : 'bg-emerald-100 text-emerald-800'
+                                      ? 'bg-amber-500/20 text-amber-300 border border-amber-400/30'
+                                      : 'bg-emerald-500/20 text-emerald-300 border border-emerald-400/30'
                                   }`}>
                                     {getRoleDisplayName(user)}
                                   </span>
                                 </div>
-                                <p className="text-sm font-extrabold text-[#002147] truncate">{user?.username}</p>
+                                <p className="text-sm font-extrabold text-amber-200 truncate">{user?.username}</p>
                                 {user?.email && (
-                                  <p className="text-xs text-slate-500 font-medium truncate mt-0.5">{user.email}</p>
+                                  <p className="text-xs text-slate-300 font-medium truncate mt-0.5">{user.email}</p>
                                 )}
                               </div>
 
@@ -802,32 +804,32 @@ const UserNavbar = () => {
                               <Link
                                 to="/admin/dashboard"
                                 onClick={() => setIsProfileOpen(false)}
-                                className="flex items-center gap-2.5 px-3 py-2 text-xs font-bold text-indigo-700 bg-indigo-50/60 rounded-xl hover:bg-indigo-100 transition-colors"
+                                className="flex items-center gap-2.5 px-3 py-2 text-xs font-bold text-amber-300 bg-amber-500/15 border border-amber-400/30 rounded-xl hover:bg-amber-500/25 transition-colors"
                               >
-                                <ShieldCheckIcon className="w-4 h-4 text-indigo-600 flex-shrink-0" />
+                                <ShieldCheckIcon className="w-4 h-4 text-amber-400 flex-shrink-0" />
                                 <span>Admin Dashboard</span>
                               </Link>
                             )}
                             <Link
                               to="/profile"
                               onClick={() => setIsProfileOpen(false)}
-                              className="flex items-center gap-2.5 px-3 py-2 text-xs font-bold text-slate-700 rounded-xl hover:bg-blue-50/80 hover:text-blue-900 transition-colors"
+                              className="flex items-center gap-2.5 px-3 py-2 text-xs font-bold text-slate-200 rounded-xl hover:bg-emerald-900/60 hover:text-amber-300 transition-colors"
                             >
-                              <UserCircleIcon className="w-4 h-4 text-slate-400 flex-shrink-0" />
+                              <UserCircleIcon className="w-4 h-4 text-amber-200/60 flex-shrink-0" />
                               <span>{t("profile") || "My Profile"}</span>
                             </Link>
                             <Link
                               to="/books"
                               onClick={() => setIsProfileOpen(false)}
-                              className="flex items-center gap-2.5 px-3 py-2 text-xs font-bold text-slate-700 rounded-xl hover:bg-blue-50/80 hover:text-blue-900 transition-colors"
+                              className="flex items-center gap-2.5 px-3 py-2 text-xs font-bold text-slate-200 rounded-xl hover:bg-emerald-900/60 hover:text-amber-300 transition-colors"
                             >
-                              <BookmarkIcon className="w-4 h-4 text-slate-400 flex-shrink-0" />
+                              <BookmarkIcon className="w-4 h-4 text-amber-200/60 flex-shrink-0" />
                               <span>My Saved / History</span>
                             </Link>
                             <button
                               type="button"
                               onClick={handleLogout}
-                              className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-bold text-rose-600 rounded-xl hover:bg-rose-50 transition-colors text-start cursor-pointer mt-1 border-t border-slate-100"
+                              className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-bold text-rose-400 rounded-xl hover:bg-rose-950/40 transition-colors text-start cursor-pointer mt-1 border-t border-amber-500/20"
                             >
                               <ArrowRightOnRectangleIcon className="w-4 h-4 flex-shrink-0" />
                               <span>{t("logout") || "Log Out"}</span>
@@ -841,9 +843,9 @@ const UserNavbar = () => {
               ) : (
                 <Link
                   to="/login"
-                  className="flex items-center gap-1 bg-[#002147] hover:bg-[#003366] text-white px-3 py-1.5 rounded-full text-[11px] font-extrabold shadow-2xs hover:shadow-xs hover:-translate-y-0.5 transition-all duration-200"
+                  className="flex items-center gap-1.5 bg-emerald-800 hover:bg-emerald-900 text-white px-3.5 py-1.5 rounded-full text-[11px] font-bold border border-emerald-700 shadow-xs transition-all duration-200 cursor-pointer"
                 >
-                  <ArrowLeftOnRectangleIcon className="w-3.5 h-3.5" />
+                  <ArrowLeftOnRectangleIcon className="w-3.5 h-3.5 text-emerald-100 stroke-2" />
                   <span>{t("login")}</span>
                 </Link>
               )}
@@ -856,7 +858,7 @@ const UserNavbar = () => {
               <button
                 type="button"
                 onClick={() => setIsUniversalSearchOpen(true)}
-                className="p-1.5 sm:p-2 rounded-xl text-slate-600 hover:bg-slate-100 active:bg-slate-200 transition-colors cursor-pointer"
+                className="p-1.5 sm:p-2 rounded-xl text-slate-600 hover:text-emerald-800 hover:bg-slate-100 active:bg-slate-200 transition-colors cursor-pointer"
                 title="Universal Search"
               >
                 <MagnifyingGlassIcon className="h-5 w-5" />
@@ -865,7 +867,7 @@ const UserNavbar = () => {
               
               <button
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                className="p-1.5 sm:p-2 rounded-xl text-slate-600 hover:bg-slate-100 active:bg-slate-200 transition-colors cursor-pointer"
+                className="p-1.5 sm:p-2 rounded-xl text-amber-200 hover:text-amber-300 hover:bg-emerald-900/60 active:bg-emerald-950 transition-colors cursor-pointer"
                 aria-label="Toggle navigation menu"
               >
                 {isMobileMenuOpen ? (
@@ -887,26 +889,26 @@ const UserNavbar = () => {
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: "auto" }}
               exit={{ opacity: 0, height: 0 }}
-              className="lg:hidden bg-white border-t border-slate-100 overflow-hidden shadow-2xl"
+              className="lg:hidden bg-[#051c14] border-t border-amber-500/25 overflow-hidden shadow-2xl text-white"
             >
               <div className="px-4 py-6 space-y-1">
                 
                 {/* User Info / Login Mobile */}
-                <div className="mb-6 pb-6 border-b border-slate-100">
+                <div className="mb-6 pb-6 border-b border-amber-500/20">
                     {isAuth ? (
-                        <div className="flex items-center gap-3 bg-slate-50 p-3 rounded-2xl">
-                            <div className="h-10 w-10 rounded-full bg-[#002147] text-white flex items-center justify-center font-bold text-lg shadow-md flex-shrink-0">
+                        <div className="flex items-center gap-3 bg-[#07241b] border border-amber-500/25 p-3 rounded-2xl">
+                            <div className="h-10 w-10 rounded-full bg-gradient-to-br from-amber-500 to-amber-700 text-slate-950 flex items-center justify-center font-bold text-lg shadow-md flex-shrink-0">
                                 {user?.username?.[0]?.toUpperCase()}
                             </div>
                             <div className="flex-1 min-w-0">
-                                <p className="text-sm font-bold text-slate-800 truncate">{user?.username}</p>
-                                <p className="text-xs text-slate-500">{getRoleDisplayName(user)}</p>
+                                <p className="text-sm font-bold text-white truncate">{user?.username}</p>
+                                <p className="text-xs text-amber-300/80">{getRoleDisplayName(user)}</p>
                             </div>
                             {user && isUserAdmin(user) && (
                               <Link
                                 to="/admin/dashboard"
                                 onClick={() => setIsMobileMenuOpen(false)}
-                                className="p-2 bg-indigo-50 text-indigo-700 rounded-lg shadow-xs border border-indigo-100"
+                                className="p-2 bg-amber-500/20 text-amber-300 rounded-lg shadow-xs border border-amber-400/30"
                                 title="Admin Dashboard"
                               >
                                 <ShieldCheckIcon className="w-5 h-5" />
@@ -915,18 +917,18 @@ const UserNavbar = () => {
                             <Link
                               to="/profile"
                               onClick={() => setIsMobileMenuOpen(false)}
-                              className="p-2 bg-white text-blue-600 rounded-lg shadow-xs border border-slate-100"
+                              className="p-2 bg-[#041610] text-amber-300 rounded-lg shadow-xs border border-amber-500/30"
                               title="My Profile"
                             >
                                 <UserCircleIcon className="w-5 h-5" />
                             </Link>
                         </div>
                     ) : (
-                        // âœ… ONLY LOGIN BUTTON MOBILE (Register Removed)
+                        // ONLY LOGIN BUTTON MOBILE
                         <Link
                             to="/login"
                             onClick={() => setIsMobileMenuOpen(false)}
-                            className="flex items-center justify-center gap-2 w-full py-3 bg-[#002147] text-white rounded-xl font-bold shadow-md active:scale-95 transition-transform"
+                            className="flex items-center justify-center gap-2 w-full py-3 bg-gradient-to-r from-amber-500 via-amber-600 to-amber-700 text-slate-950 rounded-xl font-bold shadow-md active:scale-95 transition-transform"
                         >
                             <ArrowLeftOnRectangleIcon className="w-5 h-5" />
                             Log In to Portal
@@ -948,13 +950,13 @@ const UserNavbar = () => {
                     <button
                       type="button"
                       onClick={() => setIsMobileAboutOpen((p) => !p)}
-                      className="flex items-center justify-between w-full px-3 py-2 text-sm font-bold text-slate-600 hover:text-[#002147] hover:bg-slate-50 rounded-xl transition-colors cursor-pointer"
+                      className="flex items-center justify-between w-full px-3 py-2 text-sm font-bold text-slate-200 hover:text-amber-300 hover:bg-emerald-900/40 rounded-xl transition-colors cursor-pointer"
                     >
                       <div className="flex items-center gap-2">
-                        <InformationCircleIcon className="h-4 w-4 text-blue-600" />
+                        <InformationCircleIcon className="h-4 w-4 text-amber-400" />
                         <span>{t("about") || "About & Portals"}</span>
                       </div>
-                      <ChevronDownIcon className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 ${isMobileAboutOpen ? 'rotate-180 text-[#002147]' : ''}`} />
+                      <ChevronDownIcon className={`w-3.5 h-3.5 text-amber-200/60 transition-transform duration-200 ${isMobileAboutOpen ? 'rotate-180 text-amber-300' : ''}`} />
                     </button>
                     <AnimatePresence>
                       {isMobileAboutOpen && (
@@ -962,46 +964,46 @@ const UserNavbar = () => {
                           initial={{ opacity: 0, height: 0 }}
                           animate={{ opacity: 1, height: "auto" }}
                           exit={{ opacity: 0, height: 0 }}
-                          className="pl-6 pr-2 py-1 space-y-1 bg-slate-50/70 rounded-xl mt-1 overflow-hidden"
+                          className="pl-6 pr-2 py-1 space-y-1 bg-[#041610]/80 border border-amber-500/20 rounded-xl mt-1 overflow-hidden text-white"
                         >
                           <Link
                             to="/about"
                             onClick={() => setIsMobileMenuOpen(false)}
-                            className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold text-slate-700 hover:text-blue-900 hover:bg-white transition-colors"
+                            className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold text-slate-200 hover:text-amber-300 hover:bg-emerald-900/50 transition-colors"
                           >
-                            <InformationCircleIcon className="w-4 h-4 text-blue-600" />
+                            <InformationCircleIcon className="w-4 h-4 text-amber-400" />
                             <span>{language === 'ur' ? 'تعارف مرکز' : 'About Markaz'}</span>
                           </Link>
                           <Link
                             to="/juma-list"
                             onClick={() => setIsMobileMenuOpen(false)}
-                            className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold text-slate-700 hover:text-emerald-900 hover:bg-white transition-colors"
+                            className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold text-slate-200 hover:text-amber-300 hover:bg-emerald-900/50 transition-colors"
                           >
-                            <CalendarDaysIcon className="w-4 h-4 text-emerald-600" />
+                            <CalendarDaysIcon className="w-4 h-4 text-emerald-400" />
                             <span>{language === 'ur' ? 'خطباتِ جمعہ' : (language === 'ar' ? 'جدول خطب الجمعة' : 'Jumah Schedule')}</span>
                           </Link>
                           <Link
                             to="/moon"
                             onClick={() => setIsMobileMenuOpen(false)}
-                            className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold text-slate-700 hover:text-amber-900 hover:bg-white transition-colors"
+                            className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold text-slate-200 hover:text-amber-300 hover:bg-emerald-900/50 transition-colors"
                           >
-                            <MoonIcon className="w-4 h-4 text-amber-600" />
+                            <MoonIcon className="w-4 h-4 text-amber-400" />
                             <span>{language === 'ur' ? 'رؤیتِ ہلال' : (language === 'ar' ? 'إعلانات رؤية الهلال' : 'Moon Announcements')}</span>
                           </Link>
                           <Link
                             to="/calendar"
                             onClick={() => setIsMobileMenuOpen(false)}
-                            className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold text-slate-700 hover:text-teal-900 hover:bg-white transition-colors"
+                            className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold text-slate-200 hover:text-amber-300 hover:bg-emerald-900/50 transition-colors"
                           >
-                            <CalendarDaysIcon className="w-4 h-4 text-teal-600" />
+                            <CalendarDaysIcon className="w-4 h-4 text-teal-400" />
                             <span>{language === 'ur' ? 'اسلامی تقویم (کیلنڈر)' : (language === 'ar' ? 'التقويم الهجري' : 'Islamic Calendar')}</span>
                           </Link>
                           <Link
                             to="/about?tab=ulama"
                             onClick={() => setIsMobileMenuOpen(false)}
-                            className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold text-slate-700 hover:text-amber-900 hover:bg-white transition-colors"
+                            className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold text-slate-200 hover:text-amber-300 hover:bg-emerald-900/50 transition-colors"
                           >
-                            <ChatBubbleLeftRightIcon className="w-4 h-4 text-amber-600" />
+                            <ChatBubbleLeftRightIcon className="w-4 h-4 text-amber-400" />
                             <span>{language === 'ur' ? 'علماء کی آراء' : (language === 'ar' ? 'آراء العلماء' : 'Scholarly Opinions')}</span>
                           </Link>
                         </motion.div>
@@ -1035,13 +1037,13 @@ const UserNavbar = () => {
                     <button
                       type="button"
                       onClick={() => setIsMobileSocialOpen((p) => !p)}
-                      className="flex items-center justify-between w-full px-3 py-2 text-sm font-bold text-slate-600 hover:text-[#002147] hover:bg-slate-50 rounded-xl transition-colors cursor-pointer"
+                      className="flex items-center justify-between w-full px-3 py-2 text-sm font-bold text-slate-200 hover:text-amber-300 hover:bg-emerald-900/40 rounded-xl transition-colors cursor-pointer"
                     >
                       <div className="flex items-center gap-2">
-                        <Squares2X2Icon className="h-4 w-4 text-slate-400" />
+                        <Squares2X2Icon className="h-4 w-4 text-amber-200/60" />
                         <span>{t("activities")}</span>
                       </div>
-                      <ChevronDownIcon className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 ${isMobileSocialOpen ? 'rotate-180 text-[#002147]' : ''}`} />
+                      <ChevronDownIcon className={`w-3.5 h-3.5 text-amber-200/60 transition-transform duration-200 ${isMobileSocialOpen ? 'rotate-180 text-amber-300' : ''}`} />
                     </button>
                     <AnimatePresence>
                       {isMobileSocialOpen && (
@@ -1049,38 +1051,38 @@ const UserNavbar = () => {
                           initial={{ opacity: 0, height: 0 }}
                           animate={{ opacity: 1, height: "auto" }}
                           exit={{ opacity: 0, height: 0 }}
-                          className="pl-6 pr-2 py-1 space-y-1 bg-slate-50/70 rounded-xl mt-1 overflow-hidden"
+                          className="pl-6 pr-2 py-1 space-y-1 bg-[#041610]/80 border border-amber-500/20 rounded-xl mt-1 overflow-hidden text-white"
                         >
                           <Link
                             to="/education"
                             onClick={() => setIsMobileMenuOpen(false)}
-                            className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold text-slate-700 hover:text-blue-900 hover:bg-white transition-colors"
+                            className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold text-slate-200 hover:text-amber-300 hover:bg-emerald-900/50 transition-colors"
                           >
-                            <AcademicCapIcon className="w-4 h-4 text-blue-600" />
+                            <AcademicCapIcon className="w-4 h-4 text-blue-400" />
                             <span>{t("education_taleem") || (language === 'ur' ? 'تعلیم و رہنمائی' : language === 'ar' ? 'التعليم والإرشاد' : 'Education & Guidance')}</span>
                           </Link>
                           <Link
                             to="/social-work"
                             onClick={() => setIsMobileMenuOpen(false)}
-                            className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold text-slate-700 hover:text-emerald-900 hover:bg-white transition-colors"
+                            className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold text-slate-200 hover:text-amber-300 hover:bg-emerald-900/50 transition-colors"
                           >
-                            <img src="/icons/social-work.png" alt="Social Work" className="w-4 h-4 object-contain" />
+                            <img src="/icons/social-work.png" alt="Social Work" className="w-4 h-4 object-contain brightness-0 invert" />
                             <span>{t("social_work")}</span>
                           </Link>
                           <Link
                             to="/clippings"
                             onClick={() => setIsMobileMenuOpen(false)}
-                            className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold text-slate-700 hover:text-amber-900 hover:bg-white transition-colors"
+                            className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold text-slate-200 hover:text-amber-300 hover:bg-emerald-900/50 transition-colors"
                           >
-                            <NewspaperIcon className="w-4 h-4 text-amber-600" />
+                            <NewspaperIcon className="w-4 h-4 text-amber-400" />
                             <span>Newspaper Clippings (اخباری تراشے)</span>
                           </Link>
                           <Link
                             to="/activities"
                             onClick={() => setIsMobileMenuOpen(false)}
-                            className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold text-slate-700 hover:text-purple-900 hover:bg-white transition-colors"
+                            className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold text-slate-200 hover:text-amber-300 hover:bg-emerald-900/50 transition-colors"
                           >
-                            <EllipsisHorizontalCircleIcon className="w-4 h-4 text-purple-600" />
+                            <EllipsisHorizontalCircleIcon className="w-4 h-4 text-purple-400" />
                             <span>{t("other")}</span>
                           </Link>
                         </motion.div>
@@ -1095,7 +1097,7 @@ const UserNavbar = () => {
                 </div>
 
                 {/* Mobile Actions */}
-                <div className="mt-6 pt-6 border-t border-slate-100 space-y-3">
+                <div className="mt-6 pt-6 border-t border-amber-500/20 space-y-3">
                     {/* Inline Segmented Language Selector (English / اردو / العربية) */}
                     <div className="pb-1">
                       <LanguageSwitcher variant="segmented" />
@@ -1105,9 +1107,9 @@ const UserNavbar = () => {
                             setIsDonationOpen(true);
                             setIsMobileMenuOpen(false);
                         }}
-                        className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-rose-50 text-rose-600 font-bold text-sm border border-rose-100"
+                        className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-gradient-to-r from-rose-900/40 to-pink-900/40 text-rose-200 font-bold text-sm border border-rose-500/40 shadow-xs"
                     >
-                        <HandCoinIcon className="w-5 h-5 text-rose-600" />
+                        <HandCoinIcon className="w-5 h-5 text-rose-400" />
                         <span style={language === 'ur' ? { fontFamily: "'Noto Nastaliq Urdu', 'Mehr Nastaliq Web', 'Mehr', serif", fontSize: "1.05rem" } : undefined}>
                           {donateButtonText}
                         </span>
@@ -1116,7 +1118,7 @@ const UserNavbar = () => {
                     {isAuth && (
                         <button
                             onClick={handleLogout}
-                            className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-red-600 bg-red-50 hover:bg-red-100 font-bold text-sm transition-colors"
+                            className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-rose-300 bg-rose-950/40 hover:bg-rose-900/60 font-bold text-sm transition-colors border border-rose-500/30"
                         >
                             <ArrowRightOnRectangleIcon className="w-4 h-4" />
                             Log Out

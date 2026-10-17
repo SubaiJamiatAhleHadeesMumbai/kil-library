@@ -79,7 +79,7 @@ const NewspaperClippingsHomeSection = ({ config = {} }) => {
           </h2>
           {subtitle && (
             <p 
-              className="text-sm sm:text-base font-medium text-slate-600 mt-0.5 font-urdu leading-relaxed" 
+              className="text-sm sm:text-base font-medium text-slate-500 mt-0.5 font-urdu leading-relaxed" 
               dir="rtl"
             >
               {subtitle}
@@ -89,7 +89,7 @@ const NewspaperClippingsHomeSection = ({ config = {} }) => {
 
         <Link
           to="/clippings"
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#002147] hover:bg-[#031525] text-amber-300 font-bold text-xs border border-amber-500/30 transition-all shadow-sm hover:shadow-md shrink-0 self-start sm:self-auto"
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white hover:bg-slate-50 text-emerald-800 font-bold text-xs border border-slate-200 transition-all shadow-2xs hover:shadow-md shrink-0 self-start sm:self-auto"
         >
           <span className="font-urdu text-xs sm:text-sm">تمام تراشے دیکھیں</span>
           <ArrowRightIcon className="w-3.5 h-3.5 rotate-180" />
@@ -100,8 +100,8 @@ const NewspaperClippingsHomeSection = ({ config = {} }) => {
       {loading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 animate-pulse">
           {[...Array(4)].map((_, i) => (
-            <div key={i} className="bg-white rounded-3xl border border-slate-200/80 p-4 space-y-3">
-              <div className="aspect-4/3 rounded-2xl bg-slate-200" />
+            <div key={i} className="bg-white rounded-3xl border border-slate-200 p-4 space-y-3">
+              <div className="aspect-4/3 rounded-2xl bg-slate-100" />
               <div className="h-4 bg-slate-200 rounded-md w-3/4" />
               <div className="h-3 bg-slate-100 rounded-md w-1/2" />
             </div>
@@ -117,7 +117,7 @@ const NewspaperClippingsHomeSection = ({ config = {} }) => {
                 whileHover={{ y: -4 }}
                 transition={{ duration: 0.2 }}
                 onClick={() => openLightbox(clipping)}
-                className="bg-white rounded-3xl border border-slate-200/90 hover:border-amber-400/80 shadow-xs hover:shadow-[0_14px_34px_rgba(212,175,55,0.14)] transition-all duration-300 overflow-hidden flex flex-col group cursor-pointer"
+                className="bg-white rounded-3xl border border-slate-200/90 hover:border-emerald-300 shadow-xs hover:shadow-xl transition-all duration-300 overflow-hidden flex flex-col group cursor-pointer text-slate-900"
               >
                 {/* Image Container with Newspaper Stamp */}
                 <div className="relative aspect-4/3 bg-slate-100 overflow-hidden">
@@ -129,19 +129,19 @@ const NewspaperClippingsHomeSection = ({ config = {} }) => {
                   />
 
                   {/* Header Strip */}
-                  <div className="absolute top-3 left-3 bg-slate-950/85 backdrop-blur-md text-white px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider shadow-sm">
+                  <div className="absolute top-3 left-3 bg-slate-900/90 backdrop-blur-md text-white px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider shadow-sm border border-slate-700">
                     {clipping.newspaper_name}
                   </div>
 
                   {/* Date & Multi-page Badge */}
                   <div className="absolute bottom-3 left-3 flex items-center gap-1.5">
                     {clipping.edition_date && (
-                      <div className="bg-white/95 backdrop-blur-md text-slate-800 text-[10px] font-bold px-2 py-0.5 rounded-md shadow-xs">
+                      <div className="bg-slate-900/90 backdrop-blur-md text-slate-200 text-[10px] font-bold px-2 py-0.5 rounded-md shadow-xs border border-slate-700">
                         {clipping.edition_date}
                       </div>
                     )}
                     {allImages.length > 1 && (
-                      <div className="bg-emerald-600/95 backdrop-blur-md text-white text-[10px] font-bold px-2 py-0.5 rounded-md shadow-xs flex items-center gap-1">
+                      <div className="bg-emerald-800 text-white text-[10px] font-bold px-2 py-0.5 rounded-md shadow-xs flex items-center gap-1">
                         <DocumentDuplicateIcon className="w-3 h-3" />
                         <span>{allImages.length} Pages</span>
                       </div>
@@ -150,7 +150,7 @@ const NewspaperClippingsHomeSection = ({ config = {} }) => {
 
                   {/* Hover Overlay Hint */}
                   <div className="absolute inset-0 bg-emerald-950/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center text-white gap-1.5 font-bold text-xs backdrop-blur-xs">
-                    <EyeIcon className="w-5 h-5" />
+                    <EyeIcon className="w-5 h-5 text-emerald-300" />
                     <span className="font-urdu text-sm">بڑا کرکے پڑھیں</span>
                   </div>
                 </div>
@@ -158,7 +158,7 @@ const NewspaperClippingsHomeSection = ({ config = {} }) => {
                 {/* Card Body */}
                 <div className="p-4 sm:p-5 flex-1 flex flex-col justify-between space-y-3">
                   <div className="space-y-1.5">
-                    <span className="inline-block bg-emerald-50 text-emerald-800 text-[10px] font-bold px-2.5 py-0.5 rounded-full font-urdu">
+                    <span className="inline-block bg-slate-100 text-slate-700 border border-slate-200 text-[10px] font-bold px-2.5 py-0.5 rounded-full font-urdu">
                       {clipping.category || "اخباری رپورٹ"}
                     </span>
                     <h3 
@@ -170,8 +170,8 @@ const NewspaperClippingsHomeSection = ({ config = {} }) => {
                     </h3>
                   </div>
 
-                  <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-400 font-medium">
-                    <span className="text-emerald-700 font-bold group-hover:underline font-urdu text-sm">تراشہ پڑھیں ←</span>
+                  <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500 font-medium">
+                    <span className="text-emerald-800 font-bold group-hover:text-emerald-900 group-hover:underline font-urdu text-sm">تراشہ پڑھیں ←</span>
                     <span className="text-[11px] font-mono text-slate-400">HD Image</span>
                   </div>
                 </div>

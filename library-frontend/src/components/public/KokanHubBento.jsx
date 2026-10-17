@@ -28,10 +28,6 @@ const KokanHubBento = ({ config = {} }) => {
       badge: "Newspaper Archives",
       badgeUrdu: "اخباری آرکائیو",
       icon: NewspaperIcon,
-      accent: "from-emerald-700 to-teal-900",
-      bgGradient: "from-emerald-500/10 via-teal-500/5 to-transparent",
-      borderColor: "border-emerald-200/80 hover:border-amber-400/70",
-      badgeColor: "bg-emerald-50 text-emerald-800 border-emerald-200/80 shadow-2xs"
     },
     {
       id: "fatawa",
@@ -43,10 +39,6 @@ const KokanHubBento = ({ config = {} }) => {
       badge: "Verified Q&A",
       badgeUrdu: "مصدقہ شرعی فتاویٰ",
       icon: AcademicCapIcon,
-      accent: "from-amber-600 to-yellow-800",
-      bgGradient: "from-amber-500/10 via-yellow-500/5 to-transparent",
-      borderColor: "border-amber-200/80 hover:border-amber-400/90",
-      badgeColor: "bg-amber-50 text-amber-900 border-amber-300/80 shadow-2xs"
     },
     {
       id: "welfare",
@@ -58,10 +50,6 @@ const KokanHubBento = ({ config = {} }) => {
       badge: "Social Impact",
       badgeUrdu: "فلاحی و تعلیمی خدمات",
       icon: HeartIcon,
-      accent: "from-rose-700 to-rose-950",
-      bgGradient: "from-rose-500/10 via-pink-500/5 to-transparent",
-      borderColor: "border-rose-200/80 hover:border-amber-400/70",
-      badgeColor: "bg-rose-50 text-rose-900 border-rose-200/80 shadow-2xs"
     }
   ];
 
@@ -69,8 +57,8 @@ const KokanHubBento = ({ config = {} }) => {
     <section className="py-6 px-4 max-w-7xl mx-auto">
       {/* Section Header */}
       <div className="text-center space-y-2 mb-6">
-        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-gradient-to-r from-amber-50 via-emerald-50 to-amber-50 text-amber-900 text-xs font-bold border border-amber-300/50 shadow-xs">
-          <SparklesIcon className="w-3.5 h-3.5 text-amber-600" />
+        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-50 text-emerald-800 text-xs font-bold border border-emerald-200/90 shadow-2xs">
+          <SparklesIcon className="w-3.5 h-3.5 text-emerald-700" />
           <span className={isUrdu ? "font-urdu text-sm" : ""}>
             {isUrdu ? "مرکز کے اہم ڈیجیٹل شعبہ جات" : "Kokan Digital Portals • اہم ڈیجیٹل شعبہ جات"}
           </span>
@@ -80,7 +68,7 @@ const KokanHubBento = ({ config = {} }) => {
         </h2>
         {subtitle && (
           <p 
-            className={`text-base sm:text-lg font-bold text-slate-600 leading-relaxed ${isUrdu ? "font-urdu" : ""}`}
+            className={`text-base sm:text-lg font-medium text-slate-500 leading-relaxed ${isUrdu ? "font-urdu" : ""}`}
             dir="rtl"
           >
             {subtitle}
@@ -100,33 +88,27 @@ const KokanHubBento = ({ config = {} }) => {
             <Link
               key={card.id}
               to={card.link}
-              className={`group relative rounded-3xl border ${card.borderColor} bg-white p-6 sm:p-7 shadow-xs hover:shadow-[0_16px_36px_rgba(212,175,55,0.14)] transition-all duration-300 flex flex-col justify-between overflow-hidden hover:-translate-y-1.5`}
+              className="group relative rounded-3xl border border-slate-200/90 bg-white p-6 sm:p-7 shadow-xs hover:shadow-xl transition-all duration-300 flex flex-col justify-between overflow-hidden hover:-translate-y-1.5 text-slate-900 hover:border-emerald-300"
             >
-              {/* Background ambient gradient */}
-              <div className={`absolute inset-0 bg-gradient-to-br ${card.bgGradient} opacity-60 group-hover:opacity-100 transition-opacity pointer-events-none`} />
-
-              {/* Decorative top-right corner gold glow */}
-              <div className="absolute -top-10 -right-10 w-24 h-24 bg-amber-400/10 rounded-full blur-xl group-hover:bg-amber-400/25 transition-all pointer-events-none" />
-
               <div className="relative z-10 space-y-4">
                 {/* Icon & Badge Row */}
                 <div className="flex items-center justify-between">
-                  <div className={`w-13 h-13 rounded-2xl bg-gradient-to-tr ${card.accent} text-white flex items-center justify-center shadow-md group-hover:scale-108 transition-transform border border-white/20`}>
+                  <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-800 flex items-center justify-center shadow-xs group-hover:scale-108 transition-transform border border-emerald-200/80">
                     <Icon className="w-6 h-6 stroke-[2]" />
                   </div>
-                  <span className={`text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-full border ${card.badgeColor} ${isUrdu ? "font-urdu text-xs" : ""}`}>
+                  <span className={`text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-full border border-slate-200 bg-slate-50 text-slate-600 ${isUrdu ? "font-urdu text-xs" : ""}`}>
                     {displayBadge}
                   </span>
                 </div>
 
                 {/* Titles */}
                 <div className="space-y-1.5">
-                  <h3 className={`text-lg sm:text-xl font-bold text-slate-900 group-hover:text-emerald-900 transition-colors ${isUrdu ? "font-urdu leading-loose" : "leading-snug"}`}>
+                  <h3 className={`text-lg sm:text-xl font-bold text-slate-900 group-hover:text-emerald-800 transition-colors ${isUrdu ? "font-urdu leading-loose" : "leading-snug"}`}>
                     {displayTitle}
                   </h3>
                   {!isUrdu && (
                     <p 
-                      className="text-sm font-bold text-amber-900/80 leading-relaxed font-urdu" 
+                      className="text-sm font-bold text-emerald-700/80 leading-relaxed font-urdu" 
                       dir="rtl"
                     >
                       {card.titleUrdu}
@@ -141,12 +123,12 @@ const KokanHubBento = ({ config = {} }) => {
               </div>
 
               {/* Bottom CTA Arrow */}
-              <div className="relative z-10 pt-4 mt-5 border-t border-slate-100 flex items-center justify-between text-xs font-bold text-slate-700 group-hover:text-amber-800 transition-colors">
+              <div className="relative z-10 pt-4 mt-5 border-t border-slate-100 flex items-center justify-between text-xs font-bold text-emerald-800 group-hover:text-emerald-900 transition-colors">
                 <span className={`flex items-center gap-1.5 font-bold ${isUrdu ? "font-urdu text-sm" : ""}`}>
                   <span>{isUrdu ? "پورٹل میں داخل ہوں" : "Enter Portal"}</span>
                   {!isUrdu && <span className="text-[11px] text-slate-400 font-normal">| داخل ہوں</span>}
                 </span>
-                <div className="w-6 h-6 rounded-full bg-slate-100 group-hover:bg-amber-100 group-hover:text-amber-900 flex items-center justify-center transition-all">
+                <div className="w-6 h-6 rounded-full bg-emerald-50 group-hover:bg-emerald-800 group-hover:text-white flex items-center justify-center transition-all text-emerald-800">
                   <ArrowRightIcon className={`w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5 ${isUrdu ? "rotate-180" : ""}`} />
                 </div>
               </div>

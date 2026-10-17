@@ -6,6 +6,7 @@ import {
   ArrowDownTrayIcon,
   CalendarDaysIcon,
 } from '@heroicons/react/24/outline';
+import { useLanguage } from '../../context/LanguageContext';
 
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL ||
@@ -35,6 +36,9 @@ const formatDate = (dateStr) => {
 const IslamicAnnouncementTicker = ({ updates, config = {} }) => {
   const [dismissed, setDismissed] = useState(false);
   const [activeModalItem, setActiveModalItem] = useState(null);
+  const { currentLang } = useLanguage();
+  const isUrdu = currentLang === 'ur';
+  const isArabic = currentLang === 'ar';
 
   if (dismissed) return null;
   if (!updates || (!updates.jumah && !updates.moon)) return null;
@@ -68,56 +72,71 @@ const IslamicAnnouncementTicker = ({ updates, config = {} }) => {
 
   return (
     <>
-      <div className="relative overflow-hidden bg-gradient-to-r from-emerald-950 via-slate-950 to-teal-950 text-white shadow-xs border-b border-emerald-500/20">
-        <div className="max-w-7xl mx-auto px-3 py-1.5 sm:px-6 sm:py-2 flex items-center justify-between gap-2 text-[11px] sm:text-xs">
-          {/* Slim Horizontal Alerts Strip */}
-          <div className="flex items-center gap-2.5 sm:gap-4 overflow-x-auto no-scrollbar whitespace-nowrap min-w-0 flex-1 py-0.5">
-            {/* Jumah Alert */}
+      <div className="relative overflow-hidden bg-gradient-to-r from-[#021811] via-[#053023] to-[#021811] text-white shadow-md border-b border-amber-500/25">
+        {/* Subtle Ambient Gold Highlight line at the very top */}
+        <div className="absolute top-0 inset-x-0 h-[1px] bg-gradient-to-r from-transparent via-amber-400/50 to-transparent" />
+        
+        <div className="max-w-7xl mx-auto px-4 py-2 sm:py-2.5 relative flex items-center justify-between text-[11px] sm:text-xs">
+          
+          {/* Centered Royal Alerts Ribbon */}
+          <div className="flex-1 flex items-center justify-center gap-3 sm:gap-6 flex-wrap text-center py-0.5 min-w-0">
+            {/* Jumah Alert Capsule */}
             {jumah && (
-              <div className="flex items-center gap-1.5 shrink-0">
-                <span className="font-bold text-emerald-300">🕌 Jumah:</span>
-                <span className="bg-emerald-900/60 text-emerald-200 px-1.5 py-0.5 rounded text-[10px] sm:text-[11px] font-semibold border border-emerald-700/50">
-                  {formatDate(jumah.event_date) || 'This Week'}
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#031d15]/90 border border-emerald-500/25 shadow-xs backdrop-blur-xs shrink-0">
+                <span className="font-bold text-white flex items-center gap-1">
+                  <span>🕌</span>
+                  <span>{isUrdu ? 'خطباتِ جمعہ:' : (isArabic ? 'خطب الجمعة:' : 'Jumah:')}</span>
+                </span>
+                <span className="bg-[#06261b] text-slate-200 px-2.5 py-0.5 rounded-full text-[10px] sm:text-[11px] font-medium border border-emerald-500/20">
+                  {formatDate(jumah.event_date) || (isUrdu ? 'اس ہفتے' : 'This Week')}
                 </span>
                 <button
                   type="button"
                   onClick={() => setActiveModalItem(jumah)}
-                  className="text-emerald-300 hover:text-white underline font-semibold text-[11px] sm:text-xs cursor-pointer ml-0.5"
+                  className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-900/60 hover:bg-emerald-800/80 border border-emerald-500/30 hover:border-amber-400/50 text-slate-100 hover:text-white font-semibold text-[10px] sm:text-[11px] transition-all cursor-pointer shadow-2xs hover:scale-105 active:scale-95"
                 >
-                  View Schedule
+                  <span>{isUrdu ? 'شیڈول دیکھیں' : (isArabic ? 'عرض الجدول' : 'View Schedule')}</span>
+                  <span className="text-[9px]">➔</span>
                 </button>
               </div>
             )}
 
-            {jumah && moon && <span className="text-white/30 shrink-0">•</span>}
+            {jumah && moon && (
+              <span className="hidden sm:inline-block text-emerald-500/40 select-none text-xs">❖</span>
+            )}
 
-            {/* Moon Alert */}
+            {/* Moon Alert Capsule */}
             {moon && (
-              <div className="flex items-center gap-1.5 shrink-0">
-                <span className="font-bold text-amber-300">🌙 Chand Ailaan:</span>
-                <span className="bg-amber-900/60 text-amber-200 px-1.5 py-0.5 rounded text-[10px] sm:text-[11px] font-semibold border border-amber-700/50">
-                  {formatDate(moon.event_date) || 'Latest'}
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#031d15]/90 border border-emerald-500/25 shadow-xs backdrop-blur-xs shrink-0">
+                <span className="font-bold text-white flex items-center gap-1">
+                  <span>🌙</span>
+                  <span>{isUrdu ? 'رؤیتِ ہلال:' : (isArabic ? 'رؤية الهلال:' : 'Moon Sighting:')}</span>
+                </span>
+                <span className="bg-[#06261b] text-slate-200 px-2.5 py-0.5 rounded-full text-[10px] sm:text-[11px] font-medium border border-emerald-500/20">
+                  {formatDate(moon.event_date) || (isUrdu ? 'تازہ ترین' : 'Latest')}
                 </span>
                 <button
                   type="button"
                   onClick={() => setActiveModalItem(moon)}
-                  className="text-amber-300 hover:text-white underline font-semibold text-[11px] sm:text-xs cursor-pointer ml-0.5"
+                  className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-900/60 hover:bg-emerald-800/80 border border-emerald-500/30 hover:border-amber-400/50 text-slate-100 hover:text-white font-semibold text-[10px] sm:text-[11px] transition-all cursor-pointer shadow-2xs hover:scale-105 active:scale-95"
                 >
-                  View Details
+                  <span>{isUrdu ? 'تفصیلات دیکھیں' : (isArabic ? 'عرض التفاصيل' : 'View Details')}</span>
+                  <span className="text-[9px]">➔</span>
                 </button>
               </div>
             )}
           </div>
 
           {/* Dismiss Button */}
-          <div className="flex items-center shrink-0 pl-1">
+          <div className="flex items-center shrink-0 ms-2">
             <button
               type="button"
               onClick={() => setDismissed(true)}
               aria-label="Dismiss banner"
-              className="p-1 rounded-md text-white/50 hover:text-white hover:bg-white/10 transition cursor-pointer"
+              className="p-1 rounded-full text-slate-400 hover:text-white hover:bg-white/10 transition cursor-pointer"
+              title="Close"
             >
-              <XMarkIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              <XMarkIcon className="w-4 h-4" />
             </button>
           </div>
         </div>

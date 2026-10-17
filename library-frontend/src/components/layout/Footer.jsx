@@ -65,7 +65,7 @@ const Footer = () => {
   ]), []);
 
   return (
-    <footer data-site-footer className="relative bg-gradient-to-b from-[#031525] via-[#052827] to-[#010911] text-white pt-16 pb-8 font-sans border-t-2 border-amber-500/25 overflow-hidden shadow-2xl">
+    <footer data-site-footer className="relative bg-gradient-to-b from-[#041610] via-[#07241b] to-[#020b08] text-white pt-16 pb-8 font-sans border-t-2 border-amber-500/30 overflow-hidden shadow-2xl">
       {/* Subtle Islamic Arabesque Geometric Watermark Pattern */}
       <div 
         className="absolute inset-0 opacity-[0.035] pointer-events-none mix-blend-overlay"
@@ -89,7 +89,7 @@ const Footer = () => {
             <div>
               <span 
                 className="text-lg font-bold text-white block leading-tight tracking-wide drop-shadow-sm"
-                style={{ fontFamily: "'Mehr Nastaliq Web', 'Mehr', 'Noto Nastaliq Urdu', serif" }}
+                style={{ fontFamily: "'Gulzar', 'Noto Nastaliq Urdu', serif" }}
               >
                 مرکز اہل حدیث کوکن
               </span>
@@ -101,7 +101,7 @@ const Footer = () => {
 
           <p 
             className="text-slate-300/90 text-xs sm:text-sm leading-relaxed"
-            style={{ fontFamily: "'Mehr Nastaliq Web', 'Mehr', 'Noto Nastaliq Urdu', serif", lineHeight: "1.9" }}
+            style={{ fontFamily: "'Gulzar', 'Noto Nastaliq Urdu', serif", lineHeight: "2.1" }}
           >
             مستند اسلامی علوم، تفاسیر، کتبِ احادیث، فقہ اور فتاویٰ کا جدید ڈیجیٹل ذخیرہ، جو خالص کتاب و سنت کی اشاعت کے لیے وقف ہے۔
           </p>

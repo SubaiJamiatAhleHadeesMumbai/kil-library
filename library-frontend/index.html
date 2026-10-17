@@ -54,17 +54,18 @@
       .font-mehr, .font-mehr *,
       [lang="ur"], [lang="ur"] *,
       html[lang="ur"] body, html[lang="ur"] body * {
-        font-family: 'Noto Nastaliq Urdu', 'Mehr Nastaliq Web', 'Mehr', 'Jameel Noori Nastaleeq', 'JameelNoori', serif !important;
+        font-family: 'Gulzar', 'Noto Nastaliq Urdu', 'Mehr Nastaliq Web', 'Mehr', 'Jameel Noori Nastaleeq', serif !important;
         letter-spacing: normal !important;
-        line-height: 2.1;
+        line-height: 2.3;
       }
       html[lang="ur"] h1, html[lang="ur"] h2, html[lang="ur"] h3,
       body.font-urdu h1, body.font-urdu h2, body.font-urdu h3,
       .font-urdu h1, .font-urdu h2, .font-urdu h3 {
-        line-height: 2.0 !important;
+        line-height: 2.2 !important;
       }
       body.font-arabic, .font-arabic {
-        font-family: 'Amiri', 'Noto Sans Arabic', 'Almarai', serif !important;
+        font-family: 'Amiri', 'Traditional Arabic', serif !important;
+        line-height: 1.9;
       }
 
       /* Hide Google Translate top toolbar banner & popup */
@@ -97,8 +98,85 @@
     </style>
     
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover" />
-    <meta name="theme-color" content="#002147" />
-    <title>Kokan Islamic Library | مرکز الدعوة الإسلامية والخيرية</title>
+    <meta name="theme-color" content="#064e3b" />
+    <title>Kokan Islamic Library | Markaz Ahle Hadees Kokan - Online Books & Fatawa</title>
+    
+    <!-- Primary SEO Meta Tags -->
+    <meta name="title" content="Kokan Islamic Library | Markaz Ahle Hadees Kokan - Online Books & Fatawa" />
+    <meta name="description" content="Kokan Islamic Library (کوکن اسلامک لائبریری) by Markaz Ahle Hadees Kokan. Authentic digital repository for Islamic books, Tafseer, Hadith, Fatawa, and rare manuscripts in Urdu, Arabic, and English." />
+    <meta name="keywords" content="Kokan Islamic Library, kokan islamic library, ahlehadees kokan, ahle hadees kokan, markaz ahle hadees kokan, کوکن اسلامک لائبریری, مرکز اہل حدیث کوکن, islamic digital library, urdu islamic books, fatwa online khed, khed ratnagiri, ahlehadeeskokan.com, islamic research platform, darul ifta kokan" />
+    <meta name="author" content="Markaz Ahle Hadees Kokan" />
+    <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />
+    <link rel="canonical" href="https://www.ahlehadeeskokan.com/" />
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Kokan Islamic Library" />
+    <meta property="og:title" content="Kokan Islamic Library | Markaz Ahle Hadees Kokan" />
+    <meta property="og:description" content="Authentic digital Islamic library with thousands of books, Hadith collections, Tafseer, and verified scholarly Fatawa." />
+    <meta property="og:url" content="https://www.ahlehadeeskokan.com/" />
+    <meta property="og:image" content="https://www.ahlehadeeskokan.com/logo.png" />
+    <meta property="og:locale" content="en_US" />
+    <meta property="og:locale:alternate" content="ur_PK" />
+    <meta property="og:locale:alternate" content="ar_SA" />
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:site" content="@AhleHadeesKokan" />
+    <meta name="twitter:title" content="Kokan Islamic Library | Markaz Ahle Hadees Kokan" />
+    <meta name="twitter:description" content="Authentic digital Islamic library with thousands of books, Hadith collections, Tafseer, and verified scholarly Fatawa." />
+    <meta name="twitter:image" content="https://www.ahlehadeeskokan.com/logo.png" />
+
+    <!-- Schema.org Structured Data (JSON-LD) for Google Rich Snippets -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "Library",
+          "@id": "https://www.ahlehadeeskokan.com/#library",
+          "name": "Kokan Islamic Library",
+          "alternateName": [
+            "کوکن اسلامک لائبریری",
+            "Markaz Ahle Hadees Kokan Library",
+            "مرکز الدعوة الإسلامية والخيرية"
+          ],
+          "url": "https://www.ahlehadeeskokan.com",
+          "logo": "https://www.ahlehadeeskokan.com/logo.png",
+          "image": "https://www.ahlehadeeskokan.com/logo.png",
+          "description": "Authentic digital Islamic library with thousands of books, Hadith collections, Tafseer, and verified scholarly Fatawa.",
+          "address": {
+            "@type": "PostalAddress",
+            "streetAddress": "Bait-us-Salam Complex, Bharna Naka",
+            "addressLocality": "Khed",
+            "addressRegion": "Maharashtra",
+            "postalCode": "415709",
+            "addressCountry": "IN"
+          },
+          "sameAs": [
+            "https://youtube.com/@markaz-ahle-hadees-kokan",
+            "https://www.facebook.com/share/p/1KApR5ZNkf/",
+            "https://x.com/AhleHadeesKokan",
+            "https://www.instagram.com/markazahlehadeeskokan"
+          ]
+        },
+        {
+          "@type": "WebSite",
+          "@id": "https://www.ahlehadeeskokan.com/#website",
+          "url": "https://www.ahlehadeeskokan.com",
+          "name": "Kokan Islamic Library",
+          "publisher": {
+            "@id": "https://www.ahlehadeeskokan.com/#library"
+          },
+          "potentialAction": {
+            "@type": "SearchAction",
+            "target": "https://www.ahlehadeeskokan.com/library?search={search_term_string}",
+            "query-input": "required name=search_term_string"
+          }
+        }
+      ]
+    }
+    </script>
 
     <!-- Early Language & Direction Initializer -->
     <script>

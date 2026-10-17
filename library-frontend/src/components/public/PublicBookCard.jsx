@@ -132,10 +132,13 @@ const PublicBookCard = ({
       initial={{ opacity: 0, y: 15 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35 }}
-      whileHover={{ y: -7 }}
+      whileHover={{ y: -6 }}
       onClick={handleCardClick}
-      className={`group relative mx-auto w-full max-w-[340px] overflow-hidden rounded-3xl border border-slate-200/80 bg-white shadow-sm transition-all duration-300 cursor-pointer hover:border-amber-400/60 hover:shadow-[0_20px_35px_-12px_rgba(16,185,129,0.22)] sm:max-w-none ${className}`}
+      className={`group relative mx-auto w-full max-w-[340px] overflow-hidden rounded-3xl border border-slate-200/90 bg-white shadow-xs transition-all duration-300 cursor-pointer hover:border-emerald-300 hover:shadow-xl sm:max-w-none ${className}`}
     >
+      {/* Royal Gold Hanging Ribbon */}
+      <div className="royal-ribbon-tag opacity-80 group-hover:opacity-100 transition-opacity" />
+
       {/* Top Badges */}
       <div className="absolute top-3 start-3 z-20 flex flex-col gap-1">
         {isRestricted ? (
@@ -171,30 +174,30 @@ const PublicBookCard = ({
           onClick={(e) => onToggleFavorite(e, book?.id)}
           whileHover={{ scale: 1.15 }}
           whileTap={{ scale: 0.95 }}
-          className={`absolute bottom-3 end-3 z-20 rounded-full p-2 shadow-md transition-all duration-200 ${
+          className={`absolute bottom-3 end-3 z-20 rounded-full p-2 shadow-sm transition-all duration-200 ${
             isFavorite
-              ? "bg-amber-50 text-amber-600 border border-amber-300 ring-2 ring-amber-500/20"
-              : "bg-white/95 text-slate-500 hover:text-emerald-600 border border-slate-200 hover:bg-white hover:shadow-lg"
+              ? "bg-amber-100 text-amber-600 border border-amber-300 ring-2 ring-amber-400/30"
+              : "bg-white/90 text-slate-400 hover:text-emerald-700 border border-slate-200 hover:bg-white hover:shadow-md"
           }`}
           title={isFavorite ? "Saved in Favorites" : "Save to Favorites"}
         >
           {isFavorite ? (
-            <BookmarkSolid className="h-4 w-4 text-amber-600" />
+            <BookmarkSolid className="h-4 w-4 text-amber-500" />
           ) : (
-            <BookmarkOutline className="h-4 w-4 text-slate-600 hover:text-emerald-600" />
+            <BookmarkOutline className="h-4 w-4 text-slate-400 hover:text-emerald-700" />
           )}
         </motion.button>
       )}
 
       {/* 3D Realistic Book Cover Showcase */}
-      <div className="relative flex justify-center bg-gradient-to-b from-slate-50/80 via-white to-amber-50/15 px-3 pb-3 pt-5 transition-all duration-300 group-hover:from-emerald-50/30 sm:px-4 sm:pb-3 sm:pt-6">
-        <div className="relative aspect-[2/3] w-[122px] overflow-hidden rounded-xl bg-slate-100 shadow-[0_8px_20px_-6px_rgba(0,0,0,0.2)] transition-all duration-300 group-hover:shadow-[0_16px_28px_-6px_rgba(0,0,0,0.3)] group-hover:-translate-y-1 sm:w-[152px] md:w-[175px] lg:w-[185px]">
+      <div className="relative flex justify-center bg-gradient-to-b from-slate-50 via-slate-100/60 to-white px-3 pb-3 pt-5 transition-all duration-300 group-hover:from-emerald-50/50 sm:px-4 sm:pb-3 sm:pt-6">
+        <div className="book-cover-3d relative aspect-[2/3] w-[122px] overflow-hidden rounded-xl bg-slate-100 shadow-[0_8px_20px_-6px_rgba(0,0,0,0.15)] transition-all duration-300 group-hover:shadow-[0_16px_28px_-6px_rgba(6,78,59,0.22)] group-hover:-translate-y-1 sm:w-[152px] md:w-[175px] lg:w-[185px]">
           
           {/* 📖 REALISTIC 3D BOOK SPINE CREASE & SHADOW (Apple Books Effect) */}
-          <div className="pointer-events-none absolute inset-y-0 start-0 w-3 bg-gradient-to-r from-black/35 via-black/10 to-transparent z-10" />
+          <div className="pointer-events-none absolute inset-y-0 start-0 w-3 bg-gradient-to-r from-black/25 via-black/5 to-transparent z-10" />
           <div className="pointer-events-none absolute inset-y-0 start-0 w-[1.5px] bg-white/45 z-10" />
-          <div className="pointer-events-none absolute inset-y-0 end-0 w-[2px] bg-black/15 z-10" />
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[2px] bg-black/25 z-10" />
+          <div className="pointer-events-none absolute inset-y-0 end-0 w-[2px] bg-black/10 z-10" />
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[2px] bg-black/15 z-10" />
 
           {!imgLoaded && (
             <div className="absolute inset-0 bg-slate-200 animate-pulse shimmer-placeholder" />
@@ -215,9 +218,9 @@ const PublicBookCard = ({
           )}
 
           {/* Hover Preview Overlay */}
-          <div className="absolute inset-0 bg-slate-950/0 group-hover:bg-slate-950/35 transition flex items-center justify-center z-15">
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-950/80 border border-white/30 px-3.5 py-1.5 text-[11px] font-bold text-white opacity-0 transition group-hover:opacity-100 shadow-lg backdrop-blur-xs">
-              <BookOpenIcon className="w-3.5 h-3.5 text-amber-400" />
+          <div className="absolute inset-0 bg-emerald-950/0 group-hover:bg-emerald-950/25 transition flex items-center justify-center z-15">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-900/90 border border-white/30 px-3.5 py-1.5 text-[11px] font-bold text-white opacity-0 transition group-hover:opacity-100 shadow-lg backdrop-blur-xs">
+              <BookOpenIcon className="w-3.5 h-3.5 text-amber-300" />
               <span>{hasDigitalPdf ? "مطالعہ کریں" : "عنقریب..."}</span>
             </span>
           </div>
@@ -227,17 +230,17 @@ const PublicBookCard = ({
       {/* Book Metadata & Title */}
       <div className="relative z-10 flex flex-grow flex-col px-3.5 pb-4 text-center sm:px-4 sm:pb-5">
         <h3
-          className="mb-1.5 line-clamp-2 text-[0.95rem] font-bold leading-snug text-slate-900 transition-colors group-hover:text-emerald-700 sm:text-sm md:text-base"
+          className="mb-1.5 line-clamp-2 text-[1rem] font-bold leading-snug text-slate-900 transition-colors group-hover:text-emerald-800 sm:text-base md:text-lg"
           style={{
-            fontFamily: "'Noto Nastaliq Urdu', 'Mehr Nastaliq Web', 'Mehr', 'Jameel Noori Nastaleeq', serif",
-            lineHeight: "1.85",
+            fontFamily: "'Gulzar', 'Noto Nastaliq Urdu', serif",
+            lineHeight: "2.1",
           }}
         >
           {title}
         </h3>
 
         <p className="line-clamp-1 text-[11px] text-slate-500 sm:text-xs font-medium">
-          مؤلف: <span className="text-slate-800 font-semibold">{author}</span>
+          مؤلف: <span className="text-slate-700 font-semibold">{author}</span>
         </p>
       </div>
     </motion.div>

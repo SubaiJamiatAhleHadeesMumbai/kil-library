@@ -83,18 +83,18 @@ const LanguageSwitcher = ({
       <button
         type="button"
         onClick={() => setIsOpen(prev => !prev)}
-        className="flex items-center gap-1 px-2.5 py-1.5 rounded-full bg-emerald-50/80 text-emerald-800 border border-emerald-200 hover:bg-emerald-100 hover:border-emerald-300 font-bold text-[11px] transition-all duration-200 shadow-2xs group cursor-pointer focus:outline-none focus:ring-2 focus:ring-emerald-400/30"
+        className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#031d15]/90 text-slate-200 border border-emerald-500/30 hover:border-emerald-400/50 hover:text-white hover:bg-emerald-950 font-semibold text-[11px] transition-all duration-200 shadow-2xs group cursor-pointer focus:outline-none"
         aria-label="Select Language"
         aria-expanded={isOpen}
         title={currentLanguage?.name || 'Change Language'}
       >
-        <GlobeAltIcon className="w-3.5 h-3.5 text-emerald-600 group-hover:rotate-45 transition-transform duration-300 flex-shrink-0" />
-        <span className="font-extrabold text-[11px] tracking-wider uppercase">
+        <GlobeAltIcon className="w-3.5 h-3.5 text-emerald-400 group-hover:rotate-45 transition-transform duration-300 flex-shrink-0" />
+        <span className="font-extrabold text-[11px] tracking-wider uppercase text-slate-200 group-hover:text-white">
           {LANG_SHORT_CODES[currentLang] || currentLang.toUpperCase()}
         </span>
         <ChevronDownIcon
-          className={`w-3 h-3 text-emerald-600 transition-transform duration-200 ${
-            isOpen ? 'rotate-180' : ''
+          className={`w-3 h-3 text-slate-400 transition-transform duration-200 ${
+            isOpen ? 'rotate-180 text-white' : 'group-hover:text-slate-200'
           }`}
         />
       </button>
@@ -109,7 +109,7 @@ const LanguageSwitcher = ({
             transition={{ duration: 0.15, ease: "easeOut" }}
             className={`absolute end-0 ${
               isUp ? 'bottom-full mb-2' : 'top-full mt-2'
-            } w-40 bg-white/95 backdrop-blur-xl rounded-2xl shadow-xl border border-slate-200/90 p-1.5 z-[110] overflow-hidden notranslate ring-1 ring-black/5`}
+            } w-44 bg-[#051c14]/98 backdrop-blur-2xl rounded-2xl shadow-2xl border border-amber-500/30 p-1.5 z-[110] overflow-hidden notranslate ring-1 ring-amber-400/20 text-white`}
             translate="no"
           >
             <div className="space-y-0.5">
@@ -123,13 +123,13 @@ const LanguageSwitcher = ({
                     onClick={() => handleSelect(lang.code)}
                     className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs transition-all duration-150 cursor-pointer text-start ${fontClass} ${
                       isSelected
-                        ? 'bg-emerald-50 text-emerald-900 font-bold shadow-2xs border border-emerald-100/80'
-                        : 'text-slate-700 hover:bg-slate-50 hover:text-[#002147] font-medium'
+                        ? 'bg-amber-500/20 text-amber-300 font-bold shadow-2xs border border-amber-400/30'
+                        : 'text-slate-200 hover:bg-emerald-900/60 hover:text-amber-200 font-medium'
                     }`}
                   >
                     <span className="text-sm tracking-normal">{lang.name}</span>
                     {isSelected && (
-                      <CheckIcon className="w-4 h-4 text-emerald-600 stroke-[3] flex-shrink-0 ms-2" />
+                      <CheckIcon className="w-4 h-4 text-amber-400 stroke-[3] flex-shrink-0 ms-2" />
                     )}
                   </button>
                 );

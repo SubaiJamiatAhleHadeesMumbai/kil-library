@@ -10,17 +10,17 @@ import settingsService from "../api/settingsService";
 const ThemeContext = createContext(null);
 
 export const DEFAULT_UI_SETTINGS = {
-  primary_color: "#002147",
-  primary_hover: "#003166",
-  primary_light: "#EEF4FF",
-  secondary_color: "#064e3b",
-  accent_color: "#2D89C8",
+  primary_color: "#064E3B",
+  primary_hover: "#022C22",
+  primary_light: "#ECFDF5",
+  secondary_color: "#047857",
+  accent_color: "#D4AF37",
   border_radius: "rounded", // "sharp" | "rounded" | "pill"
   spacing_density: "comfortable", // "compact" | "comfortable" | "spacious"
   font_scale: "normal", // "compact" | "normal" | "spacious"
   arabic_font: "Noto Naskh Arabic",
   urdu_font: "Noto Nastaliq Urdu",
-  default_language: "en",
+  default_language: "ur",
   enabled_languages: ["en", "ur", "ar"],
   theme_mode: "light",
   allow_user_theme_override: false,

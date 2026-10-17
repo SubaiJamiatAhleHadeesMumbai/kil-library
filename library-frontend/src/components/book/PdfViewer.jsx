@@ -43,6 +43,54 @@ const PdfViewer = ({
   const [fallbackAttempted, setFallbackAttempted] = useState(false);
   const [docTotalPages, setDocTotalPages] = useState(() => totalPages || 1);
   const [renderedPages, setRenderedPages] = useState(() => new Set([currentPage]));
+  const [isJumpOpen, setIsJumpOpen] = useState(false);
+  const [jumpInput, setJumpInput] = useState(String(currentPage || 1));
+
+  // Sync jump input with current page
+  useEffect(() => {
+    setJumpInput(String(currentPage || 1));
+  }, [currentPage]);
+
+  // Touch Pinch-to-Zoom & Double-Tap Zoom Handlers across entire reader
+  const touchStartDistRef = useRef(0);
+  const touchStartScaleRef = useRef(scale);
+  const lastTapRef = useRef(0);
+
+  const handleTouchStart = (e) => {
+    if (e.touches.length === 2) {
+      const dist = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY
+      );
+      touchStartDistRef.current = dist;
+      touchStartScaleRef.current = scale;
+    } else if (e.touches.length === 1) {
+      const now = Date.now();
+      if (now - lastTapRef.current < 280) {
+        // Double-tap zoom toggle (reset to 1.0 or zoom to 1.45)
+        setScale(prev => (prev > 1.15 ? 1.0 : 1.45));
+        lastTapRef.current = 0;
+      } else {
+        lastTapRef.current = now;
+      }
+    }
+  };
+
+  const handleTouchMove = (e) => {
+    if (e.touches.length === 2 && touchStartDistRef.current > 0) {
+      const dist = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY
+      );
+      const ratio = dist / touchStartDistRef.current;
+      const target = Math.min(2.5, Math.max(0.4, Number((touchStartScaleRef.current * ratio).toFixed(2))));
+      setScale(target);
+    }
+  };
+
+  const handleTouchEnd = () => {
+    touchStartDistRef.current = 0;
+  };
 
   // Sync active URL when pdfUrl prop changes
   useEffect(() => {
@@ -257,12 +305,59 @@ const PdfViewer = ({
             </button>
           </div>
 
-          {/* Page indicator */}
-          <div className="flex items-center gap-1 text-[10px] font-semibold px-1 font-mono">
-            <span className="bg-sky-500/25 text-sky-300 px-1.5 py-0.2 rounded font-bold">{currentPage}</span>
-            <span className="opacity-35">/</span>
-            <span className="text-slate-300">{totalPages}</span>
-          </div>
+          {/* Interactive Direct Page Jump */}
+          {isJumpOpen ? (
+            <form 
+              onSubmit={(e) => {
+                e.preventDefault();
+                const p = parseInt(jumpInput, 10);
+                if (!isNaN(p) && p >= 1 && p <= effectiveTotalPages) {
+                  setCurrentPage(p);
+                }
+                setIsJumpOpen(false);
+              }}
+              className="flex items-center gap-1 px-1"
+            >
+              <input
+                type="number"
+                min={1}
+                max={effectiveTotalPages}
+                value={jumpInput}
+                onChange={(e) => setJumpInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Escape') setIsJumpOpen(false);
+                }}
+                onBlur={() => {
+                  const p = parseInt(jumpInput, 10);
+                  if (!isNaN(p) && p >= 1 && p <= effectiveTotalPages) {
+                    setCurrentPage(p);
+                  }
+                  setIsJumpOpen(false);
+                }}
+                autoFocus
+                className="w-11 px-1 py-0.5 bg-slate-800 text-amber-300 font-mono text-[11px] font-bold rounded border border-amber-400/70 text-center outline-none shadow-inner"
+                title="Type page number & press Enter"
+              />
+              <span className="opacity-35 text-[10px] font-mono">/</span>
+              <span className="text-slate-300 text-[10px] font-mono">{effectiveTotalPages}</span>
+            </form>
+          ) : (
+            <button
+              type="button"
+              onClick={() => {
+                setJumpInput(String(currentPage));
+                setIsJumpOpen(true);
+              }}
+              className="flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-md hover:bg-white/20 transition cursor-pointer font-mono"
+              title="Click to jump to any page (e.g. Page 25)"
+            >
+              <span className="bg-sky-500/30 hover:bg-sky-500/50 text-sky-300 px-1.5 py-0.2 rounded font-bold underline decoration-dotted underline-offset-2">
+                {currentPage}
+              </span>
+              <span className="opacity-35">/</span>
+              <span className="text-slate-300">{effectiveTotalPages}</span>
+            </button>
+          )}
 
           {/* Next page button */}
           <button
@@ -300,8 +395,11 @@ const PdfViewer = ({
       <div 
         ref={scrollAreaRef} 
         onScroll={handlePdfScroll}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
         className="flex-1 min-h-0 w-full overflow-y-auto px-1 sm:px-3 pt-2 pb-28 sm:pb-32 custom-scrollbar overscroll-contain"
-        style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}
+        style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-x pan-y pinch-zoom' }}
       >
         {!pdfUrl ? (
           <div className="flex flex-col items-center justify-center text-slate-400 h-full animate-in fade-in duration-700">
@@ -506,7 +604,7 @@ const PdfViewer = ({
         .react-pdf__Page,
         .react-pdf__Page__canvas,
         .react-pdf__Page__textContent {
-          touch-action: pan-y !important;
+          touch-action: pan-x pan-y pinch-zoom !important;
         }
         .custom-scrollbar::-webkit-scrollbar {
           width: 6px;

@@ -167,15 +167,15 @@ const getBookViews = (book) => {
 
 // High-Fidelity Skeleton Loader
 const BookCardSkeleton = () => (
-  <div className="bg-white border border-slate-200/80 rounded-2xl overflow-hidden shadow-sm animate-pulse flex flex-col justify-between">
-    <div className="h-48 bg-slate-200" />
+  <div className="bg-[#07241b] border border-amber-500/20 rounded-2xl overflow-hidden shadow-sm animate-pulse flex flex-col justify-between">
+    <div className="h-48 bg-[#041610]" />
     <div className="p-4 space-y-3">
-      <div className="h-4 bg-slate-200 rounded-md w-3/4" />
-      <div className="h-3 bg-slate-150 rounded-md w-1/2" />
-      <div className="h-3 bg-slate-100 rounded-md w-2/3" />
+      <div className="h-4 bg-[#0d382b] rounded-md w-3/4" />
+      <div className="h-3 bg-[#0d382b]/80 rounded-md w-1/2" />
+      <div className="h-3 bg-[#0d382b]/60 rounded-md w-2/3" />
       <div className="pt-2 flex justify-between items-center">
-        <div className="h-5 w-16 bg-slate-200 rounded-full" />
-        <div className="h-5 w-10 bg-slate-200 rounded-md" />
+        <div className="h-5 w-16 bg-amber-500/20 rounded-full" />
+        <div className="h-5 w-10 bg-[#0d382b] rounded-md" />
       </div>
     </div>
   </div>
@@ -190,10 +190,10 @@ const CompactBookCard = ({ book, label, meta, onClick, progress = null, chips = 
     <button
       onClick={onClick}
       type="button"
-      className="group w-full rounded-2xl border border-slate-200/90 bg-white p-3.5 text-left shadow-xs transition-all duration-200 hover:-translate-y-1 hover:shadow-md hover:border-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-600 cursor-pointer"
+      className="group w-full rounded-2xl border border-amber-500/25 bg-[#041610]/90 p-3.5 text-left shadow-xs transition-all duration-200 hover:-translate-y-1 hover:shadow-md hover:border-amber-400/80 focus:outline-none focus:ring-2 focus:ring-amber-500 cursor-pointer text-white"
     >
       <div className="flex gap-3.5">
-        <div className="h-20 w-14 flex-shrink-0 overflow-hidden rounded-xl bg-slate-100 shadow-xs relative border border-slate-200/60">
+        <div className="h-20 w-14 flex-shrink-0 overflow-hidden rounded-xl bg-slate-900 shadow-xs relative border border-amber-500/30">
           <img
             src={coverUrl}
             alt={book?.title || "Book cover"}
@@ -205,15 +205,15 @@ const CompactBookCard = ({ book, label, meta, onClick, progress = null, chips = 
         <div className="min-w-0 flex-1 flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between gap-2">
-              <span className="inline-flex max-w-full rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.15em] text-emerald-700">
+              <span className="inline-flex max-w-full rounded-full bg-amber-500/20 border border-amber-400/30 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.15em] text-amber-300">
                 {label}
               </span>
-              {meta ? <span className="text-[11px] text-slate-400 font-bold font-mono">{meta}</span> : null}
+              {meta ? <span className="text-[11px] text-amber-200/70 font-bold font-mono">{meta}</span> : null}
             </div>
-            <h4 className="mt-1 line-clamp-1 text-sm font-bold leading-snug text-slate-900 group-hover:text-emerald-700">
+            <h4 className="mt-1 line-clamp-1 text-sm font-bold leading-snug text-white group-hover:text-amber-300">
               {book?.title}
             </h4>
-            <p className="mt-0.5 line-clamp-1 text-xs text-slate-500">
+            <p className="mt-0.5 line-clamp-1 text-xs text-slate-300">
               {authorName}
             </p>
           </div>
@@ -623,25 +623,14 @@ const PublicHome = () => {
       glass: 'bg-white/70 backdrop-blur-xl',
     };
 
-    if (theme === 'night') {
-      return {
-        shell: `bg-slate-950 text-slate-100`,
-        card: 'bg-slate-900/90 text-slate-100 border-slate-800',
-        muted: 'text-slate-400',
-        heading: headingClasses[headingStyle] || headingClasses.serif,
-        button: buttonClasses[buttonStyle] || buttonClasses.solid,
-        spacing: spacingClasses[spacingScale] || spacingClasses.comfortable,
-        background: backgroundClasses[backgroundStyle] || backgroundClasses.aurora,
-      };
-    }
     return {
-      shell: `bg-[#F8FAFC] text-slate-900`,
-      card: 'bg-white text-slate-800 border-slate-200',
+      shell: `bg-transparent text-slate-900`,
+      card: 'bg-white text-slate-900 border-slate-200/90 shadow-xs',
       muted: 'text-slate-500',
       heading: headingClasses[headingStyle] || headingClasses.serif,
       button: buttonClasses[buttonStyle] || buttonClasses.solid,
       spacing: spacingClasses[spacingScale] || spacingClasses.comfortable,
-      background: backgroundClasses[backgroundStyle] || backgroundClasses.aurora,
+      background: 'bg-transparent',
     };
   }, [homepageSettings?.theme, homepageSettings?.heading_style, homepageSettings?.button_style, homepageSettings?.spacing_scale, homepageSettings?.background_style]);
 
@@ -661,7 +650,7 @@ const PublicHome = () => {
   const posterSection = getSectionConfig('posters', { enabled: layout.show_posters !== false });
   const showPosterBlock = posterSection.enabled !== false;
   const accentColor = homepageSettings?.accent_color || '#002147';
-  const sectionFrameClass = "rounded-[2rem] border border-slate-200/80 bg-white/90 p-6 sm:p-8 shadow-[0_24px_70px_-35px_rgba(15,23,42,0.12)] backdrop-blur-md transition-all duration-300";
+  const sectionFrameClass = "rounded-[2.5rem] border border-slate-200/90 bg-white p-6 sm:p-8 shadow-xs transition-all duration-300 text-slate-900";
 
   const orderedHomepageSections = useMemo(() => {
     const defaults = {
@@ -729,15 +718,51 @@ const PublicHome = () => {
         </div>
       )}
 
+      {/* HADITH OF THE DAY CARD (Clean Noorani Banner) */}
+      <div className="app-shell-container pb-4 sm:pb-6" dir="rtl">
+        <div className="rounded-3xl border border-slate-200/90 bg-white p-5 sm:p-7 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-5 hover:border-emerald-300 transition-all">
+          <div className="flex-1 text-center sm:text-right space-y-2">
+            <span className="inline-block rounded-full bg-emerald-50 border border-emerald-200/80 text-emerald-800 px-3.5 py-1 text-xs font-bold shadow-2xs">
+              ✨ حدیثِ مبارکہ
+            </span>
+            <div 
+              className="text-lg sm:text-2xl font-bold text-emerald-950 leading-relaxed font-serif"
+              style={{ fontFamily: "'Amiri', 'Traditional Arabic', serif" }}
+            >
+              «خَيْرُكُمْ مَنْ تَعَلَّمَ الْقُرْآنَ وَعَلَّمَهُ»
+            </div>
+            <div 
+              className="text-sm sm:text-base text-slate-700 leading-relaxed"
+              style={{ fontFamily: "'Gulzar', 'Noto Nastaliq Urdu', serif", lineHeight: 2.2 }}
+            >
+              ”تم میں سے سب سے بہتر وہ شخص ہے جو قرآن سیکھے اور سکھائے۔“
+            </div>
+            <div className="text-xs text-slate-500 font-medium font-mono">
+              صحیح البخاری: 5027 • کتاب فضائل القرآن
+            </div>
+          </div>
+
+          <a
+            href="https://api.whatsapp.com/send?text=%D8%AD%D8%AF%DB%8C%D8%AB%D9%90%20%D9%85%D8%A8%D8%A7%D8%B1%DA%A9%DB%81%3A%20%C2%AB%D8%AE%D9%8E%D9%8A%D9%92%D8%B1%D9%8F%DA%A9%D9%8F%D9%85%D9%92%20%D9%85%D9%8E%D9%86%D9%92%20%D8%AA%D9%8E%D8%B9%D9%8E%D9%84%D9%8E%D9%81%D9%8E%20%D8%A7%D9%84%D9%92%D9%82%D9%8F%D8%B1%D9%92%D8%A2%D9%86%D9%8E%20%D9%88%D9%8E%D8%B9%D9%8E%D9%84%D9%8E%D9%81%D9%8E%D9%87%D9%8F%C2%BB%20%D8%B5%D8%AD%DB%8C%D8%AD%20%D8%A7%D9%84%D8%A8%D8%AE%D8%A7%D8%B1%DB%8C%3A%205027%20https%3A%2F%2Fwww.ahlehadeeskokan.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 rounded-full bg-emerald-800 hover:bg-emerald-900 text-white font-bold px-5 py-2.5 text-xs sm:text-sm shadow-sm transition-all cursor-pointer whitespace-nowrap active:scale-95 flex-shrink-0"
+          >
+            <span>📲</span>
+            <span>واٹس ایپ پر شیئر کریں</span>
+          </a>
+        </div>
+      </div>
+
       {/* CONTINUE READING SECTION (Recent Reads) */}
       {recentReadBooks && recentReadBooks.length > 0 && (
         <div className="app-shell-container pb-4 sm:pb-6">
-          <div className="rounded-3xl border border-emerald-100 bg-gradient-to-r from-emerald-50/70 via-white to-teal-50/50 p-4 sm:p-6 shadow-xs">
+          <div className="rounded-3xl border border-slate-200/90 bg-white p-4 sm:p-6 shadow-xs text-slate-900">
             <div className="mb-3.5 flex items-center justify-between gap-3">
               <div className="flex items-center gap-2">
                 <span className="flex h-3 w-3 relative">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+                  <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-600"></span>
                 </span>
                 <h3 className="text-base sm:text-lg font-black text-slate-900 flex items-center gap-2">
                   <span>{getLangText('پڑھائی جاری رکھیں', 'متابعة القراءة', 'Continue Reading')}</span>
@@ -763,6 +788,92 @@ const PublicHome = () => {
           </div>
         </div>
       )}
+
+      {/* 📚 FEATURED BOOKS (منتخب کتب) */}
+      {featuredBooks && featuredBooks.length > 0 && (
+        <div className="app-shell-container py-6 sm:py-8">
+          <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 flex items-center gap-2">
+                <span>
+                  {getLangText('منتخب کتب (Featured Books)', 'الكتب المختارة', 'Featured Books')}
+                </span>
+              </h2>
+              <p className="mt-1 text-xs sm:text-sm text-slate-500 font-serif">
+                {getLangText('نایاب و مستند کتب کا خاص علمی انتخاب', 'مختارات من أندر وأوثق الكتب والمخطوطات', 'Curated Rare & Authoritative Islamic Works')}
+              </p>
+            </div>
+            <button
+              onClick={() => navigateToTop('/library')}
+              className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-4 py-1.5 text-xs sm:text-sm font-bold text-emerald-800 hover:bg-emerald-50 hover:border-emerald-300 transition-all shadow-2xs cursor-pointer"
+            >
+              <span>{getLangText('مکمل فہرست ملاحظہ فرمائیں ←', 'عرض الكل ←', 'View Full Catalog →')}</span>
+            </button>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3.5 sm:gap-5">
+            {featuredBooks.slice(0, 6).map((book) => (
+              <PublicBookCard
+                key={book.id}
+                book={book}
+                onClick={() => setSelectedBook(book)}
+                isFavorite={favorites.includes(book.id)}
+                onToggleFavorite={toggleFavorite}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* 🏛️ 3 ARCH CARDS (علمی خدمات) */}
+      <div className="app-shell-container pb-8 sm:pb-12">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+          <div 
+            onClick={() => navigateToTop('/library')}
+            className="group cursor-pointer rounded-t-[50px] rounded-b-2xl border border-slate-200/90 bg-white p-6 text-center shadow-xs hover:shadow-xl hover:border-emerald-300 hover:-translate-y-1 transition-all text-slate-900"
+          >
+            <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-emerald-50 border border-emerald-200 text-2xl text-emerald-800 shadow-2xs group-hover:scale-105 transition-all">
+              📜
+            </div>
+            <h4 className="mb-2 text-lg font-bold text-slate-900 group-hover:text-emerald-800 transition-colors">
+              {getLangText('نایاب مخطوطات', 'مخطوطات نادرة', 'Rare Manuscripts')}
+            </h4>
+            <p className="text-xs text-slate-600 leading-relaxed font-serif">
+              {getLangText('قدیم تاریخی مخطوطات اور نایاب کتب کے اصل اسکینز اعلیٰ ترین ریزولوشن کے ساتھ محفوظ۔', 'مخطوطات أصلية ونادرة بدقة عالية.', 'Historic manuscripts and rare classic scans preserved in high fidelity.')}
+            </p>
+          </div>
+
+          <div 
+            onClick={() => navigateToTop('/fatawa')}
+            className="group cursor-pointer rounded-t-[50px] rounded-b-2xl border border-slate-200/90 bg-white p-6 text-center shadow-xs hover:shadow-xl hover:border-emerald-300 hover:-translate-y-1 transition-all text-slate-900"
+          >
+            <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-emerald-50 border border-emerald-200 text-2xl text-emerald-800 shadow-2xs group-hover:scale-105 transition-all">
+              🏛️
+            </div>
+            <h4 className="mb-2 text-lg font-bold text-slate-900 group-hover:text-emerald-800 transition-colors">
+              {getLangText('دار الافتاء و تحقیق', 'دار الإفتاء والبحوث', 'Research & Fatawa')}
+            </h4>
+            <p className="text-xs text-slate-600 leading-relaxed font-serif">
+              {getLangText('مستند علمائے کرام کے فتاویٰ اور علمی سوالات و جوابات کی مستند تلاش اور مطالعہ۔', 'فتاوى معتمدة وبحوث إسلامية موثقة.', 'Verified rulings, inquiries, and scholastic research by esteemed scholars.')}
+            </p>
+          </div>
+
+          <div 
+            onClick={() => navigateToTop('/library')}
+            className="group cursor-pointer rounded-t-[50px] rounded-b-2xl border border-slate-200/90 bg-white p-6 text-center shadow-xs hover:shadow-xl hover:border-emerald-300 hover:-translate-y-1 transition-all text-slate-900"
+          >
+            <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-emerald-50 border border-emerald-200 text-2xl text-emerald-800 shadow-2xs group-hover:scale-105 transition-all">
+              📚
+            </div>
+            <h4 className="mb-2 text-lg font-bold text-slate-900 group-hover:text-emerald-800 transition-colors">
+              {getLangText('خطہ کوکن کا تاریخی ورثہ', 'تراث منطقة كوكن', 'Kokan Regional Heritage')}
+            </h4>
+            <p className="text-xs text-slate-600 leading-relaxed font-serif">
+              {getLangText('علمائے کوکن کی تصانیف، رسائل، اور تاریخی دستاویزات کا منظم ڈیجیٹل ذخیرہ۔', 'مؤلفات علماء كوكن ووثائقهم التاريخية.', 'Works of Kokan scholars, periodicals, and historical digital archives.')}
+            </p>
+          </div>
+        </div>
+      </div>
 
       {/* DYNAMIC HOMEPAGE SECTIONS */}
       {orderedHomepageSections.map(({ key }) => {
@@ -836,7 +947,7 @@ const PublicHome = () => {
                   <div className="flex items-center gap-2.5">
                     <div className="w-2.5 h-6 rounded-full bg-emerald-600"></div>
                     <div>
-                      <h2 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight">
+                      <h2 className="text-lg sm:text-xl font-bold text-slate-900 tracking-tight">
                         {resolveMultilingualText(galleryConfig.title) || getLangText('مرکز تصویری نگارخانہ', 'معرض صور المركز', 'Markaz Gallery & Events')}
                       </h2>
                       <p className="text-xs text-slate-500 font-medium">
@@ -847,11 +958,11 @@ const PublicHome = () => {
 
                   <div className="flex items-center gap-2">
                     {/* Left & Right adjustment buttons */}
-                    <div className="flex items-center gap-1.5 bg-slate-100/90 p-1 rounded-full border border-slate-200/70 shadow-2xs">
+                    <div className="flex items-center gap-1.5 bg-white p-1 rounded-full border border-slate-200 shadow-xs">
                       <button
                         type="button"
                         onClick={() => gallerySwiper?.slidePrev()}
-                        className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white hover:bg-slate-50 text-slate-700 flex items-center justify-center transition-all shadow-xs cursor-pointer active:scale-95"
+                        className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-slate-100 hover:bg-emerald-50 text-emerald-800 flex items-center justify-center transition-all shadow-xs cursor-pointer active:scale-95 border border-slate-200/60"
                         aria-label="Previous slide"
                         title="Previous"
                       >
@@ -860,7 +971,7 @@ const PublicHome = () => {
                       <button
                         type="button"
                         onClick={() => gallerySwiper?.slideNext()}
-                        className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white hover:bg-slate-50 text-slate-700 flex items-center justify-center transition-all shadow-xs cursor-pointer active:scale-95"
+                        className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-slate-100 hover:bg-emerald-50 text-emerald-800 flex items-center justify-center transition-all shadow-xs cursor-pointer active:scale-95 border border-slate-200/60"
                         aria-label="Next slide"
                         title="Next"
                       >
@@ -870,8 +981,7 @@ const PublicHome = () => {
 
                     <button
                       onClick={() => navigateToTop('/gallery')}
-                      className="inline-flex items-center gap-1.5 px-3.5 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs font-bold text-white transition-all shadow-xs hover:opacity-95 hover:shadow-md shrink-0 cursor-pointer active:scale-95"
-                      style={{ backgroundColor: accentColor }}
+                      className="inline-flex items-center gap-1.5 px-3.5 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs font-bold text-white bg-emerald-800 hover:bg-emerald-900 transition-all shadow-xs hover:shadow-md shrink-0 cursor-pointer active:scale-95"
                     >
                       <span>{getLangText('مکمل نگارخانہ', 'عرض الكل', 'View All')}</span>
                       <ArrowRightIcon className={`h-3.5 w-3.5 ${isRTL ? 'rotate-180' : ''}`} />
@@ -986,11 +1096,11 @@ const PublicHome = () => {
             <div key="fatawa" className="app-shell-container pb-6 sm:pb-12" dir={isRTL ? "rtl" : "ltr"}>
               <div className={sectionFrameClass}>
                 {/* Clean Scholarly Header */}
-                <div className="mb-6 flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-slate-200/80 pb-5">
+                <div className="mb-6 flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-slate-200 pb-5">
                   <div>
                     <h3
-                      className="text-2xl sm:text-3xl font-extrabold text-slate-900 leading-snug"
-                      style={{ fontFamily: isRTL ? (currentLang === 'ar' ? "'Noto Naskh Arabic', serif" : "'Noto Nastaliq Urdu', 'Mehr Nastaliq Web', 'Mehr', 'JameelNoori', serif") : "inherit" }}
+                      className="text-2xl sm:text-3xl font-bold text-slate-900 leading-snug"
+                      style={{ fontFamily: isRTL ? (currentLang === 'ar' ? "'Amiri', serif" : "'Gulzar', 'Noto Nastaliq Urdu', serif") : "inherit" }}
                     >
                       {resolveMultilingualText(fatawaConfig.title) || getLangText('شرعی مسائل اور مستند رہنمائی', 'الفتاوى الشرعية والاستشارات', 'Authentic Islamic Rulings & Inquiries')}
                     </h3>
@@ -1007,8 +1117,7 @@ const PublicHome = () => {
                   <div className="flex items-center gap-2.5 flex-wrap flex-shrink-0">
                     <button
                       onClick={() => setAskQuestionOpen(true)}
-                      className="inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs sm:text-sm font-semibold text-white transition-all shadow-sm hover:opacity-95 active:scale-95 cursor-pointer"
-                      style={{ backgroundColor: accentColor }}
+                      className="inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs sm:text-sm font-semibold text-white bg-emerald-800 hover:bg-emerald-900 transition-all shadow-xs active:scale-95 cursor-pointer"
                     >
                       <PlusIcon className="h-4 w-4" />
                       <span>{getLangText('سوال پوچھیں', 'اطرح سؤالك', 'Ask a Question')}</span>
@@ -1016,7 +1125,7 @@ const PublicHome = () => {
 
                     <button
                       onClick={() => navigateToTop('/fatawa')}
-                      className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 px-3.5 py-2.5 text-xs sm:text-sm font-semibold text-slate-700 hover:text-slate-900 transition shadow-2xs cursor-pointer"
+                      className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 px-3.5 py-2.5 text-xs sm:text-sm font-semibold text-slate-700 hover:text-slate-900 transition shadow-xs cursor-pointer"
                     >
                       <span>{getLangText('تمام فتاویٰ', 'كافة الفتاوى', 'Browse All')}</span>
                       <ArrowRightIcon className={`h-3.5 w-3.5 ${isRTL ? 'rotate-180' : ''}`} />
@@ -1035,12 +1144,12 @@ const PublicHome = () => {
                         <div
                           key={item.id}
                           onClick={() => navigateToTop(`/fatawa?id=${item.id}`)}
-                          className="group flex flex-col justify-between p-4 sm:p-5 rounded-xl bg-white border border-slate-200 hover:border-emerald-400 hover:shadow-md transition-all cursor-pointer"
+                          className="group flex flex-col justify-between p-4 sm:p-5 rounded-2xl bg-white border border-slate-200/90 text-slate-900 hover:border-emerald-600/40 hover:shadow-xl transition-all cursor-pointer"
                         >
                           <div>
                             <div className="flex items-center justify-between gap-2 mb-2.5">
                               {displayCategory && (
-                                <span className="text-[11px] font-medium text-slate-500">
+                                <span className="text-[11px] font-semibold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-100">
                                   {displayCategory}
                                 </span>
                               )}
@@ -1059,7 +1168,7 @@ const PublicHome = () => {
                             <span className="font-medium text-slate-700 truncate max-w-[160px]">
                               {item.mufti_name ? `${getLangText('مفتی:', 'المفتي:', 'Mufti:')} ${item.mufti_name}` : getLangText('دار الافتاء', 'دار الإفتاء', 'Dar-ul-Ifta')}
                             </span>
-                            <span className="text-emerald-700 group-hover:underline font-semibold flex items-center gap-1">
+                            <span className="text-emerald-800 group-hover:text-emerald-900 group-hover:underline font-semibold flex items-center gap-1">
                               {getLangText('تفصیل دیکھیں', 'عرض الفتوى', 'Read More')}
                               <ArrowRightIcon className={`w-3 h-3 ${isRTL ? 'rotate-180' : ''}`} />
                             </span>
@@ -1069,18 +1178,18 @@ const PublicHome = () => {
                     })}
                   </div>
                 ) : (
-                  <div className="p-6 sm:p-8 rounded-2xl bg-gradient-to-br from-emerald-950 via-slate-900 to-slate-950 text-white shadow-sm flex flex-col md:flex-row items-center justify-between gap-6">
+                  <div className="p-6 sm:p-8 rounded-2xl bg-emerald-900 text-white shadow-xs flex flex-col md:flex-row items-center justify-between gap-6">
                     <div className="max-w-xl text-center md:text-start">
                       <p
-                        className="text-lg sm:text-2xl font-bold text-emerald-300 mb-1.5"
-                        style={{ fontFamily: isRTL ? "'Traditional Arabic', 'Amiri', serif" : "inherit" }}
+                        className="text-lg sm:text-2xl font-bold text-emerald-200 mb-1.5"
+                        style={{ fontFamily: isRTL ? "'Amiri', serif" : "inherit" }}
                       >
                         فَاسْأَلُوا أَهْلَ الذِّكْرِ إِن كُنتُمْ لَا تَعْلَمُونَ
                       </p>
                       <p className="text-xs text-emerald-200/80 mb-3 font-medium">
                         {getLangText('”پس اہل علم سے پوچھ لو اگر تم نہیں جانتے۔“ (سورۃ النحل: 43)', '«فَاسْأَلُوا أَهْلَ الذِّكْرِ إِن كُنتُمْ لَا تَعْلَمُونَ» (النحل: 43)', '"So ask the people of knowledge if you do not know." (Surah An-Nahl: 43)')}
                       </p>
-                      <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
+                      <p className="text-xs sm:text-sm text-emerald-100/90 leading-relaxed">
                         {getLangText(
                           'روزمرہ کے عبادات، معاملات اور فقہی سوالات پر مستند مفتیانِ کرام سے شرعی رہنمائی حاصل کریں۔ تمام استفسارات کو مکمل صیغۂ راز میں رکھا جاتا ہے۔',
                           'احصل على إجابات موثقة لمسائلك الشرعية من كبار العلماء والمفتين بكل سرية وأمانة علمية وفق الكتاب والسنة.',
@@ -1091,13 +1200,13 @@ const PublicHome = () => {
                     <div className="flex flex-col sm:flex-row gap-3 flex-shrink-0 w-full sm:w-auto">
                       <button
                         onClick={() => setAskQuestionOpen(true)}
-                        className="px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs sm:text-sm transition text-center cursor-pointer shadow-sm"
+                        className="px-5 py-2.5 rounded-xl bg-white hover:bg-slate-100 text-emerald-950 font-bold text-xs sm:text-sm transition text-center cursor-pointer shadow-sm"
                       >
                         {getLangText('اپنا سوال ارسال کریں', 'طرح سؤال جديد', 'Submit a Question')}
                       </button>
                       <button
                         onClick={() => navigateToTop('/fatawa')}
-                        className="px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-medium text-xs sm:text-sm transition text-center cursor-pointer border border-white/20"
+                        className="px-4 py-2.5 rounded-xl bg-emerald-800/80 hover:bg-emerald-800 text-white font-medium text-xs sm:text-sm transition text-center cursor-pointer border border-emerald-700"
                       >
                         {getLangText('تمام فتاویٰ دیکھیں', 'أرشيف الفتاوى', 'View Fatawa Archive')}
                       </button>
@@ -1128,34 +1237,33 @@ const PublicHome = () => {
               <div className={sectionFrameClass}>
                 <div className="mb-4 flex flex-col sm:flex-row items-start sm:items-end justify-between gap-4">
                   <div className="flex-1">
-                    <p className="eyebrow text-xs font-extrabold uppercase tracking-widest" style={{ color: accentColor }}>
+                    <p className="eyebrow text-xs font-bold uppercase tracking-widest text-emerald-800">
                       {resolveMultilingualText(aboutConfig.title, 'مرکز کا تعارف')}
                     </p>
                     <h3
-                      className="section-title text-xl sm:text-2xl font-extrabold text-slate-900 mt-1 leading-snug"
-                      style={{ fontFamily: "'Noto Nastaliq Urdu', 'Mehr Nastaliq Web', 'Mehr', 'JameelNoori', serif" }}
+                      className="section-title text-xl sm:text-2xl font-bold text-slate-900 mt-1 leading-snug"
+                      style={{ fontFamily: "'Gulzar', 'Noto Nastaliq Urdu', serif" }}
                     >
                       {resolveMultilingualText(aboutContent?.hero?.title, 'مرکز الدعوۃ الاسلامیۃ والخیریہ (سونس، کھیڈ - رتناگری)')}
                     </h3>
                   </div>
                   <button
                     onClick={() => navigateToTop('/about')}
-                    className="inline-flex items-center gap-2 rounded-full px-6 py-3 text-sm font-bold text-white transition-all shadow-lg hover:shadow-xl hover:opacity-95 focus:outline-none focus:ring-2 focus:ring-offset-2 whitespace-nowrap"
-                    style={{ backgroundColor: accentColor, outlineColor: accentColor }}
+                    className="inline-flex items-center gap-2 rounded-full px-6 py-2.5 text-xs sm:text-sm font-bold text-white bg-emerald-800 hover:bg-emerald-900 transition-all shadow-xs hover:shadow-md whitespace-nowrap cursor-pointer"
                   >
                     مزید پڑھیں <ArrowRightIcon className="h-4 w-4" />
                   </button>
                 </div>
 
                 {/* Full-Width Makhtota Manuscript Card with Read More Clamp */}
-                <div className="w-full rounded-[2.5rem] border-2 border-[#E2D4BE] bg-[#FAF6EE] p-6 sm:p-10 shadow-[inset_0_0_40px_rgba(180,140,75,0.04),0_8px_24px_rgba(0,0,0,0.03)] ring-1 ring-[#D8C6A5] transition-all duration-300">
+                <div className="w-full rounded-[2rem] border border-slate-200/90 bg-white p-6 sm:p-10 shadow-xs transition-all duration-300 text-slate-900">
                   <div className="flex flex-col justify-between" dir="rtl">
                     <div className="space-y-4">
-                      <div className="flex items-center justify-between border-b border-[#E2D4BE] pb-3 mb-4">
-                        <div className="inline-flex items-center gap-2 rounded-full bg-[#8B6E32]/10 px-4 py-1 text-xs font-bold text-[#8B6E32] w-fit">
+                      <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
+                        <div className="inline-flex items-center gap-2 rounded-full bg-emerald-50 border border-emerald-200 px-4 py-1 text-xs font-bold text-emerald-800 w-fit">
                           📜 تعارف و پس منظر
                         </div>
-                        <span className="text-xs font-serif text-[#8B6E32] tracking-widest">
+                        <span className="text-xs text-emerald-700 tracking-widest">
                           ✦ ✦ ✦
                         </span>
                       </div>
@@ -1172,19 +1280,18 @@ const PublicHome = () => {
 
                         {/* Bottom Gradient Fade when collapsed */}
                         {!isAboutExpanded && (
-                          <div className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-[#FAF6EE] via-[#FAF6EE]/90 to-transparent pointer-events-none" />
+                          <div className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-white via-white/90 to-transparent pointer-events-none" />
                         )}
                       </div>
                     </div>
 
                     {/* Expand/Collapse & Full About Link Controls */}
-                    <div className="mt-6 pt-4 border-t border-[#E8DEC9] flex flex-wrap items-center justify-between gap-4">
+                    <div className="mt-6 pt-4 border-t border-slate-100 flex flex-wrap items-center justify-between gap-4">
                       <div className="flex items-center gap-3">
                         <button
                           type="button"
                           onClick={() => setIsAboutExpanded((prev) => !prev)}
-                          className="inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-xs sm:text-sm font-bold text-white transition-all shadow-sm hover:opacity-95 focus:outline-none focus:ring-2 focus:ring-offset-2 cursor-pointer"
-                          style={{ backgroundColor: accentColor }}
+                          className="inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-xs sm:text-sm font-bold text-white bg-emerald-800 hover:bg-emerald-900 transition-all shadow-xs active:scale-95 cursor-pointer"
                         >
                           <span>{isAboutExpanded ? 'مختصر کریں (Show Less)' : 'مزید پڑھیں (Read More)'}</span>
                           {isAboutExpanded ? (
@@ -1197,7 +1304,7 @@ const PublicHome = () => {
                         <button
                           type="button"
                           onClick={() => navigateToTop('/about')}
-                          className="inline-flex items-center gap-1.5 rounded-full border border-[#8B6E32]/40 bg-white/80 px-4 py-2 text-xs sm:text-sm font-bold text-[#8B6E32] hover:bg-white transition cursor-pointer"
+                          className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 hover:bg-slate-100 px-4 py-2 text-xs sm:text-sm font-bold text-slate-700 transition cursor-pointer"
                         >
                           <span>مکمل صفحہ کھولیں</span>
                           <ArrowRightIcon className="h-3.5 w-3.5" />
@@ -1205,8 +1312,8 @@ const PublicHome = () => {
                       </div>
 
                       <span
-                        className="text-xs sm:text-sm font-semibold text-[#8B6E32]"
-                        style={{ fontFamily: "'Noto Nastaliq Urdu', 'Mehr Nastaliq Web', 'Mehr', serif" }}
+                        className="text-xs sm:text-sm font-semibold text-slate-500 font-urdu"
+                        style={{ fontFamily: "'Gulzar', 'Noto Nastaliq Urdu', serif" }}
                       >
                         مرکز کے تفصیلی اغراض و مقاصد اور شاخیں ←
                       </span>

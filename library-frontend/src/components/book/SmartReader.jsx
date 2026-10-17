@@ -59,6 +59,12 @@ const SmartReader = ({
   const [isLandingLocked, setIsLandingLocked] = useState(() => initialPage > 1 || Boolean(initialSearchText));
   const [pdfReady, setPdfReady] = useState(() => !pdfUrl);
   const [textReady, setTextReady] = useState(() => !txtUrl);
+  const [isHeaderJumpOpen, setIsHeaderJumpOpen] = useState(false);
+  const [headerJumpInput, setHeaderJumpInput] = useState(String(initialPage || 1));
+
+  useEffect(() => {
+    setHeaderJumpInput(String(currentPage || 1));
+  }, [currentPage]);
 
   // ---------------------------------------------------------
   // Lock body scroll while reader is mounted
@@ -551,9 +557,59 @@ const SmartReader = ({
                 <span className="hidden sm:inline">Back</span>
               </button>
 
-              <div className="min-w-0 flex flex-col max-w-[130px] sm:max-w-xs md:max-w-md">
+              <div className="min-w-0 flex flex-col max-w-[140px] sm:max-w-xs md:max-w-md">
                 <span className="truncate text-xs sm:text-sm font-bold text-slate-900 leading-tight">{bookTitle}</span>
-                <span className="truncate text-[10.5px] font-mono text-slate-500">Page {currentPage} of {displayTotalPages}</span>
+                {isHeaderJumpOpen ? (
+                  <form
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      const p = parseInt(headerJumpInput, 10);
+                      if (!isNaN(p) && p >= 1 && p <= displayTotalPages) {
+                        setIsLandingLocked(false);
+                        setCurrentPage(p);
+                      }
+                      setIsHeaderJumpOpen(false);
+                    }}
+                    className="flex items-center gap-1 mt-0.5"
+                  >
+                    <span className="text-[10px] text-slate-500 font-medium">Page:</span>
+                    <input
+                      type="number"
+                      min={1}
+                      max={displayTotalPages}
+                      value={headerJumpInput}
+                      onChange={(e) => setHeaderJumpInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Escape') setIsHeaderJumpOpen(false);
+                      }}
+                      onBlur={() => {
+                        const p = parseInt(headerJumpInput, 10);
+                        if (!isNaN(p) && p >= 1 && p <= displayTotalPages) {
+                          setIsLandingLocked(false);
+                          setCurrentPage(p);
+                        }
+                        setIsHeaderJumpOpen(false);
+                      }}
+                      autoFocus
+                      className="w-12 px-1 py-0 bg-amber-50 text-emerald-950 font-mono text-[11px] font-bold rounded border border-emerald-400 text-center outline-none shadow-xs"
+                      title="Type page number & press Enter"
+                    />
+                    <span className="text-[10px] text-slate-400 font-mono">/ {displayTotalPages}</span>
+                  </form>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setHeaderJumpInput(String(currentPage));
+                      setIsHeaderJumpOpen(true);
+                    }}
+                    className="truncate text-[10.5px] font-mono text-slate-500 hover:text-emerald-700 text-left cursor-pointer flex items-center gap-1 group/jump transition"
+                    title="Click to jump to any page number"
+                  >
+                    <span>Page <strong className="text-emerald-800 font-bold group-hover/jump:underline">{currentPage}</strong> of {displayTotalPages}</span>
+                    <span className="text-[9px] bg-emerald-50 text-emerald-700 border border-emerald-200/80 px-1 py-0.2 rounded font-sans font-semibold">Jump</span>
+                  </button>
+                )}
               </div>
             </div>
 

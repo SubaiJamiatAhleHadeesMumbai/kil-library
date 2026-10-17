@@ -37,7 +37,7 @@ const MobileBottomNav = ({ config = null, onOpenSearch }) => {
   return (
     <nav
       aria-label="Mobile Navigation"
-      className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-xl border-t border-slate-200/80 shadow-[0_-4px_20px_rgba(0,0,0,0.06)] pb-[env(safe-area-inset-bottom)]"
+      className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#051c14]/95 backdrop-blur-xl border-t border-amber-500/25 shadow-[0_-4px_25px_rgba(0,0,0,0.6)] text-white pb-[env(safe-area-inset-bottom)]"
     >
       <div className="flex items-center justify-around h-15 px-2 max-w-lg mx-auto">
         {/* 1. Home */}
@@ -46,13 +46,13 @@ const MobileBottomNav = ({ config = null, onOpenSearch }) => {
             to="/"
             className={({ isActive }) =>
               `flex flex-col items-center justify-center flex-1 py-1 transition-all active:scale-90 ${
-                isActive ? 'text-[#002147] font-bold' : 'text-slate-400 hover:text-slate-600 font-medium'
+                isActive ? 'text-amber-300 font-bold' : 'text-slate-400 hover:text-amber-200 font-medium'
               }`
             }
           >
             {({ isActive }) => (
               <>
-                {isActive ? <HomeIconSolid className="w-5 h-5 text-[#002147]" /> : <HomeIcon className="w-5 h-5" />}
+                {isActive ? <HomeIconSolid className="w-5 h-5 text-amber-400" /> : <HomeIcon className="w-5 h-5" />}
                 <span className="text-[10px] mt-0.5">Home</span>
               </>
             )}
@@ -65,13 +65,13 @@ const MobileBottomNav = ({ config = null, onOpenSearch }) => {
             to="/books"
             className={({ isActive }) =>
               `flex flex-col items-center justify-center flex-1 py-1 transition-all active:scale-90 ${
-                isActive ? 'text-[#002147] font-bold' : 'text-slate-400 hover:text-slate-600 font-medium'
+                isActive ? 'text-amber-300 font-bold' : 'text-slate-400 hover:text-amber-200 font-medium'
               }`
             }
           >
             {({ isActive }) => (
               <>
-                {isActive ? <BookOpenIconSolid className="w-5 h-5 text-[#002147]" /> : <BookOpenIcon className="w-5 h-5" />}
+                {isActive ? <BookOpenIconSolid className="w-5 h-5 text-amber-400" /> : <BookOpenIcon className="w-5 h-5" />}
                 <span className="text-[10px] mt-0.5">Library</span>
               </>
             )}
@@ -84,12 +84,12 @@ const MobileBottomNav = ({ config = null, onOpenSearch }) => {
             <button
               type="button"
               onClick={onOpenSearch}
-              className="flex items-center justify-center w-12 h-12 rounded-full bg-gradient-to-tr from-[#002147] to-[#0d3b66] text-white shadow-lg shadow-blue-950/30 border-2 border-white active:scale-90 transition-transform cursor-pointer"
+              className="flex items-center justify-center w-12 h-12 rounded-full bg-gradient-to-tr from-amber-500 via-amber-600 to-amber-700 text-slate-950 shadow-lg shadow-amber-950/50 border-2 border-amber-400/60 active:scale-90 transition-transform cursor-pointer"
               title="Search Library & Fatawa"
             >
-              <MagnifyingGlassIcon className="w-5 h-5" />
+              <MagnifyingGlassIcon className="w-5 h-5 stroke-[2.5]" />
             </button>
-            <span className="text-[9.5px] font-bold text-slate-600 mt-0.5">Search</span>
+            <span className="text-[9.5px] font-bold text-amber-300 mt-0.5">Search</span>
           </div>
         )}
 
@@ -99,14 +99,14 @@ const MobileBottomNav = ({ config = null, onOpenSearch }) => {
             to="/fatawa"
             className={({ isActive }) =>
               `flex flex-col items-center justify-center flex-1 py-1 transition-all active:scale-90 ${
-                isActive ? 'text-[#002147] font-bold' : 'text-slate-400 hover:text-slate-600 font-medium'
+                isActive ? 'text-amber-300 font-bold' : 'text-slate-400 hover:text-amber-200 font-medium'
               }`
             }
           >
             {({ isActive }) => (
               <>
                 {isActive ? (
-                  <ChatBubbleLeftRightIconSolid className="w-5 h-5 text-[#002147]" />
+                  <ChatBubbleLeftRightIconSolid className="w-5 h-5 text-amber-400" />
                 ) : (
                   <ChatBubbleLeftRightIcon className="w-5 h-5" />
                 )}
@@ -122,14 +122,14 @@ const MobileBottomNav = ({ config = null, onOpenSearch }) => {
             to={isAuth ? '/profile' : '/login'}
             className={({ isActive }) =>
               `flex flex-col items-center justify-center flex-1 py-1 transition-all active:scale-90 ${
-                isActive ? 'text-[#002147] font-bold' : 'text-slate-400 hover:text-slate-600 font-medium'
+                isActive ? 'text-amber-300 font-bold' : 'text-slate-400 hover:text-amber-200 font-medium'
               }`
             }
           >
             {({ isActive }) => (
               <>
                 {isActive ? (
-                  <UserCircleIconSolid className="w-5 h-5 text-[#002147]" />
+                  <UserCircleIconSolid className="w-5 h-5 text-amber-400" />
                 ) : (
                   <UserCircleIcon className="w-5 h-5" />
                 )}

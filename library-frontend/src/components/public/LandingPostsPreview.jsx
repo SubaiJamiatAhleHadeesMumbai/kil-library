@@ -66,16 +66,16 @@ const LandingPostsPreview = ({ onSelectPost = null }) => {
                 : `${API_BASE_URL}${p.startsWith("/") ? p : `/${p}`}`;
 
     return (
-        <section className="overflow-hidden rounded-[2rem] border border-slate-200 bg-gradient-to-br from-white via-slate-50 to-cyan-50/70 p-3 shadow-[0_20px_60px_-35px_rgba(15,23,42,0.25)] sm:p-5 lg:p-7">
+        <section className="overflow-hidden rounded-[2rem] border border-slate-200 bg-white p-3 sm:p-5 lg:p-7 shadow-xs text-slate-900">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
                 <div>
-                    <h2 className="text-xl font-extrabold text-[#002147] sm:text-3xl">
+                    <h2 className="text-xl font-bold text-slate-900 sm:text-2xl">
                         Latest Announcements
                     </h2>
                 </div>
                 <button
                     onClick={() => navigate("/posts")}
-                    className="inline-flex items-center justify-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-blue-700 shadow-sm transition hover:-translate-y-0.5 hover:bg-slate-50 sm:text-sm"
+                    className="inline-flex items-center justify-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-xs font-semibold text-slate-700 shadow-xs transition hover:bg-slate-100 hover:text-slate-900 sm:text-sm cursor-pointer"
                 >
                     View All
                     <ArrowLongRightIcon className="h-5 w-5" />
@@ -100,12 +100,12 @@ const LandingPostsPreview = ({ onSelectPost = null }) => {
                             return (
                                 <SwiperSlide key={post.id || i}>
                                     <div
-                                        className="group w-full overflow-hidden rounded-[1.75rem] border border-slate-200 bg-white shadow-md transition-all duration-300 hover:shadow-xl grid grid-cols-1 lg:grid-cols-[1.2fr_1fr] items-stretch"
+                                        className="group w-full overflow-hidden rounded-[1.75rem] border border-slate-200/90 bg-white shadow-xs transition-all duration-300 hover:shadow-lg hover:border-emerald-600/40 grid grid-cols-1 lg:grid-cols-[1.2fr_1fr] items-stretch"
                                     >
                                         {/* Left / Top Canvas: 100% Full Uncropped Poster Frame */}
                                         <div 
                                             onClick={() => handleSelectPost(post)}
-                                            className="relative min-h-[320px] sm:min-h-[440px] lg:min-h-[500px] flex items-center justify-center bg-slate-950 p-3 sm:p-6 overflow-hidden cursor-pointer"
+                                            className="relative min-h-[320px] sm:min-h-[440px] lg:min-h-[500px] flex items-center justify-center bg-slate-100 p-3 sm:p-6 overflow-hidden cursor-pointer"
                                         >
                                             {imageUrl ? (
                                                 <>
@@ -121,36 +121,36 @@ const LandingPostsPreview = ({ onSelectPost = null }) => {
                                                     <img
                                                         src={imageUrl}
                                                         alt={post?.title}
-                                                        className="relative z-10 max-h-[300px] sm:max-h-[420px] lg:max-h-[480px] w-auto max-w-full object-contain rounded-xl shadow-2xl drop-shadow-md transition-transform duration-500 group-hover:scale-[1.02]"
+                                                        className="relative z-10 max-h-[300px] sm:max-h-[420px] lg:max-h-[480px] w-auto max-w-full object-contain rounded-xl shadow-md transition-transform duration-500 group-hover:scale-[1.02]"
                                                     />
 
                                                     {/* Hover Click to Expand Badge */}
                                                     <div className="absolute top-3 right-3 sm:top-4 sm:right-4 z-20 flex items-center gap-1.5 rounded-full bg-black/70 backdrop-blur-md px-3 py-1.5 text-xs font-semibold text-white border border-white/20 shadow-sm opacity-90 group-hover:opacity-100 transition-opacity">
-                                                        <EyeIcon className="w-4 h-4 text-cyan-400" />
+                                                        <EyeIcon className="w-4 h-4 text-emerald-400" />
                                                         <span>Click to Zoom</span>
                                                     </div>
                                                 </>
                                             ) : (
-                                                <div className="flex flex-col items-center justify-center text-slate-500">
-                                                    <PhotoIcon className="h-16 w-16 text-slate-400 mb-2 opacity-50" />
-                                                    <span className="text-xs font-bold uppercase tracking-wider">Announcement</span>
+                                                <div className="flex flex-col items-center justify-center text-slate-400">
+                                                    <PhotoIcon className="h-16 w-16 text-slate-300 mb-2" />
+                                                    <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Announcement</span>
                                                 </div>
                                             )}
 
                                             {/* Tag / Announcement Badge */}
                                             <div className="absolute bottom-3 left-3 sm:bottom-4 sm:left-4 z-20">
-                                                <span className="inline-flex rounded-full border border-white/20 bg-black/60 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.2em] text-white backdrop-blur">
+                                                <span className="inline-flex rounded-full border border-slate-200 bg-white/90 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.2em] text-slate-700 backdrop-blur shadow-xs">
                                                     {post?.tags || "Announcement"}
                                                 </span>
                                             </div>
                                         </div>
 
                                         {/* Right / Bottom Info Panel */}
-                                        <div className="flex flex-col justify-between p-5 sm:p-7 lg:p-8 bg-gradient-to-b from-white to-slate-50/70 border-t border-slate-100 lg:border-t-0 lg:border-l lg:border-slate-100">
+                                        <div className="flex flex-col justify-between p-5 sm:p-7 lg:p-8 bg-white border-t border-slate-100 lg:border-t-0 lg:border-l text-slate-900">
                                             <div className="space-y-3 sm:space-y-4">
                                                 <div className="flex flex-wrap items-center gap-2 text-xs font-bold text-slate-500">
-                                                    <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-3 py-1 text-blue-800 border border-blue-100">
-                                                        <CalendarDaysIcon className="h-4 w-4 text-blue-600" />
+                                                    <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-emerald-800 border border-emerald-200">
+                                                        <CalendarDaysIcon className="h-4 w-4 text-emerald-700" />
                                                         {post?.created_at
                                                             ? new Date(post.created_at).toLocaleDateString()
                                                             : "Recent"}
@@ -159,7 +159,7 @@ const LandingPostsPreview = ({ onSelectPost = null }) => {
 
                                                 <h3 
                                                     onClick={() => handleSelectPost(post)}
-                                                    className="text-xl sm:text-2xl lg:text-3xl font-extrabold text-[#002147] leading-snug hover:text-blue-700 transition-colors cursor-pointer"
+                                                    className="text-xl sm:text-2xl lg:text-3xl font-bold text-slate-900 leading-snug hover:text-emerald-800 transition-colors cursor-pointer"
                                                 >
                                                     {post?.title || "Untitled Announcement"}
                                                 </h3>
@@ -169,16 +169,16 @@ const LandingPostsPreview = ({ onSelectPost = null }) => {
                                                 </p>
                                             </div>
 
-                                            <div className="mt-6 pt-4 border-t border-slate-200 flex items-center justify-between">
+                                            <div className="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between">
                                                 <button
                                                     type="button"
                                                     onClick={() => handleSelectPost(post)}
-                                                    className="inline-flex items-center gap-1.5 text-xs font-bold text-blue-700 hover:text-blue-900 transition-colors cursor-pointer"
+                                                    className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-800 hover:text-emerald-900 transition-colors cursor-pointer"
                                                 >
                                                     <EyeIcon className="w-4 h-4" />
                                                     <span>View Full Details & Download</span>
                                                 </button>
-                                                <span className="text-xs text-slate-400 font-semibold">
+                                                <span className="text-xs text-slate-500 font-semibold">
                                                     Markaz Ahle Hadees Kokan
                                                 </span>
                                             </div>
@@ -189,7 +189,7 @@ const LandingPostsPreview = ({ onSelectPost = null }) => {
                         })}
                     </Swiper>
                 ) : (
-                    <div className="rounded-[1.5rem] border border-dashed border-slate-300 bg-white/80 p-8 text-center text-sm text-slate-500">
+                    <div className="rounded-[1.5rem] border border-dashed border-slate-300 bg-slate-50 p-8 text-center text-sm text-slate-500">
                         No announcements yet. Please check back soon.
                     </div>
                 )}
