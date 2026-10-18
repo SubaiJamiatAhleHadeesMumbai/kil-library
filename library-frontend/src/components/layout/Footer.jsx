@@ -65,7 +65,7 @@ const Footer = () => {
   ]), []);
 
   return (
-    <footer data-site-footer className="relative bg-slate-900 text-slate-300 pt-16 pb-8 font-sans border-t border-slate-800 overflow-hidden shadow-xl">
+    <footer data-site-footer className="relative bg-slate-900 text-slate-300 pt-16 pb-8 font-sans border-t border-slate-800 overflow-hidden shadow-xl notranslate" translate="no">
 
       {/* Ambient Radial Lights */}
       <div className="absolute -top-32 -right-32 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
@@ -200,20 +200,21 @@ const Footer = () => {
         <div>
           <h3 className="text-amber-300 font-bold text-xs uppercase tracking-widest mb-4 flex items-center gap-2 border-b border-amber-500/20 pb-2">
             <MapPinIcon className="w-4 h-4 text-amber-400" />
-            <span>رابطہ و پتہ • Contact Us</span>
+            <span>رابطہ و پتہ</span>
           </h3>
           <ul className="space-y-3.5 text-xs sm:text-sm text-slate-300">
             <li className="flex items-start gap-2.5">
               <MapPinIcon className="w-4 h-4 text-amber-400 mt-0.5 shrink-0" />
-              <span className="text-slate-300/90 leading-relaxed">
-                بیت السلام کمپلیکس، بھرنا ناکہ کھیڈ روڈ، مہاڑ ناکہ، کھیڈ، رتناگری، مہاراشٹر 415709
+              <span className="text-slate-300/90 leading-relaxed font-urdu" dir="rtl">
+                بیت السلام کمپلیکس، بھرنا ناکہ، کھیڈ، رتناگری، مہاراشٹر 415709
               </span>
             </li>
             <li className="flex items-center gap-2.5">
               <EnvelopeIcon className="w-4 h-4 text-amber-400 shrink-0" />
               <a 
                 href="mailto:markazdawah.khed@gmail.com" 
-                className="hover:text-amber-300 transition-colors break-all text-xs"
+                className="hover:text-amber-300 transition-colors break-all text-xs font-mono"
+                dir="ltr"
                 title="Send Email"
               >
                 markazdawah.khed@gmail.com
@@ -224,6 +225,7 @@ const Footer = () => {
               <a 
                 href="tel:+919005900585" 
                 className="hover:text-amber-300 transition-colors text-xs font-mono"
+                dir="ltr"
                 title="Call +91 90059 00585"
               >
                 +91 90059 00585
@@ -234,6 +236,7 @@ const Footer = () => {
               <a 
                 href="tel:+919005900589" 
                 className="hover:text-amber-300 transition-colors text-xs font-mono"
+                dir="ltr"
                 title="Call +91 90059 00589"
               >
                 +91 90059 00589

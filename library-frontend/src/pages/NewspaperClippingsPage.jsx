@@ -133,19 +133,19 @@ const NewspaperClippingsPage = () => {
         <div className="absolute -top-24 left-1/2 -translate-x-1/2 w-[36rem] h-72 bg-emerald-500/15 rounded-full blur-[100px] pointer-events-none" />
         
         <div className="relative z-10 max-w-4xl mx-auto space-y-4">
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/10 text-emerald-300 text-xs font-bold border border-white/10 backdrop-blur-md">
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/10 text-emerald-300 text-xs font-bold border border-white/10 backdrop-blur-md notranslate" translate="no">
             <NewspaperIcon className="w-4 h-4 text-emerald-400" />
-            <span>Markaz Press & Newspaper Archive</span>
+            <span className="font-urdu">مرکز پریس اور اخباری آرکائیو</span>
           </div>
 
-          <h1 className="text-3xl sm:text-5xl md:text-6xl font-black tracking-tight">
-            Newspaper{" "}
+          <h1 className="text-3xl sm:text-5xl md:text-6xl font-black tracking-tight font-urdu notranslate" dir="rtl" translate="no">
+            اخباری{" "}
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 via-teal-300 to-cyan-400">
-              Clippings
+              تراشے
             </span>
           </h1>
 
-          <p className="text-sm sm:text-base text-slate-300 max-w-2xl mx-auto font-urdu leading-relaxed pt-1" dir="rtl">
+          <p className="text-sm sm:text-base text-slate-300 max-w-2xl mx-auto font-urdu leading-relaxed pt-1 notranslate" dir="rtl" translate="no">
             مرکز اہل حدیث اور دیگر اہم علمی و سماجی خبروں، پریس بیانات اور اخباری تراشوں کا ڈیجیٹل ذخیرہ
           </p>
 
@@ -157,10 +157,10 @@ const NewspaperClippingsPage = () => {
               </div>
               <input
                 type="text"
-                placeholder="Search headline, newspaper, event or topic..."
+                placeholder="سرخی، اخبار، واقعہ یا موضوع تلاش کریں..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full bg-transparent text-xs sm:text-sm text-slate-800 outline-none font-medium placeholder:text-slate-400"
+                className="w-full bg-transparent text-xs sm:text-sm text-slate-800 outline-none font-medium placeholder:text-slate-400 font-urdu"
               />
               {search && (
                 <button
@@ -173,9 +173,9 @@ const NewspaperClippingsPage = () => {
               )}
               <button
                 type="submit"
-                className="px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs sm:text-sm shadow-md transition-all cursor-pointer shrink-0"
+                className="px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs sm:text-sm shadow-md transition-all cursor-pointer shrink-0 font-urdu"
               >
-                Search
+                تلاش کریں
               </button>
             </div>
           </form>
@@ -201,7 +201,7 @@ const NewspaperClippingsPage = () => {
                   onChange={(e) => { setSelectedNewspaper(e.target.value); setPage(1); }}
                   className="bg-transparent outline-none cursor-pointer max-w-[160px] sm:max-w-[200px] truncate text-slate-700 font-medium"
                 >
-                  <option value="all">All Newspapers</option>
+                  <option value="all">تمام اخبارات</option>
                   {newspapers.map((p, idx) => (
                     <option key={idx} value={p.name}>
                       {p.name} ({p.count})
@@ -211,16 +211,16 @@ const NewspaperClippingsPage = () => {
               </div>
 
               {/* Sort Dropdown */}
-              <div className="flex items-center gap-2 px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-xs font-semibold text-slate-700 hover:border-emerald-500 focus-within:border-emerald-500 focus-within:bg-white focus-within:ring-2 focus-within:ring-emerald-500/20 transition-all">
+              <div className="flex items-center gap-2 px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-xs font-semibold text-slate-700 hover:border-emerald-500 focus-within:border-emerald-500 focus-within:bg-white focus-within:ring-2 focus-within:ring-emerald-500/20 transition-all font-urdu">
                 <ArrowsUpDownIcon className="w-4 h-4 text-slate-400 shrink-0" />
                 <select
                   value={sortBy}
                   onChange={(e) => { setSortBy(e.target.value); setPage(1); }}
-                  className="bg-transparent outline-none cursor-pointer text-slate-700 font-medium"
+                  className="bg-transparent outline-none cursor-pointer text-slate-700 font-medium font-urdu"
                 >
-                  <option value="newest">Newest First</option>
-                  <option value="oldest">Oldest First</option>
-                  <option value="popular">Most Viewed</option>
+                  <option value="newest">تازہ ترین پہلے</option>
+                  <option value="oldest">قدیم ترین پہلے</option>
+                  <option value="popular">سب سے زیادہ پڑھے گئے</option>
                 </select>
               </div>
 
@@ -234,10 +234,10 @@ const NewspaperClippingsPage = () => {
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                     onClick={resetFilters}
-                    className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-rose-50 text-rose-600 text-xs font-bold hover:bg-rose-100 transition cursor-pointer border border-rose-100"
+                    className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-rose-50 text-rose-600 text-xs font-bold hover:bg-rose-100 transition cursor-pointer border border-rose-100 font-urdu"
                   >
                     <XMarkIcon className="w-3.5 h-3.5" />
-                    <span>Reset</span>
+                    <span>فلٹر صاف کریں</span>
                   </motion.button>
                 )}
               </AnimatePresence>
@@ -245,8 +245,8 @@ const NewspaperClippingsPage = () => {
 
             {/* Counter Badge */}
             <div className="flex items-center sm:justify-end shrink-0">
-              <span className="inline-flex items-center px-3 py-1.5 rounded-full bg-slate-100 text-slate-600 text-xs font-semibold border border-slate-200/50">
-                Showing <strong className="mx-1 text-slate-900 font-bold">{clippings.length}</strong> {clippings.length === 1 ? "clipping" : "clippings"}
+              <span className="inline-flex items-center px-3 py-1.5 rounded-full bg-slate-100 text-slate-600 text-xs font-semibold border border-slate-200/50 font-urdu" dir="rtl">
+                کل تراشے: <strong className="mx-1 text-slate-900 font-bold font-mono" dir="ltr">{clippings.length}</strong>
               </span>
             </div>
           </div>

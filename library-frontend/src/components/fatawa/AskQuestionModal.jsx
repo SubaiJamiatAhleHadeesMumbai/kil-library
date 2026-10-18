@@ -39,8 +39,8 @@ const MODAL_TEXT = {
     anonymousOff: 'نام ظاہر کریں',
     displayName: 'آپ کا نام',
     displayNamePlaceholder: 'جو نام سوال کے ساتھ ظاہر ہو',
-    email: 'ای میل پتہ',
-    emailPlaceholder: 'جواب موصول ہونے پر اطلاع کے لیے (اختیاری)',
+    email: 'موبائل نمبر / واٹس ایپ یا ای میل',
+    emailPlaceholder: '+91 9876543210 یا ای میل درج کریں (جواب کی اطلاع کے لیے)',
     cancel: 'منسوخ',
     submit: 'سوال جمع کروائیں',
     submitting: 'ارسال ہو رہا ہے...',
@@ -311,10 +311,11 @@ const AskQuestionModal = ({
                 <label className="space-y-1.5 sm:col-span-2">
                   <span className="text-xs font-bold uppercase tracking-wider text-slate-600">{txt.email}</span>
                   <input
-                    type="email"
+                    type="text"
+                    dir="ltr"
                     value={form.guest_email}
                     onChange={(e) => setForm((prev) => ({ ...prev, guest_email: e.target.value }))}
-                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm outline-none focus:border-emerald-600 focus:bg-white transition"
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm outline-none focus:border-emerald-600 focus:bg-white transition text-left font-mono"
                     placeholder={txt.emailPlaceholder}
                   />
                 </label>

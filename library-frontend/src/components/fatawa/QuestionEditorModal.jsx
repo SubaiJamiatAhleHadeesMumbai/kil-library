@@ -56,7 +56,7 @@ const QuestionEditorModal = ({ open, onClose, question, categories = [], onSave,
         answer_text: question.answer_text || '',
         verdict_summary: question.verdict_summary || '',
         mufti_name: question.mufti_name || '',
-        darul_ifta_reference_no: question.darul_ifta_reference_no || '',
+        darul_ifta_reference_no: question.darul_ifta_reference_no || `FATWA-${new Date().getFullYear()}/${String(question.id || 1).padStart(2, '0')}`,
         pdf_url: question.pdf_url || '',
         images: Array.isArray(question.images) ? question.images : [],
       });
@@ -314,7 +314,13 @@ const QuestionEditorModal = ({ open, onClose, question, categories = [], onSave,
                   <span className="text-xs font-bold text-blue-950">
                     Fatwa Ref. Number
                   </span>
-                  <span className="text-[10px] text-slate-400 font-semibold">Optional</span>
+                  <button
+                    type="button"
+                    onClick={() => setForm((prev) => ({ ...prev, darul_ifta_reference_no: `FATWA-${new Date().getFullYear()}/${String(question.id || 1).padStart(2, '0')}` }))}
+                    className="text-[10px] text-blue-700 hover:underline font-bold cursor-pointer"
+                  >
+                    Auto-Generate
+                  </button>
                 </div>
                 <input
                   type="text"

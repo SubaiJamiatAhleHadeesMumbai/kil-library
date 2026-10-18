@@ -196,7 +196,8 @@ const Register = () => {
         initial={{ opacity: 0, y: 15 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.35, ease: "easeOut" }}
-        className="relative z-10 w-full max-w-lg rounded-3xl border border-slate-200/80 bg-white/95 backdrop-blur-md p-5 sm:p-6 shadow-xl shadow-slate-900/5 my-auto"
+        className="relative z-10 w-full max-w-lg rounded-3xl border border-slate-200/80 bg-white/95 backdrop-blur-md p-5 sm:p-6 shadow-xl shadow-slate-900/5 my-auto notranslate"
+        translate="no"
       >
         {/* Brand Header */}
         <div className="flex items-center justify-between mb-3.5 pb-2.5 border-b border-slate-100">
@@ -205,22 +206,23 @@ const Register = () => {
               <UserPlusIcon className="w-4 h-4" />
             </div>
             <div>
-              <h1 className="text-sm font-extrabold tracking-tight text-slate-900 leading-none">MARKAZ AHLE HADEES KOKAN</h1>
-              <p className="text-[10.5px] text-slate-500 font-medium mt-0.5">New Account Registration</p>
+              <h1 className="text-sm font-black tracking-tight text-slate-900 leading-none font-urdu" dir="rtl">مرکز اہل حدیث کوکن</h1>
+              <p className="text-[11px] text-slate-500 font-bold mt-1 font-urdu" dir="rtl">نیا اکاؤنٹ رجسٹریشن</p>
             </div>
           </div>
           <Link
             to="/"
-            className="text-xs font-bold text-slate-500 hover:text-[#002147] px-2 py-0.5 rounded-lg hover:bg-slate-100 transition-colors"
+            className="text-xs font-bold text-slate-500 hover:text-[#002147] px-2 py-0.5 rounded-lg hover:bg-slate-100 transition-colors font-urdu"
+            dir="rtl"
           >
-            ← Home
+            ← صفحہ اول
           </Link>
         </div>
 
         <div className="mb-3">
-          <h2 className="text-lg sm:text-xl font-extrabold text-slate-900 tracking-tight">Create Account</h2>
-          <p className="text-slate-500 text-xs mt-0.5 font-medium">
-            Fill in your details to get started with your research profile.
+          <h2 className="text-lg sm:text-xl font-extrabold text-slate-900 tracking-tight font-urdu" dir="rtl">اکاؤنٹ بنائیں</h2>
+          <p className="text-slate-500 text-xs mt-1 font-medium font-urdu" dir="rtl">
+            مطالعہ و تحقیقی خدمات تک رسائی کے لیے اپنے کوائف درج فرمائیں۔
           </p>
         </div>
 

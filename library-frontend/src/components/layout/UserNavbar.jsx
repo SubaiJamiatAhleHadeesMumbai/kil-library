@@ -283,7 +283,7 @@ const UserNavbar = () => {
 
   const showContinueReading = navbarConfig.show_continue_reading !== false;
   const showSearchPill = navbarConfig.show_search !== false;
-  const showLanguageSwitcher = navbarConfig.show_language !== false;
+  const showLanguageSwitcher = false; // Strictly Urdu mode (English & Arabic disabled)
   const showDonateButton = navbarConfig.show_donate !== false;
   const donateButtonText = (() => {
     const d = navbarConfig.donate_text;
@@ -360,18 +360,20 @@ const UserNavbar = () => {
                         fontFamily: "'Noto Nastaliq Urdu', 'Noto Naskh Arabic', serif",
                         lineHeight: 1.9,
                       }}
-                      className="font-extrabold text-slate-900 line-clamp-1 break-words overflow-visible"
-                      title={brandTitle}
+                      className="font-extrabold text-slate-900 line-clamp-1 break-words overflow-visible notranslate"
+                      translate="no"
+                      title="کوکن اسلامک لائبریری"
                     >
-                      {language === 'ur' ? "کوکن اسلامک لائبریری" : brandTitle}
+                      کوکن اسلامک لائبریری
                     </span>
                     <span 
                       style={{
                         fontFamily: "'Noto Naskh Arabic', sans-serif"
                       }}
-                      className="text-[10px] sm:text-[11px] text-emerald-800 font-bold tracking-normal line-clamp-1 break-words"
+                      className="text-[10px] sm:text-[11px] text-emerald-800 font-bold tracking-normal line-clamp-1 break-words notranslate"
+                      translate="no"
                     >
-                      {language === 'ur' ? "مرکز اہل حدیث کوکن کا علمی شعبہ" : (brandSub || "Markaz Ahle Hadees Kokan")}
+                      مرکز اہل حدیث کوکن کا علمی شعبہ
                     </span>
                   </div>
                 </Link>

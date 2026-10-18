@@ -348,7 +348,8 @@ const Login = () => {
         initial={{ opacity: 0, y: 15 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.35, ease: "easeOut" }}
-        className="relative z-10 w-full max-w-md rounded-3xl border border-slate-200/80 bg-white/95 backdrop-blur-md p-5 sm:p-6 shadow-xl shadow-slate-900/5 my-auto"
+        className="relative z-10 w-full max-w-md rounded-3xl border border-slate-200/80 bg-white/95 backdrop-blur-md p-5 sm:p-6 shadow-xl shadow-slate-900/5 my-auto notranslate"
+        translate="no"
       >
         {/* Brand Logo & Header */}
         <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
@@ -357,22 +358,23 @@ const Login = () => {
               <ShieldCheckIcon className="w-5 h-5" />
             </div>
             <div>
-              <h1 className="text-sm font-extrabold tracking-tight text-slate-900 leading-none"> Library  </h1>
-              <p className="text-[11px] text-slate-500 font-medium mt-0.5">Secure Access Portal</p>
+              <h1 className="text-sm font-black tracking-tight text-slate-900 leading-none font-urdu" dir="rtl">کوکن اسلامک لائبریری</h1>
+              <p className="text-[11px] text-slate-500 font-bold mt-1 font-urdu" dir="rtl">مرکز اہل حدیث کوکن • لاگ ان پورٹل</p>
             </div>
           </div>
           <Link
             to="/"
-            className="text-xs font-bold text-slate-500 hover:text-[#002147] px-2.5 py-1 rounded-lg hover:bg-slate-100 transition-colors"
+            className="text-xs font-bold text-slate-500 hover:text-[#002147] px-2.5 py-1 rounded-lg hover:bg-slate-100 transition-colors font-urdu"
+            dir="rtl"
           >
-            ← Home
+            ← صفحہ اول
           </Link>
         </div>
 
         <div className="mb-3.5">
-          <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">Welcome back</h2>
-          <p className="text-slate-500 text-xs mt-0.5 font-medium">
-            Sign in to access your digital catalog and research profile.
+          <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight font-urdu" dir="rtl">خوش آمدید</h2>
+          <p className="text-slate-500 text-xs mt-1 font-medium font-urdu" dir="rtl">
+            اپنے مطالعہ اکاؤنٹ میں داخل ہونے کے لیے معلومات درج کریں۔
           </p>
         </div>
 

@@ -480,7 +480,7 @@ const UserLibrary = () => {
                 title="Library Search"
                 subtitle="Search the library collection"
                 description="Search by title, author, language, category, and deep-book content with a premium discovery experience."
-                placeholder="کتاب کا نام، مصنف یا موضوع تلاش کریں..."
+                placeholder="کتاب، مصنف یا موضوع تلاش کریں..."
                 categories={categories}
                 selectedCategory={selectedCategory}
                 onSelectCategory={setSelectedCategory}
@@ -499,7 +499,7 @@ const UserLibrary = () => {
             onSearchChange={setSearchTerm}
             title="Library Search"
             subtitle="Search the library collection"
-            placeholder="کتاب کا نام، مصنف یا موضوع تلاش کریں..."
+            placeholder="کتاب، مصنف یا موضوع تلاش کریں..."
             categories={categories}
             selectedCategory={selectedCategory}
             onSelectCategory={setSelectedCategory}

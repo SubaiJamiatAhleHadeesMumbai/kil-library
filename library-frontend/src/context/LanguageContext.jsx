@@ -291,22 +291,8 @@ export const LanguageProvider = ({ children }) => {
   const location = useLocation();
   const isAdmin = location.pathname.startsWith('/admin');
 
-  // Load language preference strictly from user choice (cookie or localStorage)
-  const [currentLang, setCurrentLang] = useState(() => {
-    try {
-      const cookieMatch = document.cookie.match(/(?:^|;\s*)kil_locale=([^;]+)/);
-      if (cookieMatch && ['ur', 'ar', 'en'].includes(cookieMatch[1])) {
-        return cookieMatch[1];
-      }
-      const saved = localStorage.getItem('kil_language') || localStorage.getItem('kil_locale');
-      if (saved && ['ur', 'ar', 'en'].includes(saved)) {
-        return saved;
-      }
-      return 'ur';
-    } catch {
-      return 'ur';
-    }
-  });
+  // Public website is locked to Urdu only (English & Arabic disabled)
+  const [currentLang, setCurrentLang] = useState('ur');
 
   const setLocaleCookies = (lang) => {
     try {
@@ -315,7 +301,7 @@ export const LanguageProvider = ({ children }) => {
       const rootDomain = parts.length > 2 ? parts.slice(-2).join('.') : hostname;
 
       // Persist chosen locale
-      document.cookie = `kil_locale=${lang}; path=/; max-age=31536000; SameSite=Lax;`;
+      document.cookie = `kil_locale=ur; path=/; max-age=31536000; SameSite=Lax;`;
 
       const clearCookie = (name) => {
         document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
@@ -328,13 +314,6 @@ export const LanguageProvider = ({ children }) => {
       clearCookie('googtrans_en');
       clearCookie('googtrans_ur');
       clearCookie('googtrans_ar');
-
-      if (lang && lang !== 'en') {
-        const val = `/en/${lang}`;
-        document.cookie = `googtrans=${val}; path=/; max-age=31536000;`;
-        document.cookie = `googtrans=${val}; path=/; domain=${hostname}; max-age=31536000;`;
-        document.cookie = `googtrans=${val}; path=/; domain=.${rootDomain}; max-age=31536000;`;
-      }
     } catch (e) {
       console.warn('Failed to set translation cookies:', e);
     }
@@ -349,42 +328,31 @@ export const LanguageProvider = ({ children }) => {
       return;
     }
 
-    const langObj = LANGUAGES.find(l => l.code === langCode) || LANGUAGES[0];
-    
-    document.documentElement.dir = langObj.dir;
-    document.documentElement.lang = langObj.code;
+    // Strictly Urdu mode for public portal
+    document.documentElement.dir = 'rtl';
+    document.documentElement.lang = 'ur';
 
-    document.body.classList.remove('lang-ur', 'lang-ar', 'lang-en', 'font-urdu', 'font-arabic');
-    document.body.classList.add(`lang-${langObj.code}`);
-    if (langObj.code === 'ur') document.body.classList.add('font-urdu');
-    if (langObj.code === 'ar') document.body.classList.add('font-arabic');
+    document.body.classList.remove('lang-en', 'lang-ar', 'font-arabic');
+    document.body.classList.add('lang-ur', 'font-urdu');
 
-    setLocaleCookies(langObj.code);
+    setLocaleCookies('ur');
   };
 
-  // ✅ ZERO-RELOAD INSTANT LANGUAGE SWITCHER
-  const changeLanguage = (langCode) => {
-    const target = ['ur', 'ar', 'en'].includes(langCode) ? langCode : 'en';
-    setCurrentLang(target);
-    localStorage.setItem('kil_language', target);
-    localStorage.setItem('kil_locale', target);
-    setLocaleCookies(target);
-    applyLanguage(target);
-
-    // Sync Google Translate combobox if present
-    const select = document.querySelector('.goog-te-combo');
-    if (select) {
-      select.value = target;
-      select.dispatchEvent(new Event('change', { bubbles: true }));
-    }
+  // ✅ PUBLIC LANGUAGE LOCKED TO URDU
+  const changeLanguage = () => {
+    setCurrentLang('ur');
+    localStorage.setItem('kil_language', 'ur');
+    localStorage.setItem('kil_locale', 'ur');
+    setLocaleCookies('ur');
+    applyLanguage('ur');
   };
 
   const resetToEnglish = () => {
-    setCurrentLang('en');
-    localStorage.setItem('kil_language', 'en');
-    localStorage.setItem('kil_locale', 'en');
-    setLocaleCookies('en');
-    applyLanguage('en');
+    if (isAdmin) {
+      setCurrentLang('en');
+    } else {
+      setCurrentLang('ur');
+    }
   };
 
   // Dynamic translations loaded from backend CMS

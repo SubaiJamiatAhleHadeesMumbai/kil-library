@@ -305,9 +305,8 @@ const GalleryPage = () => {
             {t('gallery') || 'Markaz Gallery'}
           </h1>
 
-          <p className="text-sm sm:text-base text-slate-600 leading-relaxed max-w-2xl mx-auto">
-            {t('gallery_subtitle') ||
-              'Events, Conferences, Library & Programs Showcase'}
+          <p className="text-sm sm:text-base text-slate-600 leading-relaxed max-w-2xl mx-auto font-urdu notranslate" translate="no">
+            تقاریب، سمینارز، کتب خانہ اور اہم دعوتی پروگرامز کی تصویری جھلکیاں
           </p>
 
           {/* Search Input */}
@@ -317,79 +316,84 @@ const GalleryPage = () => {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder={t('search_gallery') || 'Search photos or events...'}
-              className={`w-full rounded-2xl border border-slate-200 bg-white py-3 text-sm text-slate-800 shadow-sm focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 ${isRtl ? 'pr-11 pl-4' : 'pl-11 pr-4'}`}
+              placeholder="تصاویر یا تقاریب تلاش کریں..."
+              className={`w-full rounded-2xl border border-slate-200 bg-white py-3 text-sm text-slate-800 shadow-sm focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 font-urdu ${isRtl ? 'pr-11 pl-4' : 'pl-11 pr-4'}`}
             />
           </div>
         </div>
 
         {/* 📂 MEDIA CATEGORIES & ALBUMS FILTER BAR */}
-        <div className="space-y-4 rounded-3xl border border-slate-200/80 bg-white p-4 sm:p-5 shadow-xs">
+        <div className="space-y-4 rounded-3xl border border-slate-200/80 bg-white p-4 sm:p-5 shadow-xs notranslate" translate="no">
           {/* Category Tabs: All | Photos | Videos | Jumah List | Moon Date */}
           <div className="flex items-center gap-2 overflow-x-auto pb-2 border-b border-slate-100 no-scrollbar">
             <button
               type="button"
               onClick={() => setSelectedType('all')}
-              className={`shrink-0 inline-flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition cursor-pointer ${
+              className={`shrink-0 inline-flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition cursor-pointer font-urdu ${
                 selectedType === 'all'
                   ? 'bg-slate-900 text-white shadow-md shadow-slate-900/20'
                   : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
               }`}
             >
               <Squares2X2Icon className="w-4 h-4 text-amber-400" />
-              <span>All Media ({counts.all})</span>
+              <span>تمام میڈیا</span>
+              <span className="font-mono text-[11px] px-1.5 py-0.2 rounded-full bg-white/20" dir="ltr">({counts.all})</span>
             </button>
 
             <button
               type="button"
               onClick={() => setSelectedType('photo')}
-              className={`shrink-0 inline-flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition cursor-pointer ${
+              className={`shrink-0 inline-flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition cursor-pointer font-urdu ${
                 selectedType === 'photo'
                   ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20'
                   : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
               }`}
             >
               <PhotoIcon className="w-4 h-4" />
-              <span>Photos ({counts.photo})</span>
+              <span>تصاویر</span>
+              <span className="font-mono text-[11px] px-1.5 py-0.2 rounded-full bg-white/20" dir="ltr">({counts.photo})</span>
             </button>
 
             <button
               type="button"
               onClick={() => setSelectedType('video')}
-              className={`shrink-0 inline-flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition cursor-pointer ${
+              className={`shrink-0 inline-flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition cursor-pointer font-urdu ${
                 selectedType === 'video'
                   ? 'bg-rose-600 text-white shadow-md shadow-rose-600/20'
                   : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
               }`}
             >
               <FilmIcon className="w-4 h-4" />
-              <span>Videos ({counts.video})</span>
+              <span>ویڈیوز</span>
+              <span className="font-mono text-[11px] px-1.5 py-0.2 rounded-full bg-white/20" dir="ltr">({counts.video})</span>
             </button>
 
             <button
               type="button"
               onClick={() => setSelectedType('jumah')}
-              className={`shrink-0 inline-flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition cursor-pointer ${
+              className={`shrink-0 inline-flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition cursor-pointer font-urdu ${
                 selectedType === 'jumah'
                   ? 'bg-emerald-700 text-white shadow-md shadow-emerald-700/20'
                   : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
               }`}
             >
               <CalendarDaysIcon className="w-4 h-4 text-emerald-300" />
-              <span>Jumah List ({counts.jumah})</span>
+              <span>خطباتِ جمعہ</span>
+              <span className="font-mono text-[11px] px-1.5 py-0.2 rounded-full bg-white/20" dir="ltr">({counts.jumah})</span>
             </button>
 
             <button
               type="button"
               onClick={() => setSelectedType('moon')}
-              className={`shrink-0 inline-flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition cursor-pointer ${
+              className={`shrink-0 inline-flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition cursor-pointer font-urdu ${
                 selectedType === 'moon'
                   ? 'bg-amber-600 text-white shadow-md shadow-amber-600/20'
                   : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
               }`}
             >
               <MoonIcon className="w-4 h-4 text-amber-300" />
-              <span>Moon Date ({counts.moon})</span>
+              <span>چاند کی تاریخ</span>
+              <span className="font-mono text-[11px] px-1.5 py-0.2 rounded-full bg-white/20" dir="ltr">({counts.moon})</span>
             </button>
           </div>
 
@@ -439,21 +443,21 @@ const GalleryPage = () => {
           {/* Year Filter Pills (if multiple years exist) */}
           {availableYears.length > 0 && (
             <div className="flex items-center gap-2 pt-2 border-t border-slate-100 overflow-x-auto no-scrollbar">
-              <span className="text-xs font-bold text-slate-400 flex items-center gap-1 shrink-0">
+              <span className="text-xs font-bold text-slate-400 flex items-center gap-1 shrink-0 font-urdu" dir="rtl">
                 <CalendarIcon className="w-3.5 h-3.5" />
-                <span>{t('filter_by_year') || 'Year'}:</span>
+                <span>سال کے لحاظ سے:</span>
               </span>
 
               <button
                 type="button"
                 onClick={() => setSelectedYear('all')}
-                className={`px-3 py-1 rounded-lg text-xs font-bold transition cursor-pointer ${
+                className={`px-3 py-1 rounded-lg text-xs font-bold transition cursor-pointer font-urdu ${
                   selectedYear === 'all'
                     ? 'bg-emerald-100 text-emerald-900 border border-emerald-300'
                     : 'text-slate-600 hover:bg-slate-100'
                 }`}
               >
-                {t('all_years') || 'All'}
+                تمام سال
               </button>
 
               {availableYears.map((year) => (
