@@ -135,6 +135,7 @@ const PublicBookCard = ({
       whileHover={{ y: -6 }}
       onClick={handleCardClick}
       className={`group relative mx-auto w-full max-w-[340px] overflow-hidden rounded-3xl border border-slate-200/90 bg-white shadow-xs transition-all duration-300 cursor-pointer hover:border-emerald-300 hover:shadow-xl sm:max-w-none ${className}`}
+    >
       {/* Top Badges */}
       <div className="absolute top-3 start-3 z-20 flex flex-col gap-1">
         {isRestricted ? (

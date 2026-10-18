@@ -1,4 +1,4 @@
-name: 🚀 P52 Server Deployment Status
+name: 🚀 P52 Server Deployment & Cloud Build Verification
 
 on:
   push:
@@ -7,11 +7,24 @@ on:
 
 jobs:
   p52-deploy-verify:
-    name: 🖥️ Lenovo P52 Server Auto-Deploy
+    name: ⚡ Cloud Build & Lenovo P52 Auto-Deploy
     runs-on: ubuntu-latest
     steps:
       - name: 📥 Checkout Repository
         uses: actions/checkout@v4
+
+      - name: ⚙️ Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: library-frontend/package-lock.json
+
+      - name: 📦 Fast Cloud Build
+        working-directory: ./library-frontend
+        run: |
+          npm ci --prefer-offline --no-audit
+          npm run build
 
       - name: 🚀 Deployment Status
         run: |
@@ -24,5 +37,5 @@ jobs:
           echo "Live Domain: https://www.ahlehadeeskokan.com"
           echo "Auto-Deploy Mechanism: kil-autodeploy.service (P52 Watcher Daemon)"
           echo "=========================================================="
-          echo "✅ Commit successfully published to GitHub main!"
-          echo "⚡ P52 Server is now syncing and compiling updated containers."
+          echo "✅ Cloud build passed with 0 errors!"
+          echo "⚡ P52 Server is now syncing and activating updated build."
