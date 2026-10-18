@@ -185,7 +185,7 @@ async def create_book(
             download_price=float(download_price) if download_price is not None else 0.0,
             download_upi_id=download_upi_id.strip() if download_upi_id else None,
             is_digital=bool(is_digital) or bool(pdf_url or txt_file_url),
-            is_approved=bool(current_user and hasattr(current_user, 'role') and current_user.role and current_user.role.name.lower() in ['admin', 'superadmin', 'editor', 'manager']),
+            is_approved=False,  # Strict workflow: Pending until approved in Approvals section
 
             # Saved URLs
             cover_image_url=cover_image_url,

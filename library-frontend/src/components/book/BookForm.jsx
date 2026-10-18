@@ -5,14 +5,22 @@ import { bookService } from '../../api/bookService'; // Ensure path is correct
 import BookFormUI from './BookFormUI';
 import ErrorBoundary from '../ErrorBoundary';
 
+const DEFAULT_LANGUAGES = [
+    { id: 1, name: 'اردو (Urdu)' },
+    { id: 2, name: 'عربی (Arabic)' },
+    { id: 3, name: 'English (انگریزی)' },
+    { id: 4, name: 'فارسی (Persian)' },
+    { id: 5, name: 'ہندی (Hindi)' }
+];
+
 const BookForm = ({ initialData, isEditing, onBookAdded, onBookUpdated, onCancel }) => {
     
     // --- 1. STATE MANAGEMENT ---
     const [loading, setLoading] = useState(false);
-    const [dropdownLoading, setDropdownLoading] = useState(true);
+    const [dropdownLoading, setDropdownLoading] = useState(false);
     
-    // Dropdown Data
-    const [languages, setLanguages] = useState([]);
+    // Dropdown Data - Fallbacks guarantee language is NEVER blank
+    const [languages, setLanguages] = useState(DEFAULT_LANGUAGES);
     const [subcategories, setSubcategories] = useState([]);
     const [fatawaCategories, setFatawaCategories] = useState([]);
 
@@ -36,7 +44,7 @@ const BookForm = ({ initialData, isEditing, onBookAdded, onBookUpdated, onCancel
         edition: "",
         parts_or_volumes: "",
         subject_number: "",
-        language_id: "",
+        language_id: 1, // Default to Urdu (ID 1)
         fatawa_category_id: "",
         page_count: "",
         publication_year: "",
@@ -49,6 +57,7 @@ const BookForm = ({ initialData, isEditing, onBookAdded, onBookUpdated, onCancel
         total_copies: 1,
         extra_data: "",
         
+        has_incomplete_details: false, // Flag for incomplete details
         is_restricted: false,
         is_hidden: false,
         is_digital: false,
@@ -147,6 +156,10 @@ const BookForm = ({ initialData, isEditing, onBookAdded, onBookUpdated, onCancel
                 date_of_purchase: initialData.date_of_purchase ?? prev.date_of_purchase,
                 description: initialData.description ?? prev.description,
                 remarks: initialData.remarks ?? prev.remarks,
+                has_incomplete_details: Boolean(
+                    initialData.is_incomplete ||
+                    (initialData.remarks && (initialData.remarks.includes('[نامکمل تفصیلات]') || initialData.remarks.includes('[INCOMPLETE]')))
+                ),
                 serial_number: initialData.serial_number ?? prev.serial_number,
                 book_number: initialData.book_number ?? prev.book_number,
                 total_copies: initialData.quantity ?? initialData.total_copies ?? prev.total_copies ?? 1,
@@ -288,6 +301,15 @@ const BookForm = ({ initialData, isEditing, onBookAdded, onBookUpdated, onCancel
 
             // Append Arrays
             formData.subcategory_ids.forEach(id => data.append("subcategory_ids", id));
+
+            // If marked as incomplete details, tag remarks so both backend and catalog know
+            if (formData.has_incomplete_details) {
+                let r = formData.remarks || "";
+                if (!r.includes("[نامکمل تفصیلات]")) {
+                    r = `[نامکمل تفصیلات] ${r}`.trim();
+                }
+                data.set("remarks", r);
+            }
 
             // Append Files & Pre-uploaded URLs
             if (formData.cover_image) data.append("cover_image", formData.cover_image);

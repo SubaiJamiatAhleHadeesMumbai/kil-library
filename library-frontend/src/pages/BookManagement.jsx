@@ -34,7 +34,8 @@ import {
     ChevronRightIcon,
     ChevronDownIcon,
     TableCellsIcon,
-    DocumentArrowUpIcon
+    DocumentArrowUpIcon,
+    ExclamationTriangleIcon
 } from '@heroicons/react/24/outline';
 
 const API_BASE_URL =
@@ -49,6 +50,27 @@ const toAbsoluteUrl = (value) => {
 };
 
 const isUrduText = (str) => /[\u0600-\u06FF]/.test(str || '');
+
+export const isBookIncomplete = (b) => {
+    if (!b) return false;
+    if (b.is_incomplete) return true;
+    if (b.remarks && (b.remarks.includes('[نامکمل تفصیلات]') || b.remarks.includes('[INCOMPLETE]'))) return true;
+    const missingSerial = !b.serial_number || String(b.serial_number).trim() === '';
+    const missingBookNo = !b.book_number || String(b.book_number).trim() === '';
+    const missingPublisher = !b.publisher || String(b.publisher).trim() === '';
+    const missingYear = !b.published_date && !b.publication_year;
+    return missingSerial || missingBookNo || missingPublisher || missingYear;
+};
+
+export const getMissingBookFields = (b) => {
+    if (!b) return [];
+    const missing = [];
+    if (!b.serial_number || String(b.serial_number).trim() === '') missing.push('اصل نمبر');
+    if (!b.book_number || String(b.book_number).trim() === '') missing.push('کتاب نمبر');
+    if (!b.publisher || String(b.publisher).trim() === '') missing.push('ناشر');
+    if (!b.published_date && !b.publication_year) missing.push('سنِ اشاعت');
+    return missing;
+};
 
 // --- SKELETON LOADER COMPONENT ---
 const TableSkeleton = () => (
@@ -152,15 +174,16 @@ const BookManagement = () => {
 
     // --- Stats Summary Calculation ---
     const stats = useMemo(() => {
-        if (serverStats) return serverStats;
         const books = Array.isArray(allBooks) ? allBooks : [];
         const total = books.length;
         const restricted = books.filter(b => b && b.is_restricted).length;
         const hidden = books.filter(b => b && b.is_hidden).length;
+        const unapproved = books.filter(b => b && !b.is_approved).length;
         const publicAccess = books.filter(b => b && !b.is_restricted && !b.is_hidden && b.is_approved).length;
         const digitalOnly = books.filter(b => b && b.is_digital).length;
-        return { total, restricted, hidden, publicAccess, digitalOnly };
-    }, [allBooks, serverStats]);
+        const incomplete = books.filter(b => isBookIncomplete(b)).length;
+        return { total, restricted, hidden, unapproved, publicAccess, digitalOnly, incomplete };
+    }, [allBooks]);
 
     // --- Filtering & Pagination ---
     const filteredBooks = useMemo(() => {
@@ -174,6 +197,7 @@ const BookManagement = () => {
             if (statusFilter === 'RESTRICTED' && !book.is_restricted) return false;
             if (statusFilter === 'PUBLIC' && (book.is_restricted || !book.is_approved || book.is_hidden)) return false;
             if (statusFilter === 'DIGITAL' && !book.is_digital) return false;
+            if (statusFilter === 'INCOMPLETE' && !isBookIncomplete(book)) return false;
 
             // Search Term Check
             if (!searchTerm.trim()) return true;
@@ -184,6 +208,8 @@ const BookManagement = () => {
             const lang = String(book.language?.name || '').toLowerCase();
             const bookNo = String(book.book_number || '').toLowerCase();
             const srNo = String(book.serial_number || '').toLowerCase();
+            const publisher = String(book.publisher || '').toLowerCase();
+            const remarks = String(book.remarks || '').toLowerCase();
 
             return (
                 title.includes(term) ||
@@ -191,7 +217,9 @@ const BookManagement = () => {
                 isbn.includes(term) ||
                 lang.includes(term) ||
                 bookNo.includes(term) ||
-                srNo.includes(term)
+                srNo.includes(term) ||
+                publisher.includes(term) ||
+                remarks.includes(term)
             );
         });
     }, [allBooks, searchTerm, statusFilter]);
@@ -427,23 +455,23 @@ const BookManagement = () => {
             </div>
 
             {/* --- CONTROLS & FILTER TABS (PRO RESPONSIVE) --- */}
-            <div className="bg-white p-4 sm:p-5 rounded-3xl shadow-xs border border-slate-200/80 space-y-3.5">
-                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3.5">
-                    
-                    {/* Search Input */}
-                    <div className="relative flex-1 max-w-xl">
-                        <MagnifyingGlassIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+            <div className="bg-white p-4 sm:p-5 rounded-3xl shadow-xs border border-slate-200/80 space-y-4">
+                {/* Search Bar Row (Dedicated width, never squishes) */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div className="relative w-full sm:max-w-lg lg:max-w-xl">
+                        <MagnifyingGlassIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4.5 w-4.5 text-slate-400" />
                         <input
                             type="text"
-                            placeholder="Search title, author, ISBN, serial, publisher..."
+                            placeholder="Search title, author, ISBN, serial, publisher, remarks..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full pl-10 pr-9 py-2.5 bg-slate-50 text-xs font-semibold text-slate-800 placeholder-slate-400 rounded-2xl border border-slate-200 focus:bg-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all shadow-2xs"
+                            dir="auto"
+                            className="w-full pl-10 pr-9 py-2.5 bg-slate-50 text-sm font-semibold text-slate-800 placeholder-slate-400 rounded-2xl border border-slate-200 focus:bg-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all shadow-2xs"
                         />
                         {searchTerm && (
                             <button 
                                 onClick={() => setSearchTerm('')} 
-                                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer p-1"
                                 title="Clear Search"
                             >
                                 <XMarkIcon className="w-4 h-4" />
@@ -451,36 +479,56 @@ const BookManagement = () => {
                         )}
                     </div>
 
-                    {/* Status Quick Filter Pills with Counts */}
-                    <div className="flex items-center gap-1.5 overflow-x-auto w-full lg:w-auto pb-1 lg:pb-0 scrollbar-none">
-                        {[
-                            { key: 'ALL', label: 'All Books', count: stats.total },
-                            { key: 'PUBLIC', label: 'Live / Public', count: stats.publicAccess },
-                            { key: 'HIDDEN', label: 'Hidden (چھپی ہوئی)', count: stats.hidden },
-                            { key: 'UNAPPROVED', label: 'Pending Approval', count: null },
-                            { key: 'RESTRICTED', label: 'Restricted', count: stats.restricted },
-                            { key: 'DIGITAL', label: 'Digital Only', count: stats.digitalOnly },
-                        ].map(tab => (
-                            <button
-                                key={tab.key}
-                                onClick={() => setStatusFilter(tab.key)}
-                                className={`
-                                    px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all duration-200 flex items-center gap-1.5 cursor-pointer active:scale-95
-                                    ${statusFilter === tab.key 
-                                        ? 'bg-slate-900 text-emerald-400 shadow-sm border border-slate-800' 
-                                        : 'text-slate-600 hover:bg-slate-100 border border-transparent'
-                                    }
-                                `}
+                    {/* Active search filter badge / count */}
+                    {searchTerm && (
+                        <div className="text-xs font-bold text-slate-500 flex items-center gap-2">
+                            <span>Found <span className="text-emerald-600 font-extrabold">{filteredBooks.length}</span> matching books</span>
+                            <button 
+                                onClick={() => setSearchTerm('')}
+                                className="text-slate-400 hover:text-rose-500 underline text-[11px] cursor-pointer"
                             >
-                                <span>{tab.label}</span>
-                                {tab.count !== undefined && tab.count !== null && (
-                                    <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-extrabold ${statusFilter === tab.key ? 'bg-slate-800 text-emerald-300' : 'bg-slate-200 text-slate-700'}`}>
-                                        {Number(tab.count).toLocaleString()}
-                                    </span>
-                                )}
+                                Clear
                             </button>
-                        ))}
-                    </div>
+                        </div>
+                    )}
+                </div>
+
+                {/* Status Quick Filter Pills with Counts (Full Width Horizontal Scroll) */}
+                <div className="flex items-center gap-1.5 overflow-x-auto w-full pb-1 scrollbar-none border-t border-slate-100 pt-3">
+                    {[
+                        { key: 'ALL', label: 'All Books', count: stats.total },
+                        { key: 'PUBLIC', label: 'Live / Public', count: stats.publicAccess },
+                        { key: 'UNAPPROVED', label: 'Pending Approval (زیرِ منظوری)', count: stats.unapproved, alert: stats.unapproved > 0 },
+                        { key: 'INCOMPLETE', label: 'نامکمل کتب (Incomplete Details)', count: stats.incomplete, alert: stats.incomplete > 0 },
+                        { key: 'HIDDEN', label: 'Hidden (چھپی ہوئی)', count: stats.hidden },
+                        { key: 'RESTRICTED', label: 'Restricted', count: stats.restricted },
+                        { key: 'DIGITAL', label: 'Digital Only', count: stats.digitalOnly },
+                    ].map(tab => (
+                        <button
+                            key={tab.key}
+                            onClick={() => setStatusFilter(tab.key)}
+                            className={`
+                                px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all duration-200 flex items-center gap-1.5 cursor-pointer active:scale-95
+                                ${statusFilter === tab.key 
+                                    ? 'bg-slate-900 text-emerald-400 shadow-sm border border-slate-800' 
+                                    : 'text-slate-600 hover:bg-slate-100 border border-transparent'
+                                }
+                            `}
+                        >
+                            <span>{tab.label}</span>
+                            {tab.count !== undefined && tab.count !== null && (
+                                <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-extrabold ${
+                                    statusFilter === tab.key 
+                                        ? 'bg-slate-800 text-emerald-300' 
+                                        : tab.alert 
+                                            ? 'bg-amber-100 text-amber-800' 
+                                            : 'bg-slate-200 text-slate-700'
+                                }`}>
+                                    {Number(tab.count).toLocaleString()}
+                                </span>
+                            )}
+                        </button>
+                    ))}
                 </div>
             </div>
 
@@ -680,6 +728,15 @@ const BookManagement = () => {
                                                                     {book.page_count} صفحات
                                                                 </span>
                                                             )}
+                                                            {isBookIncomplete(book) && (
+                                                                <span 
+                                                                    title={`نامکمل تفصیلات: ${getMissingBookFields(book).join('، ') || 'مزید تفصیلات درکار ہیں'}`}
+                                                                    className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-50 text-amber-900 border border-amber-300 shadow-2xs"
+                                                                >
+                                                                    <ExclamationTriangleIcon className="w-3 h-3 text-amber-600" />
+                                                                    <span>نامکمل ({getMissingBookFields(book).slice(0, 2).join('، ')}{getMissingBookFields(book).length > 2 ? '...' : ''})</span>
+                                                                </span>
+                                                            )}
                                                         </div>
                                                     </div>
                                                 </div>
@@ -723,51 +780,67 @@ const BookManagement = () => {
 
                                             {/* Status & Visibility Badges */}
                                             <td className="px-4 py-3.5 whitespace-nowrap text-center">
-                                                <div className="flex flex-col items-center gap-1">
-                                                    {/* 1-Click Visibility Toggle */}
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => handleToggleVisibility(book)}
-                                                        title={book.is_hidden ? "Click to make Live for public" : "Click to Hide from public"}
-                                                        className={`
-                                                            inline-flex items-center gap-1 px-2.5 py-0.5 text-[10px] font-extrabold rounded-full border transition-all cursor-pointer active:scale-95 shadow-2xs
-                                                            ${book.is_hidden
-                                                                ? 'bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100 hover:border-rose-300'
-                                                                : 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100 hover:border-emerald-300'
-                                                            }
-                                                        `}
-                                                    >
-                                                        {book.is_hidden ? (
-                                                            <>
-                                                                <EyeSlashIcon className="w-3.5 h-3.5 text-rose-600 stroke-[2.5]" />
-                                                                <span>Hidden</span>
-                                                            </>
-                                                        ) : (
-                                                            <>
-                                                                <EyeIcon className="w-3.5 h-3.5 text-emerald-600 stroke-[2.5]" />
-                                                                <span>Live (پبلک)</span>
-                                                            </>
-                                                        )}
-                                                    </button>
+                                                <div className="flex flex-col items-center gap-1.5">
+                                                    {/* Strict Distinction: If book is not approved, it cannot be Live */}
+                                                    {!book.is_approved ? (
+                                                        <div className="flex flex-col items-center gap-1">
+                                                            <span 
+                                                                title="یہ کتاب ایڈمن کی منظوری کے زیرِ انتظار ہے"
+                                                                className="inline-flex items-center gap-1 px-2.5 py-1 text-[10px] font-black rounded-full bg-amber-50 text-amber-800 border border-amber-300 shadow-2xs animate-pulse"
+                                                            >
+                                                                <ClockIcon className="w-3.5 h-3.5 text-amber-600 stroke-[2.5]" />
+                                                                <span>زیرِ منظوری (Pending)</span>
+                                                            </span>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => navigate('/admin/approvals')}
+                                                                className="text-[9.5px] font-bold text-amber-800 hover:text-amber-950 underline cursor-pointer"
+                                                            >
+                                                                Review in Approvals &rarr;
+                                                            </button>
+                                                        </div>
+                                                    ) : (
+                                                        <>
+                                                            {/* 1-Click Visibility Toggle for Approved Books */}
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => handleToggleVisibility(book)}
+                                                                title={book.is_hidden ? "Click to make Live for public" : "Click to Hide from public"}
+                                                                className={`
+                                                                    inline-flex items-center gap-1 px-2.5 py-0.5 text-[10px] font-extrabold rounded-full border transition-all cursor-pointer active:scale-95 shadow-2xs
+                                                                    ${book.is_hidden
+                                                                        ? 'bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100 hover:border-rose-300'
+                                                                        : 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100 hover:border-emerald-300'
+                                                                    }
+                                                                `}
+                                                            >
+                                                                {book.is_hidden ? (
+                                                                    <>
+                                                                        <EyeSlashIcon className="w-3.5 h-3.5 text-rose-600 stroke-[2.5]" />
+                                                                        <span>Hidden (چھپی ہوئی)</span>
+                                                                    </>
+                                                                ) : (
+                                                                    <>
+                                                                        <EyeIcon className="w-3.5 h-3.5 text-emerald-600 stroke-[2.5]" />
+                                                                        <span>Live (منظور شدہ)</span>
+                                                                    </>
+                                                                )}
+                                                            </button>
 
-                                                    <div className="flex items-center gap-1">
-                                                        {book.is_approved ? (
-                                                            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded text-[9px] font-bold bg-slate-100 text-slate-600 border border-slate-200">
-                                                                <CheckCircleIcon className="w-2.5 h-2.5 text-slate-500" />
-                                                                Approved
-                                                            </span>
-                                                        ) : (
-                                                            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded text-[9px] font-bold bg-amber-50 text-amber-800 border border-amber-200 animate-pulse">
-                                                                Pending
-                                                            </span>
-                                                        )}
-                                                        {book.is_restricted && (
-                                                            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded text-[9px] font-bold bg-red-50 text-red-700 border border-red-200">
-                                                                <LockClosedIcon className="w-2.5 h-2.5 text-red-600" />
-                                                                Restricted
-                                                            </span>
-                                                        )}
-                                                    </div>
+                                                            <div className="flex items-center gap-1">
+                                                                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded text-[9px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                                                    <CheckCircleIcon className="w-2.5 h-2.5 text-emerald-600" />
+                                                                    Approved
+                                                                </span>
+                                                                {book.is_restricted && (
+                                                                    <span className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded text-[9px] font-bold bg-red-50 text-red-700 border border-red-200">
+                                                                        <LockClosedIcon className="w-2.5 h-2.5 text-red-600" />
+                                                                        Restricted
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                        </>
+                                                    )}
                                                 </div>
                                             </td>
 

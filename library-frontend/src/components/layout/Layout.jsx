@@ -112,7 +112,12 @@ const Layout = () => {
                                 type="text" 
                                 value={globalSearch}
                                 onChange={(e) => setGlobalSearch(e.target.value)}
-                                placeholder="Search admin panels, books, users..." 
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter' && globalSearch.trim()) {
+                                        navigate(`/admin/books?search=${encodeURIComponent(globalSearch.trim())}`);
+                                    }
+                                }}
+                                placeholder="Search admin panels, books, users... (Enter)" 
                                 className="bg-transparent border-none outline-none text-xs w-full text-slate-700 placeholder-slate-400 font-medium"
                             />
                             {globalSearch ? (

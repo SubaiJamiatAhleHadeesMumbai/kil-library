@@ -7,11 +7,21 @@ import {
   BookOpenIcon, AdjustmentsHorizontalIcon, TagIcon,
   CloudArrowUpIcon, ShieldCheckIcon, LockClosedIcon,
   ComputerDesktopIcon, BanknotesIcon, CheckIcon, ChevronDownIcon, EyeSlashIcon,
+  ExclamationTriangleIcon,
 } from '@heroicons/react/24/outline';
 import SubcategorySelect from './SubcategorySelect';
 import GoogleDocsEditorModal from './GoogleDocsEditorModal';
 
 const API_URL = import.meta.env.VITE_API_BASE_URL || (import.meta.env.PROD ? '' : 'http://127.0.0.1:8000');
+
+// Fallback Languages (Guarantees Language dropdown is never empty)
+const FALLBACK_LANGUAGES = [
+  { id: 1, name: 'اردو (Urdu)' },
+  { id: 2, name: 'عربی (Arabic)' },
+  { id: 3, name: 'English (انگریزی)' },
+  { id: 4, name: 'فارسی (Persian)' },
+  { id: 5, name: 'ہندی (Hindi)' }
+];
 
 // --- Base Input Styling ---
 const baseInputStyle =
@@ -64,20 +74,23 @@ const InputField = ({ label, id, type = 'text', required, colSpan = 1, ...props 
 );
 
 // --- Select Field ---
-const SelectField = ({ label, id, options = [], loading, placeholder = 'Select...', required, colSpan = 1, ...props }) => (
-  <div className={colSpanMap[colSpan] || 'col-span-1'}>
-    <label htmlFor={id} className="block text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-2">
-      {label} {required && <span className="text-rose-500 ml-0.5">*</span>}
-    </label>
-    <div className="relative">
-      <select id={id} className={`${baseInputStyle} appearance-none pr-10`} disabled={loading} {...props}>
-        {loading ? <option>Loading options...</option> : <option value="">{placeholder}</option>}
-        {options.map(o => <option key={o.id} value={o.id}>{o.name}</option>)}
-      </select>
-      <ChevronDownIcon className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+const SelectField = ({ label, id, options = [], loading, placeholder = 'Select...', required, colSpan = 1, ...props }) => {
+  const resolvedOptions = (options && options.length > 0) ? options : (id === 'language_id' ? FALLBACK_LANGUAGES : []);
+  return (
+    <div className={colSpanMap[colSpan] || 'col-span-1'}>
+      <label htmlFor={id} className="block text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-2">
+        {label} {required && <span className="text-rose-500 ml-0.5">*</span>}
+      </label>
+      <div className="relative">
+        <select id={id} className={`${baseInputStyle} appearance-none pr-10`} disabled={loading && resolvedOptions.length === 0} {...props}>
+          {loading && resolvedOptions.length === 0 ? <option>Loading options...</option> : <option value="">{placeholder}</option>}
+          {resolvedOptions.map(o => <option key={o.id} value={o.id}>{o.name}</option>)}
+        </select>
+        <ChevronDownIcon className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 // --- Text Area Field ---
 const TextAreaField = ({ label, id, rows = 3, colSpan = 2, ...props }) => (
@@ -427,6 +440,31 @@ const BookFormUI = ({
               <TextAreaField id="remarks" name="remarks" label="Remarks" rows={2} colSpan={2}
                 value={formData.remarks || ''} onChange={onChange} disabled={isLoading}
                 placeholder="Internal notes, condition, source, etc." />
+
+              {/* Incomplete Details Option Card */}
+              <div className="col-span-2 p-4 rounded-2xl border border-amber-200 bg-amber-50/60 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <ExclamationTriangleIcon className="w-5 h-5 text-amber-600 shrink-0" />
+                    <span className="text-xs sm:text-sm font-black text-amber-950">تفصیلات نامکمل ہیں (Incomplete Details)</span>
+                  </div>
+                  <p className="text-[11px] sm:text-xs text-amber-800 leading-relaxed">
+                    اگر کتاب کا نمبر شمار، اصل نمبر، ناشر یا سنِ اشاعت ابھی دستیاب نہ ہو تو اسے نشان زد کریں تاکہ نامکمل کتب کی فہرست میں الگ رہے اور بعد میں آسانی سے مکمل کی جا سکے۔
+                  </p>
+                </div>
+                <label className="flex items-center gap-2.5 cursor-pointer self-start sm:self-auto shrink-0 bg-white px-3.5 py-2 rounded-xl border border-amber-300 shadow-2xs hover:bg-amber-100/50 transition">
+                  <input
+                    type="checkbox"
+                    id="has_incomplete_details"
+                    name="has_incomplete_details"
+                    checked={Boolean(formData.has_incomplete_details)}
+                    onChange={onChange}
+                    disabled={isLoading}
+                    className="w-4 h-4 rounded text-amber-600 border-amber-300 focus:ring-amber-500 cursor-pointer"
+                  />
+                  <span className="text-xs font-bold text-amber-950 select-none">نشان زد کریں</span>
+                </label>
+              </div>
             </div>
           </section>
 

@@ -512,15 +512,42 @@ const BookDetailsModal = ({
                       </h2>
 
                       <div className="mt-2 flex items-center gap-2 flex-wrap">
-                        <span className="text-xs text-slate-500 font-semibold">
-                          By <strong className="text-slate-800 font-bold">{author}</strong>
-                        </span>
+                        {author && author !== "Unknown" ? (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              onClose?.();
+                              navigate('/', { state: { preSearch: author } });
+                            }}
+                            className="text-xs text-slate-500 font-semibold hover:text-emerald-700 transition cursor-pointer flex items-center gap-1 group/author"
+                            title={`Search all books by ${author}`}
+                          >
+                            <span>مصنف:</span>
+                            <strong className="text-slate-800 font-bold group-hover/author:underline group-hover/author:text-emerald-800">{author}</strong>
+                            <span className="text-[10px] text-emerald-600 font-medium bg-emerald-50 px-1.5 py-0.2 rounded-full border border-emerald-100">تلاش کریں &rarr;</span>
+                          </button>
+                        ) : (
+                          <span className="text-xs text-slate-500 font-semibold">
+                            By <strong className="text-slate-800 font-bold">{author}</strong>
+                          </span>
+                        )}
+
                         {book?.publisher && (
                           <>
                             <span className="text-slate-300">•</span>
-                            <span className="text-xs text-slate-500 font-medium">
-                              Pub: <span className="text-slate-700 font-semibold">{getSafeName(book.publisher)}</span>
-                            </span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                onClose?.();
+                                navigate('/', { state: { preSearch: getSafeName(book.publisher) } });
+                              }}
+                              className="text-xs text-slate-500 font-medium hover:text-emerald-700 transition cursor-pointer flex items-center gap-1 group/pub"
+                              title={`Search all books by ${getSafeName(book.publisher)}`}
+                            >
+                              <span>ناشر:</span>
+                              <span className="text-slate-700 font-semibold group-hover/pub:underline group-hover/pub:text-emerald-800">{getSafeName(book.publisher)}</span>
+                              <span className="text-[10px] text-emerald-600 font-medium bg-emerald-50 px-1.5 py-0.2 rounded-full border border-emerald-100">تلاش کریں &rarr;</span>
+                            </button>
                           </>
                         )}
                       </div>

@@ -302,7 +302,7 @@ const GalleryManagementPage = () => {
     return found?.title?.ur || found?.title_ur || found?.title?.en || found?.title_en || albumId;
   };
 
-  // --- BATCH PHOTO UPLOAD ---
+  // --- BATCH PHOTO UPLOAD WITH RESILIENT CHUNKING (3 IMAGES PER CHUNK) ---
   const handleBatchFiles = async (files) => {
     if (!files || files.length === 0) return;
     const validFiles = Array.from(files).filter((file) =>
@@ -315,15 +315,40 @@ const GalleryManagementPage = () => {
     }
 
     setUploading(true);
-    try {
-      const payload = new FormData();
-      validFiles.forEach((file) => payload.append('files', file));
-      payload.append('album_id', uploadAlbumId);
-      payload.append('year', uploadYear);
-      payload.append('show_on_home', 'true');
+    const BATCH_SIZE = 3;
+    let successfulCount = 0;
+    let failedCount = 0;
 
-      await galleryService.batchUploadPhotos(payload);
-      showNotification(`Uploaded ${validFiles.length} photo(s) successfully!`);
+    try {
+      for (let i = 0; i < validFiles.length; i += BATCH_SIZE) {
+        const chunk = validFiles.slice(i, i + BATCH_SIZE);
+        const currentBatchNum = Math.floor(i / BATCH_SIZE) + 1;
+        const totalBatches = Math.ceil(validFiles.length / BATCH_SIZE);
+
+        showNotification(
+          `Uploading photos batch ${currentBatchNum}/${totalBatches} (${Math.min(i + BATCH_SIZE, validFiles.length)}/${validFiles.length})...`
+        );
+
+        try {
+          const payload = new FormData();
+          chunk.forEach((file) => payload.append('files', file));
+          payload.append('album_id', uploadAlbumId);
+          payload.append('year', uploadYear);
+          payload.append('show_on_home', 'true');
+
+          await galleryService.batchUploadPhotos(payload);
+          successfulCount += chunk.length;
+        } catch (chunkErr) {
+          console.error(`Error uploading batch ${currentBatchNum}:`, chunkErr);
+          failedCount += chunk.length;
+        }
+      }
+
+      if (failedCount === 0) {
+        showNotification(`All ${successfulCount} photo(s) uploaded successfully!`);
+      } else {
+        showNotification(`Uploaded ${successfulCount} photos, ${failedCount} failed.`, true);
+      }
       await fetchAdminGallery();
     } catch {
       showNotification('Failed to upload photos.', true);

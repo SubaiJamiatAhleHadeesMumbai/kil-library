@@ -153,16 +153,16 @@ const LibrarySearchStrip = ({
             transition={{ duration: 0.3 }}
             className="relative group"
           >
-          <div className="relative flex min-h-[56px] sm:min-h-[62px] w-full max-w-full items-center overflow-hidden rounded-2xl sm:rounded-full bg-white border border-slate-200/90 hover:border-emerald-400 focus-within:border-emerald-500 focus-within:ring-4 focus-within:ring-emerald-500/15 shadow-[0_16px_36px_-12px_rgba(0,0,0,0.25)] transition-all duration-300 px-3 sm:px-4">
+          <div className="relative flex min-h-[52px] sm:min-h-[62px] w-full max-w-full items-center overflow-hidden rounded-2xl sm:rounded-full bg-white border border-slate-200/90 hover:border-emerald-400 focus-within:border-emerald-500 focus-within:ring-4 focus-within:ring-emerald-500/15 shadow-[0_16px_36px_-12px_rgba(0,0,0,0.25)] transition-all duration-300 px-2.5 sm:px-4">
             
             {/* Search Icon */}
             {!isSearchFocused && (
-              <div className="flex items-center justify-center p-2 rounded-full text-emerald-600 bg-emerald-50/80 mr-1 sm:mr-2 flex-shrink-0">
-                <MagnifyingGlassIcon className="h-5 w-5 stroke-2" />
+              <div className="flex items-center justify-center p-1.5 sm:p-2 rounded-full text-emerald-600 bg-emerald-50/80 mr-1 sm:mr-2 flex-shrink-0">
+                <MagnifyingGlassIcon className="h-4.5 w-4.5 sm:h-5 sm:w-5 stroke-2" />
               </div>
             )}
 
-            {/* Input */}
+            {/* Input - Large 16px text-base prevents mobile iOS auto-zoom; dir="auto" formats Urdu/English seamlessly */}
             <input
               ref={inputRef}
               value={localValue}
@@ -172,12 +172,13 @@ const LibrarySearchStrip = ({
               }}
               onFocus={() => setIsSearchFocused(true)}
               onBlur={() => setIsSearchFocused(false)}
-              placeholder={placeholder}
-              className="min-w-0 flex-1 bg-transparent px-2 py-3 text-sm sm:text-base text-slate-900 outline-none placeholder:text-slate-400 font-medium border-0 focus:outline-none focus:ring-0"
+              placeholder={placeholder || "کتاب، مصنف یا موضوع تلاش کریں..."}
+              dir="auto"
+              className="min-w-0 flex-1 bg-transparent px-1.5 sm:px-2 py-2.5 sm:py-3 text-base text-slate-900 outline-none placeholder:text-slate-400 font-medium border-0 focus:outline-none focus:ring-0 leading-normal"
             />
 
             {/* Action Buttons */}
-            <div className="flex items-center gap-1.5 flex-shrink-0">
+            <div className="flex items-center gap-1 sm:gap-1.5 flex-shrink-0">
               {/* Clear Button */}
               <AnimatePresence>
                 {localValue && (
@@ -185,11 +186,14 @@ const LibrarySearchStrip = ({
                     initial={{ scale: 0.7, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
                     exit={{ scale: 0.7, opacity: 0 }}
-                    onClick={() => setLocalValue("")}
-                    className="rounded-full p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition cursor-pointer"
+                    onClick={() => {
+                      setLocalValue("");
+                      onSearchChange?.("");
+                    }}
+                    className="rounded-full p-1.5 sm:p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition cursor-pointer"
                     title="Clear search"
                   >
-                    <XMarkIcon className="h-5 w-5" />
+                    <XMarkIcon className="h-4.5 w-4.5 sm:h-5 sm:w-5" />
                   </motion.button>
                 )}
               </AnimatePresence>
@@ -200,28 +204,28 @@ const LibrarySearchStrip = ({
                   type="button"
                   onClick={startVoiceSearch}
                   title="Voice Search"
-                  className={`rounded-full p-2 sm:p-2.5 transition-all cursor-pointer ${
+                  className={`rounded-full p-1.5 sm:p-2.5 transition-all cursor-pointer ${
                     listening
                       ? "bg-rose-500 text-white animate-pulse shadow-md"
                       : "text-slate-500 hover:text-emerald-700 hover:bg-emerald-50"
                   }`}
                 >
-                  <MicrophoneIcon className="h-5 w-5" />
+                  <MicrophoneIcon className="h-4.5 w-4.5 sm:h-5 sm:w-5" />
                 </button>
               ) : null}
 
-              {/* Deep Search Button */}
+              {/* Deep Search Button (Compact icon on mobile to give maximum width to typed text) */}
               {enableDeepSearch ? (
                 <button
                   type="button"
                   onClick={openDeepSearch}
                   title="Search inside full book texts"
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-100 hover:bg-indigo-50 text-slate-600 hover:text-indigo-600 font-bold text-xs transition border border-slate-200/80 hover:border-indigo-200 cursor-pointer shadow-2xs"
+                  className="flex items-center gap-1 sm:gap-1.5 p-1.5 sm:px-3 sm:py-1.5 rounded-full bg-slate-100 hover:bg-indigo-50 text-slate-600 hover:text-indigo-600 font-bold text-xs transition border border-slate-200/80 hover:border-indigo-200 cursor-pointer shadow-2xs"
                 >
                   {isFetchingBook ? (
                     <div className="h-4 w-4 animate-spin rounded-full border-2 border-indigo-600 border-t-transparent"></div>
                   ) : (
-                    <DocumentTextIcon className="h-4 w-4 text-indigo-500" />
+                    <DocumentTextIcon className="h-4.5 w-4.5 sm:h-4 sm:w-4 text-indigo-500" />
                   )}
                   <span className="hidden sm:inline">Deep Search</span>
                 </button>

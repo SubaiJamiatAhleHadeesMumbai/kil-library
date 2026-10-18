@@ -97,6 +97,7 @@ const PosterManagerPanel = () => {
   };
 
   // --- MULTI-IMAGE BATCH UPLOAD ---
+  // --- BATCH POSTER UPLOAD WITH RESILIENT CHUNKING (3 IMAGES PER CHUNK) ---
   const handleBatchFiles = async (files) => {
     if (!files || files.length === 0) return;
 
@@ -110,9 +111,34 @@ const PosterManagerPanel = () => {
     }
 
     setUploading(true);
+    const BATCH_SIZE = 3;
+    let successfulCount = 0;
+    let failedCount = 0;
+
     try {
-      await posterService.uploadBatchPosters(validFiles);
-      showNotification(`Successfully uploaded ${validFiles.length} poster(s)!`);
+      for (let i = 0; i < validFiles.length; i += BATCH_SIZE) {
+        const chunk = validFiles.slice(i, i + BATCH_SIZE);
+        const currentBatchNum = Math.floor(i / BATCH_SIZE) + 1;
+        const totalBatches = Math.ceil(validFiles.length / BATCH_SIZE);
+
+        showNotification(
+          `Uploading posters batch ${currentBatchNum}/${totalBatches} (${Math.min(i + BATCH_SIZE, validFiles.length)}/${validFiles.length})...`
+        );
+
+        try {
+          await posterService.uploadBatchPosters(chunk);
+          successfulCount += chunk.length;
+        } catch (chunkErr) {
+          console.error(`Error uploading poster batch ${currentBatchNum}:`, chunkErr);
+          failedCount += chunk.length;
+        }
+      }
+
+      if (failedCount === 0) {
+        showNotification(`Successfully uploaded ${successfulCount} poster(s)!`);
+      } else {
+        showNotification(`Uploaded ${successfulCount} posters, ${failedCount} failed.`, true);
+      }
       await fetchPosters();
     } catch {
       showNotification('Error uploading posters. Please try again.', true);

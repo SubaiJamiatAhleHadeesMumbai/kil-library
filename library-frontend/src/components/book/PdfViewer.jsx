@@ -274,14 +274,14 @@ const PdfViewer = ({
       {/* --- ULTRA-COMPACT SLEEK FLOATING CONTROLS (DOCKED AT BOTTOM) --- */}
       {pdfUrl && (
         <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-40 flex items-center gap-1 bg-slate-900/90 text-white backdrop-blur-xl shadow-xl border border-slate-700/60 rounded-full px-2.5 py-1 text-xs transition-all hover:scale-102">
-          {/* Prev page button */}
+          {/* Prev page button (<) */}
           <button
             onClick={handlePrev}
             disabled={currentPage <= 1}
-            className="p-1 hover:bg-white/20 rounded-full disabled:opacity-25 transition cursor-pointer"
-            title="Previous Page"
+            className="p-1.5 sm:p-2 hover:bg-emerald-500 hover:text-white rounded-full disabled:opacity-25 transition cursor-pointer active:scale-90 flex items-center justify-center"
+            title="Previous Page (<)"
           >
-            <ChevronLeft size={13} />
+            <ChevronLeft size={16} />
           </button>
 
           {/* Ultra-compact Zoom controls */}
@@ -359,34 +359,40 @@ const PdfViewer = ({
             </button>
           )}
 
-          {/* Next page button */}
+          {/* Next page button (>) */}
           <button
             onClick={handleNext}
             disabled={currentPage >= totalPages}
-            className="p-1 hover:bg-white/20 rounded-full disabled:opacity-25 transition cursor-pointer"
-            title="Next Page"
+            className="p-1.5 sm:p-2 hover:bg-emerald-500 hover:text-white rounded-full disabled:opacity-25 transition cursor-pointer active:scale-90 flex items-center justify-center"
+            title="Next Page (>)"
           >
-            <ChevronRight size={13} />
+            <ChevronRight size={16} />
           </button>
         </div>
       )}
 
-      {/* --- SIDE NAVIGATION (For Single/Dual Mode on Desktop Only) --- */}
-      {(viewMode === 'single' || viewMode === 'dual') && pdfUrl && (
+      {/* --- PROMINENT FLOATING SIDE NAVIGATION BUTTONS (< and >) FOR ALL MODES ON MOBILE & DESKTOP --- */}
+      {pdfUrl && (
         <>
           <button 
+            type="button"
             onClick={handlePrev}
-            disabled={currentPage === 1}
-            className="hidden md:flex absolute left-4 top-1/2 -translate-y-1/2 z-30 p-3 bg-white shadow-xl rounded-full text-slate-700 disabled:opacity-30 hover:bg-indigo-50 transition-all border border-slate-100 group"
+            disabled={currentPage <= 1}
+            aria-label="Previous Page"
+            className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 z-40 w-10 h-10 sm:w-12 sm:h-12 bg-white/95 hover:bg-emerald-50 text-slate-800 hover:text-emerald-700 shadow-xl rounded-full disabled:opacity-20 disabled:pointer-events-none transition-all duration-200 border border-slate-200/90 active:scale-90 flex items-center justify-center group cursor-pointer"
+            title="Previous Page (<)"
           >
-            <ChevronLeft size={24} className="group-hover:-translate-x-0.5 transition-transform" />
+            <ChevronLeft size={22} className="group-hover:-translate-x-0.5 transition-transform stroke-[2.5]" />
           </button>
           <button 
+            type="button"
             onClick={handleNext}
             disabled={currentPage >= totalPages}
-            className="hidden md:flex absolute right-4 top-1/2 -translate-y-1/2 z-30 p-3 bg-white shadow-xl rounded-full text-slate-700 disabled:opacity-30 hover:bg-indigo-50 transition-all border border-slate-100 group"
+            aria-label="Next Page"
+            className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 z-40 w-10 h-10 sm:w-12 sm:h-12 bg-white/95 hover:bg-emerald-50 text-slate-800 hover:text-emerald-700 shadow-xl rounded-full disabled:opacity-20 disabled:pointer-events-none transition-all duration-200 border border-slate-200/90 active:scale-90 flex items-center justify-center group cursor-pointer"
+            title="Next Page (>)"
           >
-            <ChevronRight size={24} className="group-hover:translate-x-0.5 transition-transform" />
+            <ChevronRight size={22} className="group-hover:translate-x-0.5 transition-transform stroke-[2.5]" />
           </button>
         </>
       )}

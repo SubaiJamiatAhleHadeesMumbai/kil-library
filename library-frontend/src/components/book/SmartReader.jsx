@@ -2,7 +2,8 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { 
   ArrowLeft, BookText, FileText, LayoutGrid, 
-  Maximize2, Minimize2, Search, X, ChevronUp, ChevronDown 
+  Maximize2, Minimize2, Search, X, ChevronUp, ChevronDown,
+  ChevronLeft, ChevronRight 
 } from 'lucide-react';
 import Toolbar from './Toolbar';
 import PdfViewer from './PdfViewer';
@@ -820,6 +821,32 @@ const SmartReader = ({
           currentPage={currentPage}
           textFontSize={textFontSize}
         />
+
+        {/* Floating Side Navigation for Text Mode (< and >) */}
+        {layoutMode === 'text' && (
+          <>
+            <button
+              type="button"
+              onClick={() => handleAutoPageChange(Math.max(1, currentPage - 1))}
+              disabled={currentPage <= 1}
+              aria-label="Previous Page"
+              className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 z-40 w-10 h-10 sm:w-12 sm:h-12 bg-white/95 hover:bg-emerald-50 text-slate-800 hover:text-emerald-700 shadow-xl rounded-full disabled:opacity-20 disabled:pointer-events-none transition-all duration-200 border border-slate-200/90 active:scale-90 flex items-center justify-center cursor-pointer group"
+              title="Previous Page (<)"
+            >
+              <ChevronLeft size={22} className="group-hover:-translate-x-0.5 transition-transform stroke-[2.5]" />
+            </button>
+            <button
+              type="button"
+              onClick={() => handleAutoPageChange(Math.min(displayTotalPages, currentPage + 1))}
+              disabled={currentPage >= displayTotalPages}
+              aria-label="Next Page"
+              className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 z-40 w-10 h-10 sm:w-12 sm:h-12 bg-white/95 hover:bg-emerald-50 text-slate-800 hover:text-emerald-700 shadow-xl rounded-full disabled:opacity-20 disabled:pointer-events-none transition-all duration-200 border border-slate-200/90 active:scale-90 flex items-center justify-center cursor-pointer group"
+              title="Next Page (>)"
+            >
+              <ChevronRight size={22} className="group-hover:translate-x-0.5 transition-transform stroke-[2.5]" />
+            </button>
+          </>
+        )}
       </div>
     </div>
   );
