@@ -5,11 +5,11 @@ import { Link } from 'react-router-dom';
 
 const THEMES = {
   emerald: {
-    bar: 'bg-[#031811] text-amber-100 border-b border-amber-500/25 shadow-xs',
-    badge: 'bg-amber-500/20 text-amber-300 border border-amber-500/30',
-    link: 'text-amber-300 hover:text-white',
-    accentText: 'text-amber-300',
-    closeBtn: 'text-amber-400 hover:text-white hover:bg-emerald-800/50',
+    bar: 'bg-[#022c22] text-slate-100 border-b border-emerald-800/50 shadow-xs',
+    badge: 'bg-emerald-900/90 text-emerald-300 border border-emerald-700/60',
+    link: 'text-emerald-300 hover:text-white',
+    accentText: 'text-emerald-300',
+    closeBtn: 'text-emerald-400 hover:text-white hover:bg-emerald-800/50',
   },
   navy: {
     bar: 'bg-[#001428] text-cyan-100 border-b border-cyan-900/60 shadow-xs',
@@ -34,10 +34,18 @@ const THEMES = {
   },
 };
 
-const TopAnnouncementBar = ({ config = null }) => {
-  const [isDismissed, setIsDismissed] = useState(true);
+const DEFAULT_ANNOUNCEMENT = {
+  enabled: true,
+  badge: 'مرکزی اعلان',
+  text: 'مسجد اہل حدیث، بیت السلام کمپلیکس کھڑ میں روزانہ بعد نمازِ مغرب علمی دروس کا اہتمام۔',
+  theme: 'emerald',
+  is_dismissible: false,
+};
 
-  const announcement = config || {};
+const TopAnnouncementBar = ({ config = null }) => {
+  const [isDismissed, setIsDismissed] = useState(false);
+
+  const announcement = (config && config.text) ? config : DEFAULT_ANNOUNCEMENT;
   const isEnabled = announcement.enabled !== false && Boolean(announcement.text);
 
   useEffect(() => {

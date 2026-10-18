@@ -65,15 +65,7 @@ const Footer = () => {
   ]), []);
 
   return (
-    <footer data-site-footer className="relative bg-gradient-to-b from-[#041610] via-[#07241b] to-[#020b08] text-white pt-16 pb-8 font-sans border-t-2 border-amber-500/30 overflow-hidden shadow-2xl">
-      {/* Subtle Islamic Arabesque Geometric Watermark Pattern */}
-      <div 
-        className="absolute inset-0 opacity-[0.035] pointer-events-none mix-blend-overlay"
-        style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg width='80' height='80' viewBox='0 0 80 80' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23d4af37' fill-opacity='1' fill-rule='evenodd'%3E%3Cpath d='M0 40L40 0l40 40-40 40L0 40zm40-28.284L11.716 40 40 68.284 68.284 40 40 11.716zm0 14.142L25.858 40 40 54.142 54.142 40 40 25.858z'/%3E%3C/g%3E%3C/svg%3E")`,
-          backgroundRepeat: "repeat",
-        }}
-      />
+    <footer data-site-footer className="relative bg-slate-900 text-slate-300 pt-16 pb-8 font-sans border-t border-slate-800 overflow-hidden shadow-xl">
 
       {/* Ambient Radial Lights */}
       <div className="absolute -top-32 -right-32 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
