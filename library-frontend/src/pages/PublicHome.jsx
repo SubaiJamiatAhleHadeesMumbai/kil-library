@@ -167,15 +167,15 @@ const getBookViews = (book) => {
 
 // High-Fidelity Skeleton Loader
 const BookCardSkeleton = () => (
-  <div className="bg-[#07241b] border border-amber-500/20 rounded-2xl overflow-hidden shadow-sm animate-pulse flex flex-col justify-between">
-    <div className="h-48 bg-[#041610]" />
+  <div className="bg-white border border-slate-200/80 rounded-2xl overflow-hidden shadow-xs animate-pulse flex flex-col justify-between">
+    <div className="h-48 bg-slate-100" />
     <div className="p-4 space-y-3">
-      <div className="h-4 bg-[#0d382b] rounded-md w-3/4" />
-      <div className="h-3 bg-[#0d382b]/80 rounded-md w-1/2" />
-      <div className="h-3 bg-[#0d382b]/60 rounded-md w-2/3" />
+      <div className="h-4 bg-slate-200 rounded-md w-3/4" />
+      <div className="h-3 bg-slate-100 rounded-md w-1/2" />
+      <div className="h-3 bg-slate-100 rounded-md w-2/3" />
       <div className="pt-2 flex justify-between items-center">
-        <div className="h-5 w-16 bg-amber-500/20 rounded-full" />
-        <div className="h-5 w-10 bg-[#0d382b] rounded-md" />
+        <div className="h-5 w-16 bg-emerald-50 rounded-full border border-emerald-200" />
+        <div className="h-5 w-10 bg-slate-100 rounded-md" />
       </div>
     </div>
   </div>
@@ -190,10 +190,10 @@ const CompactBookCard = ({ book, label, meta, onClick, progress = null, chips = 
     <button
       onClick={onClick}
       type="button"
-      className="group w-full rounded-2xl border border-amber-500/25 bg-[#041610]/90 p-3.5 text-left shadow-xs transition-all duration-200 hover:-translate-y-1 hover:shadow-md hover:border-amber-400/80 focus:outline-none focus:ring-2 focus:ring-amber-500 cursor-pointer text-white"
+      className="group w-full rounded-2xl border border-slate-200/90 bg-white p-3.5 text-left shadow-xs transition-all duration-200 hover:-translate-y-1 hover:shadow-md hover:border-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer text-slate-900"
     >
       <div className="flex gap-3.5">
-        <div className="h-20 w-14 flex-shrink-0 overflow-hidden rounded-xl bg-slate-900 shadow-xs relative border border-amber-500/30">
+        <div className="h-20 w-14 flex-shrink-0 overflow-hidden rounded-xl bg-slate-100 shadow-xs relative border border-slate-200">
           <img
             src={coverUrl}
             alt={book?.title || "Book cover"}
@@ -205,15 +205,15 @@ const CompactBookCard = ({ book, label, meta, onClick, progress = null, chips = 
         <div className="min-w-0 flex-1 flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between gap-2">
-              <span className="inline-flex max-w-full rounded-full bg-amber-500/20 border border-amber-400/30 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.15em] text-amber-300">
+              <span className="inline-flex max-w-full rounded-full bg-emerald-50 border border-emerald-200/90 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.12em] text-emerald-800">
                 {label}
               </span>
-              {meta ? <span className="text-[11px] text-amber-200/70 font-bold font-mono">{meta}</span> : null}
+              {meta ? <span className="text-[11px] text-slate-500 font-bold font-mono">{meta}</span> : null}
             </div>
-            <h4 className="mt-1 line-clamp-1 text-sm font-bold leading-snug text-white group-hover:text-amber-300">
+            <h4 className="mt-1 line-clamp-1 text-sm font-bold leading-snug text-slate-900 group-hover:text-emerald-800">
               {book?.title}
             </h4>
-            <p className="mt-0.5 line-clamp-1 text-xs text-slate-300">
+            <p className="mt-0.5 line-clamp-1 text-xs text-slate-500">
               {authorName}
             </p>
           </div>

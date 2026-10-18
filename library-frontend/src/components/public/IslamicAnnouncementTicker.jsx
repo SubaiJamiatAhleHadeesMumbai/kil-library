@@ -72,9 +72,9 @@ const IslamicAnnouncementTicker = ({ updates, config = {} }) => {
 
   return (
     <>
-      <div className="relative overflow-hidden bg-gradient-to-r from-[#021811] via-[#053023] to-[#021811] text-white shadow-md border-b border-amber-500/25">
-        {/* Subtle Ambient Gold Highlight line at the very top */}
-        <div className="absolute top-0 inset-x-0 h-[1px] bg-gradient-to-r from-transparent via-amber-400/50 to-transparent" />
+      <div className="relative overflow-hidden bg-[#022c22] text-white shadow-xs border-b border-emerald-950/40">
+        {/* Subtle Ambient Highlight line at the very top */}
+        <div className="absolute top-0 inset-x-0 h-[1px] bg-gradient-to-r from-transparent via-emerald-400/30 to-transparent" />
         
         <div className="max-w-7xl mx-auto px-4 py-2 sm:py-2.5 relative flex items-center justify-between text-[11px] sm:text-xs">
           

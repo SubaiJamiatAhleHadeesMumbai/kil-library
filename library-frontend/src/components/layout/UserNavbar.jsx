@@ -86,9 +86,9 @@ const NavItem = ({ to, label, icon: Icon, onClick }) => {
           )}
           <span 
             style={isUrdu ? { 
-              fontFamily: "'Gulzar', 'Noto Nastaliq Urdu', serif", 
-              fontSize: "1.08rem", 
-              lineHeight: 1.5 
+              fontFamily: "'Noto Naskh Arabic', system-ui, sans-serif", 
+              fontSize: "0.95rem", 
+              lineHeight: 1.6 
             } : undefined}
           >
             {displayLabel}
@@ -718,14 +718,14 @@ const UserNavbar = () => {
                   <button
                     type="button"
                     onClick={() => setIsUniversalSearchOpen(true)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#031d15]/90 hover:bg-emerald-950 text-slate-200 hover:text-white border border-emerald-500/30 hover:border-emerald-400/60 text-xs transition-all duration-200 shadow-2xs cursor-pointer group"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-50 hover:bg-slate-100 text-slate-600 hover:text-slate-900 border border-slate-200 hover:border-slate-300 text-xs transition-all duration-200 shadow-2xs cursor-pointer group"
                     title={t("search_placeholder") + " (Ctrl+K)"}
                   >
-                    <MagnifyingGlassIcon className="w-3.5 h-3.5 text-emerald-400 group-hover:scale-110 transition-transform" />
-                    <span className="hidden xl:inline text-[11px] text-slate-300 font-semibold group-hover:text-white">
+                    <MagnifyingGlassIcon className="w-3.5 h-3.5 text-slate-500 group-hover:scale-110 transition-transform" />
+                    <span className="hidden xl:inline text-[11px] text-slate-600 font-semibold group-hover:text-slate-900">
                       Search
                     </span>
-                    <kbd className="hidden xl:inline-flex items-center px-1.5 py-0.5 text-[8px] font-bold text-slate-300 bg-emerald-950/80 border border-emerald-500/30 rounded">
+                    <kbd className="hidden xl:inline-flex items-center px-1.5 py-0.5 text-[8px] font-bold text-slate-500 bg-white border border-slate-200 rounded">
                       ⌘K
                     </kbd>
                   </button>

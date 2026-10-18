@@ -135,10 +135,6 @@ const PublicBookCard = ({
       whileHover={{ y: -6 }}
       onClick={handleCardClick}
       className={`group relative mx-auto w-full max-w-[340px] overflow-hidden rounded-3xl border border-slate-200/90 bg-white shadow-xs transition-all duration-300 cursor-pointer hover:border-emerald-300 hover:shadow-xl sm:max-w-none ${className}`}
-    >
-      {/* Royal Gold Hanging Ribbon */}
-      <div className="royal-ribbon-tag opacity-80 group-hover:opacity-100 transition-opacity" />
-
       {/* Top Badges */}
       <div className="absolute top-3 start-3 z-20 flex flex-col gap-1">
         {isRestricted ? (
@@ -239,7 +235,10 @@ const PublicBookCard = ({
           {title}
         </h3>
 
-        <p className="line-clamp-1 text-[11px] text-slate-500 sm:text-xs font-medium">
+        <p 
+          className="line-clamp-1 text-[11px] text-slate-500 sm:text-xs font-medium"
+          style={{ fontFamily: "'Noto Naskh Arabic', sans-serif" }}
+        >
           مؤلف: <span className="text-slate-700 font-semibold">{author}</span>
         </p>
       </div>
