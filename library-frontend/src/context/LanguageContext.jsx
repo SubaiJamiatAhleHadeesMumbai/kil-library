@@ -7,9 +7,9 @@ import arLocale from '../locales/ar.json';
 import { formatLocalizedDate, formatLocalizedNumber } from '../utils/i18nFormatters';
 
 export const LANGUAGES = [
+  { code: 'ur', name: 'اردو', nativeName: 'اردو', dir: 'rtl', label: 'اردو', fontClass: 'font-urdu' },
   { code: 'ar', name: 'العربية', nativeName: 'العربية', dir: 'rtl', label: 'العربية', fontClass: 'font-arabic' },
   { code: 'en', name: 'English', nativeName: 'English', dir: 'ltr', label: 'English', fontClass: 'font-sans' },
-  { code: 'ur', name: 'اردو', nativeName: 'اردو', dir: 'rtl', label: 'اردو', fontClass: 'font-urdu' },
 ];
 
 // Helper to deeply extract nested values like 'nav.home'
@@ -302,9 +302,9 @@ export const LanguageProvider = ({ children }) => {
       if (saved && ['ur', 'ar', 'en'].includes(saved)) {
         return saved;
       }
-      return 'en';
+      return 'ur';
     } catch {
-      return 'en';
+      return 'ur';
     }
   });
 

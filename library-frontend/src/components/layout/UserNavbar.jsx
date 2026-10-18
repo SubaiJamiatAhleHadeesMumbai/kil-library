@@ -448,16 +448,16 @@ const UserNavbar = () => {
                           <Link
                             to="/about"
                             onClick={() => setIsAboutDropdownOpen(false)}
-                            className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-emerald-900/60 hover:border-amber-500/30 border border-transparent transition-all duration-200 group"
+                            className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-slate-50 hover:border-slate-200 border border-transparent transition-all duration-200 group"
                           >
-                            <div className="h-9 w-9 rounded-xl bg-emerald-950/80 border border-amber-500/20 text-amber-400 flex items-center justify-center flex-shrink-0 group-hover:scale-105 group-hover:bg-amber-500 group-hover:text-slate-950 transition-all shadow-sm">
+                            <div className="h-9 w-9 rounded-xl bg-emerald-50 border border-emerald-200/60 text-emerald-800 flex items-center justify-center flex-shrink-0 group-hover:scale-105 group-hover:bg-emerald-800 group-hover:text-white transition-all shadow-2xs">
                               <InformationCircleIcon className="h-5 w-5" />
                             </div>
                             <div className="flex flex-col text-start">
-                              <span className="text-xs font-bold text-white group-hover:text-amber-300 transition-colors">
+                              <span className="text-xs font-bold text-slate-800 group-hover:text-emerald-900 transition-colors">
                                 {language === 'ur' ? 'تعارف مرکز' : (language === 'ar' ? 'عن المركز' : 'About Markaz')}
                               </span>
-                              <span className="text-[10px] text-amber-200/70 font-medium">
+                              <span className="text-[10px] text-slate-500 font-medium">
                                 Mission, History & Aims
                               </span>
                             </div>
@@ -467,16 +467,16 @@ const UserNavbar = () => {
                           <Link
                             to="/juma-list"
                             onClick={() => setIsAboutDropdownOpen(false)}
-                            className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-emerald-900/60 hover:border-amber-500/30 border border-transparent transition-all duration-200 group"
+                            className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-slate-50 hover:border-slate-200 border border-transparent transition-all duration-200 group"
                           >
-                            <div className="h-9 w-9 rounded-xl bg-emerald-950/80 border border-amber-500/20 text-emerald-400 flex items-center justify-center flex-shrink-0 group-hover:scale-105 group-hover:bg-amber-500 group-hover:text-slate-950 transition-all shadow-sm">
+                            <div className="h-9 w-9 rounded-xl bg-emerald-50 border border-emerald-200/60 text-emerald-800 flex items-center justify-center flex-shrink-0 group-hover:scale-105 group-hover:bg-emerald-800 group-hover:text-white transition-all shadow-2xs">
                               <CalendarDaysIcon className="h-5 w-5" />
                             </div>
                             <div className="flex flex-col text-start">
-                              <span className="text-xs font-bold text-white group-hover:text-amber-300 transition-colors">
+                              <span className="text-xs font-bold text-slate-800 group-hover:text-emerald-900 transition-colors">
                                 {language === 'ur' ? 'خطباتِ جمعہ' : (language === 'ar' ? 'جدول خطب الجمعة' : 'Jumah Schedule')}
                               </span>
-                              <span className="text-[10px] text-amber-200/70 font-medium">
+                              <span className="text-[10px] text-slate-500 font-medium">
                                 {language === 'ur' ? 'اوقاتِ خطبہ و مساجد' : (language === 'ar' ? 'مواعيد الخطب والأئمة' : 'Khutbah timings & Imams')}
                               </span>
                             </div>
@@ -486,16 +486,16 @@ const UserNavbar = () => {
                           <Link
                             to="/moon"
                             onClick={() => setIsAboutDropdownOpen(false)}
-                            className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-emerald-900/60 hover:border-amber-500/30 border border-transparent transition-all duration-200 group"
+                            className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-slate-50 hover:border-slate-200 border border-transparent transition-all duration-200 group"
                           >
-                            <div className="h-9 w-9 rounded-xl bg-emerald-950/80 border border-amber-500/20 text-amber-400 flex items-center justify-center flex-shrink-0 group-hover:scale-105 group-hover:bg-amber-500 group-hover:text-slate-950 transition-all shadow-sm">
+                            <div className="h-9 w-9 rounded-xl bg-emerald-50 border border-emerald-200/60 text-emerald-800 flex items-center justify-center flex-shrink-0 group-hover:scale-105 group-hover:bg-emerald-800 group-hover:text-white transition-all shadow-2xs">
                               <MoonIcon className="h-5 w-5" />
                             </div>
                             <div className="flex flex-col text-start">
-                              <span className="text-xs font-bold text-white group-hover:text-amber-300 transition-colors">
+                              <span className="text-xs font-bold text-slate-800 group-hover:text-emerald-900 transition-colors">
                                 {language === 'ur' ? 'رؤیتِ ہلال' : (language === 'ar' ? 'إعلانات رؤية الهلال' : 'Moon Announcements')}
                               </span>
-                              <span className="text-[10px] text-amber-200/70 font-medium">
+                              <span className="text-[10px] text-slate-500 font-medium">
                                 {language === 'ur' ? 'ہلال کمیٹی کے سرکاری اعلانات' : (language === 'ar' ? 'البيانات الرسمية للأهلة' : 'Official Hijri declarations')}
                               </span>
                             </div>
@@ -505,16 +505,16 @@ const UserNavbar = () => {
                           <Link
                             to="/calendar"
                             onClick={() => setIsAboutDropdownOpen(false)}
-                            className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-emerald-900/60 hover:border-amber-500/30 border border-transparent transition-all duration-200 group"
+                            className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-slate-50 hover:border-slate-200 border border-transparent transition-all duration-200 group"
                           >
-                            <div className="h-9 w-9 rounded-xl bg-emerald-950/80 border border-amber-500/20 text-teal-300 flex items-center justify-center flex-shrink-0 group-hover:scale-105 group-hover:bg-amber-500 group-hover:text-slate-950 transition-all shadow-sm">
+                            <div className="h-9 w-9 rounded-xl bg-emerald-50 border border-emerald-200/60 text-emerald-800 flex items-center justify-center flex-shrink-0 group-hover:scale-105 group-hover:bg-emerald-800 group-hover:text-white transition-all shadow-2xs">
                               <CalendarDaysIcon className="h-5 w-5" />
                             </div>
                             <div className="flex flex-col text-start">
-                              <span className="text-xs font-bold text-white group-hover:text-amber-300 transition-colors">
+                              <span className="text-xs font-bold text-slate-800 group-hover:text-emerald-900 transition-colors">
                                 {language === 'ur' ? 'اسلامی تقویم (کیلنڈر)' : (language === 'ar' ? 'التقويم الهجري' : 'Islamic Calendar')}
                               </span>
-                              <span className="text-[10px] text-amber-200/70 font-medium">
+                              <span className="text-[10px] text-slate-500 font-medium">
                                 {language === 'ur' ? 'سال کے ۱۲ مہینوں کے پوسٹرز' : (language === 'ar' ? 'ملصقات التقويم لـ ١٢ شهراً' : '12 Months Calendar Posters')}
                               </span>
                             </div>
@@ -608,16 +608,16 @@ const UserNavbar = () => {
                             <Link
                               to="/education"
                               onClick={() => setIsSocialDropdownOpen(false)}
-                              className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-emerald-900/60 hover:border-amber-500/30 border border-transparent transition-all duration-200 group"
+                              className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-slate-50 hover:border-slate-200 border border-transparent transition-all duration-200 group"
                             >
-                              <div className="h-9 w-9 rounded-xl bg-emerald-950/80 border border-amber-500/20 text-blue-400 flex items-center justify-center flex-shrink-0 group-hover:scale-105 group-hover:bg-amber-500 group-hover:text-slate-950 transition-all shadow-sm">
+                              <div className="h-9 w-9 rounded-xl bg-emerald-50 border border-emerald-200/60 text-emerald-800 flex items-center justify-center flex-shrink-0 group-hover:scale-105 group-hover:bg-emerald-800 group-hover:text-white transition-all shadow-2xs">
                                 <AcademicCapIcon className="h-5 w-5" />
                               </div>
                               <div className="flex flex-col text-start">
-                                <span className="text-xs font-bold text-white group-hover:text-amber-300 transition-colors">
+                                <span className="text-xs font-bold text-slate-800 group-hover:text-emerald-900 transition-colors">
                                   {t("education_taleem") || (language === 'ur' ? 'تعلیم و رہنمائی' : language === 'ar' ? 'التعليم والإرشاد' : 'Education & Guidance')}
                                 </span>
-                                <span className="text-[10px] text-amber-200/70 font-medium">
+                                <span className="text-[10px] text-slate-500 font-medium">
                                   Taleem & Guidance
                                 </span>
                               </div>
@@ -627,16 +627,16 @@ const UserNavbar = () => {
                             <Link
                               to="/social-work"
                               onClick={() => setIsSocialDropdownOpen(false)}
-                              className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-emerald-900/60 hover:border-amber-500/30 border border-transparent transition-all duration-200 group"
+                              className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-slate-50 hover:border-slate-200 border border-transparent transition-all duration-200 group"
                             >
-                              <div className="h-9 w-9 rounded-xl bg-emerald-950/80 border border-amber-500/20 text-emerald-400 flex items-center justify-center flex-shrink-0 group-hover:scale-105 group-hover:bg-amber-500 transition-all shadow-sm p-1.5">
-                                <img src="/icons/social-work.png" alt="Social Work" className="w-full h-full object-contain brightness-0 invert" />
+                              <div className="h-9 w-9 rounded-xl bg-emerald-50 border border-emerald-200/60 text-emerald-800 flex items-center justify-center flex-shrink-0 group-hover:scale-105 group-hover:bg-emerald-800 group-hover:text-white transition-all shadow-2xs p-1.5">
+                                <img src="/icons/social-work.png" alt="Social Work" className="w-full h-full object-contain" />
                               </div>
                               <div className="flex flex-col text-left">
-                                <span className="text-xs font-bold text-white group-hover:text-amber-300 transition-colors">
+                                <span className="text-xs font-bold text-slate-800 group-hover:text-emerald-900 transition-colors">
                                   {t("social_work")}
                                 </span>
-                                <span className="text-[10px] text-amber-200/70 font-medium">
+                                <span className="text-[10px] text-slate-500 font-medium">
                                   Welfare & Relief Drives
                                 </span>
                               </div>
@@ -646,16 +646,16 @@ const UserNavbar = () => {
                             <Link
                               to="/clippings"
                               onClick={() => setIsSocialDropdownOpen(false)}
-                              className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-emerald-900/60 hover:border-amber-500/30 border border-transparent transition-all duration-200 group"
+                              className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-slate-50 hover:border-slate-200 border border-transparent transition-all duration-200 group"
                             >
-                              <div className="h-9 w-9 rounded-xl bg-emerald-950/80 border border-amber-500/20 text-amber-400 flex items-center justify-center flex-shrink-0 group-hover:scale-105 group-hover:bg-amber-500 group-hover:text-slate-950 transition-all shadow-sm">
+                              <div className="h-9 w-9 rounded-xl bg-emerald-50 border border-emerald-200/60 text-emerald-800 flex items-center justify-center flex-shrink-0 group-hover:scale-105 group-hover:bg-emerald-800 group-hover:text-white transition-all shadow-2xs">
                                 <NewspaperIcon className="h-5 w-5" />
                               </div>
                               <div className="flex flex-col text-start">
-                                <span className="text-xs font-bold text-white group-hover:text-amber-300 transition-colors">
+                                <span className="text-xs font-bold text-slate-800 group-hover:text-emerald-900 transition-colors">
                                   Newspaper Clippings
                                 </span>
-                                <span className="text-[10px] text-amber-200/70 font-medium">
+                                <span className="text-[10px] text-slate-500 font-medium">
                                   اخباری تراشے و پریس کٹنگس
                                 </span>
                               </div>

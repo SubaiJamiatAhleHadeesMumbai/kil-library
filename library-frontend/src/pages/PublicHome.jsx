@@ -746,7 +746,7 @@ const PublicHome = () => {
             href="https://api.whatsapp.com/send?text=%D8%AD%D8%AF%DB%8C%D8%AB%D9%90%20%D9%85%D8%A8%D8%A7%D8%B1%DA%A9%DB%81%3A%20%C2%AB%D8%AE%D9%8E%D9%8A%D9%92%D8%B1%D9%8F%DA%A9%D9%8F%D9%85%D9%92%20%D9%85%D9%8E%D9%86%D9%92%20%D8%AA%D9%8E%D8%B9%D9%8E%D9%84%D9%8E%D9%81%D9%8E%20%D8%A7%D9%84%D9%92%D9%82%D9%8F%D8%B1%D9%92%D8%A2%D9%86%D9%8E%20%D9%88%D9%8E%D8%B9%D9%8E%D9%84%D9%8E%D9%81%D9%8E%D9%87%D9%8F%C2%BB%20%D8%B5%D8%AD%DB%8C%D8%AD%20%D8%A7%D9%84%D8%A8%D8%AE%D8%A7%D8%B1%DB%8C%3A%205027%20https%3A%2F%2Fwww.ahlehadeeskokan.com"
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 rounded-full bg-emerald-800 hover:bg-emerald-900 text-white font-bold px-5 py-2.5 text-xs sm:text-sm shadow-sm transition-all cursor-pointer whitespace-nowrap active:scale-95 flex-shrink-0"
+            className="inline-flex items-center gap-2 rounded-2xl bg-[#25D366] hover:bg-[#20ba59] text-white font-bold px-5 py-2.5 text-xs sm:text-sm shadow-xs transition-all cursor-pointer whitespace-nowrap active:scale-95 flex-shrink-0"
           >
             <span>📲</span>
             <span>واٹس ایپ پر شیئر کریں</span>

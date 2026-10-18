@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="ur" dir="rtl">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/png" href="/logo.png" />
@@ -190,7 +190,7 @@
     }
     </script>
 
-    <!-- Early Language & Direction Initializer -->
+    <!-- Early Language & Direction Initializer (Defaults to Authentic Urdu RTL) -->
     <script>
       (function() {
         try {
@@ -200,20 +200,20 @@
             document.documentElement.lang = 'en';
             return;
           }
-          // Only apply if user explicitly chose a language
           var saved = localStorage.getItem('kil_language');
-          if (saved === 'ur' || saved === 'ar') {
-            document.documentElement.dir = 'rtl';
-            document.documentElement.lang = saved;
-            var val = '/en/' + saved;
-            document.cookie = 'googtrans=' + val + '; path=/;';
-            document.cookie = 'googtrans=' + val + '; path=/; domain=' + window.location.hostname + ';';
-          } else {
-            // Default is pure English LTR with NO automatic translation
+          if (saved === 'en') {
             document.documentElement.dir = 'ltr';
             document.documentElement.lang = 'en';
             document.cookie = 'googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
             document.cookie = 'googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=' + window.location.hostname + ';';
+          } else {
+            // Default is Urdu RTL with authentic Islamic typography
+            var activeLang = (saved === 'ar' ? 'ar' : 'ur');
+            document.documentElement.dir = 'rtl';
+            document.documentElement.lang = activeLang;
+            var val = '/en/' + activeLang;
+            document.cookie = 'googtrans=' + val + '; path=/;';
+            document.cookie = 'googtrans=' + val + '; path=/; domain=' + window.location.hostname + ';';
           }
         } catch (e) {}
       })();

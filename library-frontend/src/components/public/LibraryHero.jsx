@@ -186,25 +186,22 @@ const LibraryHero = ({ config }) => {
   return (
     <motion.div
       style={{ scale }}
-      className="relative w-full overflow-hidden rounded-[2.5rem] bg-gradient-to-b from-[#f2f8f5] to-[#fafaf9] shadow-xs border border-slate-200/80"
+      className="relative w-full overflow-hidden rounded-3xl bg-white shadow-xs border border-slate-200/90"
     >
       {/* ================= BACKGROUND ================= */}
       <div
-        className="absolute inset-0"
+        className="absolute inset-0 pointer-events-none"
         style={{
           transform: `translate(${mouse.x}px, ${mouse.y}px)`,
           transition: "transform .25s ease-out",
         }}
       >
-        {/* Subtle Islamic Ambient Glow (Noor & Forest Emerald) */}
+        {/* Subtle Ambient Noor Aura */}
         <div
           className="absolute inset-0"
           style={{
             background: `
-              radial-gradient(circle at 50% 15%, rgba(16, 185, 129, 0.08), transparent 65%),
-              radial-gradient(circle at 15% 45%, rgba(16, 185, 129, 0.05), transparent 50%),
-              radial-gradient(circle at 85% 55%, rgba(6, 78, 59, 0.05), transparent 50%),
-              linear-gradient(180deg, #f2f8f5 0%, #fafaf9 100%)
+              radial-gradient(circle at 50% 0%, rgba(16, 185, 129, 0.05), transparent 70%)
             `,
           }}
         />
@@ -307,13 +304,13 @@ const LibraryHero = ({ config }) => {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder={searchPlaceholder}
-            className={`w-full rounded-full border border-slate-300 focus:border-emerald-700 bg-white py-3.5 sm:py-4 text-sm sm:text-base text-slate-900 placeholder-slate-400 outline-none shadow-lg shadow-emerald-950/5 focus:shadow-xl transition-all font-sans ${
+            className={`w-full rounded-2xl border-2 border-slate-200 hover:border-emerald-700 focus:border-emerald-800 focus:bg-white bg-slate-50 py-3.5 sm:py-4 text-sm sm:text-base text-slate-900 placeholder-slate-400 outline-none shadow-xs transition-all font-sans ${
               isRTL ? "pe-6 ps-36" : "ps-6 pe-36"
             }`}
           />
           <button
             type="submit"
-            className={`absolute top-1/2 -translate-y-1/2 rounded-full bg-emerald-800 hover:bg-emerald-900 px-6 py-2.5 text-xs sm:text-sm font-bold text-white shadow-md hover:brightness-105 active:scale-95 transition-all cursor-pointer ${
+            className={`absolute top-1/2 -translate-y-1/2 rounded-xl bg-emerald-900 hover:bg-emerald-800 px-6 py-2.5 text-xs sm:text-sm font-bold text-white shadow-xs hover:brightness-105 active:scale-95 transition-all cursor-pointer ${
               isRTL ? "start-4" : "end-4"
             }`}
           >
@@ -321,7 +318,7 @@ const LibraryHero = ({ config }) => {
           </button>
         </motion.form>
 
-        {/* QUICK SUBJECT TAGS (Clean Pills) */}
+        {/* QUICK SUBJECT TAGS (Clean Editorial Pills) */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -329,7 +326,7 @@ const LibraryHero = ({ config }) => {
           className="flex items-center justify-center flex-wrap gap-2 sm:gap-2.5 mb-7"
         >
           <span 
-            className="text-xs sm:text-sm font-bold text-slate-600 me-1"
+            className="text-xs sm:text-sm font-bold text-slate-500 me-1"
             style={{ fontFamily: isRTL ? "'Gulzar', 'Noto Nastaliq Urdu', serif" : undefined }}
           >
             {popularTopicsLabel}
@@ -339,7 +336,7 @@ const LibraryHero = ({ config }) => {
               key={topic.name}
               type="button"
               onClick={() => navigate(`/library?search=${encodeURIComponent(topic.query)}`)}
-              className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white hover:bg-emerald-50 hover:border-emerald-300 px-3 py-1 text-xs sm:text-sm font-medium text-slate-700 hover:text-emerald-900 transition-all cursor-pointer shadow-2xs"
+              className="inline-flex items-center gap-1.5 rounded-full border border-slate-200/70 bg-slate-100 hover:bg-emerald-50 hover:text-emerald-900 hover:border-emerald-300 px-3.5 py-1 text-xs sm:text-sm font-medium text-slate-700 transition-all cursor-pointer shadow-2xs"
               style={{ fontFamily: isRTL ? "'Gulzar', 'Noto Nastaliq Urdu', serif" : undefined }}
             >
               <span>{topic.icon}</span>
@@ -348,24 +345,36 @@ const LibraryHero = ({ config }) => {
           ))}
         </motion.div>
 
-        {/* 4 ROYAL METRIC BADGES (Clean White Badges) */}
+        {/* 4 EDITORIAL METRIC BADGES (Clean Grid) */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.36, duration: 0.7 }}
-          className="flex items-center justify-center flex-wrap gap-2.5 sm:gap-3"
+          className="pt-6 border-t border-slate-100 grid grid-cols-2 sm:grid-cols-4 gap-3 text-center w-full max-w-3xl"
         >
-          <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white/90 px-4 py-1.5 text-xs sm:text-sm text-slate-700 shadow-2xs">
-            <span>📚</span> <strong className="text-emerald-950 font-bold">7,800+</strong> <span>{language === 'en' ? 'Books & Treatises' : language === 'ar' ? 'كتاب ورسالة' : 'کتب و رسائل'}</span>
+          <div className="p-3 rounded-2xl bg-slate-50/80 border border-slate-100/90 shadow-2xs">
+            <div className="text-xl sm:text-2xl font-black text-emerald-950 font-sans">7,800+</div>
+            <div className="text-[11px] text-slate-600 font-medium" style={{ fontFamily: isRTL ? "'Noto Naskh Arabic', sans-serif" : undefined }}>
+              {language === 'en' ? 'Books & Treatises' : language === 'ar' ? 'كتاب ورسالة' : 'مستند کتب و رسائل'}
+            </div>
           </div>
-          <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white/90 px-4 py-1.5 text-xs sm:text-sm text-slate-700 shadow-2xs">
-            <span>⚡</span> <strong className="text-emerald-950 font-bold">{language === 'en' ? 'Super Fast' : language === 'ar' ? 'فائق السرعة' : 'سپر فاسٹ'}</strong> <span>{language === 'en' ? 'Smart Reader' : language === 'ar' ? 'القارئ الذكي' : 'ڈیجیٹل ریڈر'}</span>
+          <div className="p-3 rounded-2xl bg-slate-50/80 border border-slate-100/90 shadow-2xs">
+            <div className="text-xl sm:text-2xl font-black text-emerald-950 font-sans">100%</div>
+            <div className="text-[11px] text-slate-600 font-medium" style={{ fontFamily: isRTL ? "'Noto Naskh Arabic', sans-serif" : undefined }}>
+              {language === 'en' ? 'Free PDF & Reading' : language === 'ar' ? 'مجاني 100%' : '100% مفت مطالعہ'}
+            </div>
           </div>
-          <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white/90 px-4 py-1.5 text-xs sm:text-sm text-slate-700 shadow-2xs">
-            <span>⚖️</span> <strong className="text-emerald-950 font-bold">{language === 'en' ? 'Dar-ul-Ifta' : language === 'ar' ? 'دار الإفتاء' : 'دار الافتاء'}</strong> <span>{language === 'en' ? '& Research' : language === 'ar' ? 'والبحوث' : 'و تحقیق'}</span>
+          <div className="p-3 rounded-2xl bg-slate-50/80 border border-slate-100/90 shadow-2xs">
+            <div className="text-xl sm:text-2xl font-black text-emerald-950 font-sans">{language === 'en' ? 'Dar-ul-Ifta' : language === 'ar' ? 'دار الإفتاء' : 'دار الافتاء'}</div>
+            <div className="text-[11px] text-slate-600 font-medium" style={{ fontFamily: isRTL ? "'Noto Naskh Arabic', sans-serif" : undefined }}>
+              {language === 'en' ? 'Shariah Guidance' : language === 'ar' ? 'والبحوث' : 'شرعی رہنمائی و فتاویٰ'}
+            </div>
           </div>
-          <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white/90 px-4 py-1.5 text-xs sm:text-sm text-slate-700 shadow-2xs">
-            <span>📥</span> <strong className="text-emerald-950 font-bold">{language === 'en' ? '100% Free' : language === 'ar' ? 'مجاني 100%' : '100% مفت'}</strong> <span>{language === 'en' ? 'Downloads' : language === 'ar' ? 'تحميل' : 'ڈاؤن لوڈ'}</span>
+          <div className="p-3 rounded-2xl bg-slate-50/80 border border-slate-100/90 shadow-2xs">
+            <div className="text-xl sm:text-2xl font-black text-emerald-950 font-sans">{language === 'en' ? 'Super Fast' : language === 'ar' ? 'فائق السرعة' : 'سپر فاسٹ'}</div>
+            <div className="text-[11px] text-slate-600 font-medium" style={{ fontFamily: isRTL ? "'Noto Naskh Arabic', sans-serif" : undefined }}>
+              {language === 'en' ? 'Smart Reader' : language === 'ar' ? 'القارئ الذكي' : 'ہائی اسپیڈ ریڈر'}
+            </div>
           </div>
         </motion.div>
       </div>
