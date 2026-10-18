@@ -5,32 +5,32 @@ import { Link } from 'react-router-dom';
 
 const THEMES = {
   emerald: {
-    bar: 'bg-[#022c22] text-slate-100 border-b border-emerald-800/50 shadow-xs',
-    badge: 'bg-emerald-900/90 text-emerald-300 border border-emerald-700/60',
-    link: 'text-emerald-300 hover:text-white',
-    accentText: 'text-emerald-300',
-    closeBtn: 'text-emerald-400 hover:text-white hover:bg-emerald-800/50',
+    bar: 'bg-white text-slate-700 border-b border-slate-200/90 shadow-2xs',
+    badge: 'bg-emerald-50 text-emerald-800 border border-emerald-200/80',
+    link: 'text-emerald-700 hover:text-emerald-900',
+    accentText: 'text-emerald-950',
+    closeBtn: 'text-slate-400 hover:text-slate-700 hover:bg-slate-100',
   },
   navy: {
-    bar: 'bg-[#001428] text-cyan-100 border-b border-cyan-900/60 shadow-xs',
-    badge: 'bg-blue-900/90 text-cyan-200 border border-blue-600/50',
-    link: 'text-cyan-300 hover:text-white',
-    accentText: 'text-cyan-300',
-    closeBtn: 'text-cyan-400 hover:text-white hover:bg-blue-800/50',
+    bar: 'bg-white text-slate-700 border-b border-slate-200/90 shadow-2xs',
+    badge: 'bg-emerald-50 text-emerald-800 border border-emerald-200/80',
+    link: 'text-emerald-700 hover:text-emerald-900',
+    accentText: 'text-emerald-950',
+    closeBtn: 'text-slate-400 hover:text-slate-700 hover:bg-slate-100',
   },
   amber: {
-    bar: 'bg-amber-950 text-amber-100 border-b border-amber-800/60 shadow-xs',
-    badge: 'bg-amber-900/90 text-amber-200 border border-amber-600/50',
-    link: 'text-amber-300 hover:text-white',
-    accentText: 'text-amber-300',
-    closeBtn: 'text-amber-400 hover:text-white hover:bg-amber-800/50',
+    bar: 'bg-white text-slate-700 border-b border-slate-200/90 shadow-2xs',
+    badge: 'bg-amber-50 text-amber-800 border border-amber-200/80',
+    link: 'text-amber-700 hover:text-amber-900',
+    accentText: 'text-slate-900',
+    closeBtn: 'text-slate-400 hover:text-slate-700 hover:bg-slate-100',
   },
   rose: {
-    bar: 'bg-rose-950 text-rose-100 border-b border-rose-800/60 shadow-xs',
-    badge: 'bg-rose-900/90 text-rose-200 border border-rose-600/50',
-    link: 'text-rose-300 hover:text-white',
-    accentText: 'text-rose-300',
-    closeBtn: 'text-rose-400 hover:text-white hover:bg-rose-800/50',
+    bar: 'bg-white text-slate-700 border-b border-slate-200/90 shadow-2xs',
+    badge: 'bg-rose-50 text-rose-800 border border-rose-200/80',
+    link: 'text-rose-700 hover:text-rose-900',
+    accentText: 'text-slate-900',
+    closeBtn: 'text-slate-400 hover:text-slate-700 hover:bg-slate-100',
   },
 };
 
@@ -114,14 +114,14 @@ const TopAnnouncementBar = ({ config = null }) => {
             )}
 
             {/* Arabic / Main Message */}
-            <span dir="rtl" className="font-serif font-semibold text-sm sm:text-sm truncate drop-shadow-2xs">
+            <span dir="rtl" className="font-serif font-bold text-sm sm:text-base text-emerald-950 truncate">
               {mainText}
             </span>
 
             {/* Translation / Sub-text */}
             {transText && (
-              <span className="hidden md:inline font-sans text-xs opacity-80 italic truncate max-w-md">
-                — "{transText}"
+              <span className="hidden md:inline font-sans text-xs text-slate-600 truncate max-w-md">
+                — ”{transText}“
               </span>
             )}
 

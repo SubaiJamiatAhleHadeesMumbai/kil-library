@@ -347,49 +347,32 @@ const UserNavbar = () => {
           <div className="app-shell-container">
             <div className="flex items-center justify-between min-h-[4.25rem] py-2 gap-2">
               
-              {/* LOGO & BRAND */}
+              {/* LOGO & BRAND (100% Matching Footer Identity) */}
               <div className="flex items-center min-w-0 flex-1 lg:flex-none">
-                <Link to="/" className="flex items-center gap-2 sm:gap-3 group min-w-0 flex-1 lg:flex-none" onClick={() => setIsMobileMenuOpen(false)}>
-                  <div className="relative shrink-0 flex-shrink-0">
-                    <div className="absolute inset-0 rounded-full bg-emerald-500/10 blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                    <img
-                      src={brandLogoUrl}
-                      alt="Logo"
-                      style={{
-                        height: `clamp(32px, 8vw, ${logoSizePx}px)`,
-                        width: `clamp(32px, 8vw, ${logoSizePx}px)`,
-                      }}
-                      className="relative z-10 object-contain bg-white rounded-full border border-slate-200 shadow-xs group-hover:scale-105 transition-transform duration-300 shrink-0"
-                      onError={(e) => {
-                        e.currentTarget.onerror = null;
-                        e.currentTarget.src = MARKAZ_LOGO_URL;
-                      }}
-                    />
+                <Link to="/" className="flex items-center gap-2.5 sm:gap-3 group min-w-0 flex-1 lg:flex-none" onClick={() => setIsMobileMenuOpen(false)}>
+                  <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-gradient-to-tr from-emerald-800 to-emerald-950 text-white flex items-center justify-center font-bold text-xl shadow-xs border border-emerald-700 shrink-0 group-hover:scale-105 transition-transform duration-300">
+                    📚
                   </div>
                   <div className="flex flex-col justify-center min-w-0 flex-1 py-0.5 overflow-visible">
                     <span
                       style={{ 
-                        fontSize: "clamp(0.75rem, 3.2vw, 1.18rem)",
-                        fontFamily: language === 'ur' ? "'Gulzar', 'Noto Nastaliq Urdu', serif" : undefined,
-                        lineHeight: language === 'ur' ? 2.0 : 1.25,
-                        paddingTop: language === 'ur' ? "2px" : "0px",
-                        paddingBottom: language === 'ur' ? "2px" : "0px",
+                        fontSize: "clamp(0.85rem, 3.4vw, 1.25rem)",
+                        fontFamily: "'Noto Nastaliq Urdu', 'Noto Naskh Arabic', serif",
+                        lineHeight: 1.9,
                       }}
-                      className="font-extrabold text-emerald-950 line-clamp-2 break-words overflow-visible"
+                      className="font-extrabold text-slate-900 line-clamp-1 break-words overflow-visible"
                       title={brandTitle}
                     >
-                      {brandTitle}
+                      {language === 'ur' ? "کوکن اسلامک لائبریری" : brandTitle}
                     </span>
-                    {showSiteSubtitle && brandSub && (
-                      <span 
-                        style={{
-                          fontFamily: language === 'ur' ? "'Gulzar', 'Noto Nastaliq Urdu', serif" : undefined
-                        }}
-                        className="text-[9px] sm:text-[10px] text-emerald-700/80 font-bold uppercase tracking-wider line-clamp-1 break-words"
-                      >
-                        {brandSub}
-                      </span>
-                    )}
+                    <span 
+                      style={{
+                        fontFamily: "'Noto Naskh Arabic', sans-serif"
+                      }}
+                      className="text-[10px] sm:text-[11px] text-emerald-800 font-bold tracking-normal line-clamp-1 break-words"
+                    >
+                      {language === 'ur' ? "مرکز اہل حدیث کوکن کا علمی شعبہ" : (brandSub || "Markaz Ahle Hadees Kokan")}
+                    </span>
                   </div>
                 </Link>
               </div>
@@ -718,14 +701,14 @@ const UserNavbar = () => {
                   <button
                     type="button"
                     onClick={() => setIsUniversalSearchOpen(true)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-50 hover:bg-slate-100 text-slate-600 hover:text-slate-900 border border-slate-200 hover:border-slate-300 text-xs transition-all duration-200 shadow-2xs cursor-pointer group"
-                    title={t("search_placeholder") + " (Ctrl+K)"}
+                    className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-50 hover:bg-slate-100 text-slate-700 hover:text-slate-900 border border-slate-300 hover:border-emerald-600 text-xs transition-all duration-200 shadow-2xs cursor-pointer group"
+                    title={language === 'ur' ? "کتاب، مصنف یا موضوع تلاش فرمائیں... (Ctrl+K)" : "Search (Ctrl+K)"}
                   >
-                    <MagnifyingGlassIcon className="w-3.5 h-3.5 text-slate-500 group-hover:scale-110 transition-transform" />
-                    <span className="hidden xl:inline text-[11px] text-slate-600 font-semibold group-hover:text-slate-900">
-                      Search
+                    <MagnifyingGlassIcon className="w-4 h-4 text-emerald-800 group-hover:scale-110 transition-transform" />
+                    <span className="text-xs text-slate-700 font-semibold font-sans">
+                      {language === 'ur' ? 'تلاش کریں...' : 'Search...'}
                     </span>
-                    <kbd className="hidden xl:inline-flex items-center px-1.5 py-0.5 text-[8px] font-bold text-slate-500 bg-white border border-slate-200 rounded">
+                    <kbd className="hidden xl:inline-flex items-center px-1.5 py-0.5 text-[9px] font-bold text-slate-400 bg-white border border-slate-200 rounded">
                       ⌘K
                     </kbd>
                   </button>

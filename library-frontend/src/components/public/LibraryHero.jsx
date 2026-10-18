@@ -1,393 +1,234 @@
-import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useEffect, useState, useMemo } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { Swiper, SwiperSlide } from "swiper/react";
+import { Autoplay, Navigation, Pagination } from "swiper/modules";
 import {
-  BuildingLibraryIcon,
+  PhotoIcon,
   BookOpenIcon,
-  BoltIcon,
+  BuildingLibraryIcon,
   ScaleIcon,
-  ArrowDownTrayIcon,
+  ChevronRightIcon,
+  ChevronLeftIcon,
 } from "@heroicons/react/24/solid";
-import { motion, useScroll, useTransform } from "framer-motion";
-import settingsService from "../../api/settingsService";
+import galleryService from "../../api/galleryService";
 import { useLanguage } from "../../context/LanguageContext";
+
+import "swiper/css";
+import "swiper/css/navigation";
+import "swiper/css/pagination";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || (import.meta.env.PROD ? "" : "http://127.0.0.1:8000");
 
-const STAR_COLORS = [
-  "rgba(255, 230, 160, 0.8)",
-  "rgba(212, 175, 55, 0.7)",
-  "rgba(255, 255, 255, 0.85)",
-  "rgba(110, 231, 183, 0.75)",
+const resolveImageUrl = (value) => {
+  if (!value) return "";
+  if (value.startsWith("http://") || value.startsWith("https://")) return value;
+  const path = String(value);
+  const cleanPath = path.startsWith("/") ? path : `/${path}`;
+  return `${API_BASE_URL}${cleanPath}`;
+};
+
+const DEFAULT_SLIDES = [
+  {
+    id: "slide-1",
+    image: "/static/images/0a33c541-b2d5-4315-aed3-04753bc5198a_download28.jpeg",
+    fallback_image: "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=1600&q=80",
+    badge: "📸 دعوتی و تعلیمی پروگرامز",
+    badge_color: "bg-emerald-600/90",
+    title: "مرکز اہل حدیث کوکن: سالانہ تعلیمی و تربیتی سیمینار کی تصویری جھلکیاں",
+    description: "مسجد اہل حدیث، بیت السلام کمپلیکس کھڑ میں منعقدہ عظیم الشان علمی کانفرنس جس میں علمائے کرام اور شائقینِ علم نے شرکت فرمائی۔",
+    action_text: "تمام تصاویر ملاحظہ فرمائیں",
+    action_link: "/gallery",
+  },
+  {
+    id: "slide-2",
+    image: "/static/images/7b6e2da0-4181-408c-b1d7-88bac463416f_books.jpeg",
+    fallback_image: "https://images.unsplash.com/photo-1507842229456-83a30310705a?auto=format&fit=crop&w=1600&q=80",
+    badge: "📖 کتب خانہ و ڈیجیٹل ذخیرہ",
+    badge_color: "bg-amber-600/90",
+    title: "علومِ قرآن و سنت اور سلف صالحین کی 7,800+ کتب کا جدید مطالعہ",
+    description: "محققین، طلبہ اور علم کے متلاشی احباب کے لیے نادر کتب، تفاسیر اور شروحات احادیث کا آسان، مفت اور تیز ترین پلیٹ فارم۔",
+    action_text: "کتب خانہ دیکھیں",
+    action_link: "/library",
+  },
+  {
+    id: "slide-3",
+    image: "/static/images/97cd6c8e-b3a3-4ba9-9d07-5d86aabc152b.jpeg",
+    fallback_image: "https://images.unsplash.com/photo-1589829085413-56de8ae18c73?auto=format&fit=crop&w=1600&q=80",
+    badge: "🏛️ سرگرمیاں و خدمات",
+    badge_color: "bg-blue-600/90",
+    title: "مسجد اہل حدیث، بیت السلام کمپلیکس کھڑ کے دعوتی و فلاحی منصوبے",
+    description: "منطقہ کوکن میں توحید و سنت کی اشاعت اور معاشرتی اصلاح کے لیے مرکز کے زیرِ اہتمام جاری متنوع سرگرمیاں۔",
+    action_text: "تعارفِ مرکز پڑھیں",
+    action_link: "/about",
+  },
 ];
 
-const LibraryHero = ({ config }) => {
+const LibraryHero = () => {
   const { language, isRTL } = useLanguage();
-  const [heroSettings, setHeroSettings] = useState(config || null);
-  const [mouse, setMouse] = useState({ x: 0, y: 0 });
-  const [searchQuery, setSearchQuery] = useState("");
+  const [galleryItems, setGalleryItems] = useState([]);
   const navigate = useNavigate();
 
-  const handleSearchSubmit = (e) => {
-    e?.preventDefault();
-    if (searchQuery.trim()) {
-      navigate(`/library?search=${encodeURIComponent(searchQuery.trim())}`);
-    }
-  };
-
-  // If no config passed directly, load from settingsService
   useEffect(() => {
-    if (config) {
-      setHeroSettings(config);
-      return;
-    }
     let mounted = true;
-    settingsService.getHomepageSettings().then((data) => {
-      if (mounted && data?.sections?.hero) {
-        setHeroSettings(data.sections.hero);
-      }
-    }).catch(() => {});
+    galleryService
+      .getPublicGallery({ limit: 6 })
+      .then((data) => {
+        if (mounted && Array.isArray(data) && data.length > 0) {
+          setGalleryItems(data);
+        }
+      })
+      .catch(() => {});
     return () => {
       mounted = false;
     };
-  }, [config]);
-
-  /* ================= Mouse Parallax ================= */
-  useEffect(() => {
-    const move = (e) => {
-      setMouse({
-        x: (e.clientX / window.innerWidth - 0.5) * 8,
-        y: (e.clientY / window.innerHeight - 0.5) * 8,
-      });
-    };
-    window.addEventListener("mousemove", move);
-    return () => window.removeEventListener("mousemove", move);
   }, []);
 
-  /* ================= Scroll Zoom ================= */
-  const { scrollY } = useScroll();
-  const scale = useTransform(scrollY, [0, 300], [1, 0.96]);
+  const slides = useMemo(() => {
+    if (galleryItems && galleryItems.length > 0) {
+      return galleryItems.map((item, index) => {
+        const title = typeof item.title === "object"
+          ? (item.title[language] || item.title.ur || item.title.en || "")
+          : (item.title || "مرکز اہل حدیث کوکن کی تصویری جھلکیاں");
+        const desc = typeof item.caption === "object"
+          ? (item.caption[language] || item.caption.ur || item.caption.en || "")
+          : (item.caption || "مسجد اہل حدیث، بیت السلام کمپلیکس کھڑ میں جاری دعوتی و علمی سرگرمیاں۔");
 
-  // Derived Dynamic Properties
-  const rawBanner = heroSettings?.banner_image_url || "";
-  const bannerUrl = rawBanner
-    ? (rawBanner.startsWith("http")
-        ? rawBanner
-        : `${API_BASE_URL}${rawBanner.startsWith("/") ? "" : "/"}${rawBanner}`)
-    : "";
-
-  const overlayOpacity = Number.isFinite(Number(heroSettings?.banner_overlay_opacity))
-    ? Math.min(1, Math.max(0.1, Number(heroSettings.banner_overlay_opacity) / 100))
-    : 0.75;
-
-  const resolveText = (val, fallbacks = {}) => {
-    const fallback = typeof fallbacks === "string" 
-      ? fallbacks 
-      : (fallbacks[language] || fallbacks.ur || fallbacks.en || "");
-
-    if (!val) return fallback;
-    if (typeof val === "string") return val.trim() || fallback;
-    if (typeof val === "object") {
-      // 1. Exact match for current active language
-      const current = val[language];
-      if (typeof current === "string" && current.trim()) return current.trim();
-      
-      // 2. Language-ranked secondary fallbacks
-      const secondary = language === "en" 
-        ? (val.en || val.ur || val.ar) 
-        : language === "ar" 
-        ? (val.ar || val.ur || val.en) 
-        : (val.ur || val.ar || val.en);
-      if (typeof secondary === "string" && secondary.trim()) return secondary.trim();
-
-      for (const k of Object.keys(val)) {
-        if (typeof val[k] === "string" && val[k].trim()) return val[k].trim();
-      }
-      return fallback;
+        return {
+          id: `gallery-${item.id || index}`,
+          image: resolveImageUrl(item.image_url),
+          fallback_image: DEFAULT_SLIDES[index % DEFAULT_SLIDES.length].fallback_image,
+          badge: item.album_title || "📸 تصویری گیلری",
+          badge_color: index % 2 === 0 ? "bg-emerald-600/90" : "bg-amber-600/90",
+          title,
+          description: desc,
+          action_text: "تمام تصاویر ملاحظہ فرمائیں",
+          action_link: "/gallery",
+        };
+      });
     }
-    return String(val);
-  };
-
-  const showStars = false;
-  const showBadge = heroSettings?.show_badge !== false;
-  const badgeText = resolveText(heroSettings?.badge, {
-    ur: "مرکز اہل حدیث کوکن",
-    en: "Markaz Ahle Hadees Kokan",
-    ar: "مركز أهل الحديث كوكان",
-  });
-  const showAyah = heroSettings?.show_ayah !== false;
-  const ayahArabic = resolveText(heroSettings?.ayah_arabic, "بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ");
-  const ayahTranslation = resolveText(heroSettings?.ayah_translation, {
-    ur: "اے ایمان والو! اللہ کی اطاعت کرو اور رسول کی اطاعت کرو",
-    en: "O you who believe! Obey Allah and obey the Messenger",
-    ar: "يَا أَيُّهَا الَّذِينَ آمَنُوا أَطِيعُوا اللَّهَ وَأَطِيعُوا الرَّسُولَ",
-  });
-  const title = resolveText(heroSettings?.title, {
-    ur: "کوکن اسلامک لائبریری",
-    en: "Kokan Islamic Library",
-    ar: "مكتبة كوكان الإسلامية",
-  });
-  const description = resolveText(heroSettings?.description, {
-    ur: "مستند اسلامی علوم، تفاسیر، کتبِ احادیث، فقہ اور فتاویٰ کا جدید اور تیز ترین ڈیجیٹل ذخیرہ۔",
-    en: "A modern digital repository of authentic Islamic sciences, Tafseer, Hadith collections, Fiqh, and Fatawa.",
-    ar: "مستودع رقمي حديث للعلوم الإسلامية الأصيلة، التفاسير، كتب الحديث، الفقه والفتاوى.",
-  });
-  const showCta = heroSettings?.show_cta !== false;
-  const ctaText = resolveText(heroSettings?.cta_text, {
-    ur: "کتب خانہ دیکھیں 📖",
-    en: "Explore Library 📖",
-    ar: "تصفح المكتبة 📖",
-  });
-  const ctaLink = heroSettings?.cta_link || "/library";
-  const secondaryCtaText = resolveText(heroSettings?.secondary_cta_text, {
-    ur: "دار الافتاء • سوال پوچھیں ⚖️",
-    en: "Dar-ul-Ifta • Ask Fatwa ⚖️",
-    ar: "دار الإفتاء • اسأل فتوى ⚖️",
-  });
-  const secondaryCtaLink = heroSettings?.secondary_cta_link || "/fatawa";
-
-  const searchPlaceholder = resolveText(null, {
-    ur: "کتاب، مصنف، یا موضوع تلاش فرمائیں... (مثال: صحیح بخاری، توحید، فقہ)",
-    en: "Search books, authors, or topics... (e.g. Sahih Bukhari, Tawheed, Fiqh)",
-    ar: "ابحث عن كتاب، مؤلف، أو موضوع... (مثال: صحيح البخاري، التوحيد، الفقه)",
-  });
-
-  const searchBtnText = resolveText(null, {
-    ur: "تلاش کریں 🔍",
-    en: "Search 🔍",
-    ar: "بحث 🔍",
-  });
-
-  const popularTopicsLabel = resolveText(null, {
-    ur: "مقبول موضوعات:",
-    en: "Popular Topics:",
-    ar: "مواضيع شائعة:",
-  });
-
-  const popularTopics = language === "en" ? [
-    { name: "Sahih Bukhari", icon: "📖", query: "Sahih Bukhari" },
-    { name: "Tawheed & Aqeedah", icon: "🕋", query: "Tawheed" },
-    { name: "Tafsir Ibn Kathir", icon: "📜", query: "Tafsir" },
-    { name: "Shariah Fatawa", icon: "⚖️", query: "Fatawa" },
-    { name: "Sunnah vs Bidah", icon: "🌿", query: "Sunnah" },
-  ] : language === "ar" ? [
-    { name: "صحيح البخاري", icon: "📖", query: "صحيح البخاري" },
-    { name: "العقيدة والتوحيد", icon: "🕋", query: "التوحيد" },
-    { name: "تفسير ابن كثير", icon: "📜", query: "التفسير" },
-    { name: "الفتاوى الشرعية", icon: "⚖️", query: "فتاوى" },
-    { name: "السنة والبدعة", icon: "🌿", query: "السنة" },
-  ] : [
-    { name: "صحیح بخاری", icon: "📖", query: "صحیح بخاری" },
-    { name: "عقیدہ و توحید", icon: "🕋", query: "عقیدہ" },
-    { name: "تفسیر ابن کثیر", icon: "📜", query: "تفسیر" },
-    { name: "فتاویٰ شرعیہ", icon: "⚖️", query: "فتاویٰ" },
-    { name: "ردِ شرک و بدعت", icon: "🌿", query: "بدعت" },
-  ];
+    return DEFAULT_SLIDES;
+  }, [galleryItems, language]);
 
   return (
-    <motion.div
-      style={{ scale }}
-      className="relative w-full overflow-hidden rounded-3xl bg-white shadow-xs border border-slate-200/90"
-    >
-      {/* ================= BACKGROUND ================= */}
-      <div
-        className="absolute inset-0 pointer-events-none"
-        style={{
-          transform: `translate(${mouse.x}px, ${mouse.y}px)`,
-          transition: "transform .25s ease-out",
-        }}
-      >
-        {/* Subtle Ambient Noor Aura */}
-        <div
-          className="absolute inset-0"
-          style={{
-            background: `
-              radial-gradient(circle at 50% 0%, rgba(16, 185, 129, 0.05), transparent 70%)
-            `,
+    <div className="w-full space-y-6">
+      {/* ================= PREMIER MAJESTIC IMAGE SLIDER ================= */}
+      <div className="relative rounded-3xl overflow-hidden shadow-md border border-slate-200/90 bg-slate-900 aspect-[16/9] sm:aspect-[21/9] max-h-[500px]">
+        <Swiper
+          modules={[Autoplay, Navigation, Pagination]}
+          autoplay={{
+            delay: 4500,
+            disableOnInteraction: false,
+            pauseOnMouseEnter: true,
           }}
-        />
-      </div>
-
-      {/* ================= CONTENT (100% OPEN SULTANI FRAME - NO NESTED BOX) ================= */}
-      <div className="relative z-10 mx-auto max-w-5xl px-4 py-8 sm:py-12 md:py-16 text-center flex flex-col items-center justify-center">
-        {/* Soft Center Gold Aura */}
-        <div
-          className="absolute left-1/2 top-0 -translate-x-1/2 h-44 w-44 rounded-full blur-3xl opacity-10 pointer-events-none sm:h-64 sm:w-64 md:h-80 md:w-80"
-          style={{
-            background: "radial-gradient(circle, #D4AF37, transparent 70%)",
+          speed={800}
+          loop={slides.length > 1}
+          pagination={{
+            clickable: true,
+            bulletClass: "swiper-pagination-bullet !bg-white !opacity-60",
+            bulletActiveClass: "swiper-pagination-bullet-active !opacity-100 !w-7 !rounded-full !bg-emerald-500",
           }}
-        />
-
-        {/* TOP BISMILLAH & AYAH (AMIRI CALLIGRAPHY) */}
-        {showAyah && (
-          <div className="mb-3">
-            <motion.div 
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="text-2xl sm:text-3xl md:text-4xl text-amber-600 font-serif tracking-widest drop-shadow-xs mb-1"
-              style={{ fontFamily: "'Amiri', 'Traditional Arabic', serif" }}
-            >
-              ❖ بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ ❖
-            </motion.div>
-
-            {ayahArabic && (
-              <motion.h2
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6 }}
-                dir="rtl"
-                className="text-lg sm:text-xl md:text-2xl font-serif font-bold tracking-wide text-emerald-950 leading-relaxed"
-                style={{ fontFamily: "'Amiri', 'Traditional Arabic', serif" }}
-              >
-                {ayahArabic}
-              </motion.h2>
-            )}
-
-            {ayahTranslation && (
-              <motion.p
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.1, duration: 0.6 }}
-                className="mt-1 text-xs sm:text-sm text-slate-600 leading-relaxed max-w-xl mx-auto"
-                style={{
-                  fontFamily: isRTL ? "'Gulzar', 'Noto Nastaliq Urdu', serif" : undefined,
-                  lineHeight: isRTL ? 2.3 : 1.5,
+          navigation={{
+            nextEl: ".hero-slider-next",
+            prevEl: ".hero-slider-prev",
+          }}
+          className="w-full h-full"
+        >
+          {slides.map((slide) => (
+            <SwiperSlide key={slide.id} className="relative w-full h-full">
+              <img
+                src={slide.image}
+                alt={slide.title}
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  e.currentTarget.onerror = null;
+                  e.currentTarget.src = slide.fallback_image;
                 }}
-              >
-                {ayahTranslation}
-              </motion.p>
-            )}
+              />
 
-            <div className="mx-auto mt-3 h-[2px] w-24 sm:w-36 bg-gradient-to-r from-transparent via-emerald-700/30 to-transparent" />
-          </div>
-        )}
+              {/* Gradient Scrim for Flawless Readability */}
+              <div className="absolute inset-0 bg-gradient-to-t from-slate-950/95 via-slate-950/45 to-transparent flex flex-col justify-end p-5 sm:p-10 text-white">
+                <div className="max-w-3xl space-y-2 text-start" dir="rtl">
+                  <span className={`inline-block text-white text-[10px] sm:text-[11px] font-bold px-3 py-0.5 rounded-full shadow-2xs ${slide.badge_color}`}>
+                    {slide.badge}
+                  </span>
+                  
+                  <h3 
+                    className="text-lg sm:text-2xl md:text-3xl font-black drop-shadow-md text-white urdu-title leading-snug"
+                    style={{ fontFamily: "'Noto Nastaliq Urdu', 'Noto Naskh Arabic', serif", lineHeight: 1.9 }}
+                  >
+                    {slide.title}
+                  </h3>
 
-        {/* MAIN HERO TITLE (Reactive Typography) */}
-        <motion.h1
-          initial={{ opacity: 0, y: 18 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.15, duration: 0.7 }}
-          className={`mx-auto my-2 text-3xl sm:text-5xl md:text-6xl font-extrabold text-emerald-950 drop-shadow-xs ${
-            isRTL ? "leading-[2.1] sm:leading-[2.3]" : "leading-tight"
-          }`}
-          style={{ fontFamily: isRTL ? "'Gulzar', 'Noto Nastaliq Urdu', serif" : undefined }}
-        >
-          {title}
-        </motion.h1>
+                  {slide.description && (
+                    <p 
+                      className="text-xs sm:text-sm text-slate-200 line-clamp-2 max-w-2xl font-sans"
+                      style={{ fontFamily: "'Noto Naskh Arabic', sans-serif" }}
+                    >
+                      {slide.description}
+                    </p>
+                  )}
 
-        {/* SUBTITLE / DESCRIPTION */}
-        {description && (
-          <motion.p 
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.22, duration: 0.7 }}
-            className="mx-auto mb-7 max-w-3xl text-sm sm:text-base md:text-lg text-slate-600 font-normal"
-            style={{
-              fontFamily: isRTL ? "'Gulzar', 'Noto Nastaliq Urdu', serif" : undefined,
-              lineHeight: isRTL ? 2.2 : 1.6,
-            }}
-          >
-            {description}
-          </motion.p>
-        )}
-
-        {/* WORLD-CLASS CLEAN SEARCH BAR */}
-        <motion.form
-          initial={{ opacity: 0, y: 15 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.28, duration: 0.7 }}
-          onSubmit={handleSearchSubmit}
-          className="relative mx-auto mb-6 w-full max-w-2xl px-2"
-          dir={isRTL ? "rtl" : "ltr"}
-        >
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder={searchPlaceholder}
-            className={`w-full rounded-2xl border-2 border-slate-200 hover:border-emerald-700 focus:border-emerald-800 focus:bg-white bg-slate-50 py-3.5 sm:py-4 text-sm sm:text-base text-slate-900 placeholder-slate-400 outline-none shadow-xs transition-all font-sans ${
-              isRTL ? "pe-6 ps-36" : "ps-6 pe-36"
-            }`}
-          />
-          <button
-            type="submit"
-            className={`absolute top-1/2 -translate-y-1/2 rounded-xl bg-emerald-900 hover:bg-emerald-800 px-6 py-2.5 text-xs sm:text-sm font-bold text-white shadow-xs hover:brightness-105 active:scale-95 transition-all cursor-pointer ${
-              isRTL ? "start-4" : "end-4"
-            }`}
-          >
-            {searchBtnText}
-          </button>
-        </motion.form>
-
-        {/* QUICK SUBJECT TAGS (Clean Editorial Pills) */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.32, duration: 0.7 }}
-          className="flex items-center justify-center flex-wrap gap-2 sm:gap-2.5 mb-7"
-        >
-          <span 
-            className="text-xs sm:text-sm font-bold text-slate-500 me-1"
-            style={{ fontFamily: isRTL ? "'Gulzar', 'Noto Nastaliq Urdu', serif" : undefined }}
-          >
-            {popularTopicsLabel}
-          </span>
-          {popularTopics.map((topic) => (
-            <button
-              key={topic.name}
-              type="button"
-              onClick={() => navigate(`/library?search=${encodeURIComponent(topic.query)}`)}
-              className="inline-flex items-center gap-1.5 rounded-full border border-slate-200/70 bg-slate-100 hover:bg-emerald-50 hover:text-emerald-900 hover:border-emerald-300 px-3.5 py-1 text-xs sm:text-sm font-medium text-slate-700 transition-all cursor-pointer shadow-2xs"
-              style={{ fontFamily: isRTL ? "'Gulzar', 'Noto Nastaliq Urdu', serif" : undefined }}
-            >
-              <span>{topic.icon}</span>
-              <span>{topic.name}</span>
-            </button>
+                  <div className="pt-2">
+                    <button
+                      type="button"
+                      onClick={() => navigate(slide.action_link)}
+                      className="inline-flex items-center gap-2 bg-white hover:bg-slate-100 text-slate-950 font-bold px-4 py-2 rounded-xl text-xs sm:text-sm transition shadow-sm cursor-pointer active:scale-95"
+                    >
+                      <span>{slide.action_text}</span>
+                      <span>←</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </SwiperSlide>
           ))}
-        </motion.div>
 
-        {/* 4 EDITORIAL METRIC BADGES (Clean Grid) */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.36, duration: 0.7 }}
-          className="pt-6 border-t border-slate-100 grid grid-cols-2 sm:grid-cols-4 gap-3 text-center w-full max-w-3xl"
-        >
-          <div className="p-3 rounded-2xl bg-slate-50/80 border border-slate-100/90 shadow-2xs">
-            <div className="text-xl sm:text-2xl font-black text-emerald-950 font-sans">7,800+</div>
-            <div className="text-[11px] text-slate-600 font-medium" style={{ fontFamily: isRTL ? "'Noto Naskh Arabic', sans-serif" : undefined }}>
-              {language === 'en' ? 'Books & Treatises' : language === 'ar' ? 'كتاب ورسالة' : 'مستند کتب و رسائل'}
-            </div>
-          </div>
-          <div className="p-3 rounded-2xl bg-slate-50/80 border border-slate-100/90 shadow-2xs">
-            <div className="text-xl sm:text-2xl font-black text-emerald-950 font-sans">100%</div>
-            <div className="text-[11px] text-slate-600 font-medium" style={{ fontFamily: isRTL ? "'Noto Naskh Arabic', sans-serif" : undefined }}>
-              {language === 'en' ? 'Free PDF & Reading' : language === 'ar' ? 'مجاني 100%' : '100% مفت مطالعہ'}
-            </div>
-          </div>
-          <div className="p-3 rounded-2xl bg-slate-50/80 border border-slate-100/90 shadow-2xs">
-            <div className="text-xl sm:text-2xl font-black text-emerald-950 font-sans">{language === 'en' ? 'Dar-ul-Ifta' : language === 'ar' ? 'دار الإفتاء' : 'دار الافتاء'}</div>
-            <div className="text-[11px] text-slate-600 font-medium" style={{ fontFamily: isRTL ? "'Noto Naskh Arabic', sans-serif" : undefined }}>
-              {language === 'en' ? 'Shariah Guidance' : language === 'ar' ? 'والبحوث' : 'شرعی رہنمائی و فتاویٰ'}
-            </div>
-          </div>
-          <div className="p-3 rounded-2xl bg-slate-50/80 border border-slate-100/90 shadow-2xs">
-            <div className="text-xl sm:text-2xl font-black text-emerald-950 font-sans">{language === 'en' ? 'Super Fast' : language === 'ar' ? 'فائق السرعة' : 'سپر فاسٹ'}</div>
-            <div className="text-[11px] text-slate-600 font-medium" style={{ fontFamily: isRTL ? "'Noto Naskh Arabic', sans-serif" : undefined }}>
-              {language === 'en' ? 'Smart Reader' : language === 'ar' ? 'القارئ الذكي' : 'ہائی اسپیڈ ریڈر'}
-            </div>
-          </div>
-        </motion.div>
+          {/* Navigation Arrows */}
+          <button
+            type="button"
+            className="hero-slider-prev absolute top-1/2 -translate-y-1/2 start-3 z-20 w-9 h-9 sm:w-11 sm:h-11 rounded-full bg-slate-950/40 hover:bg-emerald-950/80 backdrop-blur-md border border-white/20 text-white flex items-center justify-center transition shadow-md cursor-pointer hover:scale-105 active:scale-95"
+            aria-label="Previous slide"
+          >
+            <ChevronRightIcon className="w-5 h-5 text-white" />
+          </button>
+          <button
+            type="button"
+            className="hero-slider-next absolute top-1/2 -translate-y-1/2 end-3 z-20 w-9 h-9 sm:w-11 sm:h-11 rounded-full bg-slate-950/40 hover:bg-emerald-950/80 backdrop-blur-md border border-white/20 text-white flex items-center justify-center transition shadow-md cursor-pointer hover:scale-105 active:scale-95"
+            aria-label="Next slide"
+          >
+            <ChevronLeftIcon className="w-5 h-5 text-white" />
+          </button>
+        </Swiper>
       </div>
 
-      {/* ================= CSS ANIMATIONS ================= */}
-      <style>{`
-        @keyframes star {
-          from { transform: translateY(0); opacity: .3; }
-          to { transform: translateY(-120vh); opacity: 0; }
-        }
-        .animate-star { animation: star linear infinite; }
-      `}</style>
-    </motion.div>
+      {/* ================= 4 EDITORIAL METRIC BADGES ================= */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center" dir="rtl">
+        <div className="p-3.5 rounded-2xl bg-white border border-slate-200/90 shadow-2xs">
+          <div className="text-xl sm:text-2xl font-black text-emerald-950 font-sans">7,800+</div>
+          <div className="text-[11px] text-slate-600 font-medium font-sans">
+            {language === 'en' ? 'Books & Treatises' : 'مستند کتب و رسائل'}
+          </div>
+        </div>
+        <div className="p-3.5 rounded-2xl bg-white border border-slate-200/90 shadow-2xs">
+          <div className="text-xl sm:text-2xl font-black text-emerald-950 font-sans">100% مفت</div>
+          <div className="text-[11px] text-slate-600 font-medium font-sans">
+            {language === 'en' ? 'Free Online Reading' : 'آن لائن مطالعہ و ڈاؤنلوڈ'}
+          </div>
+        </div>
+        <div className="p-3.5 rounded-2xl bg-white border border-slate-200/90 shadow-2xs">
+          <div className="text-xl sm:text-2xl font-black text-emerald-950 font-sans">دار الافتاء</div>
+          <div className="text-[11px] text-slate-600 font-medium font-sans">
+            {language === 'en' ? 'Shariah Guidance' : 'شرعی رہنمائی و سوالات'}
+          </div>
+        </div>
+        <div className="p-3.5 rounded-2xl bg-white border border-slate-200/90 shadow-2xs">
+          <div className="text-xl sm:text-2xl font-black text-emerald-950 font-sans">سپر فاسٹ</div>
+          <div className="text-[11px] text-slate-600 font-medium font-sans">
+            {language === 'en' ? 'High Speed Reader' : 'ہائی اسپیڈ ڈیجیٹل ریڈر'}
+          </div>
+        </div>
+      </div>
+    </div>
   );
 };
 
