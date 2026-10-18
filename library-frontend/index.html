@@ -48,22 +48,34 @@
         font-display: swap;
       }
 
-      .urdu-font, .urdu-font *,
-      body.font-urdu, body.font-urdu *,
-      .font-urdu, .font-urdu *,
-      .font-mehr, .font-mehr *,
-      [lang="ur"], [lang="ur"] *,
-      html[lang="ur"] body, html[lang="ur"] body * {
-        font-family: 'Gulzar', 'Noto Nastaliq Urdu', 'Mehr Nastaliq Web', 'Mehr', 'Jameel Noori Nastaleeq', serif !important;
-        letter-spacing: normal !important;
-        line-height: 2.3;
+      /* Urdu & Islamic Editorial Multi-Font System */
+      body, [dir="rtl"], html[lang="ur"] body {
+        font-family: 'Noto Naskh Arabic', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        line-height: 1.85;
       }
+
+      /* Urdu Headings in Gulzar (نستعلیق) */
+      .urdu-title,
+      .font-urdu-heading,
+      .font-nastaliq,
+      .font-gulzar,
       html[lang="ur"] h1, html[lang="ur"] h2, html[lang="ur"] h3,
       body.font-urdu h1, body.font-urdu h2, body.font-urdu h3,
-      .font-urdu h1, .font-urdu h2, .font-urdu h3 {
-        line-height: 2.2 !important;
+      .font-urdu h1, .font-urdu h2, .font-urdu h3,
+      [dir="rtl"] h1, [dir="rtl"] h2, [dir="rtl"] h3 {
+        font-family: 'Gulzar', 'Noto Nastaliq Urdu', 'Mehr Nastaliq Web', serif !important;
+        line-height: 2.1 !important;
       }
-      body.font-arabic, .font-arabic {
+
+      /* Explicit Noto Naskh Arabic for Body, Navigation, Buttons */
+      .font-naskh,
+      [lang="ur"] p, [lang="ur"] span, [lang="ur"] a, [lang="ur"] button, [lang="ur"] input,
+      [dir="rtl"] p, [dir="rtl"] span, [dir="rtl"] a, [dir="rtl"] button, [dir="rtl"] input {
+        font-family: 'Noto Naskh Arabic', system-ui, sans-serif;
+      }
+
+      /* Arabic Quran & Hadith in Amiri */
+      body.font-arabic, .font-arabic, .arabic-text, [lang="ar"], [lang="ar"] * {
         font-family: 'Amiri', 'Traditional Arabic', serif !important;
         line-height: 1.9;
       }
