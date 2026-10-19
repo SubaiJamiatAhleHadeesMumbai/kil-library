@@ -64,31 +64,32 @@ const ImpactStatsCounter = ({ config = {} }) => {
 
   return (
     <section className="py-8 px-4 max-w-7xl mx-auto">
-      <div className="rounded-[2rem] bg-white p-6 sm:p-10 text-slate-900 shadow-xs relative overflow-hidden border border-slate-200/90">
+      <div className="rounded-[2rem] bg-white p-6 sm:p-10 text-slate-900 shadow-xs relative overflow-hidden border border-[#E6E2DD]">
         {/* Small top badge */}
         <div className="relative z-10 flex justify-center mb-6">
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-emerald-50 text-emerald-800 text-xs font-bold border border-emerald-200">
-            <SparklesIcon className="w-3.5 h-3.5 text-emerald-700" />
-            <span className={isUrdu ? "font-urdu text-sm" : ""}>
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-emerald-50 text-[#0F3D2E] text-xs font-bold border border-emerald-200">
+            <SparklesIcon className="w-3.5 h-3.5 text-[#C5A059]" />
+            <span style={{ fontFamily: "'Noto Naskh Arabic', sans-serif" }}>
               مرکز کے علمی و دعوتی اعداد و شمار
             </span>
           </div>
         </div>
 
-        <div className="relative z-10 grid grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8 divide-y sm:divide-y-0 sm:divide-x sm:divide-x-reverse rtl:divide-x-reverse divide-slate-200">
+        <div className="relative z-10 grid grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8 divide-y sm:divide-y-0 sm:divide-x sm:divide-x-reverse rtl:divide-x-reverse divide-[#E6E2DD]">
           {stats.map((item, idx) => {
             const Icon = item.icon;
             return (
               <div key={idx} className={`space-y-2.5 text-center ${idx !== 0 ? "pt-4 sm:pt-0 sm:px-4" : "sm:px-4"}`}>
-                <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-800 mx-auto flex items-center justify-center border border-emerald-100 shadow-xs">
+                <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-[#0F3D2E] mx-auto flex items-center justify-center border border-emerald-100 shadow-xs">
                   <Icon className="w-6 h-6 stroke-[2]" />
                 </div>
-                <div className="text-2xl sm:text-4xl font-extrabold text-slate-900 font-mono tracking-tight">
+                <div className="text-2xl sm:text-4xl font-extrabold text-[#0F3D2E] font-mono tracking-tight">
                   {item.value}
                 </div>
                 {isUrdu ? (
                   <p 
-                    className="text-sm sm:text-base font-bold text-slate-700 leading-loose font-urdu" 
+                    className="text-sm sm:text-base font-bold text-slate-700 leading-snug" 
+                    style={{ fontFamily: "'Noto Naskh Arabic', sans-serif" }}
                     dir="rtl"
                   >
                     {item.labelUrdu}
@@ -99,7 +100,8 @@ const ImpactStatsCounter = ({ config = {} }) => {
                       {item.label}
                     </p>
                     <p 
-                      className="text-xs sm:text-sm font-bold text-slate-500 leading-relaxed font-urdu" 
+                      className="text-xs sm:text-sm font-bold text-slate-500 leading-snug" 
+                      style={{ fontFamily: "'Noto Naskh Arabic', sans-serif" }}
                       dir="rtl"
                     >
                       {item.labelUrdu}

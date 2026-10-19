@@ -8,8 +8,6 @@ import {
   BookOpenIcon,
   SparklesIcon,
   ScaleIcon,
-  CalendarDaysIcon,
-  PhotoIcon,
 } from "@heroicons/react/24/solid";
 import {
   FaYoutube,
@@ -65,42 +63,42 @@ const Footer = () => {
   ]), []);
 
   return (
-    <footer data-site-footer className="relative bg-slate-900 text-slate-300 pt-16 pb-8 font-sans border-t border-slate-800 overflow-hidden shadow-xl notranslate" translate="no">
+    <footer data-site-footer className="relative bg-[#0F3D2E] text-slate-200 pt-16 pb-24 sm:pb-10 font-sans border-t border-[#C5A059]/20 overflow-hidden shadow-xl notranslate" translate="no">
 
       {/* Ambient Radial Lights */}
-      <div className="absolute -top-32 -right-32 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute -bottom-32 -left-32 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute -top-32 -right-32 w-96 h-96 bg-[#C5A059]/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute -bottom-32 -left-32 w-96 h-96 bg-[#0A2A20] rounded-full blur-3xl pointer-events-none" />
 
-      <div className="relative z-10 app-shell-container grid grid-cols-1 md:grid-cols-4 gap-10 lg:gap-12">
+      <div className="relative z-10 app-shell-container grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-10">
         {/* Brand & Introduction */}
-        <div className="col-span-1 md:col-span-1 space-y-4">
+        <div className="col-span-1 space-y-4">
           <div className="flex items-center gap-3">
-            <div className="w-11 h-11 bg-gradient-to-tr from-amber-500/20 to-emerald-500/20 rounded-2xl flex items-center justify-center border border-amber-400/40 shadow-lg shadow-amber-950/20">
-              <BuildingLibraryIcon className="w-6 h-6 text-amber-300" />
+            <div className="w-11 h-11 bg-[#0A2A20] rounded-2xl flex items-center justify-center border border-[#C5A059]/40 shadow-lg">
+              <BuildingLibraryIcon className="w-6 h-6 text-[#C5A059]" />
             </div>
             <div>
               <span 
                 className="text-lg font-bold text-white block leading-tight tracking-wide drop-shadow-sm"
-                style={{ fontFamily: "'Gulzar', 'Noto Nastaliq Urdu', serif" }}
+                style={{ fontFamily: "'Noto Naskh Arabic', 'Plus Jakarta Sans', system-ui, sans-serif" }}
               >
                 مرکز اہل حدیث کوکن
               </span>
-              <span className="text-[10px] text-amber-300 font-bold tracking-widest uppercase block mt-0.5">
+              <span className="text-[10px] text-[#C5A059] font-bold tracking-widest uppercase block mt-0.5">
                 Kokan Islamic Library
               </span>
             </div>
           </div>
 
           <p 
-            className="text-slate-300/90 text-xs sm:text-sm leading-relaxed"
-            style={{ fontFamily: "'Gulzar', 'Noto Nastaliq Urdu', serif", lineHeight: "2.1" }}
+            className="text-slate-300 text-xs sm:text-sm leading-relaxed"
+            style={{ fontFamily: "'Noto Naskh Arabic', sans-serif" }}
           >
             مستند اسلامی علوم، تفاسیر، کتبِ احادیث، فقہ اور فتاویٰ کا جدید ڈیجیٹل ذخیرہ، جو خالص کتاب و سنت کی اشاعت کے لیے وقف ہے۔
           </p>
 
           <div>
-            <h4 className="text-amber-400 font-bold text-xs uppercase tracking-widest mb-3 flex items-center gap-1.5">
-              <SparklesIcon className="w-3.5 h-3.5 text-amber-400" />
+            <h4 className="text-[#C5A059] font-bold text-xs uppercase tracking-widest mb-3 flex items-center gap-1.5">
+              <SparklesIcon className="w-3.5 h-3.5 text-[#C5A059]" />
               <span>ہم سے جڑیں • Follow Us</span>
             </h4>
             <div className="flex flex-wrap gap-2.5">
@@ -111,7 +109,7 @@ const Footer = () => {
                   target="_blank"
                   rel="noopener noreferrer"
                   title={item.name}
-                  className={`group relative w-9 h-9 rounded-xl flex items-center justify-center bg-white/5 border border-amber-400/25 transition-all duration-300 text-amber-200/90 hover:scale-110 active:scale-95 ${item.color} shadow-sm hover:shadow-amber-500/20`}
+                  className={`group relative w-9 h-9 rounded-xl flex items-center justify-center bg-white/5 border border-[#C5A059]/30 transition-all duration-300 text-[#C5A059] hover:scale-110 active:scale-95 ${item.color} shadow-sm`}
                 >
                   <span className="relative z-10 transition-transform duration-300">{item.icon}</span>
                 </a>
@@ -122,39 +120,39 @@ const Footer = () => {
 
         {/* Quick Islamic Portals */}
         <div>
-          <h3 className="text-amber-300 font-bold text-xs uppercase tracking-widest mb-4 flex items-center gap-2 border-b border-amber-500/20 pb-2">
-            <BookOpenIcon className="w-4 h-4 text-amber-400" />
+          <h3 className="text-[#C5A059] font-bold text-xs uppercase tracking-widest mb-4 flex items-center gap-2 border-b border-[#C5A059]/20 pb-2">
+            <BookOpenIcon className="w-4 h-4 text-[#C5A059]" />
             <span>اہم علمی شعبہ جات</span>
           </h3>
-          <ul className="space-y-2.5 text-xs sm:text-sm text-slate-300">
+          <ul className="space-y-2.5 text-xs sm:text-sm text-slate-200">
             <li>
-              <Link to="/library" className="hover:text-amber-300 hover:translate-x-1 transition-all flex items-center gap-2">
-                <span className="text-amber-400/60">•</span>
-                <span style={{ fontFamily: "'Mehr Nastaliq Web', 'Mehr', serif" }}>کتب خانہ (Digital Library)</span>
+              <Link to="/books" className="hover:text-[#C5A059] hover:translate-x-1 transition-all flex items-center gap-2">
+                <span className="text-[#C5A059]">•</span>
+                <span style={{ fontFamily: "'Noto Naskh Arabic', sans-serif" }}>کتب خانہ (Digital Library)</span>
               </Link>
             </li>
             <li>
-              <Link to="/fatawa" className="hover:text-amber-300 hover:translate-x-1 transition-all flex items-center gap-2">
-                <span className="text-amber-400/60">•</span>
-                <span style={{ fontFamily: "'Mehr Nastaliq Web', 'Mehr', serif" }}>دار الافتاء و شرعی رہنمائی</span>
+              <Link to="/fatawa" className="hover:text-[#C5A059] hover:translate-x-1 transition-all flex items-center gap-2">
+                <span className="text-[#C5A059]">•</span>
+                <span style={{ fontFamily: "'Noto Naskh Arabic', sans-serif" }}>دار الافتاء و شرعی رہنمائی</span>
               </Link>
             </li>
             <li>
-              <Link to="/juma-list" className="hover:text-amber-300 hover:translate-x-1 transition-all flex items-center gap-2">
-                <span className="text-amber-400/60">•</span>
-                <span style={{ fontFamily: "'Mehr Nastaliq Web', 'Mehr', serif" }}>خطباتِ جمعہ کا شیڈول</span>
+              <Link to="/juma-list" className="hover:text-[#C5A059] hover:translate-x-1 transition-all flex items-center gap-2">
+                <span className="text-[#C5A059]">•</span>
+                <span style={{ fontFamily: "'Noto Naskh Arabic', sans-serif" }}>خطباتِ جمعہ کا شیڈول</span>
               </Link>
             </li>
             <li>
-              <Link to="/calendar" className="hover:text-amber-300 hover:translate-x-1 transition-all flex items-center gap-2">
-                <span className="text-amber-400/60">•</span>
-                <span style={{ fontFamily: "'Mehr Nastaliq Web', 'Mehr', serif" }}>اسلامی تقویم و کلینڈر</span>
+              <Link to="/calendar" className="hover:text-[#C5A059] hover:translate-x-1 transition-all flex items-center gap-2">
+                <span className="text-[#C5A059]">•</span>
+                <span style={{ fontFamily: "'Noto Naskh Arabic', sans-serif" }}>اسلامی تقویم و کلینڈر</span>
               </Link>
             </li>
             <li>
-              <Link to="/clippings" className="hover:text-amber-300 hover:translate-x-1 transition-all flex items-center gap-2">
-                <span className="text-amber-400/60">•</span>
-                <span style={{ fontFamily: "'Mehr Nastaliq Web', 'Mehr', serif" }}>اخباری کٹنگز و میڈیا</span>
+              <Link to="/clippings" className="hover:text-[#C5A059] hover:translate-x-1 transition-all flex items-center gap-2">
+                <span className="text-[#C5A059]">•</span>
+                <span style={{ fontFamily: "'Noto Naskh Arabic', sans-serif" }}>اخباری کٹنگز و میڈیا</span>
               </Link>
             </li>
           </ul>
@@ -162,35 +160,35 @@ const Footer = () => {
 
         {/* Resources & Markaz */}
         <div>
-          <h3 className="text-amber-300 font-bold text-xs uppercase tracking-widest mb-4 flex items-center gap-2 border-b border-amber-500/20 pb-2">
-            <ScaleIcon className="w-4 h-4 text-amber-400" />
+          <h3 className="text-[#C5A059] font-bold text-xs uppercase tracking-widest mb-4 flex items-center gap-2 border-b border-[#C5A059]/20 pb-2">
+            <ScaleIcon className="w-4 h-4 text-[#C5A059]" />
             <span>مرکز کے بارے میں</span>
           </h3>
-          <ul className="space-y-2.5 text-xs sm:text-sm text-slate-300">
+          <ul className="space-y-2.5 text-xs sm:text-sm text-slate-200">
             {showAbout && (
               <li>
-                <Link to="/about" className="hover:text-amber-300 hover:translate-x-1 transition-all flex items-center gap-2">
-                  <span className="text-amber-400/60">•</span>
-                  <span style={{ fontFamily: "'Mehr Nastaliq Web', 'Mehr', serif" }}>تعارف و قیامِ مرکز</span>
+                <Link to="/about" className="hover:text-[#C5A059] hover:translate-x-1 transition-all flex items-center gap-2">
+                  <span className="text-[#C5A059]">•</span>
+                  <span style={{ fontFamily: "'Noto Naskh Arabic', sans-serif" }}>تعارف و قیامِ مرکز</span>
                 </Link>
               </li>
             )}
             <li>
-              <Link to="/gallery" className="hover:text-amber-300 hover:translate-x-1 transition-all flex items-center gap-2">
-                <span className="text-amber-400/60">•</span>
-                <span style={{ fontFamily: "'Mehr Nastaliq Web', 'Mehr', serif" }}>تصویری نگارخانہ (Gallery)</span>
+              <Link to="/gallery" className="hover:text-[#C5A059] hover:translate-x-1 transition-all flex items-center gap-2">
+                <span className="text-[#C5A059]">•</span>
+                <span style={{ fontFamily: "'Noto Naskh Arabic', sans-serif" }}>تصویری نگارخانہ (Gallery)</span>
               </Link>
             </li>
             <li>
-              <Link to="/activities" className="hover:text-amber-300 hover:translate-x-1 transition-all flex items-center gap-2">
-                <span className="text-amber-400/60">•</span>
-                <span style={{ fontFamily: "'Mehr Nastaliq Web', 'Mehr', serif" }}>تعلیمی و سماجی سرگرمیاں</span>
+              <Link to="/activities" className="hover:text-[#C5A059] hover:translate-x-1 transition-all flex items-center gap-2">
+                <span className="text-[#C5A059]">•</span>
+                <span style={{ fontFamily: "'Noto Naskh Arabic', sans-serif" }}>تعلیمی و سماجی سرگرمیاں</span>
               </Link>
             </li>
             <li>
-              <Link to="/moon" className="hover:text-amber-300 hover:translate-x-1 transition-all flex items-center gap-2">
-                <span className="text-amber-400/60">•</span>
-                <span style={{ fontFamily: "'Mehr Nastaliq Web', 'Mehr', serif" }}>رؤیتِ ہلال اعلانات</span>
+              <Link to="/moon" className="hover:text-[#C5A059] hover:translate-x-1 transition-all flex items-center gap-2">
+                <span className="text-[#C5A059]">•</span>
+                <span style={{ fontFamily: "'Noto Naskh Arabic', sans-serif" }}>رؤیتِ ہلال اعلانات</span>
               </Link>
             </li>
           </ul>
@@ -198,22 +196,22 @@ const Footer = () => {
 
         {/* Contact Us */}
         <div>
-          <h3 className="text-amber-300 font-bold text-xs uppercase tracking-widest mb-4 flex items-center gap-2 border-b border-amber-500/20 pb-2">
-            <MapPinIcon className="w-4 h-4 text-amber-400" />
+          <h3 className="text-[#C5A059] font-bold text-xs uppercase tracking-widest mb-4 flex items-center gap-2 border-b border-[#C5A059]/20 pb-2">
+            <MapPinIcon className="w-4 h-4 text-[#C5A059]" />
             <span>رابطہ و پتہ</span>
           </h3>
-          <ul className="space-y-3.5 text-xs sm:text-sm text-slate-300">
+          <ul className="space-y-3.5 text-xs sm:text-sm text-slate-200">
             <li className="flex items-start gap-2.5">
-              <MapPinIcon className="w-4 h-4 text-amber-400 mt-0.5 shrink-0" />
-              <span className="text-slate-300/90 leading-relaxed font-urdu" dir="rtl">
+              <MapPinIcon className="w-4 h-4 text-[#C5A059] mt-0.5 shrink-0" />
+              <span className="text-slate-300 leading-relaxed" style={{ fontFamily: "'Noto Naskh Arabic', sans-serif" }} dir="rtl">
                 بیت السلام کمپلیکس، بھرنا ناکہ، کھیڈ، رتناگری، مہاراشٹر 415709
               </span>
             </li>
             <li className="flex items-center gap-2.5">
-              <EnvelopeIcon className="w-4 h-4 text-amber-400 shrink-0" />
+              <EnvelopeIcon className="w-4 h-4 text-[#C5A059] shrink-0" />
               <a 
                 href="mailto:markazdawah.khed@gmail.com" 
-                className="hover:text-amber-300 transition-colors break-all text-xs font-mono"
+                className="hover:text-[#C5A059] transition-colors break-all text-xs font-mono"
                 dir="ltr"
                 title="Send Email"
               >
@@ -221,10 +219,10 @@ const Footer = () => {
               </a>
             </li>
             <li className="flex items-center gap-2.5">
-              <PhoneIcon className="w-4 h-4 text-amber-400 shrink-0" />
+              <PhoneIcon className="w-4 h-4 text-[#C5A059] shrink-0" />
               <a 
                 href="tel:+919005900585" 
-                className="hover:text-amber-300 transition-colors text-xs font-mono"
+                className="hover:text-[#C5A059] transition-colors text-xs font-mono"
                 dir="ltr"
                 title="Call +91 90059 00585"
               >
@@ -232,10 +230,10 @@ const Footer = () => {
               </a>
             </li>
             <li className="flex items-center gap-2.5">
-              <PhoneIcon className="w-4 h-4 text-amber-400 shrink-0" />
+              <PhoneIcon className="w-4 h-4 text-[#C5A059] shrink-0" />
               <a 
                 href="tel:+919005900589" 
-                className="hover:text-amber-300 transition-colors text-xs font-mono"
+                className="hover:text-[#C5A059] transition-colors text-xs font-mono"
                 dir="ltr"
                 title="Call +91 90059 00589"
               >
@@ -248,7 +246,7 @@ const Footer = () => {
 
       {/* Decorative Golden Divider */}
       <div className="app-shell-container mt-12 mb-6">
-        <div className="h-[1px] w-full bg-gradient-to-r from-transparent via-amber-400/50 to-transparent" />
+        <div className="h-[1px] w-full bg-gradient-to-r from-transparent via-[#C5A059]/50 to-transparent" />
       </div>
 
       {/* Bottom Bar */}
@@ -257,8 +255,8 @@ const Footer = () => {
           <span>&copy; {new Date().getFullYear()} Kokan Islamic Library. All rights reserved.</span>
         </p>
         <p 
-          className="text-amber-300/80 font-medium"
-          style={{ fontFamily: "'Noto Nastaliq Urdu', 'Mehr Nastaliq Web', 'Mehr', serif" }}
+          className="text-[#C5A059]/90 font-medium"
+          style={{ fontFamily: "'Noto Naskh Arabic', sans-serif" }}
         >
           خدمتِ دینِ حق اور اشاعتِ علومِ نبویہ کے لیے وقف
         </p>

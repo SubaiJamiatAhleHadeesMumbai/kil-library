@@ -132,116 +132,151 @@ const PublicBookCard = ({
       initial={{ opacity: 0, y: 15 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35 }}
-      whileHover={{ y: -6 }}
+      whileHover={{ y: -5 }}
       onClick={handleCardClick}
-      className={`group relative mx-auto w-full max-w-[340px] overflow-hidden rounded-3xl border border-slate-200/90 bg-white shadow-xs transition-all duration-300 cursor-pointer hover:border-emerald-300 hover:shadow-xl sm:max-w-none ${className}`}
+      className={`group relative mx-auto w-full max-w-[340px] overflow-hidden rounded-2xl border border-[#E6E2DD] bg-white shadow-xs transition-all duration-300 cursor-pointer hover:border-[#C5A059] hover:shadow-md sm:max-w-none flex flex-col justify-between ${className}`}
     >
-      {/* Top Badges */}
-      <div className="absolute top-3 start-3 z-20 flex flex-col gap-1">
-        {isRestricted ? (
-          userHasAccess ? (
-            <motion.div
-              whileHover={{ scale: 1.05 }}
-              className="flex items-center gap-1 bg-gradient-to-r from-emerald-600 to-teal-600 text-white text-[10px] font-extrabold px-2.5 py-1 rounded-full shadow-md border border-white/30 backdrop-blur-sm"
-            >
-              <LockOpenIcon className="w-3.5 h-3.5" />
-              <span>UNLOCKED</span>
-            </motion.div>
-          ) : (
-            <motion.div
-              whileHover={{ scale: 1.05 }}
-              className="flex items-center gap-1 bg-red-600 text-white text-[10px] font-extrabold px-2.5 py-1 rounded-full shadow-md border border-white/30"
-            >
-              <LockClosedIcon className="w-3.5 h-3.5" />
-              <span>RESTRICTED</span>
-            </motion.div>
-          )
-        ) : null}
+      <div>
+        {/* Top Badges */}
+        <div className="absolute top-3 start-3 z-20 flex flex-col gap-1">
+          {isRestricted ? (
+            userHasAccess ? (
+              <motion.div
+                whileHover={{ scale: 1.05 }}
+                className="flex items-center gap-1 bg-gradient-to-r from-emerald-600 to-teal-600 text-white text-[10px] font-extrabold px-2.5 py-1 rounded-full shadow-md border border-white/30 backdrop-blur-sm"
+              >
+                <LockOpenIcon className="w-3.5 h-3.5" />
+                <span>UNLOCKED</span>
+              </motion.div>
+            ) : (
+              <motion.div
+                whileHover={{ scale: 1.05 }}
+                className="flex items-center gap-1 bg-red-600 text-white text-[10px] font-extrabold px-2.5 py-1 rounded-full shadow-md border border-white/30"
+              >
+                <LockClosedIcon className="w-3.5 h-3.5" />
+                <span>RESTRICTED</span>
+              </motion.div>
+            )
+          ) : null}
 
-        {!hasDigitalPdf && (
-          <div className="rounded-full bg-slate-900/90 text-amber-300 px-2.5 py-0.5 text-[10px] font-bold shadow-sm backdrop-blur-xs flex items-center gap-1 border border-amber-500/30">
-            <span>⏳</span> <span>عنقریب...</span>
-          </div>
+          {!hasDigitalPdf && (
+            <div className="rounded-full bg-slate-900/90 text-amber-300 px-2.5 py-0.5 text-[10px] font-bold shadow-sm backdrop-blur-xs flex items-center gap-1 border border-amber-500/30">
+              <span>⏳</span> <span>عنقریب...</span>
+            </div>
+          )}
+        </div>
+
+        {/* Favorite / Bookmark Button */}
+        {typeof onToggleFavorite === "function" && (
+          <motion.button
+            onClick={(e) => onToggleFavorite(e, book?.id)}
+            whileHover={{ scale: 1.15 }}
+            whileTap={{ scale: 0.95 }}
+            className={`absolute top-3 end-3 z-20 rounded-full p-2 shadow-xs transition-all duration-200 ${
+              isFavorite
+                ? "bg-amber-100 text-amber-600 border border-amber-300 ring-2 ring-amber-400/30"
+                : "bg-white/90 text-slate-400 hover:text-[#0F3D2E] border border-[#E6E2DD] hover:bg-white hover:shadow-md"
+            }`}
+            title={isFavorite ? "Saved in Favorites" : "Save to Favorites"}
+          >
+            {isFavorite ? (
+              <BookmarkSolid className="h-4 w-4 text-amber-500" />
+            ) : (
+              <BookmarkOutline className="h-4 w-4 text-slate-400 hover:text-[#0F3D2E]" />
+            )}
+          </motion.button>
         )}
-      </div>
 
-      {/* Favorite / Bookmark Button */}
-      {typeof onToggleFavorite === "function" && (
-        <motion.button
-          onClick={(e) => onToggleFavorite(e, book?.id)}
-          whileHover={{ scale: 1.15 }}
-          whileTap={{ scale: 0.95 }}
-          className={`absolute bottom-3 end-3 z-20 rounded-full p-2 shadow-sm transition-all duration-200 ${
-            isFavorite
-              ? "bg-amber-100 text-amber-600 border border-amber-300 ring-2 ring-amber-400/30"
-              : "bg-white/90 text-slate-400 hover:text-emerald-700 border border-slate-200 hover:bg-white hover:shadow-md"
-          }`}
-          title={isFavorite ? "Saved in Favorites" : "Save to Favorites"}
-        >
-          {isFavorite ? (
-            <BookmarkSolid className="h-4 w-4 text-amber-500" />
-          ) : (
-            <BookmarkOutline className="h-4 w-4 text-slate-400 hover:text-emerald-700" />
-          )}
-        </motion.button>
-      )}
+        {/* 3D Realistic Book Cover Showcase */}
+        <div className="relative flex justify-center bg-[#FAF8F5] px-3 pb-3 pt-5 transition-all duration-300 group-hover:bg-emerald-50/40 sm:px-4 sm:pb-3 sm:pt-6">
+          <div className="book-cover-3d relative aspect-[2/3] w-[122px] overflow-hidden rounded-xl bg-slate-100 shadow-[0_8px_20px_-6px_rgba(0,0,0,0.15)] transition-all duration-300 group-hover:shadow-[0_16px_28px_-6px_rgba(15,61,46,0.22)] group-hover:-translate-y-1 sm:w-[152px] md:w-[165px]">
+            
+            {/* 📖 REALISTIC 3D BOOK SPINE CREASE & SHADOW (Apple Books Effect) */}
+            <div className="pointer-events-none absolute inset-y-0 start-0 w-3 bg-gradient-to-r from-black/25 via-black/5 to-transparent z-10" />
+            <div className="pointer-events-none absolute inset-y-0 start-0 w-[1.5px] bg-white/45 z-10" />
+            <div className="pointer-events-none absolute inset-y-0 end-0 w-[2px] bg-black/10 z-10" />
+            <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[2px] bg-black/15 z-10" />
 
-      {/* 3D Realistic Book Cover Showcase */}
-      <div className="relative flex justify-center bg-gradient-to-b from-slate-50 via-slate-100/60 to-white px-3 pb-3 pt-5 transition-all duration-300 group-hover:from-emerald-50/50 sm:px-4 sm:pb-3 sm:pt-6">
-        <div className="book-cover-3d relative aspect-[2/3] w-[122px] overflow-hidden rounded-xl bg-slate-100 shadow-[0_8px_20px_-6px_rgba(0,0,0,0.15)] transition-all duration-300 group-hover:shadow-[0_16px_28px_-6px_rgba(6,78,59,0.22)] group-hover:-translate-y-1 sm:w-[152px] md:w-[175px] lg:w-[185px]">
-          
-          {/* 📖 REALISTIC 3D BOOK SPINE CREASE & SHADOW (Apple Books Effect) */}
-          <div className="pointer-events-none absolute inset-y-0 start-0 w-3 bg-gradient-to-r from-black/25 via-black/5 to-transparent z-10" />
-          <div className="pointer-events-none absolute inset-y-0 start-0 w-[1.5px] bg-white/45 z-10" />
-          <div className="pointer-events-none absolute inset-y-0 end-0 w-[2px] bg-black/10 z-10" />
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[2px] bg-black/15 z-10" />
+            {!imgLoaded && (
+              <div className="absolute inset-0 bg-slate-200 animate-pulse shimmer-placeholder" />
+            )}
 
-          {!imgLoaded && (
-            <div className="absolute inset-0 bg-slate-200 animate-pulse shimmer-placeholder" />
-          )}
+            {imgSrc && (
+              <img
+                src={imgSrc}
+                alt={title}
+                loading="lazy"
+                decoding="async"
+                onError={handleImageError}
+                onLoad={() => setImgLoaded(true)}
+                className={`w-full h-full object-cover transition-all duration-500 ${
+                  imgLoaded ? "opacity-100 group-hover:scale-105" : "opacity-0"
+                }`}
+              />
+            )}
 
-          {imgSrc && (
-            <img
-              src={imgSrc}
-              alt={title}
-              loading="lazy"
-              decoding="async"
-              onError={handleImageError}
-              onLoad={() => setImgLoaded(true)}
-              className={`w-full h-full object-cover transition-all duration-500 ${
-                imgLoaded ? "opacity-100 group-hover:scale-105" : "opacity-0"
-              }`}
-            />
-          )}
-
-          {/* Hover Preview Overlay */}
-          <div className="absolute inset-0 bg-emerald-950/0 group-hover:bg-emerald-950/25 transition flex items-center justify-center z-15">
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-900/90 border border-white/30 px-3.5 py-1.5 text-[11px] font-bold text-white opacity-0 transition group-hover:opacity-100 shadow-lg backdrop-blur-xs">
-              <BookOpenIcon className="w-3.5 h-3.5 text-amber-300" />
-              <span>{hasDigitalPdf ? "مطالعہ کریں" : "عنقریب..."}</span>
-            </span>
+            {/* Hover Preview Overlay */}
+            <div className="absolute inset-0 bg-emerald-950/0 group-hover:bg-emerald-950/25 transition flex items-center justify-center z-15">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-[#0F3D2E]/90 border border-white/30 px-3.5 py-1.5 text-[11px] font-bold text-white opacity-0 transition group-hover:opacity-100 shadow-lg backdrop-blur-xs">
+                <BookOpenIcon className="w-3.5 h-3.5 text-[#C5A059]" />
+                <span style={{ fontFamily: "'Noto Naskh Arabic', sans-serif" }}>{hasDigitalPdf ? "مطالعہ کریں" : "عنقریب..."}</span>
+              </span>
+            </div>
           </div>
+        </div>
+
+        {/* Book Metadata & Title */}
+        <div className="relative z-10 flex flex-col px-3.5 pt-3 pb-2 text-center sm:px-4">
+          <h3
+            className="mb-1 line-clamp-2 text-sm sm:text-base font-bold leading-snug text-[#0F3D2E] transition-colors group-hover:text-emerald-700"
+            style={{
+              fontFamily: "'Noto Naskh Arabic', 'Plus Jakarta Sans', system-ui, sans-serif",
+              lineHeight: "1.4",
+            }}
+          >
+            {title}
+          </h3>
+
+          <p 
+            className="line-clamp-1 text-[11px] text-[#64748B] font-medium"
+            style={{ fontFamily: "'Noto Naskh Arabic', sans-serif" }}
+          >
+            مؤلف: <span className="text-slate-700 font-semibold">{author}</span>
+          </p>
         </div>
       </div>
 
-      {/* Book Metadata & Title */}
-      <div className="relative z-10 flex flex-grow flex-col px-3.5 pb-4 text-center sm:px-4 sm:pb-5">
-        <h3
-          className="mb-1.5 line-clamp-2 text-[1rem] font-bold leading-snug text-slate-900 transition-colors group-hover:text-emerald-800 sm:text-base md:text-lg"
-          style={{
-            fontFamily: "'Gulzar', 'Noto Nastaliq Urdu', serif",
-            lineHeight: "2.1",
+      {/* Side-by-side Read and Download Action Buttons */}
+      <div className="p-3 pt-0 flex items-center gap-2 mt-2" dir="rtl">
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            handleCardClick();
           }}
-        >
-          {title}
-        </h3>
-
-        <p 
-          className="line-clamp-1 text-[11px] text-slate-500 sm:text-xs font-medium"
+          className="flex-1 py-1.5 px-2 rounded-xl bg-[#0F3D2E] hover:bg-[#165B44] text-white text-xs font-bold transition flex items-center justify-center gap-1 shadow-xs cursor-pointer active:scale-95"
           style={{ fontFamily: "'Noto Naskh Arabic', sans-serif" }}
         >
-          مؤلف: <span className="text-slate-700 font-semibold">{author}</span>
-        </p>
+          <span>📖</span>
+          <span>مطالعہ</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            if (book?.pdf_url || book?.pdf_file) {
+              window.open(book?.pdf_url || book?.pdf_file, '_blank');
+            } else {
+              handleCardClick();
+            }
+          }}
+          className="flex-1 py-1.5 px-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-[#0F3D2E] text-xs font-bold transition flex items-center justify-center gap-1 border border-[#E6E2DD] cursor-pointer active:scale-95"
+          style={{ fontFamily: "'Noto Naskh Arabic', sans-serif" }}
+        >
+          <span>⬇</span>
+          <span>ڈاؤنلوڈ</span>
+        </button>
       </div>
     </motion.div>
   );

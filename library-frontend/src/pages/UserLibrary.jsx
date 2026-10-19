@@ -36,6 +36,7 @@ import {
   ArrowsUpDownIcon,
   MagnifyingGlassIcon,
   BookmarkIcon as BookmarkOutline,
+  FunnelIcon,
 } from "@heroicons/react/24/outline";
 
 import {
@@ -171,6 +172,20 @@ const UserLibrary = () => {
   const [restrictedBook, setRestrictedBook] = useState(null);
   const [isAccessFlowOpen, setIsAccessFlowOpen] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
+
+  const getCategoryIcon = (slug, label) => {
+    const s = String(slug || label || "").toLowerCase();
+    if (s.includes("tafseer") || s.includes("تفسیر") || s.includes("quran")) return "📖";
+    if (s.includes("hadees") || s.includes("hadith") || s.includes("حدیث")) return "📚";
+    if (s.includes("fiqh") || s.includes("فقہ")) return "📜";
+    if (s.includes("history") || s.includes("seerah") || s.includes("تاریخ") || s.includes("سیرت")) return "⏰";
+    if (s.includes("adab") || s.includes("literature") || s.includes("ادب")) return "✏️";
+    if (s.includes("aqeedah") || s.includes("tasawwuf") || s.includes("عقیدہ")) return "🪙";
+    if (s.includes("fatawa") || s.includes("فتاوی")) return "⚖️";
+    if (s.includes("all") || s.includes("تمام")) return "🌐";
+    return "📑";
+  };
 
   // --- FAVORITES ---
   const [favorites, setFavorites] = useState(() => {
@@ -384,7 +399,7 @@ const UserLibrary = () => {
   }, [selectedCategory, categories]);
 
   return (
-    <div className="min-h-screen bg-transparent font-sans text-[#fcf8f0] pb-24 relative">
+    <div className="min-h-screen bg-[#FAF8F5] font-sans text-[#1E293B] pb-24 relative islamic-lattice-bg" dir={isRTL ? "rtl" : "ltr"}>
       {/* 🛠️ ADMIN REALTIME LAYOUT CONTROLLER */}
       {isAdmin && (
         <div className="bg-slate-900 text-white px-3 py-2 border-b border-slate-800 text-xs flex flex-wrap items-center justify-between gap-2 z-40 relative">
@@ -395,9 +410,8 @@ const UserLibrary = () => {
           </div>
           <div className="flex items-center gap-1.5 flex-wrap">
             {[
-              { id: "option1", label: "Option 1 (Sticky Unified)" },
+              { id: "option1", label: "Option 1 (Sidebar + Grid - Image 2)" },
               { id: "option2", label: "Option 2 (Catalog Header)" },
-              { id: "option3", label: "Option 3 (Classic + Floating)" },
             ].map((opt) => (
               <button
                 key={opt.id}
@@ -417,445 +431,344 @@ const UserLibrary = () => {
       )}
 
       {/* ========================================================
-          HERO SECTION: DYNAMIC ACCORDING TO ACTIVE LAYOUT
+          PAGE BODY: TWO-COLUMN LAYOUT (IMAGE 2 MATCH)
       ======================================================== */}
-      {activeLayout === "option2" ? (
-        /* OPTION 2: MINIMALIST ROYAL ISLAMIC BANNER */
-        <div className="relative bg-gradient-to-b from-[#031525] via-[#052827] to-[#020d18] pt-6 pb-8 sm:pt-10 sm:pb-12 px-4 rounded-b-[2rem] shadow-2xl border-b border-amber-500/20 overflow-hidden text-center">
-          <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#d4af37_1px,transparent_1px)] [background-size:24px_24px] pointer-events-none" />
-          <div className="absolute top-0 right-1/4 w-96 h-96 bg-emerald-500/15 rounded-full blur-3xl -translate-y-1/2 pointer-events-none" />
-          <div className="relative z-10 max-w-4xl mx-auto">
-            <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-amber-500/15 border border-amber-400/30 text-amber-300 text-xs font-bold tracking-wide mb-2 sm:mb-3 backdrop-blur-sm shadow-xs">
-              <BookOpenIcon className="w-4 h-4 text-amber-400" />
-              <span>{language === 'en' ? 'Markaz Ahle Hadees Kokan • Digital Library' : language === 'ar' ? 'مركز أهل الحديث كوكان • المكتبة الرقمية' : 'مرکز اہل حدیث کوکن • ڈیجیٹل کتب خانہ'}</span>
-            </div>
-            <h1
-              className={`text-2xl sm:text-4xl md:text-5xl font-extrabold text-white drop-shadow-md ${
-                isRTL ? "leading-[2.1] sm:leading-[2.3]" : "leading-tight"
-              }`}
-              style={{ fontFamily: isRTL ? "'Noto Nastaliq Urdu', 'Mehr Nastaliq Web', 'Mehr', 'Jameel Noori Nastaleeq', serif" : undefined }}
-            >
-              {language === 'en' ? 'Kokan Islamic Library' : language === 'ar' ? 'مكتبة كوكان الإسلامية' : 'کوکن اسلامک لائبریری'}
-            </h1>
-            <p className="mt-2 text-xs sm:text-sm text-emerald-200/90 font-medium">
-              {language === 'en' ? '7,800+ authentic Islamic books, tafseer, and classical manuscripts' : language === 'ar' ? 'أكثر من 7,800 كتاب وتفسير ومخطوطة إسلامية أصيلة' : '7,800+ مستند اسلامی کتب، تفاسیر اور علمی مخطوطات کا ذخیرہ'}
-            </p>
-          </div>
-        </div>
-      ) : (
-        /* OPTION 1 & OPTION 3: ROYAL ISLAMIC HERO (WITH EMBEDDED SEARCH & PILLS) */
-        <div className="relative bg-gradient-to-b from-[#031525] via-[#052827] to-[#020d18] pt-8 pb-12 sm:pt-12 sm:pb-20 px-4 rounded-b-[2rem] sm:rounded-b-[2.5rem] shadow-2xl border-b border-amber-500/20 overflow-hidden">
-          <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#d4af37_1px,transparent_1px)] [background-size:24px_24px] pointer-events-none" />
-          <div className="absolute top-0 right-1/4 w-96 h-96 bg-emerald-500/15 rounded-full blur-3xl -translate-y-1/2 pointer-events-none" />
-          <div className="absolute bottom-0 left-1/4 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl translate-y-1/2 pointer-events-none" />
-
-          <div className="relative z-10 max-w-4xl mx-auto text-center">
-            <motion.div
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.7 }}
-            >
-              <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-amber-500/15 border border-amber-400/30 text-amber-300 text-xs font-bold tracking-wide mb-3 sm:mb-4 backdrop-blur-sm shadow-xs">
-                <BookOpenIcon className="w-4 h-4 text-amber-400" />
-                <span>{language === 'en' ? 'Markaz Ahle Hadees Kokan • Digital Library' : language === 'ar' ? 'مركز أهل الحديث كوكان • المكتبة الرقمية' : 'مرکز اہل حدیث کوکن • ڈیجیٹل کتب خانہ'}</span>
-              </div>
-
-              <h1
-                className={`text-2xl sm:text-4xl md:text-5xl font-extrabold text-white mb-3 sm:mb-4 drop-shadow-md ${
-                  isRTL ? "leading-[2.1] sm:leading-[2.3]" : "leading-tight"
-                }`}
-                style={{ fontFamily: isRTL ? "'Noto Nastaliq Urdu', 'Mehr Nastaliq Web', 'Mehr', 'Jameel Noori Nastaleeq', serif" : undefined }}
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-5 sm:py-8">
+        
+        {/* MOBILE TOP BAR (< 1024px): Quick Search + Category Drawer Toggle */}
+        <div className="lg:hidden mb-5 space-y-3">
+          {/* Deep Emerald Search Pill */}
+          <div className="relative rounded-2xl bg-[#0F3D2E] text-white px-3.5 py-2.5 flex items-center border border-[#C5A059]/40 shadow-sm">
+            <MagnifyingGlassIcon className="w-5 h-5 text-[#C5A059] shrink-0" />
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => {
+                setSearchTerm(e.target.value);
+                setCurrentPage(1);
+              }}
+              placeholder="کتاب، مصنف یا موضوع تلاش کریں..."
+              className="bg-transparent text-sm text-white placeholder-emerald-200/60 px-3 py-0.5 outline-none w-full font-medium"
+              style={{ fontFamily: "'Noto Naskh Arabic', sans-serif" }}
+            />
+            {searchTerm && (
+              <button
+                type="button"
+                onClick={() => setSearchTerm("")}
+                className="p-1 text-emerald-200 hover:text-white transition"
               >
-                {language === 'en' ? 'Kokan Islamic Library' : language === 'ar' ? 'مكتبة كوكان الإسلامية' : 'کوکن اسلامک لائبریری'}
-              </h1>
-              <p className="text-xs sm:text-sm text-emerald-200/90 font-medium max-w-2xl mx-auto leading-relaxed">
-                {language === 'en' ? 'A modern, high-speed digital repository of authentic Islamic sciences, Tafseer, Hadith collections, Fiqh, and Fatawa.' : language === 'ar' ? 'مستودع رقمي حديث وسريع للعلوم الإسلامية الأصيلة، التفاسير، كتب الحديث، الفقه والفتاوى.' : 'مستند اسلامی علوم، تفاسیر، کتبِ احادیث، فقہ اور فتاویٰ کا جدید اور تیز ترین ڈیجیٹل ذخیرہ۔'}
-              </p>
-            </motion.div>
-
-            <div className="mx-auto mt-6 sm:mt-8 max-w-4xl">
-              <LibrarySearchStrip
-                searchTerm={searchTerm}
-                onSearchChange={setSearchTerm}
-                title="Library Search"
-                subtitle="Search the library collection"
-                description="Search by title, author, language, category, and deep-book content with a premium discovery experience."
-                placeholder="کتاب، مصنف یا موضوع تلاش کریں..."
-                categories={categories}
-                selectedCategory={selectedCategory}
-                onSelectCategory={setSelectedCategory}
-                showHint={true}
-              />
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* OPTION 2: SEARCH BAR DIRECTLY ABOVE CATALOG */}
-      {activeLayout === "option2" && (
-        <div className="max-w-7xl mx-auto px-2 sm:px-4 mt-4">
-          <LibrarySearchStrip
-            searchTerm={searchTerm}
-            onSearchChange={setSearchTerm}
-            title="Library Search"
-            subtitle="Search the library collection"
-            placeholder="کتاب، مصنف یا موضوع تلاش کریں..."
-            categories={categories}
-            selectedCategory={selectedCategory}
-            onSelectCategory={setSelectedCategory}
-            showHint={false}
-          />
-        </div>
-      )}
-
-      {/* ========================================================
-          FILTER BAR (STICKY ON SCROLL)
-      ======================================================== */}
-      <div className="sticky top-14 sm:top-16 z-30 max-w-7xl mx-auto px-2 sm:px-4 mt-2 sm:mt-4">
-        <motion.div
-          initial={{ y: 20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          className="rounded-2xl border border-amber-500/30 bg-[#07241b]/95 p-2 sm:p-2.5 shadow-2xl backdrop-blur-xl flex flex-col gap-2 justify-between items-stretch md:flex-row md:items-center md:gap-3 text-white"
-        >
-          {/* OPTION 1: LIVE SEARCH SLIDES IN ONLY WHEN SCROLLED PAST HERO (ZERO DUPLICATE AT TOP) */}
-          <AnimatePresence>
-            {activeLayout === "option1" && isScrolledPastHero && (
-              <motion.div
-                initial={{ opacity: 0, width: 0 }}
-                animate={{ opacity: 1, width: "auto" }}
-                exit={{ opacity: 0, width: 0 }}
-                transition={{ duration: 0.2 }}
-                className="relative flex-1 min-w-[200px]"
-              >
-                <div className="relative flex items-center rounded-xl bg-[#041610] border border-amber-500/30 focus-within:border-amber-400 focus-within:bg-[#051e15] focus-within:ring-2 focus-within:ring-amber-500/20 transition-all px-3 py-1.5">
-                  <MagnifyingGlassIcon className="w-4 h-4 text-amber-400/80 flex-shrink-0" />
-                  <input
-                    type="text"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    placeholder="Quick search books..."
-                    className="w-full bg-transparent px-2 py-0.5 text-xs sm:text-sm text-white outline-none placeholder:text-emerald-200/50 font-medium"
-                  />
-                  {searchTerm && (
-                    <button
-                      type="button"
-                      onClick={() => setSearchTerm("")}
-                      className="p-1 rounded-full text-amber-200/60 hover:text-white hover:bg-emerald-900/60 transition cursor-pointer"
-                      title="Clear search"
-                    >
-                      <XMarkIcon className="w-3.5 h-3.5" />
-                    </button>
-                  )}
-                </div>
-              </motion.div>
+                <XMarkIcon className="w-4 h-4" />
+              </button>
             )}
-          </AnimatePresence>
-
-          {/* Filters (Language & Category) */}
-          <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap sm:flex-nowrap flex-1">
-            <select
-              className="flex-1 sm:flex-initial min-w-[120px] rounded-lg border border-amber-500/30 bg-[#041610] text-[#fcf8f0] px-2.5 py-1.5 text-xs sm:text-sm font-medium outline-none transition hover:border-amber-400 cursor-pointer"
-              value={selectedLanguage}
-              onChange={(e) => setSelectedLanguage(e.target.value)}
-            >
-              <option value="all" className="bg-[#041610] text-white">🌐 All Languages</option>
-              <option value="urdu" className="bg-[#041610] text-white">Urdu (اردو)</option>
-              <option value="arabic" className="bg-[#041610] text-white">Arabic (عربی)</option>
-              <option value="english" className="bg-[#041610] text-white">English (انگریزی)</option>
-              <option value="hindi" className="bg-[#041610] text-white">Hindi (ہندی)</option>
-            </select>
-
-            <select
-              className="flex-1 sm:flex-initial max-w-[200px] rounded-lg border border-amber-500/30 bg-[#041610] text-[#fcf8f0] px-2.5 py-1.5 text-xs sm:text-sm font-medium outline-none transition hover:border-amber-400 cursor-pointer"
-              value={selectedCategory}
-              onChange={(e) => setSelectedCategory(e.target.value)}
-            >
-              {categories.map((cat) => (
-                <option key={cat.value} value={cat.value} className="bg-[#041610] text-white">
-                  {cat.label}
-                </option>
-              ))}
-            </select>
           </div>
 
-          {/* Controls (View Toggle & Sort) */}
-          <div className="flex items-center justify-between sm:justify-end gap-2 border-t border-amber-500/20 pt-1.5 md:border-t-0 md:pt-0">
-            {/* View Toggle */}
-            <div className="flex rounded-xl bg-[#041610] p-0.5 border border-amber-500/25">
-              <button
-                onClick={() => setViewMode("grid")}
-                className={`p-1.5 rounded-md transition-all cursor-pointer ${
-                  viewMode === "grid"
-                    ? "bg-amber-500 text-slate-950 font-bold shadow-sm"
-                    : "text-amber-200/60 hover:text-white"
-                }`}
-                title="Grid view"
-              >
-                <Squares2X2Icon className="w-4 h-4 sm:w-5 sm:h-5" />
-              </button>
-
-              <button
-                onClick={() => setViewMode("list")}
-                className={`p-1.5 rounded-md transition-all cursor-pointer ${
-                  viewMode === "list"
-                    ? "bg-amber-500 text-slate-950 font-bold shadow-sm"
-                    : "text-amber-200/60 hover:text-white"
-                }`}
-                title="List view"
-              >
-                <ListBulletIcon className="w-4 h-4 sm:w-5 sm:h-5" />
-              </button>
-            </div>
-
-            {/* Sort */}
-            <div className="flex items-center gap-1.5 whitespace-nowrap rounded-lg border border-amber-500/30 bg-[#041610] px-2 py-1.5 sm:px-2.5">
-              <ArrowsUpDownIcon className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-amber-400" />
-              <select
-                className="bg-transparent text-xs sm:text-sm font-medium text-white outline-none cursor-pointer"
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
-              >
-                <option value="newest" className="bg-[#041610] text-white">Newest First</option>
-                <option value="oldest" className="bg-[#041610] text-white">Serial # (1, 2, 3...)</option>
-                <option value="az" className="bg-[#041610] text-white">Title (A-Z)</option>
-                <option value="favorites" className="bg-[#041610] text-white">My Favorites</option>
-              </select>
-            </div>
-          </div>
-        </motion.div>
-      </div>
-
-      {/* ========================================================
-          OPTION 3: FLOATING SEARCH JUMP PILL ON SCROLL
-      ======================================================== */}
-      <AnimatePresence>
-        {activeLayout === "option3" && isScrolledPastHero && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.8, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.8, y: 20 }}
-            className="fixed bottom-20 right-4 sm:right-8 z-40"
-          >
+          {/* Horizontal Quick Category Scroller + Drawer Button */}
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
             <button
               type="button"
-              onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-full bg-[#07241b] hover:bg-[#0a3528] text-amber-300 font-bold text-xs shadow-2xl border border-amber-500/30 transition-all hover:scale-105 cursor-pointer active:scale-95"
-              title="Jump to Search"
+              onClick={() => setIsMobileDrawerOpen(true)}
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#0F3D2E] text-[#C5A059] font-bold text-xs shrink-0 shadow-xs border border-[#C5A059]/40 active:scale-95 transition"
             >
-              <MagnifyingGlassIcon className="w-4 h-4 text-emerald-400" />
-              <span>Search Books (Top)</span>
+              <FunnelIcon className="w-4 h-4" />
+              <span style={{ fontFamily: "'Noto Naskh Arabic', sans-serif" }}>تمام موضوعات</span>
             </button>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
-      {/* MAIN CONTENT CONTAINER */}
-      <div id="book-grid-container" className="max-w-7xl mx-auto px-4 mt-6 md:mt-12 space-y-8">
-        
-        {/* Active Catalog Header */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-amber-500/20 pb-4 bg-[#07241b]/80 p-4 rounded-2xl border border-amber-500/25 shadow-lg backdrop-blur-md">
-          <div>
-            <div className="flex items-center gap-2.5">
-              <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
-                {activeCategoryLabel}
-              </h2>
-              {selectedCategory !== "all" && (
+            {categories.slice(0, 8).map((cat) => {
+              const isSelected = selectedCategory === cat.value;
+              return (
                 <button
-                  onClick={() => setSelectedCategory("all")}
-                  className="text-xs bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-400/30 px-2.5 py-1 rounded-full font-bold transition-colors cursor-pointer"
-                >
-                  Show All
-                </button>
-              )}
-            </div>
-            <p className="text-xs sm:text-sm text-emerald-200/70 mt-1">
-              Showing <span className="font-bold text-amber-300">{finalDisplayBooks.length > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0}</span> - <span className="font-bold text-amber-300">{Math.min(currentPage * itemsPerPage, finalDisplayBooks.length)}</span> of <span className="font-bold text-amber-300">{finalDisplayBooks.length}</span> total books
-            </p>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-3">
-            {/* Books Per Page Selector */}
-            <div className="flex items-center gap-2 bg-[#041610] px-3 py-1.5 rounded-xl border border-amber-500/25 shadow-2xs">
-              <span className="text-xs font-semibold text-emerald-200/70">Books per page:</span>
-              <div className="relative inline-block">
-                <select
-                  value={itemsPerPage}
-                  onChange={(e) => {
-                    setItemsPerPage(Number(e.target.value));
+                  key={cat.value}
+                  type="button"
+                  onClick={() => {
+                    setSelectedCategory(cat.value);
                     setCurrentPage(1);
-                    scrollToTop();
                   }}
-                  className="bg-[#07241b] border border-amber-500/30 hover:border-amber-400 text-white text-xs font-bold rounded-lg px-2.5 py-1 pr-7 appearance-none cursor-pointer outline-none focus:ring-2 focus:ring-amber-500/40"
+                  className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold shrink-0 transition-all shadow-2xs ${
+                    isSelected
+                      ? "bg-[#0F3D2E] text-white border border-[#C5A059]/50 shadow-sm"
+                      : "bg-white text-slate-700 border border-[#E6E2DD] hover:bg-emerald-50/60"
+                  }`}
+                  style={{ fontFamily: "'Noto Naskh Arabic', sans-serif" }}
                 >
-                  <option value={10} className="bg-[#041610] text-white">10</option>
-                  <option value={25} className="bg-[#041610] text-white">25</option>
-                  <option value={50} className="bg-[#041610] text-white">50</option>
-                  <option value={100} className="bg-[#041610] text-white">100</option>
-                </select>
-                <ChevronDownIcon className="w-3.5 h-3.5 text-amber-300 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
-              </div>
-            </div>
-
-            <span className="text-xs font-bold text-amber-200 bg-[#041610] border border-amber-500/25 px-3 py-2 rounded-xl">
-              Page {currentPage} of {totalPages}
-            </span>
+                  <span>{getCategoryIcon(cat.value, cat.label)}</span>
+                  <span>{cat.label}</span>
+                </button>
+              );
+            })}
           </div>
         </div>
 
-        {/* LOADING STATE */}
-        {loading ? (
-          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 sm:gap-6 animate-pulse">
-            {[...Array(10)].map((_, i) => (
-              <div
-                key={i}
-                className="bg-[#07241b]/80 rounded-2xl border border-amber-500/20 p-3 space-y-3 shadow-md"
-              >
-                <div className="aspect-[2/3] rounded-xl bg-emerald-950/60" />
-                <div className="space-y-2">
-                  <div className="h-3.5 bg-emerald-950/80 rounded-md w-4/5" />
-                  <div className="h-2.5 bg-emerald-950/60 rounded-md w-1/2" />
+        {/* TWO-COLUMN LAYOUT */}
+        <div className="flex flex-col lg:flex-row gap-6 lg:gap-8 items-start">
+          
+          {/* ========================================================
+              LEFT COLUMN: CATEGORY SIDEBAR (DESKTOP)
+          ======================================================== */}
+          <aside className="w-full lg:w-64 xl:w-72 shrink-0 hidden lg:block lg:sticky lg:top-20 z-20">
+            <div className="rounded-3xl bg-white border border-[#E6E2DD] p-5 shadow-sm space-y-5">
+              
+              {/* Brand Title */}
+              <div className="text-center pb-4 border-b border-[#E6E2DD]">
+                <h2
+                  className="text-xl font-black text-[#0F3D2E] leading-tight"
+                  style={{ fontFamily: "'Noto Naskh Arabic', 'Plus Jakarta Sans', system-ui, sans-serif" }}
+                >
+                  کوکن اسلامک لائبریری
+                </h2>
+                <span className="text-[11px] font-bold text-[#C5A059] uppercase tracking-wider block mt-1">
+                  Kokan Islamic Library
+                </span>
+              </div>
+
+              {/* Deep Emerald Search Bar (Matches Image 2) */}
+              <div className="relative rounded-2xl bg-[#0F3D2E] text-white px-3.5 py-2.5 flex items-center border border-[#C5A059]/40 shadow-xs focus-within:ring-2 focus-within:ring-[#C5A059]/50 transition">
+                <MagnifyingGlassIcon className="w-4 h-4 text-[#C5A059] shrink-0" />
+                <input
+                  type="text"
+                  value={searchTerm}
+                  onChange={(e) => {
+                    setSearchTerm(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  placeholder="تلاش کریں..."
+                  className="bg-transparent text-xs sm:text-sm text-white placeholder-emerald-200/60 px-2 py-0.5 outline-none w-full font-medium"
+                  style={{ fontFamily: "'Noto Naskh Arabic', sans-serif" }}
+                />
+                {searchTerm && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchTerm("")}
+                    className="p-0.5 text-emerald-200 hover:text-white transition"
+                  >
+                    <XMarkIcon className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+
+              {/* Categories Navigation (Matches Image 2) */}
+              <div className="space-y-1.5 pt-1">
+                <div className="text-[11px] font-bold text-[#64748B] uppercase tracking-wider px-2 py-1 flex items-center justify-between">
+                  <span>علمی زمرہ جات</span>
+                  <span className="text-[10px] text-[#C5A059] font-mono font-bold">Categories</span>
+                </div>
+
+                <nav className="space-y-1.5 max-h-[calc(100vh-320px)] overflow-y-auto pr-1 custom-scrollbar">
+                  {categories.map((cat) => {
+                    const isSelected = selectedCategory === cat.value;
+                    return (
+                      <button
+                        key={cat.value}
+                        type="button"
+                        onClick={() => {
+                          setSelectedCategory(cat.value);
+                          setCurrentPage(1);
+                        }}
+                        className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all text-right cursor-pointer ${
+                          isSelected
+                            ? "bg-[#0F3D2E] text-white shadow-md border border-[#C5A059]/50"
+                            : "bg-white hover:bg-emerald-50/70 text-slate-700 hover:text-[#0F3D2E] border border-[#E6E2DD] shadow-2xs"
+                        }`}
+                        style={{ fontFamily: "'Noto Naskh Arabic', sans-serif" }}
+                      >
+                        <span className="flex items-center gap-2.5">
+                          <span className="text-base leading-none">{getCategoryIcon(cat.value, cat.label)}</span>
+                          <span className="truncate">{cat.label}</span>
+                        </span>
+                        {isSelected && (
+                          <span className="w-2 h-2 rounded-full bg-[#C5A059] shrink-0" />
+                        )}
+                      </button>
+                    );
+                  })}
+                </nav>
+              </div>
+            </div>
+          </aside>
+
+          {/* ========================================================
+              RIGHT COLUMN: CATALOG HEADER & BOOK GRID (IMAGE 2)
+          ======================================================== */}
+          <main className="flex-1 min-w-0 w-full space-y-6">
+            
+            {/* Top Catalog Header & Controls Bar */}
+            <div className="rounded-3xl bg-white border border-[#E6E2DD] p-4 sm:p-6 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div>
+                <h1
+                  className="text-2xl sm:text-3xl font-black text-[#0F3D2E] tracking-tight flex items-center gap-2.5 leading-snug"
+                  style={{ fontFamily: "'Noto Naskh Arabic', 'Plus Jakarta Sans', system-ui, sans-serif" }}
+                >
+                  <span>جدید اسلامی کتب خانہ</span>
+                </h1>
+                <p className="text-xs sm:text-sm text-[#64748B] mt-1 font-medium" style={{ fontFamily: "'Noto Naskh Arabic', sans-serif" }}>
+                  <span>زمرہ: </span>
+                  <strong className="text-[#0F3D2E]">{activeCategoryLabel}</strong>
+                  <span className="mx-2">•</span>
+                  <span>دستیاب کتب: </span>
+                  <strong className="text-[#C5A059] font-mono">{finalDisplayBooks.length}</strong>
+                </p>
+              </div>
+
+              {/* Controls Toolbar */}
+              <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                {/* Language Select */}
+                <select
+                  value={selectedLanguage}
+                  onChange={(e) => {
+                    setSelectedLanguage(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  className="rounded-xl border border-[#E6E2DD] bg-[#FAF8F5] text-slate-800 px-3 py-2 text-xs font-bold outline-none shadow-2xs hover:border-emerald-300 cursor-pointer"
+                  style={{ fontFamily: "'Noto Naskh Arabic', sans-serif" }}
+                >
+                  <option value="all">🌐 تمام زبانیں (All)</option>
+                  <option value="urdu">اردو (Urdu)</option>
+                  <option value="arabic">عربی (Arabic)</option>
+                  <option value="english">انگریزی (English)</option>
+                  <option value="hindi">ہندی (Hindi)</option>
+                </select>
+
+                {/* Sort Select */}
+                <div className="flex items-center gap-1.5 rounded-xl border border-[#E6E2DD] bg-[#FAF8F5] px-2.5 py-1.5 shadow-2xs">
+                  <ArrowsUpDownIcon className="w-4 h-4 text-[#C5A059]" />
+                  <select
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value)}
+                    className="bg-transparent text-xs font-bold text-slate-800 outline-none cursor-pointer"
+                    style={{ fontFamily: "'Noto Naskh Arabic', sans-serif" }}
+                  >
+                    <option value="newest">تازہ ترین (Newest)</option>
+                    <option value="oldest">نمبر شمار (Serial #)</option>
+                    <option value="az">حروفِ تہجی (A-Z)</option>
+                    <option value="favorites">محفوظ شدہ (Favorites)</option>
+                  </select>
+                </div>
+
+                {/* Grid / List View Toggle */}
+                <div className="flex rounded-xl bg-[#FAF8F5] p-1 border border-[#E6E2DD] shadow-2xs">
+                  <button
+                    type="button"
+                    onClick={() => setViewMode("grid")}
+                    className={`p-1.5 rounded-lg transition-all cursor-pointer ${
+                      viewMode === "grid"
+                        ? "bg-[#0F3D2E] text-white shadow-xs"
+                        : "text-slate-500 hover:text-[#0F3D2E]"
+                    }`}
+                    title="Grid view"
+                  >
+                    <Squares2X2Icon className="w-4 h-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setViewMode("list")}
+                    className={`p-1.5 rounded-lg transition-all cursor-pointer ${
+                      viewMode === "list"
+                        ? "bg-[#0F3D2E] text-white shadow-xs"
+                        : "text-slate-500 hover:text-[#0F3D2E]"
+                    }`}
+                    title="List view"
+                  >
+                    <ListBulletIcon className="w-4 h-4" />
+                  </button>
                 </div>
               </div>
-            ))}
-          </div>
-        ) : paginatedBooks.length > 0 ? (
-          <div>
-            {/* BOOK GRID / LIST (10 items per page) */}
-            <motion.div
-              id="book-grid"
-              initial="hidden"
-              whileInView="show"
-              viewport={{ once: true }}
-              className={
-                viewMode === "grid"
-                  ? "grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 sm:gap-6"
-                  : "grid grid-cols-1 md:grid-cols-2 gap-4"
-              }
-            >
-              <AnimatePresence>
-                {paginatedBooks.map((book) => (
-                  <motion.div
-                    key={book.id}
-                    layout
-                    initial={{ opacity: 0, y: 18 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0 }}
-                    className={`group relative ${
-                      viewMode === "list"
-                        ? "flex bg-[#07241b]/90 p-3 rounded-2xl border border-amber-500/25 shadow-md hover:border-amber-400/50 hover:bg-[#093024] transition-all text-white"
-                        : ""
-                    }`}
-                  >
-                    <div
-                      className={`relative cursor-pointer w-full ${
-                        viewMode === "list"
-                          ? "flex gap-4"
-                          : "transition-transform duration-300 group-hover:-translate-y-2"
-                      }`}
-                      onClick={() => setSelectedBook(book)}
-                    >
-                      {/* Image / Card Area */}
-                      <div className={viewMode === "list" ? "w-24 shrink-0" : ""}>
-                        <PublicBookCard
-                          book={book}
-                          onClick={() => setSelectedBook(book)}
-                          isFavorite={favorites.includes(book.id)}
-                          onToggleFavorite={toggleFavorite}
-                          className={viewMode === "list" ? "h-36" : ""}
-                        />
-                      </div>
+            </div>
 
-                      {/* List View Details */}
-                      {viewMode === "list" && (
-                        <div className="flex-1 flex flex-col justify-center py-1">
-                          <div className="flex justify-between items-start">
-                            <span className="text-[10px] font-bold text-amber-300 uppercase bg-amber-500/15 border border-amber-400/30 px-2 py-0.5 rounded-full mb-1">
-                              {safeCategory(book)}
-                            </span>
-                            {book.is_restricted && (
-                              book.user_has_access ? (
-                                <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-300 bg-emerald-500/20 px-2 py-0.5 rounded-full border border-emerald-400/30">
-                                  <LockOpenOutline className="w-3.5 h-3.5" />
-                                  <span>Unlocked</span>
-                                </span>
-                              ) : (
-                                <LockOutline className="w-4 h-4 text-red-400" />
-                              )
-                            )}
-                          </div>
-
-                          <h3 className="font-bold text-white leading-tight mb-1 line-clamp-2">
-                            {safeBookText(book?.title, "Untitled Book")}
-                          </h3>
-
-                          <p className="text-xs text-emerald-200/80 mb-2">
-                            By {safeBookText(book?.author, "Unknown Author")}
-                            {book.translator && ` (ترجمہ: ${safeBookText(book.translator)})`}
-                          </p>
-
-                          <p className="text-xs text-amber-200/60 line-clamp-2 mb-2">
-                            {book.description || `Publisher: ${book.publisher || 'N/A'}`}
-                          </p>
-
-                          <div className="mt-auto flex items-center gap-2">
-                            {book.pdf_url || book.txt_file_url ? (
+            {/* BOOKS CATALOG GRID */}
+            {loading ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-5 animate-pulse">
+                {[...Array(8)].map((_, i) => (
+                  <div key={i} className="rounded-2xl border border-[#E6E2DD] bg-white p-4 space-y-4 shadow-xs">
+                    <div className="aspect-[2/3] rounded-xl bg-slate-100 mx-auto w-3/4" />
+                    <div className="space-y-2">
+                      <div className="h-4 bg-slate-100 rounded-md w-4/5 mx-auto" />
+                      <div className="h-3 bg-slate-100 rounded-md w-1/2 mx-auto" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : paginatedBooks.length > 0 ? (
+              <div>
+                <motion.div
+                  id="book-grid"
+                  layout
+                  className={
+                    viewMode === "grid"
+                      ? "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-5"
+                      : "grid grid-cols-1 gap-4"
+                  }
+                >
+                  <AnimatePresence>
+                    {paginatedBooks.map((book) => (
+                      <motion.div
+                        key={book.id}
+                        layout
+                        initial={{ opacity: 0, y: 14 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0 }}
+                        className="w-full"
+                      >
+                        {viewMode === "grid" ? (
+                          <PublicBookCard
+                            book={book}
+                            onClick={() => setSelectedBook(book)}
+                            isFavorite={favorites.includes(book.id)}
+                            onToggleFavorite={toggleFavorite}
+                          />
+                        ) : (
+                          /* Clean List View Card */
+                          <div
+                            onClick={() => setSelectedBook(book)}
+                            className="flex flex-col sm:flex-row items-center gap-4 p-4 rounded-2xl bg-white border border-[#E6E2DD] hover:border-emerald-300 hover:shadow-md transition cursor-pointer shadow-2xs"
+                          >
+                            <div className="w-20 sm:w-24 aspect-[2/3] shrink-0 rounded-xl overflow-hidden bg-slate-100 border border-[#E6E2DD]">
+                              <img
+                                src={getBookCover(book) || FALLBACK_NO_COVER}
+                                alt={book.title}
+                                className="w-full h-full object-cover"
+                                onError={(e) => { e.currentTarget.src = FALLBACK_NO_COVER; }}
+                              />
+                            </div>
+                            <div className="flex-1 min-w-0 text-center sm:text-right">
+                              <span className="text-[10px] font-bold text-[#C5A059] uppercase tracking-wider bg-amber-50 border border-amber-200/80 px-2 py-0.5 rounded-full inline-block mb-1">
+                                {safeCategory(book)}
+                              </span>
+                              <h3 className="text-base font-bold text-[#0F3D2E] leading-snug line-clamp-1" style={{ fontFamily: "'Noto Naskh Arabic', sans-serif" }}>
+                                {safeBookText(book.title)}
+                              </h3>
+                              <p className="text-xs text-[#64748B] mt-0.5" style={{ fontFamily: "'Noto Naskh Arabic', sans-serif" }}>
+                                مؤلف: <span className="text-slate-800 font-semibold">{safeBookText(book.author)}</span>
+                              </p>
+                              {book.description && (
+                                <p className="text-xs text-slate-500 line-clamp-2 mt-1">
+                                  {book.description}
+                                </p>
+                              )}
+                            </div>
+                            <div className="flex sm:flex-col gap-2 shrink-0">
                               <button
-                                className="text-xs font-bold text-amber-400 hover:text-amber-300 transition-colors"
+                                type="button"
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   navigate(`/read/${book.id}`);
                                 }}
+                                className="px-4 py-2 rounded-xl bg-[#0F3D2E] hover:bg-[#165B44] text-white text-xs font-bold transition shadow-xs cursor-pointer"
+                                style={{ fontFamily: "'Noto Naskh Arabic', sans-serif" }}
                               >
-                                Read Now
+                                📖 مطالعہ
                               </button>
-                            ) : (
-                              <button
-                                className="text-xs font-bold text-amber-400 inline-flex items-center gap-1"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  showUpcomingToast();
-                                }}
-                              >
-                                <span>⏳</span> <span>عنقریب...</span>
-                              </button>
-                            )}
-
-                            <span className="text-amber-500/40">•</span>
-
-                            <button
-                              className={`inline-flex items-center gap-1 text-xs font-bold transition-colors ${
-                                favorites.includes(book.id) ? "text-amber-400" : "text-amber-200/60 hover:text-amber-300"
-                              }`}
-                              onClick={(e) => toggleFavorite(e, book.id)}
-                            >
-                              {favorites.includes(book.id) ? (
-                                <>
-                                  <BookmarkSolid className="h-4 w-4 text-amber-400" />
-                                  <span>Saved</span>
-                                </>
-                              ) : (
-                                <>
-                                  <BookmarkOutline className="h-4 w-4" />
-                                  <span>Save</span>
-                                </>
-                              )}
-                            </button>
+                            </div>
                           </div>
-                        </div>
-                      )}
-                    </div>
-                  </motion.div>
-                ))}
-              </AnimatePresence>
-            </motion.div>
+                        )}
+                      </motion.div>
+                    ))}
+                  </AnimatePresence>
+                </motion.div>
 
-            {/* 📄 CLEAN PAGINATION BAR WITH ROWS PER PAGE DROPDOWN */}
-            {finalDisplayBooks.length > 0 && (
-              <div className="mt-12 flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-amber-500/20 pt-6 bg-[#07241b]/80 p-4 rounded-2xl border border-amber-500/25 shadow-lg backdrop-blur-md">
-                {/* Books Per Page Dropdown */}
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-semibold text-emerald-200/70">Books per page:</span>
-                  <div className="relative inline-block">
+                {/* 📄 CLEAN PAGINATION BAR (IMAGE 2 MATCH) */}
+                <div className="mt-10 flex flex-col sm:flex-row items-center justify-between gap-4 bg-white p-4 sm:p-5 rounded-3xl border border-[#E6E2DD] shadow-xs">
+                  {/* Books Per Page Selector */}
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-semibold text-[#64748B]">فی صفحہ کتب:</span>
                     <select
                       value={itemsPerPage}
                       onChange={(e) => {
@@ -863,145 +776,180 @@ const UserLibrary = () => {
                         setCurrentPage(1);
                         scrollToTop();
                       }}
-                      className="bg-[#041610] border border-amber-500/30 hover:border-amber-400 text-white text-xs font-bold rounded-lg px-3 py-1.5 pr-8 appearance-none cursor-pointer outline-none shadow-2xs focus:ring-2 focus:ring-amber-500/40"
+                      className="rounded-xl border border-[#E6E2DD] bg-[#FAF8F5] text-slate-800 px-3 py-1.5 text-xs font-bold outline-none shadow-2xs hover:border-emerald-300 cursor-pointer"
                     >
-                      <option value={10} className="bg-[#041610] text-white">10</option>
-                      <option value={25} className="bg-[#041610] text-white">25</option>
-                      <option value={50} className="bg-[#041610] text-white">50</option>
-                      <option value={100} className="bg-[#041610] text-white">100</option>
+                      <option value={10}>10</option>
+                      <option value={25}>25</option>
+                      <option value={50}>50</option>
+                      <option value={100}>100</option>
                     </select>
-                    <ChevronDownIcon className="w-3.5 h-3.5 text-amber-300 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    <span className="text-xs text-[#64748B] ml-2">
+                      صفحہ {currentPage} از {totalPages}
+                    </span>
                   </div>
-                  <span className="text-xs text-amber-200/60 ml-2">
-                    Showing {(currentPage - 1) * itemsPerPage + 1} - {Math.min(currentPage * itemsPerPage, finalDisplayBooks.length)} of {finalDisplayBooks.length}
-                  </span>
-                </div>
 
-                <div className="flex items-center gap-1.5 flex-wrap justify-center">
-                  {/* Previous Button */}
-                  <button
-                    onClick={() => {
-                      if (currentPage > 1) {
-                        setCurrentPage(p => p - 1);
-                        scrollToTop();
+                  {/* Page Navigation Buttons */}
+                  <div className="flex items-center gap-1.5 flex-wrap justify-center">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (currentPage > 1) {
+                          setCurrentPage((p) => p - 1);
+                          scrollToTop();
+                        }
+                      }}
+                      disabled={currentPage === 1}
+                      className="inline-flex items-center gap-1 px-3.5 py-1.5 rounded-xl text-xs font-bold border border-[#E6E2DD] bg-[#FAF8F5] text-slate-700 hover:bg-emerald-50 hover:text-[#0F3D2E] disabled:opacity-40 disabled:cursor-not-allowed transition shadow-2xs cursor-pointer"
+                    >
+                      <ChevronRightIcon className="w-4 h-4" />
+                      <span>پچھلا</span>
+                    </button>
+
+                    {(() => {
+                      const pages = [];
+                      const maxVisible = 5;
+                      let startPage = Math.max(1, currentPage - Math.floor(maxVisible / 2));
+                      let endPage = Math.min(totalPages, startPage + maxVisible - 1);
+
+                      if (endPage - startPage + 1 < maxVisible) {
+                        startPage = Math.max(1, endPage - maxVisible + 1);
                       }
-                    }}
-                    disabled={currentPage === 1}
-                    className="inline-flex items-center gap-1 px-3.5 py-2 rounded-xl text-xs font-bold border border-amber-500/30 bg-[#041610] text-amber-200 hover:bg-emerald-900/60 hover:text-amber-300 hover:border-amber-400 disabled:opacity-30 disabled:cursor-not-allowed transition-all shadow-xs cursor-pointer"
-                  >
-                    <ChevronLeftIcon className="w-4 h-4" />
-                    <span>Previous</span>
-                  </button>
 
-                  {/* Page Numbers */}
-                  {(() => {
-                    const pages = [];
-                    const maxVisible = 5;
-                    let startPage = Math.max(1, currentPage - Math.floor(maxVisible / 2));
-                    let endPage = Math.min(totalPages, startPage + maxVisible - 1);
-
-                    if (endPage - startPage + 1 < maxVisible) {
-                      startPage = Math.max(1, endPage - maxVisible + 1);
-                    }
-
-                    if (startPage > 1) {
-                      pages.push(
-                        <button
-                          key={1}
-                          onClick={() => { setCurrentPage(1); scrollToTop(); }}
-                          className={`w-8 h-8 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                            currentPage === 1
-                              ? "bg-amber-500 text-slate-950 shadow-md font-extrabold"
-                              : "bg-[#041610] text-amber-200/80 border border-amber-500/30 hover:bg-emerald-900/60 hover:text-amber-300"
-                          }`}
-                        >
-                          1
-                        </button>
-                      );
-                      if (startPage > 2) {
-                        pages.push(<span key="dots-start" className="px-1 text-amber-200/40 text-xs">...</span>);
+                      for (let p = startPage; p <= endPage; p++) {
+                        pages.push(
+                          <button
+                            key={p}
+                            type="button"
+                            onClick={() => {
+                              setCurrentPage(p);
+                              scrollToTop();
+                            }}
+                            className={`w-8 h-8 rounded-xl text-xs font-bold transition cursor-pointer ${
+                              currentPage === p
+                                ? "bg-[#0F3D2E] text-white shadow-sm font-black"
+                                : "bg-[#FAF8F5] text-slate-700 border border-[#E6E2DD] hover:bg-emerald-50 hover:text-[#0F3D2E]"
+                            }`}
+                          >
+                            {p}
+                          </button>
+                        );
                       }
-                    }
 
-                    for (let p = startPage; p <= endPage; p++) {
-                      pages.push(
-                        <button
-                          key={p}
-                          onClick={() => { setCurrentPage(p); scrollToTop(); }}
-                          className={`w-8 h-8 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                            currentPage === p
-                              ? "bg-amber-500 text-slate-950 shadow-md font-extrabold"
-                              : "bg-[#041610] text-amber-200/80 border border-amber-500/30 hover:bg-emerald-900/60 hover:text-amber-300"
-                          }`}
-                        >
-                          {p}
-                        </button>
-                      );
-                    }
+                      return pages;
+                    })()}
 
-                    if (endPage < totalPages) {
-                      if (endPage < totalPages - 1) {
-                        pages.push(<span key="dots-end" className="px-1 text-amber-200/40 text-xs">...</span>);
-                      }
-                      pages.push(
-                        <button
-                          key={totalPages}
-                          onClick={() => { setCurrentPage(totalPages); scrollToTop(); }}
-                          className={`w-8 h-8 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                            currentPage === totalPages
-                              ? "bg-amber-500 text-slate-950 shadow-md font-extrabold"
-                              : "bg-[#041610] text-amber-200/80 border border-amber-500/30 hover:bg-emerald-900/60 hover:text-amber-300"
-                          }`}
-                        >
-                          {totalPages}
-                        </button>
-                      );
-                    }
-
-                    return pages;
-                  })()}
-
-                  {/* Next Button */}
-                  <button
-                    onClick={() => {
-                      if (currentPage < totalPages) {
-                        setCurrentPage(p => p + 1);
-                        scrollToTop();
-                      }
-                    }}
-                    disabled={currentPage === totalPages}
-                    className="inline-flex items-center gap-1 px-3.5 py-2 rounded-xl text-xs font-bold border border-amber-500/30 bg-[#041610] text-amber-200 hover:bg-emerald-900/60 hover:text-amber-300 hover:border-amber-400 disabled:opacity-30 disabled:cursor-not-allowed transition-all shadow-xs cursor-pointer"
-                  >
-                    <span>Next</span>
-                    <ChevronRightIcon className="w-4 h-4" />
-                  </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (currentPage < totalPages) {
+                          setCurrentPage((p) => p + 1);
+                          scrollToTop();
+                        }
+                      }}
+                      disabled={currentPage === totalPages}
+                      className="inline-flex items-center gap-1 px-3.5 py-1.5 rounded-xl text-xs font-bold border border-[#E6E2DD] bg-[#FAF8F5] text-slate-700 hover:bg-emerald-50 hover:text-[#0F3D2E] disabled:opacity-40 disabled:cursor-not-allowed transition shadow-2xs cursor-pointer"
+                    >
+                      <span>اگلا</span>
+                      <ChevronLeftIcon className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
               </div>
+            ) : (
+              /* Empty State */
+              <div className="text-center py-16 bg-white rounded-3xl shadow-xs border border-[#E6E2DD] p-8">
+                <FaceFrownIcon className="h-14 w-14 text-[#C5A059] mx-auto mb-3" />
+                <h3 className="text-xl font-bold text-[#0F3D2E]" style={{ fontFamily: "'Noto Naskh Arabic', sans-serif" }}>
+                  کوئی کتاب نہیں ملی
+                </h3>
+                <p className="text-xs text-[#64748B] mt-1 max-w-sm mx-auto" style={{ fontFamily: "'Noto Naskh Arabic', sans-serif" }}>
+                  منتخب کردہ فلٹرز یا تلاش کے مطابق کوئی کتاب دستیاب نہیں ہے۔
+                </p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearchTerm("");
+                    setSelectedCategory("all");
+                    setSelectedLanguage("all");
+                  }}
+                  className="mt-5 px-6 py-2.5 bg-[#0F3D2E] hover:bg-[#165B44] text-white rounded-xl font-bold shadow-md text-xs transition cursor-pointer"
+                  style={{ fontFamily: "'Noto Naskh Arabic', sans-serif" }}
+                >
+                  فلٹرز ختم کریں (Reset Filters)
+                </button>
+              </div>
             )}
-          </div>
-        ) : (
-          /* Empty State */
-          <div className="text-center py-20 bg-[#07241b]/80 rounded-3xl shadow-xl border border-amber-500/25 p-8 backdrop-blur-sm text-white">
-            <FaceFrownIcon className="h-16 w-16 text-amber-400/60 mx-auto mb-4" />
-            <h3 className="text-2xl font-bold text-white">No books found</h3>
-            <p className="text-xs text-emerald-200/70 mt-1 max-w-sm mx-auto">
-              No books matched the selected filters.
-            </p>
-            <button
-              onClick={() => {
-                setSearchTerm("");
-                setSelectedCategory("all");
-                setSelectedLanguage("all");
-              }}
-              className="mt-6 px-8 py-3 bg-gradient-to-r from-amber-500 to-amber-700 text-slate-950 rounded-xl font-bold shadow-lg hover:brightness-110 text-sm transition-all cursor-pointer"
-            >
-              Clear Filters
-            </button>
-          </div>
-        )}
+          </main>
+        </div>
       </div>
 
-      {/* Scroll top */}
+      {/* ========================================================
+          MOBILE CATEGORY DRAWER (SLIDE-UP MODAL)
+      ======================================================== */}
+      <AnimatePresence>
+        {isMobileDrawerOpen && (
+          <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsMobileDrawerOpen(false)}
+              className="fixed inset-0 bg-black/60 backdrop-blur-xs"
+            />
+            <motion.div
+              initial={{ y: "100%" }}
+              animate={{ y: 0 }}
+              exit={{ y: "100%" }}
+              transition={{ type: "spring", damping: 25, stiffness: 250 }}
+              className="relative w-full sm:max-w-md bg-white rounded-t-3xl sm:rounded-3xl p-6 shadow-2xl z-10 max-h-[85vh] flex flex-col border border-[#E6E2DD]"
+            >
+              <div className="flex items-center justify-between pb-4 border-b border-[#E6E2DD]">
+                <h3 className="text-lg font-bold text-[#0F3D2E] flex items-center gap-2" style={{ fontFamily: "'Noto Naskh Arabic', sans-serif" }}>
+                  <span>علمی موضوعات و زمرہ جات</span>
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => setIsMobileDrawerOpen(false)}
+                  className="p-1 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100"
+                >
+                  <XMarkIcon className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="py-4 space-y-2 overflow-y-auto flex-1 custom-scrollbar">
+                {categories.map((cat) => {
+                  const isSelected = selectedCategory === cat.value;
+                  return (
+                    <button
+                      key={cat.value}
+                      type="button"
+                      onClick={() => {
+                        setSelectedCategory(cat.value);
+                        setCurrentPage(1);
+                        setIsMobileDrawerOpen(false);
+                      }}
+                      className={`w-full flex items-center justify-between px-4 py-3 rounded-2xl text-xs font-bold transition text-right ${
+                        isSelected
+                          ? "bg-[#0F3D2E] text-white shadow-md border border-[#C5A059]/40"
+                          : "bg-slate-50 text-slate-700 hover:bg-emerald-50/70 border border-[#E6E2DD]"
+                      }`}
+                      style={{ fontFamily: "'Noto Naskh Arabic', sans-serif" }}
+                    >
+                      <span className="flex items-center gap-2.5">
+                        <span className="text-lg">{getCategoryIcon(cat.value, cat.label)}</span>
+                        <span>{cat.label}</span>
+                      </span>
+                      {isSelected && <span className="w-2 h-2 rounded-full bg-[#C5A059]" />}
+                    </button>
+                  );
+                })}
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* SCROLL TO TOP FLOATING BUTTON */}
       <AnimatePresence>
         {showScrollTop && (
           <motion.button
@@ -1009,10 +957,10 @@ const UserLibrary = () => {
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.5 }}
             onClick={scrollToTop}
-            className="fixed bottom-8 right-8 z-50 p-4 bg-gradient-to-r from-amber-500 to-amber-700 text-slate-950 rounded-full shadow-2xl hover:brightness-110 transition-all border border-amber-400/40 cursor-pointer"
+            className="fixed bottom-20 right-6 z-40 p-3.5 bg-[#0F3D2E] text-[#C5A059] rounded-full shadow-2xl hover:bg-[#165B44] transition border border-[#C5A059]/40 cursor-pointer"
             title="Scroll to top"
           >
-            <ArrowUpIcon className="w-6 h-6" />
+            <ArrowUpIcon className="w-5 h-5" />
           </motion.button>
         )}
       </AnimatePresence>

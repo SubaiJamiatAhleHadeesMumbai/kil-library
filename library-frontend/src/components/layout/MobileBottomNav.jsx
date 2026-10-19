@@ -5,17 +5,19 @@ import {
   BookOpenIcon,
   MagnifyingGlassIcon,
   ChatBubbleLeftRightIcon,
+  HeartIcon,
   UserCircleIcon,
 } from '@heroicons/react/24/outline';
 import {
   HomeIcon as HomeIconSolid,
   BookOpenIcon as BookOpenIconSolid,
   ChatBubbleLeftRightIcon as ChatBubbleLeftRightIconSolid,
+  HeartIcon as HeartIconSolid,
   UserCircleIcon as UserCircleIconSolid,
 } from '@heroicons/react/24/solid';
 import useAuth from '../../hooks/useAuth';
 
-const MobileBottomNav = ({ config = null, onOpenSearch }) => {
+const MobileBottomNav = ({ config = null, onOpenSearch, onOpenDonate }) => {
   const { isAuth } = useAuth();
   const location = useLocation();
 
@@ -32,28 +34,30 @@ const MobileBottomNav = ({ config = null, onOpenSearch }) => {
   const showLibrary = mobileConfig.show_library !== false;
   const showSearch = mobileConfig.show_search !== false;
   const showFatawa = mobileConfig.show_fatawa !== false;
-  const showProfile = mobileConfig.show_profile !== false;
+  const showDonate = mobileConfig.show_donate !== false;
 
   return (
     <nav
-      aria-label="Mobile Navigation"
-      className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#051c14]/95 backdrop-blur-xl border-t border-amber-500/25 shadow-[0_-4px_25px_rgba(0,0,0,0.6)] text-white pb-[env(safe-area-inset-bottom)]"
+      aria-label="Mobile Bottom Navigation"
+      className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-[#E6E2DD] py-2 px-2 flex justify-around items-center shadow-lg pb-[env(safe-area-inset-bottom)] notranslate"
+      translate="no"
     >
-      <div className="flex items-center justify-around h-15 px-2 max-w-lg mx-auto">
+      <div className="flex items-center justify-around w-full max-w-md mx-auto">
         {/* 1. Home */}
         {showHome && (
           <NavLink
             to="/"
+            end
             className={({ isActive }) =>
-              `flex flex-col items-center justify-center flex-1 py-1 transition-all active:scale-90 ${
-                isActive ? 'text-amber-300 font-bold' : 'text-slate-400 hover:text-amber-200 font-medium'
+              `flex flex-col items-center justify-center flex-1 py-1 transition-all active:scale-95 ${
+                isActive ? 'text-[#0F3D2E] font-extrabold' : 'text-slate-500 hover:text-[#0F3D2E] font-medium'
               }`
             }
           >
             {({ isActive }) => (
               <>
-                {isActive ? <HomeIconSolid className="w-5 h-5 text-amber-400" /> : <HomeIcon className="w-5 h-5" />}
-                <span className="text-[10px] mt-0.5">Home</span>
+                {isActive ? <HomeIconSolid className="w-5 h-5 text-[#0F3D2E]" /> : <HomeIcon className="w-5 h-5 text-slate-500" />}
+                <span className="text-[10px] mt-0.5" style={{ fontFamily: "'Noto Naskh Arabic', sans-serif" }}>صفحہ اول</span>
               </>
             )}
           </NavLink>
@@ -64,33 +68,31 @@ const MobileBottomNav = ({ config = null, onOpenSearch }) => {
           <NavLink
             to="/books"
             className={({ isActive }) =>
-              `flex flex-col items-center justify-center flex-1 py-1 transition-all active:scale-90 ${
-                isActive ? 'text-amber-300 font-bold' : 'text-slate-400 hover:text-amber-200 font-medium'
+              `flex flex-col items-center justify-center flex-1 py-1 transition-all active:scale-95 ${
+                isActive ? 'text-[#0F3D2E] font-extrabold' : 'text-slate-500 hover:text-[#0F3D2E] font-medium'
               }`
             }
           >
             {({ isActive }) => (
               <>
-                {isActive ? <BookOpenIconSolid className="w-5 h-5 text-amber-400" /> : <BookOpenIcon className="w-5 h-5" />}
-                <span className="text-[10px] mt-0.5">Library</span>
+                {isActive ? <BookOpenIconSolid className="w-5 h-5 text-[#0F3D2E]" /> : <BookOpenIcon className="w-5 h-5 text-slate-500" />}
+                <span className="text-[10px] mt-0.5" style={{ fontFamily: "'Noto Naskh Arabic', sans-serif" }}>کتب خانہ</span>
               </>
             )}
           </NavLink>
         )}
 
-        {/* 3. Center Elevated Quick Search Button */}
+        {/* 3. Search (Clean uniform button, no misaligned elevated button) */}
         {showSearch && (
-          <div className="flex flex-col items-center justify-center flex-1 -mt-4">
-            <button
-              type="button"
-              onClick={onOpenSearch}
-              className="flex items-center justify-center w-12 h-12 rounded-full bg-gradient-to-tr from-amber-500 via-amber-600 to-amber-700 text-slate-950 shadow-lg shadow-amber-950/50 border-2 border-amber-400/60 active:scale-90 transition-transform cursor-pointer"
-              title="Search Library & Fatawa"
-            >
-              <MagnifyingGlassIcon className="w-5 h-5 stroke-[2.5]" />
-            </button>
-            <span className="text-[9.5px] font-bold text-amber-300 mt-0.5">Search</span>
-          </div>
+          <button
+            type="button"
+            onClick={onOpenSearch}
+            className="flex flex-col items-center justify-center flex-1 py-1 transition-all text-slate-500 hover:text-[#0F3D2E] active:scale-95 cursor-pointer"
+            title="Search Library & Fatawa"
+          >
+            <MagnifyingGlassIcon className="w-5 h-5 text-slate-500 hover:text-[#0F3D2E]" />
+            <span className="text-[10px] mt-0.5" style={{ fontFamily: "'Noto Naskh Arabic', sans-serif" }}>تلاش</span>
+          </button>
         )}
 
         {/* 4. Fatawa */}
@@ -98,45 +100,31 @@ const MobileBottomNav = ({ config = null, onOpenSearch }) => {
           <NavLink
             to="/fatawa"
             className={({ isActive }) =>
-              `flex flex-col items-center justify-center flex-1 py-1 transition-all active:scale-90 ${
-                isActive ? 'text-amber-300 font-bold' : 'text-slate-400 hover:text-amber-200 font-medium'
+              `flex flex-col items-center justify-center flex-1 py-1 transition-all active:scale-95 ${
+                isActive ? 'text-[#0F3D2E] font-extrabold' : 'text-slate-500 hover:text-[#0F3D2E] font-medium'
               }`
             }
           >
             {({ isActive }) => (
               <>
-                {isActive ? (
-                  <ChatBubbleLeftRightIconSolid className="w-5 h-5 text-amber-400" />
-                ) : (
-                  <ChatBubbleLeftRightIcon className="w-5 h-5" />
-                )}
-                <span className="text-[10px] mt-0.5">Fatawa</span>
+                {isActive ? <ChatBubbleLeftRightIconSolid className="w-5 h-5 text-[#0F3D2E]" /> : <ChatBubbleLeftRightIcon className="w-5 h-5 text-slate-500" />}
+                <span className="text-[10px] mt-0.5" style={{ fontFamily: "'Noto Naskh Arabic', sans-serif" }}>دار الافتاء</span>
               </>
             )}
           </NavLink>
         )}
 
-        {/* 5. Profile / Account */}
-        {showProfile && (
-          <NavLink
-            to={isAuth ? '/profile' : '/login'}
-            className={({ isActive }) =>
-              `flex flex-col items-center justify-center flex-1 py-1 transition-all active:scale-90 ${
-                isActive ? 'text-amber-300 font-bold' : 'text-slate-400 hover:text-amber-200 font-medium'
-              }`
-            }
+        {/* 5. Donate / Profile */}
+        {showDonate && (
+          <button
+            type="button"
+            onClick={onOpenDonate}
+            className="flex flex-col items-center justify-center flex-1 py-1 transition-all text-amber-700 hover:text-[#0F3D2E] active:scale-95 cursor-pointer"
+            title="Donate"
           >
-            {({ isActive }) => (
-              <>
-                {isActive ? (
-                  <UserCircleIconSolid className="w-5 h-5 text-amber-400" />
-                ) : (
-                  <UserCircleIcon className="w-5 h-5" />
-                )}
-                <span className="text-[10px] mt-0.5">{isAuth ? 'Profile' : 'Login'}</span>
-              </>
-            )}
-          </NavLink>
+            <HeartIcon className="w-5 h-5 text-[#C5A059]" />
+            <span className="text-[10px] mt-0.5 font-bold text-amber-800" style={{ fontFamily: "'Noto Naskh Arabic', sans-serif" }}>تعاون</span>
+          </button>
         )}
       </div>
     </nav>

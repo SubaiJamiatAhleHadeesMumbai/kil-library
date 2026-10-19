@@ -718,52 +718,10 @@ const PublicHome = () => {
         </div>
       )}
 
-      {/* HADITH OF THE DAY CARD (Clean Noorani Banner) */}
-      <div className="app-shell-container pb-4 sm:pb-6" dir="rtl">
-        <div className="rounded-3xl border border-slate-200/90 bg-white p-5 sm:p-7 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-5 hover:border-emerald-300 transition-all">
-          <div className="flex-1 text-center sm:text-right space-y-2">
-            <span className="inline-block rounded-full bg-emerald-50 border border-emerald-200/80 text-emerald-800 px-3.5 py-1 text-xs font-bold shadow-2xs">
-              ✨ حدیثِ مبارکہ
-            </span>
-            <div 
-              className="text-lg sm:text-2xl font-bold text-emerald-950 leading-relaxed font-serif"
-              style={{ fontFamily: "'Amiri', 'Traditional Arabic', serif" }}
-            >
-              «خَيْرُكُمْ مَنْ تَعَلَّمَ الْقُرْآنَ وَعَلَّمَهُ»
-            </div>
-            <div 
-              className="text-sm sm:text-base text-slate-700 leading-relaxed"
-              style={{ fontFamily: "'Gulzar', 'Noto Nastaliq Urdu', serif", lineHeight: 2.2 }}
-            >
-              ”تم میں سے سب سے بہتر وہ شخص ہے جو قرآن سیکھے اور سکھائے۔“
-            </div>
-            <div className="text-xs text-slate-500 font-medium font-mono">
-              صحیح البخاری: 5027 • کتاب فضائل القرآن
-            </div>
-          </div>
-
-          <a
-            href={`https://api.whatsapp.com/send?text=${encodeURIComponent(
-              "✨ *حدیثِ مبارکہ*\n\n" +
-              "«خَيْرُكُمْ مَنْ تَعَلَّمَ الْقُرْآنَ وَعَلَّمَهُ»\n\n" +
-              "”تم میں سے سب سے بہتر وہ شخص ہے جو قرآن سیکھے اور سکھائے۔“\n\n" +
-              "📖 صحیح البخاری: 5027 • کتاب فضائل القرآن\n\n" +
-              "🌐 کوکن اسلامک لائبریری:\nhttps://www.ahlehadeeskokan.com"
-            )}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 rounded-2xl bg-[#25D366] hover:bg-[#20ba59] text-white font-bold px-5 py-2.5 text-xs sm:text-sm shadow-xs transition-all cursor-pointer whitespace-nowrap active:scale-95 flex-shrink-0"
-          >
-            <span>📲</span>
-            <span>واٹس ایپ پر شیئر کریں</span>
-          </a>
-        </div>
-      </div>
-
       {/* CONTINUE READING SECTION (Recent Reads) */}
       {recentReadBooks && recentReadBooks.length > 0 && (
         <div className="app-shell-container pb-4 sm:pb-6">
-          <div className="rounded-3xl border border-slate-200/90 bg-white p-4 sm:p-6 shadow-xs text-slate-900">
+          <div className="rounded-3xl border border-[#E6E2DD] bg-white p-4 sm:p-6 shadow-xs text-slate-900">
             <div className="mb-3.5 flex items-center justify-between gap-3">
               <div className="flex items-center gap-2">
                 <span className="flex h-3 w-3 relative">
@@ -800,25 +758,25 @@ const PublicHome = () => {
         <div className="app-shell-container py-6 sm:py-8">
           <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
             <div>
-              <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 flex items-center gap-2">
+              <h2 className="text-2xl sm:text-3xl font-extrabold text-[#1E293B] flex items-center gap-2">
                 <span>
                   {getLangText('منتخب کتب (Featured Books)', 'الكتب المختارة', 'Featured Books')}
                 </span>
               </h2>
-              <p className="mt-1 text-xs sm:text-sm text-slate-500 font-serif">
+              <p className="mt-1 text-xs sm:text-sm text-[#64748B] font-sans">
                 {getLangText('نایاب و مستند کتب کا خاص علمی انتخاب', 'مختارات من أندر وأوثق الكتب والمخطوطات', 'Curated Rare & Authoritative Islamic Works')}
               </p>
             </div>
             <button
-              onClick={() => navigateToTop('/library')}
-              className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-4 py-1.5 text-xs sm:text-sm font-bold text-emerald-800 hover:bg-emerald-50 hover:border-emerald-300 transition-all shadow-2xs cursor-pointer"
+              onClick={() => navigateToTop('/books')}
+              className="inline-flex items-center gap-1.5 rounded-full border border-[#E6E2DD] bg-white px-4 py-1.5 text-xs sm:text-sm font-bold text-[#0F3D2E] hover:bg-emerald-50 hover:border-emerald-300 transition-all shadow-2xs cursor-pointer"
             >
               <span>{getLangText('مکمل فہرست ملاحظہ فرمائیں ←', 'عرض الكل ←', 'View Full Catalog →')}</span>
             </button>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3.5 sm:gap-5">
-            {featuredBooks.slice(0, 6).map((book) => (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+            {featuredBooks.slice(0, 8).map((book) => (
               <PublicBookCard
                 key={book.id}
                 book={book}

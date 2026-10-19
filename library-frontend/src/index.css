@@ -4,27 +4,28 @@
    DESIGN TOKENS
    ============================================================ */
 :root {
-  --primary:        #064e3b;
-  --primary-hover:  #022c22;
-  --primary-light:  #0a3628;
-  --accent:         #d4af37;
-  --accent-hover:   #b45309;
-  --gold-royal:     #d4af37;
-  --gold-gradient:  linear-gradient(135deg, #dfba73 0%, #cda34f 50%, #9e7529 100%);
-  --gold-glow:      rgba(205, 163, 79, 0.35);
+  --primary:        #0F3D2E;
+  --primary-hover:  #165B44;
+  --primary-light:  #1A533E;
+  --accent:         #C5A059;
+  --accent-hover:   #b08d47;
+  --gold-royal:     #C5A059;
+  --gold-gradient:  linear-gradient(135deg, #dfba73 0%, #c5a059 50%, #9e7529 100%);
+  --gold-glow:      rgba(197, 160, 89, 0.35);
   --success:        #10b981;
   --warning:        #f59e0b;
   --danger:         #ef4444;
-  --surface:        #07241b;
-  --surface-alt:    #041610;
-  --border:         rgba(212, 175, 55, 0.25);
-  --border-gold:    rgba(212, 175, 55, 0.35);
-  --text-primary:   #fcf8f0;
-  --text-secondary: #c9baa4;
-  --text-muted:     #8f9e97;
-  --shadow-sm:      0 1px 3px 0 rgb(0 0 0 / 0.3), 0 1px 2px -1px rgb(0 0 0 / 0.3);
-  --shadow-md:      0 4px 16px -2px rgb(0 0 0 / 0.4), 0 2px 6px -2px rgb(0 0 0 / 0.3);
-  --shadow-lg:      0 10px 30px -4px rgb(0 0 0 / 0.5), 0 4px 10px -4px rgb(0 0 0 / 0.4);
+  --surface:        #FFFFFF;
+  --surface-alt:    #FAF8F5;
+  --border:         #E6E2DD;
+  --border-gold:    rgba(197, 160, 89, 0.35);
+  --bg-paper:       #FAF8F5;
+  --text-primary:   #1E293B;
+  --text-secondary: #64748B;
+  --text-muted:     #94A3B8;
+  --shadow-sm:      0 1px 3px 0 rgb(0 0 0 / 0.05), 0 1px 2px -1px rgb(0 0 0 / 0.05);
+  --shadow-md:      0 4px 16px -2px rgb(0 0 0 / 0.08), 0 2px 6px -2px rgb(0 0 0 / 0.05);
+  --shadow-lg:      0 10px 30px -4px rgb(0 0 0 / 0.1), 0 4px 10px -4px rgb(0 0 0 / 0.06);
   --radius-sm:      0.625rem;
   --radius-md:      0.875rem;
   --radius-lg:      1rem;
@@ -53,12 +54,12 @@ html, body, #root {
 }
 
 body {
-  font-family: "Inter", "Montserrat", system-ui, -apple-system, sans-serif;
+  font-family: "Noto Naskh Arabic", "Plus Jakarta Sans", system-ui, -apple-system, sans-serif;
   font-size: clamp(0.875rem, 0.84rem + 0.18vw, 0.94rem);
   line-height: 1.6;
   font-weight: 400;
-  color: #0f172a;
-  background-color: #fafaf9;
+  color: #1E293B;
+  background-color: #FAF8F5;
   overflow-x: hidden;
   position: relative;
 }
@@ -539,22 +540,22 @@ button,
   line-height: 1.85;
 }
 
-/* Urdu Headings in majestic Nastaliq (Gulzar) */
-.font-urdu-heading,
-.font-nastaliq,
-.font-gulzar,
+/* Clean Naskh Headings & Titles for High Legibility (No diagonal stepping) */
 .urdu-title,
+.font-urdu-heading,
 [dir="rtl"] h1, [dir="rtl"] h2, [dir="rtl"] h3,
 html[lang="ur"] h1, html[lang="ur"] h2, html[lang="ur"] h3,
 body.lang-ur h1, body.lang-ur h2, body.lang-ur h3 {
-  font-family: 'Gulzar', 'Noto Nastaliq Urdu', 'Mehr Nastaliq Web', serif !important;
-  line-height: 2.1 !important;
-  letter-spacing: normal !important;
+  font-family: 'Noto Naskh Arabic', 'Plus Jakarta Sans', system-ui, sans-serif;
+  line-height: 1.5;
+  letter-spacing: normal;
 }
 
-/* Explicit Urdu Nastaliq utility */
+/* Explicit Urdu Nastaliq utility when specifically called */
 .font-urdu,
-.font-mehr {
+.font-mehr,
+.font-nastaliq,
+.font-gulzar {
   font-family: 'Gulzar', 'Noto Nastaliq Urdu', 'Mehr Nastaliq Web', serif;
   line-height: 2.1;
   font-feature-settings: "kern" 1, "liga" 1;
@@ -569,11 +570,6 @@ body.lang-ur h1, body.lang-ur h2, body.lang-ur h3 {
 [dir="rtl"] input,
 [dir="rtl"] textarea {
   font-family: 'Noto Naskh Arabic', system-ui, -apple-system, sans-serif;
-}
-
-/* Headings in Urdu need extra line height to prevent diacritics clipping */
-html[lang="ur"] h1, html[lang="ur"] h2, html[lang="ur"] h3 {
-  line-height: 2.2 !important;
 }
 
 /* Arabic Quran and Hadith Typography */
@@ -688,4 +684,14 @@ html[lang="ar"] body,
   flex: 1;
   height: 1px;
   background: linear-gradient(90deg, transparent, var(--border-gold), transparent);
+}
+
+/* ============================================================
+   ISLAMIC GEOMETRIC LATTICE PATTERN
+   ============================================================ */
+.islamic-lattice-bg {
+  background-color: #FAF8F5;
+  background-image: radial-gradient(#C5A059 0.75px, transparent 0.75px), radial-gradient(#0F3D2E 0.5px, #FAF8F5 0.5px);
+  background-size: 30px 30px;
+  background-position: 0 0, 15px 15px;
 }

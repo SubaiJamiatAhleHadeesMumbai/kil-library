@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { 
   ArrowLeft, BookText, FileText, LayoutGrid, 
   Maximize2, Minimize2, Search, X, ChevronUp, ChevronDown,
-  ChevronLeft, ChevronRight 
+  ChevronLeft, ChevronRight, Sun, Moon, Bookmark
 } from 'lucide-react';
 import Toolbar from './Toolbar';
 import PdfViewer from './PdfViewer';
@@ -47,6 +47,18 @@ const SmartReader = ({
   const [searchText, setSearchText] = useState(initialSearchText);
   const [totalPages, setTotalPages] = useState(1);
   const [scale, setScale] = useState(1.0);
+  const [readerTheme, setReaderTheme] = useState(() => localStorage.getItem('kil_reader_theme') || 'sepia');
+
+  const handleZoomIn = () => setScale(s => Math.min(2.5, Number((s + 0.15).toFixed(2))));
+  const handleZoomOut = () => setScale(s => Math.max(0.7, Number((s - 0.15).toFixed(2))));
+
+  const toggleReaderTheme = () => {
+    setReaderTheme(prev => {
+      const next = prev === 'sepia' ? 'night' : prev === 'night' ? 'ivory' : 'sepia';
+      localStorage.setItem('kil_reader_theme', next);
+      return next;
+    });
+  };
   
   // Search States
   const [globalMatches, setGlobalMatches] = useState([]);
@@ -535,13 +547,13 @@ const SmartReader = ({
         </button>
       )}
 
-      {/* 2. UNIFIED SLIM HEADER BAR (Hidden in Focus Mode for 100% full screen) */}
+      {/* 2. SULTANI EMERALD & GOLD HEADER BAR (IMAGE 2 MATCH) */}
       {!isFocusMode && (
-        <div className="flex flex-col shrink-0 border-b border-slate-200 bg-white shadow-2xs z-30">
+        <div className="flex flex-col shrink-0 border-b border-[#C5A059]/30 bg-[#0F3D2E] text-white shadow-md z-30">
           <div className="flex items-center justify-between gap-1.5 sm:gap-3 px-2 py-1.5 sm:px-4 sm:py-2">
             
-            {/* Left: Back + Book Title & Page */}
-            <div className="flex min-w-0 items-center gap-1.5 sm:gap-2">
+            {/* Left: Close / Back Button */}
+            <div className="flex items-center gap-1.5 shrink-0">
               <button
                 type="button"
                 onClick={() => {
@@ -551,19 +563,46 @@ const SmartReader = ({
                   }
                   onClose?.();
                 }}
-                className="inline-flex items-center gap-1 sm:gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 sm:px-3 sm:py-1.5 text-xs font-bold text-slate-700 transition hover:bg-slate-100 cursor-pointer shrink-0"
-                title="Back to search / library"
+                className="inline-flex items-center gap-1 p-1.5 sm:px-3 sm:py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-[#C5A059] hover:text-white transition cursor-pointer text-xs font-bold border border-white/10"
+                title="Back to library / search"
               >
-                <ArrowLeft size={13} />
-                <span className="hidden sm:inline">Back</span>
+                <X size={16} />
+                <span className="hidden sm:inline">واپس</span>
               </button>
+            </div>
 
-              <div className="min-w-0 flex flex-col max-w-[140px] sm:max-w-xs md:max-w-md">
-                <span className="truncate text-xs sm:text-sm font-bold text-slate-900 leading-tight">{bookTitle}</span>
-                {isHeaderJumpOpen ? (
-                  <form
-                    onSubmit={(e) => {
-                      e.preventDefault();
+            {/* Center: Book Title & Page Jumper */}
+            <div className="min-w-0 flex-1 text-center max-w-xs sm:max-w-md mx-2">
+              <h2
+                className="truncate text-xs sm:text-sm md:text-base font-bold text-white leading-tight"
+                style={{ fontFamily: "'Noto Naskh Arabic', sans-serif" }}
+              >
+                {bookTitle}
+              </h2>
+              {isHeaderJumpOpen ? (
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    const p = parseInt(headerJumpInput, 10);
+                    if (!isNaN(p) && p >= 1 && p <= displayTotalPages) {
+                      setIsLandingLocked(false);
+                      setCurrentPage(p);
+                    }
+                    setIsHeaderJumpOpen(false);
+                  }}
+                  className="flex items-center justify-center gap-1 mt-0.5"
+                >
+                  <span className="text-[10px] text-emerald-200 font-medium">صفحہ:</span>
+                  <input
+                    type="number"
+                    min={1}
+                    max={displayTotalPages}
+                    value={headerJumpInput}
+                    onChange={(e) => setHeaderJumpInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Escape") setIsHeaderJumpOpen(false);
+                    }}
+                    onBlur={() => {
                       const p = parseInt(headerJumpInput, 10);
                       if (!isNaN(p) && p >= 1 && p <= displayTotalPages) {
                         setIsLandingLocked(false);
@@ -571,117 +610,115 @@ const SmartReader = ({
                       }
                       setIsHeaderJumpOpen(false);
                     }}
-                    className="flex items-center gap-1 mt-0.5"
-                  >
-                    <span className="text-[10px] text-slate-500 font-medium">Page:</span>
-                    <input
-                      type="number"
-                      min={1}
-                      max={displayTotalPages}
-                      value={headerJumpInput}
-                      onChange={(e) => setHeaderJumpInput(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Escape') setIsHeaderJumpOpen(false);
-                      }}
-                      onBlur={() => {
-                        const p = parseInt(headerJumpInput, 10);
-                        if (!isNaN(p) && p >= 1 && p <= displayTotalPages) {
-                          setIsLandingLocked(false);
-                          setCurrentPage(p);
-                        }
-                        setIsHeaderJumpOpen(false);
-                      }}
-                      autoFocus
-                      className="w-12 px-1 py-0 bg-amber-50 text-emerald-950 font-mono text-[11px] font-bold rounded border border-emerald-400 text-center outline-none shadow-xs"
-                      title="Type page number & press Enter"
-                    />
-                    <span className="text-[10px] text-slate-400 font-mono">/ {displayTotalPages}</span>
-                  </form>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setHeaderJumpInput(String(currentPage));
-                      setIsHeaderJumpOpen(true);
-                    }}
-                    className="truncate text-[10.5px] font-mono text-slate-500 hover:text-emerald-700 text-left cursor-pointer flex items-center gap-1 group/jump transition"
-                    title="Click to jump to any page number"
-                  >
-                    <span>Page <strong className="text-emerald-800 font-bold group-hover/jump:underline">{currentPage}</strong> of {displayTotalPages}</span>
-                    <span className="text-[9px] bg-emerald-50 text-emerald-700 border border-emerald-200/80 px-1 py-0.2 rounded font-sans font-semibold">Jump</span>
-                  </button>
-                )}
-              </div>
+                    autoFocus
+                    className="w-12 px-1 py-0 bg-white text-[#0F3D2E] font-mono text-[11px] font-bold rounded border border-[#C5A059] text-center outline-none shadow-xs"
+                    title="Type page number & press Enter"
+                  />
+                  <span className="text-[10px] text-emerald-200 font-mono">/ {displayTotalPages}</span>
+                </form>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setHeaderJumpInput(String(currentPage));
+                    setIsHeaderJumpOpen(true);
+                  }}
+                  className="inline-flex items-center gap-1 text-[10px] sm:text-[11px] font-mono text-[#C5A059] hover:text-white cursor-pointer transition mx-auto"
+                  title="Click to jump to any page number"
+                >
+                  <span>صفحہ <strong>{currentPage}</strong> از {displayTotalPages}</span>
+                  <span className="text-[9px] bg-white/10 text-emerald-200 border border-white/20 px-1 py-0.2 rounded font-sans">تبدیل</span>
+                </button>
+              )}
             </div>
 
-            {/* Right: Actions (Search, Font Size, Focus, Mode Switcher) */}
+            {/* Right: Actions (Zoom, Font Size, Theme, Search, Mode) */}
             <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
               
+              {/* Zoom Controls (- 100% +) (Matches Image 2) */}
+              <div className="hidden xs:flex items-center rounded-xl bg-[#082218] border border-[#C5A059]/30 px-1 py-0.5 text-xs text-[#C5A059]">
+                <button
+                  type="button"
+                  onClick={handleZoomOut}
+                  className="px-1.5 py-0.5 hover:text-white transition cursor-pointer font-bold"
+                  title="Zoom Out"
+                >
+                  −
+                </button>
+                <span className="px-1 text-[10.5px] font-mono font-bold text-white">
+                  {Math.round(scale * 100)}%
+                </span>
+                <button
+                  type="button"
+                  onClick={handleZoomIn}
+                  className="px-1.5 py-0.5 hover:text-white transition cursor-pointer font-bold"
+                  title="Zoom In"
+                >
+                  +
+                </button>
+              </div>
+
+              {/* Font Size Toggle Aa (Matches Image 2) */}
+              <button
+                type="button"
+                onClick={() => setTextFontSize((s) => (s >= 1.6 ? 1.0 : Number((s + 0.15).toFixed(2))))}
+                className="px-2 py-1 rounded-xl bg-[#082218] border border-[#C5A059]/30 text-white font-serif text-xs font-bold hover:border-[#C5A059] transition cursor-pointer"
+                title="Font Size (Aa)"
+              >
+                Aa
+              </button>
+
+              {/* Theme Toggle (Moon / Sun / Book) (Matches Image 2) */}
+              <button
+                type="button"
+                onClick={toggleReaderTheme}
+                className="p-1.5 rounded-xl bg-[#082218] border border-[#C5A059]/30 text-[#C5A059] hover:text-white hover:border-[#C5A059] transition cursor-pointer"
+                title={`Theme: ${readerTheme}`}
+              >
+                {readerTheme === "night" ? <Sun size={14} /> : readerTheme === "sepia" ? <Moon size={14} /> : <BookText size={14} />}
+              </button>
+
               {/* Search Toggle Button */}
               <button
                 type="button"
                 onClick={() => setIsSearchOpen((prev) => !prev)}
-                className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 sm:px-3 sm:py-1.5 text-xs font-bold transition cursor-pointer ${
+                className={`inline-flex items-center gap-1 rounded-xl px-2.5 py-1 text-xs font-bold transition cursor-pointer ${
                   isSearchOpen || globalMatches.length > 0
-                    ? 'bg-emerald-600 text-white shadow-xs'
-                    : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                    ? "bg-[#C5A059] text-[#0F3D2E] shadow-xs"
+                    : "bg-[#082218] text-[#C5A059] border border-[#C5A059]/30 hover:text-white hover:border-[#C5A059]"
                 }`}
                 title="Search inside book"
               >
                 <Search size={13} />
-                <span className="hidden md:inline">Search</span>
+                <span className="hidden md:inline">تلاش</span>
                 {globalMatches.length > 0 && (
-                  <span className="bg-white/20 text-white rounded-full px-1.5 py-0.2 text-[10px] font-mono">
+                  <span className="bg-white/20 text-[#0F3D2E] rounded-full px-1.5 py-0.2 text-[10px] font-mono">
                     {currentMatchIndex + 1}/{globalMatches.length}
                   </span>
                 )}
               </button>
 
-              {/* Font Size A- / A+ (Visible in Text or Split Mode) */}
-              {(layoutMode === 'text' || layoutMode === 'split') && (
-                <div className="hidden sm:flex items-center rounded-full border border-slate-200 bg-slate-50 p-0.5 text-xs font-bold text-slate-700">
-                  <button
-                    type="button"
-                    onClick={() => setTextFontSize((s) => Math.max(0.9, Number((s - 0.1).toFixed(2))))}
-                    className="px-2 py-0.5 hover:bg-slate-200 rounded-full transition cursor-pointer"
-                    title="Smaller text"
-                  >
-                    A−
-                  </button>
-                  <span className="text-[10px] text-slate-400 px-1 font-mono">{Math.round((textFontSize / 1.15) * 100)}%</span>
-                  <button
-                    type="button"
-                    onClick={() => setTextFontSize((s) => Math.min(1.8, Number((s + 0.1).toFixed(2))))}
-                    className="px-2 py-0.5 hover:bg-slate-200 rounded-full transition cursor-pointer"
-                    title="Larger text"
-                  >
-                    A+
-                  </button>
-                </div>
-              )}
-
-              {/* Zen Focus Mode Button (1-Click Fullscreen) */}
+              {/* Zen Focus Mode Button */}
               <button
                 type="button"
                 onClick={() => setIsFocusMode(true)}
-                className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 sm:px-3 sm:py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-100 transition cursor-pointer"
-                title="Zen Focus Mode — Hide headers for maximum reading space (F)"
+                className="inline-flex items-center gap-1 rounded-xl border border-[#C5A059]/30 bg-[#082218] p-1.5 sm:px-2.5 sm:py-1 text-xs font-bold text-[#C5A059] hover:text-white transition cursor-pointer"
+                title="Zen Focus Mode (F)"
               >
                 <Maximize2 size={13} />
-                <span className="hidden lg:inline">Focus</span>
               </button>
 
               {/* Layout Mode Switcher */}
-              <div className="flex items-center gap-0.5 rounded-full border border-slate-200 bg-slate-50 p-0.5 shadow-2xs">
+              <div className="flex items-center gap-0.5 rounded-xl border border-[#C5A059]/30 bg-[#082218] p-0.5 shadow-2xs">
                 {pdfUrl && (
                   <button
                     type="button"
-                    onClick={() => setLayoutMode('pdf')}
-                    aria-pressed={layoutMode === 'pdf'}
-                    className={`px-2 sm:px-2.5 py-1 rounded-full text-xs font-bold transition cursor-pointer ${
-                      layoutMode === 'pdf' ? 'bg-[#002147] text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                    onClick={() => setLayoutMode("pdf")}
+                    aria-pressed={layoutMode === "pdf"}
+                    className={`px-2 py-0.5 rounded-lg text-xs font-bold transition cursor-pointer ${
+                      layoutMode === "pdf" ? "bg-[#C5A059] text-[#0F3D2E] shadow-xs" : "text-emerald-200/80 hover:text-white"
                     }`}
-                    title="PDF Full Width"
+                    title="PDF Mode"
                   >
                     PDF
                   </button>
@@ -689,27 +726,14 @@ const SmartReader = ({
                 {(txtUrl || directTxtUrl) && (
                   <button
                     type="button"
-                    onClick={() => setLayoutMode('text')}
-                    aria-pressed={layoutMode === 'text'}
-                    className={`px-2 sm:px-2.5 py-1 rounded-full text-xs font-bold transition cursor-pointer ${
-                      layoutMode === 'text' ? 'bg-[#002147] text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                    onClick={() => setLayoutMode("text")}
+                    aria-pressed={layoutMode === "text"}
+                    className={`px-2 py-0.5 rounded-lg text-xs font-bold transition cursor-pointer ${
+                      layoutMode === "text" ? "bg-[#C5A059] text-[#0F3D2E] shadow-xs" : "text-emerald-200/80 hover:text-white"
                     }`}
-                    title="Text Full Width"
+                    title="Text Mode"
                   >
                     TXT
-                  </button>
-                )}
-                {pdfUrl && (txtUrl || directTxtUrl) && (
-                  <button
-                    type="button"
-                    onClick={() => setLayoutMode('split')}
-                    aria-pressed={layoutMode === 'split'}
-                    className={`px-2 sm:px-2.5 py-1 rounded-full text-xs font-bold transition cursor-pointer ${
-                      layoutMode === 'split' ? 'bg-[#002147] text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
-                    }`}
-                    title="Side by Side (Both)"
-                  >
-                    Both
                   </button>
                 )}
               </div>
@@ -822,31 +846,27 @@ const SmartReader = ({
           textFontSize={textFontSize}
         />
 
-        {/* Floating Side Navigation for Text Mode (< and >) */}
-        {layoutMode === 'text' && (
-          <>
-            <button
-              type="button"
-              onClick={() => handleAutoPageChange(Math.max(1, currentPage - 1))}
-              disabled={currentPage <= 1}
-              aria-label="Previous Page"
-              className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 z-40 w-10 h-10 sm:w-12 sm:h-12 bg-white/95 hover:bg-emerald-50 text-slate-800 hover:text-emerald-700 shadow-xl rounded-full disabled:opacity-20 disabled:pointer-events-none transition-all duration-200 border border-slate-200/90 active:scale-90 flex items-center justify-center cursor-pointer group"
-              title="Previous Page (<)"
-            >
-              <ChevronLeft size={22} className="group-hover:-translate-x-0.5 transition-transform stroke-[2.5]" />
-            </button>
-            <button
-              type="button"
-              onClick={() => handleAutoPageChange(Math.min(displayTotalPages, currentPage + 1))}
-              disabled={currentPage >= displayTotalPages}
-              aria-label="Next Page"
-              className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 z-40 w-10 h-10 sm:w-12 sm:h-12 bg-white/95 hover:bg-emerald-50 text-slate-800 hover:text-emerald-700 shadow-xl rounded-full disabled:opacity-20 disabled:pointer-events-none transition-all duration-200 border border-slate-200/90 active:scale-90 flex items-center justify-center cursor-pointer group"
-              title="Next Page (>)"
-            >
-              <ChevronRight size={22} className="group-hover:translate-x-0.5 transition-transform stroke-[2.5]" />
-            </button>
-          </>
-        )}
+        {/* Floating Side Navigation (< and >) — Universal (Image 2 Match) */}
+        <button
+          type="button"
+          onClick={() => handleAutoPageChange(Math.max(1, currentPage - 1))}
+          disabled={currentPage <= 1}
+          aria-label="Previous Page"
+          className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 z-40 w-10 h-10 sm:w-12 sm:h-12 bg-white/95 hover:bg-emerald-50 text-[#0F3D2E] shadow-xl rounded-full disabled:opacity-20 disabled:pointer-events-none transition-all duration-200 border border-[#E6E2DD] active:scale-90 flex items-center justify-center cursor-pointer group"
+          title="Previous Page (<)"
+        >
+          <ChevronLeft size={22} className="group-hover:-translate-x-0.5 transition-transform stroke-[2.5]" />
+        </button>
+        <button
+          type="button"
+          onClick={() => handleAutoPageChange(Math.min(displayTotalPages, currentPage + 1))}
+          disabled={currentPage >= displayTotalPages}
+          aria-label="Next Page"
+          className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 z-40 w-10 h-10 sm:w-12 sm:h-12 bg-white/95 hover:bg-emerald-50 text-[#0F3D2E] shadow-xl rounded-full disabled:opacity-20 disabled:pointer-events-none transition-all duration-200 border border-[#E6E2DD] active:scale-90 flex items-center justify-center cursor-pointer group"
+          title="Next Page (>)"
+        >
+          <ChevronRight size={22} className="group-hover:translate-x-0.5 transition-transform stroke-[2.5]" />
+        </button>
       </div>
     </div>
   );

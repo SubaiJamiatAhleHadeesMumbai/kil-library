@@ -67,11 +67,11 @@ const NavItem = ({ to, label, icon: Icon, onClick }) => {
       to={to}
       onClick={onClick}
       className={({ isActive }) => `
-        relative flex items-center gap-2 px-3 py-2 text-sm font-bold transition-all duration-300
+        relative flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs sm:text-sm font-bold transition-all duration-200
         ${
           isActive
-            ? "text-emerald-900 font-extrabold"
-            : "text-slate-600 hover:text-emerald-800"
+            ? "text-[#F3E5C8] font-extrabold bg-white/10"
+            : "text-slate-200 hover:text-white hover:bg-white/5"
         }
       `}
     >
@@ -80,7 +80,7 @@ const NavItem = ({ to, label, icon: Icon, onClick }) => {
           {Icon && (
             <Icon
               className={`h-4 w-4 transition-colors ${
-                isActive ? "text-emerald-700" : "text-slate-400 group-hover:text-emerald-700"
+                isActive ? "text-[#C5A059]" : "text-slate-300 group-hover:text-[#C5A059]"
               }`}
             />
           )}
@@ -88,7 +88,7 @@ const NavItem = ({ to, label, icon: Icon, onClick }) => {
             style={isUrdu ? { 
               fontFamily: "'Noto Naskh Arabic', system-ui, sans-serif", 
               fontSize: "0.95rem", 
-              lineHeight: 1.6 
+              lineHeight: 1.5 
             } : undefined}
           >
             {displayLabel}
@@ -96,7 +96,7 @@ const NavItem = ({ to, label, icon: Icon, onClick }) => {
           {isActive && (
             <motion.div
               layoutId="active-nav-underline"
-              className="absolute bottom-0 inset-x-2 h-[2.5px] bg-gradient-to-r from-emerald-600 via-emerald-800 to-emerald-600 rounded-full shadow-xs"
+              className="absolute bottom-0 inset-x-2 h-[2.5px] bg-[#C5A059] rounded-full shadow-xs"
               transition={{ type: "spring", stiffness: 300, damping: 30 }}
             />
           )}
@@ -288,10 +288,13 @@ const UserNavbar = () => {
   const donateButtonText = (() => {
     const d = navbarConfig.donate_text;
     if (d && typeof d === "object") {
-      return d[language] || d.en || d.ur || d.ar || t("donate_btn") || "Donate";
+      const val = d[language] || d.en || d.ur || d.ar;
+      if (val && val !== "donate_btn") return val;
     }
-    if (typeof d === "string" && d.trim()) return d.trim();
-    return t("donate_btn") || "Donate";
+    if (typeof d === "string" && d.trim() && d.trim() !== "donate_btn") return d.trim();
+    const trans = t("donate_btn");
+    if (trans && trans !== "donate_btn") return trans;
+    return language === 'ur' ? 'تعاون فرمائیں' : (language === 'ar' ? 'تبرع الآن' : 'Donate');
   })();
   const logoSizePx = Number(navbarConfig.logo_size) || 42;
 
@@ -343,24 +346,25 @@ const UserNavbar = () => {
         <TopAnnouncementBar config={announcementConfig} />
 
         {/* MAIN NAVBAR */}
-        <nav className="bg-white/95 backdrop-blur-xl border-b border-slate-200/90 shadow-2xs transition-all duration-300 text-slate-800">
+        {/* MAIN NAVBAR */}
+        <nav className="bg-[#0F3D2E] border-b border-[#C5A059]/20 shadow-md transition-all duration-300 text-white">
           <div className="app-shell-container">
             <div className="flex items-center justify-between min-h-[4.25rem] py-2 gap-2">
               
               {/* LOGO & BRAND (100% Matching Footer Identity) */}
               <div className="flex items-center min-w-0 flex-1 lg:flex-none">
                 <Link to="/" className="flex items-center gap-2.5 sm:gap-3 group min-w-0 flex-1 lg:flex-none" onClick={() => setIsMobileMenuOpen(false)}>
-                  <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-gradient-to-tr from-emerald-800 to-emerald-950 text-white flex items-center justify-center font-bold text-xl shadow-xs border border-emerald-700 shrink-0 group-hover:scale-105 transition-transform duration-300">
-                    📚
+                  <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-[#0A2A20] text-[#C5A059] flex items-center justify-center font-bold text-xl shadow-xs border border-[#C5A059]/40 shrink-0 group-hover:scale-105 transition-transform duration-300">
+                    📖
                   </div>
                   <div className="flex flex-col justify-center min-w-0 flex-1 py-0.5 overflow-visible">
                     <span
                       style={{ 
-                        fontSize: "clamp(0.85rem, 3.4vw, 1.25rem)",
-                        fontFamily: "'Noto Nastaliq Urdu', 'Noto Naskh Arabic', serif",
-                        lineHeight: 1.9,
+                        fontSize: "clamp(0.95rem, 3.4vw, 1.3rem)",
+                        fontFamily: "'Noto Naskh Arabic', 'Plus Jakarta Sans', system-ui, sans-serif",
+                        lineHeight: 1.3,
                       }}
-                      className="font-extrabold text-slate-900 line-clamp-1 break-words overflow-visible notranslate"
+                      className="font-extrabold text-[#F3E5C8] line-clamp-1 break-words overflow-visible notranslate"
                       translate="no"
                       title="کوکن اسلامک لائبریری"
                     >
@@ -370,7 +374,7 @@ const UserNavbar = () => {
                       style={{
                         fontFamily: "'Noto Naskh Arabic', sans-serif"
                       }}
-                      className="text-[10px] sm:text-[11px] text-emerald-800 font-bold tracking-normal line-clamp-1 break-words notranslate"
+                      className="text-[10px] sm:text-[11px] text-[#C5A059] font-bold tracking-normal line-clamp-1 break-words notranslate"
                       translate="no"
                     >
                       مرکز اہل حدیث کوکن کا علمی شعبہ
@@ -399,22 +403,22 @@ const UserNavbar = () => {
                   <button
                     type="button"
                     onClick={() => setIsAboutDropdownOpen((prev) => !prev)}
-                    className={`relative flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-bold transition-all duration-200 cursor-pointer ${
+                    className={`relative flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs sm:text-sm font-bold transition-all duration-200 cursor-pointer ${
                       isAboutDropdownOpen ||
                       location.pathname === '/about' ||
                       location.pathname === '/calendar' ||
                       location.pathname === '/moon' ||
                       location.pathname === '/juma-list'
-                        ? "text-emerald-900 font-extrabold"
-                        : "text-slate-600 hover:text-emerald-800"
+                        ? "text-[#F3E5C8] bg-white/10 font-extrabold"
+                        : "text-slate-200 hover:text-white hover:bg-white/5"
                     }`}
                     aria-expanded={isAboutDropdownOpen}
                   >
-                    <InformationCircleIcon className={`h-4 w-4 transition-colors ${isAboutDropdownOpen ? "text-emerald-700" : "text-slate-400"}`} />
+                    <InformationCircleIcon className={`h-4 w-4 transition-colors ${isAboutDropdownOpen ? "text-[#C5A059]" : "text-slate-300"}`} />
                     <span>{t("about") || "About"}</span>
                     <ChevronDownIcon
-                      className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 ${
-                        isAboutDropdownOpen ? "rotate-180 text-emerald-700" : ""
+                      className={`w-3.5 h-3.5 text-slate-300 transition-transform duration-200 ${
+                        isAboutDropdownOpen ? "rotate-180 text-[#C5A059]" : ""
                       }`}
                     />
                   </button>
@@ -562,18 +566,18 @@ const UserNavbar = () => {
                     <button
                       type="button"
                       onClick={() => setIsSocialDropdownOpen((prev) => !prev)}
-                      className={`relative flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-bold transition-all duration-200 cursor-pointer ${
+                      className={`relative flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs sm:text-sm font-bold transition-all duration-200 cursor-pointer ${
                         isSocialDropdownOpen
-                          ? "text-emerald-900 font-extrabold"
-                          : "text-slate-600 hover:text-emerald-800"
+                          ? "text-[#F3E5C8] bg-white/10 font-extrabold"
+                          : "text-slate-200 hover:text-white hover:bg-white/5"
                       }`}
                       aria-expanded={isSocialDropdownOpen}
                     >
-                      <Squares2X2Icon className={`h-4 w-4 transition-colors ${isSocialDropdownOpen ? "text-emerald-700" : "text-slate-400"}`} />
+                      <Squares2X2Icon className={`h-4 w-4 transition-colors ${isSocialDropdownOpen ? "text-[#C5A059]" : "text-slate-300"}`} />
                       <span>{t("more") || "More"}</span>
                       <ChevronDownIcon
-                        className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 ${
-                          isSocialDropdownOpen ? "rotate-180 text-emerald-700" : ""
+                        className={`w-3.5 h-3.5 text-slate-300 transition-transform duration-200 ${
+                          isSocialDropdownOpen ? "rotate-180 text-[#C5A059]" : ""
                         }`}
                       />
                     </button>
@@ -703,30 +707,30 @@ const UserNavbar = () => {
                   <button
                     type="button"
                     onClick={() => setIsUniversalSearchOpen(true)}
-                    className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-50 hover:bg-slate-100 text-slate-700 hover:text-slate-900 border border-slate-300 hover:border-emerald-600 text-xs transition-all duration-200 shadow-2xs cursor-pointer group"
+                    className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 hover:bg-white/20 text-[#F3E5C8] hover:text-white border border-[#C5A059]/40 text-xs transition-all duration-200 shadow-2xs cursor-pointer group"
                     title={language === 'ur' ? "کتاب، مصنف یا موضوع تلاش فرمائیں... (Ctrl+K)" : "Search (Ctrl+K)"}
                   >
-                    <MagnifyingGlassIcon className="w-4 h-4 text-emerald-800 group-hover:scale-110 transition-transform" />
-                    <span className="text-xs text-slate-700 font-semibold font-sans">
+                    <MagnifyingGlassIcon className="w-4 h-4 text-[#C5A059] group-hover:scale-110 transition-transform" />
+                    <span className="text-xs text-[#F3E5C8] font-semibold font-sans">
                       {language === 'ur' ? 'تلاش کریں...' : 'Search...'}
                     </span>
-                    <kbd className="hidden xl:inline-flex items-center px-1.5 py-0.5 text-[9px] font-bold text-slate-400 bg-white border border-slate-200 rounded">
+                    <kbd className="hidden xl:inline-flex items-center px-1.5 py-0.5 text-[9px] font-bold text-slate-300 bg-white/10 border border-white/20 rounded">
                       ⌘K
                     </kbd>
                   </button>
                 )}
 
-                {/* Donate Button */}
+                {/* Gold Donate Button */}
                 {showDonateButton && (
                   <button
                     onClick={() => setIsDonationOpen(true)}
-                    className="group flex items-center gap-1.5 px-3.5 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-900 rounded-full transition-all duration-300 border border-emerald-200/90 shadow-2xs cursor-pointer"
+                    className="group flex items-center gap-1.5 px-3.5 sm:px-4 py-2 bg-[#C5A059] hover:bg-[#b08d47] text-[#0F3D2E] rounded-xl transition-all duration-300 shadow-sm cursor-pointer active:scale-95 font-black text-xs"
                     title={donateButtonText}
                   >
-                    <HandCoinIcon className="w-4 h-4 text-emerald-700 group-hover:scale-110 transition-transform" />
+                    <HandCoinIcon className="w-4 h-4 text-[#0F3D2E] group-hover:scale-110 transition-transform" />
                     <span 
-                      className="text-[11px] font-bold text-emerald-900"
-                      style={language === 'ur' ? { fontFamily: "'Gulzar', 'Noto Nastaliq Urdu', serif", fontSize: "0.95rem", lineHeight: 1.4 } : undefined}
+                      className="text-xs font-black text-[#0F3D2E]"
+                      style={language === 'ur' ? { fontFamily: "'Noto Naskh Arabic', sans-serif", fontSize: "0.85rem" } : undefined}
                     >
                       {donateButtonText}
                     </span>
@@ -734,7 +738,7 @@ const UserNavbar = () => {
                 )}
 
                 {/* VISUALLY UNIFIED ACCOUNT & CONTROLS CLUSTER */}
-                <div className="flex items-center gap-1.5 p-1 rounded-full bg-slate-50 border border-slate-200 shadow-2xs">
+                <div className="flex items-center gap-1.5 p-1 rounded-full bg-white/10 border border-white/15 shadow-2xs">
                   {/* Language Switcher */}
                   {showLanguageSwitcher && <LanguageSwitcher />}
 
@@ -747,13 +751,13 @@ const UserNavbar = () => {
                       <div ref={profileRef} className="relative">
                         <button
                           onClick={() => setIsProfileOpen((p) => !p)}
-                          className="flex items-center gap-1 p-0.5 rounded-full hover:bg-emerald-900/60 transition-all group cursor-pointer focus:outline-none"
+                          className="flex items-center gap-1 p-0.5 rounded-full hover:bg-white/10 transition-all group cursor-pointer focus:outline-none"
                           aria-expanded={isProfileOpen}
                         >
-                          <div className="h-7 w-7 rounded-full bg-gradient-to-br from-amber-500 to-amber-700 text-slate-950 flex items-center justify-center border border-amber-400/50 shadow-xs font-extrabold text-[11px]">
+                          <div className="h-7 w-7 rounded-full bg-gradient-to-br from-[#C5A059] to-amber-700 text-slate-950 flex items-center justify-center border border-[#C5A059]/50 shadow-xs font-extrabold text-[11px]">
                             {user?.username?.[0]?.toUpperCase() || "U"}
                           </div>
-                          <ChevronDownIcon className={`w-3 h-3 text-amber-200/60 transition-transform duration-200 ${isProfileOpen ? 'rotate-180 text-amber-300' : ''}`} />
+                          <ChevronDownIcon className={`w-3 h-3 text-[#C5A059] transition-transform duration-200 ${isProfileOpen ? 'rotate-180 text-amber-300' : ''}`} />
                         </button>
 
                         <AnimatePresence>
@@ -828,9 +832,9 @@ const UserNavbar = () => {
               ) : (
                 <Link
                   to="/login"
-                  className="flex items-center gap-1.5 bg-emerald-800 hover:bg-emerald-900 text-white px-3.5 py-1.5 rounded-full text-[11px] font-bold border border-emerald-700 shadow-xs transition-all duration-200 cursor-pointer"
+                  className="flex items-center gap-1.5 bg-[#C5A059] hover:bg-[#b08d47] text-[#0F3D2E] px-3.5 py-1.5 rounded-full text-[11px] font-black border border-[#C5A059]/40 shadow-xs transition-all duration-200 cursor-pointer"
                 >
-                  <ArrowLeftOnRectangleIcon className="w-3.5 h-3.5 text-emerald-100 stroke-2" />
+                  <ArrowLeftOnRectangleIcon className="w-3.5 h-3.5 text-[#0F3D2E] stroke-2" />
                   <span>{t("login")}</span>
                 </Link>
               )}
@@ -843,7 +847,7 @@ const UserNavbar = () => {
               <button
                 type="button"
                 onClick={() => setIsUniversalSearchOpen(true)}
-                className="p-1.5 sm:p-2 rounded-xl text-slate-600 hover:text-emerald-800 hover:bg-slate-100 active:bg-slate-200 transition-colors cursor-pointer"
+                className="p-1.5 sm:p-2 rounded-xl text-slate-200 hover:text-white hover:bg-white/10 active:bg-white/20 transition-colors cursor-pointer"
                 title="Universal Search"
               >
                 <MagnifyingGlassIcon className="h-5 w-5" />
@@ -852,7 +856,7 @@ const UserNavbar = () => {
               
               <button
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                className="p-1.5 sm:p-2 rounded-xl text-amber-200 hover:text-amber-300 hover:bg-emerald-900/60 active:bg-emerald-950 transition-colors cursor-pointer"
+                className="p-1.5 sm:p-2 rounded-xl text-[#C5A059] hover:text-[#dfba73] hover:bg-white/10 active:bg-white/20 transition-colors cursor-pointer"
                 aria-label="Toggle navigation menu"
               >
                 {isMobileMenuOpen ? (
@@ -863,6 +867,11 @@ const UserNavbar = () => {
               </button>
             </div>
           </div>
+        </div>
+
+        {/* Sub-strip centered text: MARKAZ AHLE HADEES KOKAN */}
+        <div className="bg-[#0A2A20] text-center py-1 border-t border-white/5 text-[10px] sm:text-[11px] text-[#C5A059] font-bold tracking-widest uppercase notranslate" translate="no">
+          مرکز اہل حدیث کوکن — Markaz Ahle Hadees Kokan
         </div>
 
         {/* ----------------------------------------------------
@@ -1132,6 +1141,7 @@ const UserNavbar = () => {
     <MobileBottomNav 
       config={mobileNavConfig} 
       onOpenSearch={() => setIsUniversalSearchOpen(true)} 
+      onOpenDonate={() => setIsDonationOpen(true)}
     />
 
     {/* FLOATING BOTTOM-RIGHT CONTINUE READING WIDGET */}
