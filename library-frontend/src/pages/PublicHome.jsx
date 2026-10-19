@@ -655,8 +655,8 @@ const PublicHome = () => {
   const orderedHomepageSections = useMemo(() => {
     const defaults = {
       hero: 0,
-      islamic_updates: 1,
-      bento_hub: 2,
+      bento_hub: 1,
+      islamic_updates: 2,
       stats_impact: 3,
       newspaper_clippings: 4,
       posters: 5,

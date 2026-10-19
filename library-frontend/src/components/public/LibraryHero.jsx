@@ -1,18 +1,16 @@
 import React, { useEffect, useState, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Swiper, SwiperSlide } from "swiper/react";
-import { Autoplay, Navigation, Pagination } from "swiper/modules";
 import {
   ChevronRightIcon,
   ChevronLeftIcon,
   MagnifyingGlassIcon,
+  XMarkIcon,
+  ShareIcon,
+  ArrowsPointingOutIcon,
+  PhotoIcon,
 } from "@heroicons/react/24/solid";
 import galleryService from "../../api/galleryService";
 import { useLanguage } from "../../context/LanguageContext";
-
-import "swiper/css";
-import "swiper/css/navigation";
-import "swiper/css/pagination";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || (import.meta.env.PROD ? "" : "http://127.0.0.1:8000");
 
@@ -24,13 +22,22 @@ const resolveImageUrl = (value) => {
   return `${API_BASE_URL}${cleanPath}`;
 };
 
+// Clean titles from raw filenames like "WhatsApp Image..."
+const cleanMediaTitle = (title, fallback = "مرکز اہل حدیث کوکن کی تصویری جھلکیاں") => {
+  if (!title || typeof title !== "string") return fallback;
+  if (title.toLowerCase().includes("whatsapp image") || title.toLowerCase().includes("img_") || title.toLowerCase().includes("dsc_")) {
+    return fallback;
+  }
+  return title.trim() || fallback;
+};
+
 const DEFAULT_SLIDES = [
   {
     id: "slide-1",
     image: "/static/images/0a33c541-b2d5-4315-aed3-04753bc5198a_download28.jpeg",
     fallback_image: "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=1600&q=80",
     badge: "📸 دعوتی و تعلیمی پروگرامز",
-    badge_color: "bg-emerald-600/90",
+    badge_color: "bg-emerald-700 text-white",
     title: "مرکز اہل حدیث کوکن: سالانہ تعلیمی و تربیتی سیمینار کی تصویری جھلکیاں",
     description: "مسجد اہل حدیث، بیت السلام کمپلیکس کھڑ میں منعقدہ عظیم الشان علمی کانفرنس جس میں علمائے کرام اور شائقینِ علم نے شرکت فرمائی۔",
     action_text: "تمام تصاویر ملاحظہ فرمائیں",
@@ -41,7 +48,7 @@ const DEFAULT_SLIDES = [
     image: "/static/images/7b6e2da0-4181-408c-b1d7-88bac463416f_books.jpeg",
     fallback_image: "https://images.unsplash.com/photo-1507842229456-83a30310705a?auto=format&fit=crop&w=1600&q=80",
     badge: "📖 کتب خانہ و ڈیجیٹل ذخیرہ",
-    badge_color: "bg-amber-600/90",
+    badge_color: "bg-amber-700 text-white",
     title: "علومِ قرآن و سنت اور سلف صالحین کی 7,800+ کتب کا جدید مطالعہ",
     description: "محققین، طلبہ اور علم کے متلاشی احباب کے لیے نادر کتب، تفاسیر اور شروحات احادیث کا آسان، مفت اور تیز ترین پلیٹ فارم۔",
     action_text: "کتب خانہ دیکھیں",
@@ -52,11 +59,22 @@ const DEFAULT_SLIDES = [
     image: "/static/images/97cd6c8e-b3a3-4ba9-9d07-5d86aabc152b.jpeg",
     fallback_image: "https://images.unsplash.com/photo-1589829085413-56de8ae18c73?auto=format&fit=crop&w=1600&q=80",
     badge: "🏛️ سرگرمیاں و خدمات",
-    badge_color: "bg-blue-600/90",
+    badge_color: "bg-teal-700 text-white",
     title: "مسجد اہل حدیث، بیت السلام کمپلیکس کھڑ کے دعوتی و فلاحی منصوبے",
     description: "منطقہ کوکن میں توحید و سنت کی اشاعت اور معاشرتی اصلاح کے لیے مرکز کے زیرِ اہتمام جاری متنوع سرگرمیاں۔",
     action_text: "تعارفِ مرکز پڑھیں",
     action_link: "/about",
+  },
+  {
+    id: "slide-4",
+    image: "/static/images/0a33c541-b2d5-4315-aed3-04753bc5198a_download28.jpeg",
+    fallback_image: "https://images.unsplash.com/photo-1519817650390-64a93db51149?auto=format&fit=crop&w=1600&q=80",
+    badge: "🎓 دورہ تدریبیہ و کورسز",
+    badge_color: "bg-blue-700 text-white",
+    title: "علمائے کرام اور ائمہ مساجد کے لیے خصوصی تربیتی نشستیں",
+    description: "دعوت و ارشاد کے میدان میں موثر خدمات کے لیے ائمہ و خطباء کی رہنمائی اور علمی کارگاہیں۔",
+    action_text: "سرگرمیاں دیکھیں",
+    action_link: "/activities",
   },
 ];
 
@@ -64,6 +82,8 @@ const LibraryHero = () => {
   const { language, isRTL } = useLanguage();
   const [galleryItems, setGalleryItems] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
+  const [activeSlideIndex, setActiveSlideIndex] = useState(0);
+  const [lightboxItem, setLightboxItem] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -73,7 +93,8 @@ const LibraryHero = () => {
       .then((data) => {
         const items = Array.isArray(data) ? data : (data?.items || []);
         if (mounted && items.length > 0) {
-          setGalleryItems(items);
+          // Strictly clamp to 6 to prevent pagination grid explosion
+          setGalleryItems(items.slice(0, 6));
         }
       })
       .catch(() => {});
@@ -84,29 +105,53 @@ const LibraryHero = () => {
 
   const slides = useMemo(() => {
     if (galleryItems && galleryItems.length > 0) {
-      return galleryItems.map((item, index) => {
-        const title = typeof item.title === "object"
+      return galleryItems.slice(0, 6).map((item, index) => {
+        const rawTitle = typeof item.title === "object"
           ? (item.title[language] || item.title.ur || item.title.en || "")
-          : (item.title || "مرکز اہل حدیث کوکن کی تصویری جھلکیاں");
-        const desc = typeof item.caption === "object"
+          : (item.title || "");
+        const rawDesc = typeof item.caption === "object"
           ? (item.caption[language] || item.caption.ur || item.caption.en || "")
-          : (item.caption || "مسجد اہل حدیث، بیت السلام کمپلیکس کھڑ میں جاری دعوتی و علمی سرگرمیاں۔");
+          : (item.caption || "");
+
+        const title = cleanMediaTitle(rawTitle, "مرکز اہل حدیث کوکن کی تصویری جھلکیاں");
+        const desc = rawDesc || "مسجد اہل حدیث، بیت السلام کمپلیکس کھڑ میں جاری دعوتی، علمی اور اصلاحی سرگرمیاں۔";
 
         return {
           id: `gallery-${item.id || index}`,
+          raw_item: item,
           image: resolveImageUrl(item.image_url),
           fallback_image: DEFAULT_SLIDES[index % DEFAULT_SLIDES.length].fallback_image,
           badge: item.album_title || "📸 تصویری گیلری",
-          badge_color: index % 2 === 0 ? "bg-emerald-600/90" : "bg-amber-600/90",
+          badge_color: index % 2 === 0 ? "bg-[#0F3D2E] text-white" : "bg-[#C5A059] text-slate-950",
           title,
           description: desc,
-          action_text: "تمام تصاویر ملاحظہ فرمائیں",
+          action_text: "نگارخانہ دیکھیں",
           action_link: "/gallery",
         };
       });
     }
     return DEFAULT_SLIDES;
   }, [galleryItems, language]);
+
+  // Ensure active index stays within bounds
+  const currentSlide = slides[activeSlideIndex] || slides[0];
+
+  // Auto-slide every 7 seconds
+  useEffect(() => {
+    if (slides.length <= 1) return;
+    const interval = setInterval(() => {
+      setActiveSlideIndex((prev) => (prev + 1) % slides.length);
+    }, 7000);
+    return () => clearInterval(interval);
+  }, [slides.length]);
+
+  const handleNextSlide = () => {
+    setActiveSlideIndex((prev) => (prev + 1) % slides.length);
+  };
+
+  const handlePrevSlide = () => {
+    setActiveSlideIndex((prev) => (prev - 1 + slides.length) % slides.length);
+  };
 
   const handleSearchSubmit = (e) => {
     e.preventDefault();
@@ -119,10 +164,10 @@ const LibraryHero = () => {
 
   return (
     <div className="w-full space-y-6">
-      {/* ================= HERO TOP ROW: SEARCH & HADITH CARD (STACK ON MOBILE) ================= */}
+      {/* ================= HERO TOP ROW: SEARCH & HADITH CARD ================= */}
       <div className="relative flex flex-col lg:grid lg:grid-cols-12 gap-6 items-center">
         
-        {/* LEFT COLUMN: TITLE + SEARCH BAR + QUICK ACTION PILLS (7 cols on desktop, 100% on mobile) */}
+        {/* LEFT COLUMN: TITLE + SEARCH BAR + QUICK ACTION PILLS */}
         <div className="w-full lg:col-span-7 space-y-4 text-start" dir="rtl">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-[#0F3D2E] text-xs font-bold shadow-2xs">
             <span>✨</span>
@@ -186,7 +231,7 @@ const LibraryHero = () => {
           </form>
         </div>
 
-        {/* RIGHT COLUMN: HADITH OF THE DAY CARD (5 cols on desktop, 100% stacked below on mobile) */}
+        {/* RIGHT COLUMN: HADITH OF THE DAY CARD */}
         <div className="w-full lg:col-span-5" dir="rtl">
           <div className="w-full rounded-3xl border-2 border-[#C5A059] bg-[#FDFBF7] p-5 sm:p-6 shadow-sm hover:shadow-md transition-all relative overflow-hidden">
             
@@ -242,97 +287,149 @@ const LibraryHero = () => {
 
       </div>
 
-      {/* ================= PREMIER MAJESTIC IMAGE SLIDER ================= */}
-      <div className="relative rounded-3xl overflow-hidden shadow-md border border-[#E6E2DD] bg-[#0F3D2E] aspect-[16/9] sm:aspect-[21/9] max-h-[460px]">
-        <Swiper
-          modules={[Autoplay, Navigation, Pagination]}
-          autoplay={{
-            delay: 4500,
-            disableOnInteraction: false,
-            pauseOnMouseEnter: true,
-          }}
-          speed={800}
-          loop={slides.length > 1}
-          pagination={{
-            clickable: true,
-            bulletClass: "swiper-pagination-bullet !bg-white !opacity-60",
-            bulletActiveClass: "swiper-pagination-bullet-active !opacity-100 !w-7 !rounded-full !bg-[#C5A059]",
-          }}
-          navigation={{
-            nextEl: ".hero-slider-next",
-            prevEl: ".hero-slider-prev",
-          }}
-          className="w-full h-full"
-        >
-          {slides.map((slide) => (
-            <SwiperSlide key={slide.id} className="relative w-full h-full">
-              <img
-                src={slide.image}
-                alt={slide.title}
-                className="w-full h-full object-cover"
-                onError={(e) => {
-                  e.currentTarget.onerror = null;
-                  e.currentTarget.src = slide.fallback_image;
-                }}
-              />
+      {/* ================= IMAGE 2 GALLERY SHOWCASE (NO DOTS, CLEAN SHOWCASE + 4 THUMBNAILS) ================= */}
+      <div className="relative rounded-3xl bg-white border border-[#E6E2DD] shadow-sm p-3 sm:p-4" dir="rtl">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 sm:gap-4 items-stretch">
+          
+          {/* MAIN FEATURED SLIDE (8 Cols Desktop / 100% Mobile) */}
+          <div className="lg:col-span-8 relative rounded-2xl overflow-hidden bg-[#0F3D2E] aspect-[16/10] sm:aspect-[16/9] lg:aspect-auto lg:min-h-[420px] flex items-center justify-center group shadow-xs">
+            <img
+              src={currentSlide.image}
+              alt={currentSlide.title}
+              className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-103"
+              onError={(e) => {
+                e.currentTarget.onerror = null;
+                e.currentTarget.src = currentSlide.fallback_image;
+              }}
+            />
 
-              {/* Gradient Scrim for Flawless Readability */}
-              <div className="absolute inset-0 bg-gradient-to-t from-slate-950/95 via-slate-950/45 to-transparent flex flex-col justify-end p-5 sm:p-10 text-white">
-                <div className="max-w-3xl space-y-2 text-start" dir="rtl">
-                  <span className={`inline-block text-white text-[10px] sm:text-[11px] font-bold px-3 py-0.5 rounded-full shadow-2xs ${slide.badge_color}`}>
-                    {slide.badge}
+            {/* Dark Gradient Overlay for Maximum Legibility */}
+            <div className="absolute inset-0 bg-gradient-to-t from-slate-950/95 via-slate-950/40 to-transparent flex flex-col justify-end p-4 sm:p-7 text-white pointer-events-none">
+              <div className="space-y-2 pointer-events-auto">
+                <div className="flex items-center gap-2">
+                  <span className={`inline-block text-[11px] font-bold px-3 py-0.5 rounded-full shadow-xs ${currentSlide.badge_color}`}>
+                    {currentSlide.badge}
                   </span>
-                  
-                  <h3 
-                    className="text-lg sm:text-2xl md:text-3xl font-black drop-shadow-md text-white leading-snug"
-                    style={{ fontFamily: "'Noto Naskh Arabic', 'Plus Jakarta Sans', system-ui, sans-serif" }}
+                  <span className="text-[11px] text-slate-300 font-mono">
+                    {activeSlideIndex + 1} / {slides.length}
+                  </span>
+                </div>
+
+                <h3 
+                  className="text-base sm:text-xl md:text-2xl font-black text-white leading-snug drop-shadow-sm"
+                  style={{ fontFamily: "'Noto Naskh Arabic', 'Plus Jakarta Sans', system-ui, sans-serif" }}
+                >
+                  {currentSlide.title}
+                </h3>
+
+                {currentSlide.description && (
+                  <p 
+                    className="text-xs sm:text-sm text-slate-200 line-clamp-2 max-w-2xl font-medium"
+                    style={{ fontFamily: "'Noto Naskh Arabic', sans-serif" }}
                   >
-                    {slide.title}
-                  </h3>
+                    {currentSlide.description}
+                  </p>
+                )}
 
-                  {slide.description && (
-                    <p 
-                      className="text-xs sm:text-sm text-slate-200 line-clamp-2 max-w-2xl"
-                      style={{ fontFamily: "'Noto Naskh Arabic', sans-serif" }}
-                    >
-                      {slide.description}
-                    </p>
-                  )}
+                <div className="pt-2 flex items-center gap-2.5">
+                  <button
+                    type="button"
+                    onClick={() => setLightboxItem(currentSlide)}
+                    className="inline-flex items-center gap-1.5 bg-white hover:bg-slate-100 text-[#0F3D2E] font-bold px-3.5 py-1.5 rounded-xl text-xs transition shadow-xs cursor-pointer active:scale-95"
+                    style={{ fontFamily: "'Noto Naskh Arabic', sans-serif" }}
+                  >
+                    <ArrowsPointingOutIcon className="w-3.5 h-3.5" />
+                    <span>بڑی تصویر دیکھیں</span>
+                  </button>
 
-                  <div className="pt-2">
-                    <button
-                      type="button"
-                      onClick={() => navigate(slide.action_link)}
-                      className="inline-flex items-center gap-2 bg-white hover:bg-slate-100 text-[#0F3D2E] font-bold px-4 py-2 rounded-xl text-xs sm:text-sm transition shadow-sm cursor-pointer active:scale-95"
-                    >
-                      <span>{slide.action_text}</span>
-                      <span>←</span>
-                    </button>
-                  </div>
+                  <button
+                    type="button"
+                    onClick={() => navigate(currentSlide.action_link)}
+                    className="inline-flex items-center gap-1.5 bg-black/40 hover:bg-black/60 text-white font-bold px-3.5 py-1.5 rounded-xl text-xs backdrop-blur-sm border border-white/20 transition cursor-pointer active:scale-95"
+                    style={{ fontFamily: "'Noto Naskh Arabic', sans-serif" }}
+                  >
+                    <span>{currentSlide.action_text}</span>
+                    <span>←</span>
+                  </button>
                 </div>
               </div>
-            </SwiperSlide>
-          ))}
+            </div>
 
-          {/* Navigation Arrows */}
-          <button
-            type="button"
-            className="hero-slider-prev absolute top-1/2 -translate-y-1/2 start-3 z-20 w-9 h-9 sm:w-11 sm:h-11 rounded-full bg-slate-950/40 hover:bg-[#0F3D2E]/80 backdrop-blur-md border border-white/20 text-white flex items-center justify-center transition shadow-md cursor-pointer hover:scale-105 active:scale-95"
-            aria-label="Previous slide"
-          >
-            <ChevronRightIcon className="w-5 h-5 text-white" />
-          </button>
-          <button
-            type="button"
-            className="hero-slider-next absolute top-1/2 -translate-y-1/2 end-3 z-20 w-9 h-9 sm:w-11 sm:h-11 rounded-full bg-slate-950/40 hover:bg-[#0F3D2E]/80 backdrop-blur-md border border-white/20 text-white flex items-center justify-center transition shadow-md cursor-pointer hover:scale-105 active:scale-95"
-            aria-label="Next slide"
-          >
-            <ChevronLeftIcon className="w-5 h-5 text-white" />
-          </button>
-        </Swiper>
+            {/* Navigation Arrows on Main Photo */}
+            <button
+              type="button"
+              onClick={handlePrevSlide}
+              className="absolute top-1/2 -translate-y-1/2 start-3 z-10 w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-slate-950/60 hover:bg-[#0F3D2E] text-white flex items-center justify-center transition backdrop-blur-sm border border-white/20 shadow-md cursor-pointer hover:scale-105 active:scale-95"
+              aria-label="Previous photo"
+            >
+              <ChevronRightIcon className="w-5 h-5 text-white" />
+            </button>
+            <button
+              type="button"
+              onClick={handleNextSlide}
+              className="absolute top-1/2 -translate-y-1/2 end-3 z-10 w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-slate-950/60 hover:bg-[#0F3D2E] text-white flex items-center justify-center transition backdrop-blur-sm border border-white/20 shadow-md cursor-pointer hover:scale-105 active:scale-95"
+              aria-label="Next photo"
+            >
+              <ChevronLeftIcon className="w-5 h-5 text-white" />
+            </button>
+          </div>
+
+          {/* RIGHT 4-THUMBNAIL STACK (4 Cols Desktop / Horizontal Scroll on Mobile) */}
+          <div className="lg:col-span-4 flex lg:flex-col gap-2.5 overflow-x-auto lg:overflow-visible pb-1 lg:pb-0 scrollbar-none">
+            {slides.slice(0, 4).map((slide, idx) => {
+              const isActive = activeSlideIndex === idx;
+              return (
+                <div
+                  key={slide.id}
+                  onClick={() => setActiveSlideIndex(idx)}
+                  className={`flex-1 min-w-[200px] lg:min-w-0 p-2 sm:p-2.5 rounded-xl border transition-all duration-200 cursor-pointer flex items-center gap-3 ${
+                    isActive
+                      ? "bg-emerald-50/80 border-[#0F3D2E] shadow-sm ring-1 ring-[#0F3D2E]"
+                      : "bg-[#FAF8F5] border-[#E6E2DD] hover:bg-slate-50 hover:border-slate-300"
+                  }`}
+                >
+                  {/* Thumbnail Picture */}
+                  <div className="relative w-16 h-16 sm:w-20 sm:h-18 rounded-lg overflow-hidden shrink-0 bg-slate-200">
+                    <img
+                      src={slide.image}
+                      alt={slide.title}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        e.currentTarget.onerror = null;
+                        e.currentTarget.src = slide.fallback_image;
+                      }}
+                    />
+                    {isActive && (
+                      <div className="absolute inset-0 bg-[#0F3D2E]/20 flex items-center justify-center">
+                        <span className="w-2.5 h-2.5 rounded-full bg-[#C5A059] ring-2 ring-white"></span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Thumbnail Info */}
+                  <div className="min-w-0 flex-1 space-y-1">
+                    <span className="text-[10px] font-bold text-[#0F3D2E] block truncate">
+                      {slide.badge}
+                    </span>
+                    <h4 
+                      className={`text-xs font-bold line-clamp-2 leading-tight ${isActive ? "text-[#0F3D2E]" : "text-slate-800"}`}
+                      style={{ fontFamily: "'Noto Naskh Arabic', sans-serif" }}
+                    >
+                      {slide.title}
+                    </h4>
+                    <span className="text-[10px] text-slate-500 font-medium block">
+                      تصویر {idx + 1}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+        </div>
       </div>
 
-      {/* ================= 4 EDITORIAL METRIC BADGES (2x2 on mobile, 4-col on desktop) ================= */}
+      {/* ================= 4 EDITORIAL METRIC BADGES ================= */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3.5 text-center" dir="rtl">
         <div className="p-4 rounded-2xl bg-white border border-[#E6E2DD] shadow-xs">
           <div className="text-xl sm:text-2xl font-black text-[#0F3D2E] font-mono">7,800+</div>
@@ -359,6 +456,87 @@ const LibraryHero = () => {
           </div>
         </div>
       </div>
+
+      {/* ================= LIGHTBOX MODAL ================= */}
+      {lightboxItem && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-slate-950/90 backdrop-blur-md animate-in fade-in duration-200"
+          onClick={() => setLightboxItem(null)}
+          dir="rtl"
+        >
+          <div 
+            className="relative max-w-4xl w-full bg-slate-900 rounded-3xl overflow-hidden shadow-2xl border border-white/10"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Top Close Button */}
+            <button
+              type="button"
+              onClick={() => setLightboxItem(null)}
+              className="absolute top-4 start-4 z-20 w-9 h-9 rounded-full bg-black/60 text-white flex items-center justify-center hover:bg-black/90 transition cursor-pointer"
+            >
+              <XMarkIcon className="w-5 h-5" />
+            </button>
+
+            {/* High-Res Image Display */}
+            <div className="max-h-[75vh] flex items-center justify-center bg-black">
+              <img
+                src={lightboxItem.image}
+                alt={lightboxItem.title}
+                className="max-h-[75vh] w-auto max-w-full object-contain"
+                onError={(e) => {
+                  e.currentTarget.onerror = null;
+                  e.currentTarget.src = lightboxItem.fallback_image;
+                }}
+              />
+            </div>
+
+            {/* Lightbox Footer Bar */}
+            <div className="p-4 bg-slate-900 text-white flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="space-y-1">
+                <span className="text-[11px] font-bold text-amber-300">
+                  {lightboxItem.badge}
+                </span>
+                <h4 
+                  className="text-sm sm:text-base font-bold text-white"
+                  style={{ fontFamily: "'Noto Naskh Arabic', sans-serif" }}
+                >
+                  {lightboxItem.title}
+                </h4>
+                {lightboxItem.description && (
+                  <p className="text-xs text-slate-300 line-clamp-2">
+                    {lightboxItem.description}
+                  </p>
+                )}
+              </div>
+
+              <div className="flex items-center gap-2.5 shrink-0">
+                <a
+                  href={`https://api.whatsapp.com/send?text=${encodeURIComponent(
+                    `📸 *${lightboxItem.title}*\n\n${lightboxItem.description || ''}\n\n🌐 مرکز اہل حدیث کوکن:\nhttps://www.ahlehadeeskokan.com/gallery`
+                  )}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition flex items-center gap-1.5 shadow-sm"
+                >
+                  <ShareIcon className="w-3.5 h-3.5" />
+                  <span>واٹس ایپ</span>
+                </a>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setLightboxItem(null);
+                    navigate("/gallery");
+                  }}
+                  className="px-4 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 text-xs font-bold transition shadow-sm cursor-pointer"
+                >
+                  مکمل نگارخانہ
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
