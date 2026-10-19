@@ -26,6 +26,24 @@ const resolveImageUrl = (value) => {
   return `${API_BASE_URL}${cleanPath}`;
 };
 
+// Bulletproof helper to prevent React Error #31 (Objects as React child)
+const resolveSafeText = (value, fallback = "") => {
+  if (value === null || value === undefined) return fallback;
+  if (typeof value === "string") return value.trim() || fallback;
+  if (typeof value === "number") return String(value);
+  if (typeof value === "object") {
+    const candidate = value.ur || value.ar || value.en || value.name || value.title || value.text;
+    if (typeof candidate === "string" && candidate.trim()) return candidate.trim();
+    for (const key of Object.keys(value)) {
+      if (typeof value[key] === "string" && value[key].trim()) {
+        return value[key].trim();
+      }
+    }
+    return fallback;
+  }
+  return fallback;
+};
+
 const SVG_NO_COVER =
   "data:image/svg+xml;utf8," +
   encodeURIComponent(`
@@ -194,9 +212,9 @@ const KokanHubBento = () => {
       })
       .catch(() => {});
 
-    // 3. Fetch clippings
+    // 3. Fetch clippings via safe endpoint
     apiClient
-      .get("/api/clippings/?limit=5")
+      .get("/api/newspaper-clippings?limit=5")
       .then((res) => {
         const items = Array.isArray(res.data) ? res.data : (res.data?.items || []);
         if (mounted && items.length > 0) {
@@ -216,11 +234,11 @@ const KokanHubBento = () => {
   const currentClippingsList = pressClippings.length > 0 ? pressClippings : defaultClippings;
   const currentPosterList = posters.length > 0 ? posters : defaultPosters;
 
-  const activeBook = currentBookList[bookIndex % currentBookList.length];
-  const activeMoon = currentMoonList[moonIndex % currentMoonList.length];
-  const activeMagazine = currentMagazineList[magazineIndex % currentMagazineList.length];
-  const activePoster = currentPosterList[posterIndex % currentPosterList.length];
-  const activeClipping = currentClippingsList[activeClippingIndex % currentClippingsList.length];
+  const activeBook = currentBookList[bookIndex % currentBookList.length] || defaultBooks[0];
+  const activeMoon = currentMoonList[moonIndex % currentMoonList.length] || defaultMoon[0];
+  const activeMagazine = currentMagazineList[magazineIndex % currentMagazineList.length] || defaultMagazines[0];
+  const activePoster = currentPosterList[posterIndex % currentPosterList.length] || defaultPosters[0];
+  const activeClipping = currentClippingsList[activeClippingIndex % currentClippingsList.length] || defaultClippings[0];
 
   return (
     <section className="py-4 w-full" dir="rtl">
@@ -269,7 +287,7 @@ const KokanHubBento = () => {
               >
                 <img
                   src={activeBook.cover_image_url ? resolveImageUrl(activeBook.cover_image_url) : SVG_NO_COVER}
-                  alt={activeBook.title}
+                  alt={resolveSafeText(activeBook.title, "کتاب")}
                   className="w-full h-full object-cover"
                   onError={(e) => {
                     e.currentTarget.onerror = null;
@@ -284,12 +302,12 @@ const KokanHubBento = () => {
                   className="text-xs sm:text-sm font-bold text-slate-900 line-clamp-2 hover:text-[#0F3D2E] transition-colors cursor-pointer leading-snug"
                   style={{ fontFamily: "'Noto Naskh Arabic', sans-serif" }}
                 >
-                  {activeBook.title}
+                  {resolveSafeText(activeBook.title, "کتاب")}
                 </h4>
                 {activeBook.author && (
                   <p className="text-[11px] text-slate-500 font-medium truncate flex items-center justify-center gap-1">
                     <UserIcon className="w-3 h-3 text-[#C5A059]" />
-                    <span>{activeBook.author}</span>
+                    <span>{resolveSafeText(activeBook.author, "علمائے کرام")}</span>
                   </p>
                 )}
               </div>
@@ -353,12 +371,12 @@ const KokanHubBento = () => {
               >
                 <img
                   src={activeMoon.image || activeMoon.image_url ? resolveImageUrl(activeMoon.image || activeMoon.image_url) : SVG_NO_COVER}
-                  alt={activeMoon.title_ur || activeMoon.title || "رویت ہلال"}
+                  alt={resolveSafeText(activeMoon.title_ur || activeMoon.title, "رویت ہلال")}
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-transparent to-transparent flex items-end p-2.5">
                   <span className="text-[10px] font-bold text-amber-300 bg-slate-950/70 px-2 py-0.5 rounded-md">
-                    {activeMoon.hijri_month || activeMoon.month || "ہجری تقویم"}
+                    {resolveSafeText(activeMoon.hijri_month || activeMoon.month, "ہجری تقویم")}
                   </span>
                 </div>
               </div>
@@ -369,10 +387,10 @@ const KokanHubBento = () => {
                   className="text-xs sm:text-sm font-bold text-slate-900 line-clamp-1 hover:text-[#0F3D2E] transition-colors cursor-pointer"
                   style={{ fontFamily: "'Noto Naskh Arabic', sans-serif" }}
                 >
-                  {activeMoon.title_ur || activeMoon.title || "چاند کی تاریخ کا باضابطہ اعلان"}
+                  {resolveSafeText(activeMoon.title_ur || activeMoon.title, "چاند کی تاریخ کا باضابطہ اعلان")}
                 </h4>
                 <p className="text-[11px] text-slate-500 font-medium">
-                  {activeMoon.event_date || activeMoon.date || "مرکزی رویت ہلال کمیٹی"}
+                  {resolveSafeText(activeMoon.event_date || activeMoon.date, "مرکزی رویت ہلال کمیٹی")}
                 </p>
               </div>
 
@@ -417,11 +435,11 @@ const KokanHubBento = () => {
                 <div className="flex items-center justify-between gap-2 border-b border-slate-100 pb-2.5">
                   <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-[#0F3D2E] text-xs font-bold">
                     <span>✨</span>
-                    <span>{activeClipping.source || activeClipping.newspaper_name || "Roznama Inquilab"}</span>
+                    <span>{resolveSafeText(activeClipping.source || activeClipping.newspaper_name, "Roznama Inquilab")}</span>
                   </span>
                   <span className="text-xs text-slate-500 font-mono font-medium flex items-center gap-1">
                     <CalendarDaysIcon className="w-3.5 h-3.5 text-slate-400" />
-                    <span>{activeClipping.date || activeClipping.edition_date || "تازہ ترین اشاعت"}</span>
+                    <span>{resolveSafeText(activeClipping.date || activeClipping.edition_date, "تازہ ترین اشاعت")}</span>
                   </span>
                 </div>
 
@@ -431,7 +449,7 @@ const KokanHubBento = () => {
                   style={{ fontFamily: "'Noto Naskh Arabic', 'Plus Jakarta Sans', system-ui, sans-serif" }}
                   onClick={() => navigate("/clippings")}
                 >
-                  {activeClipping.title}
+                  {resolveSafeText(activeClipping.title, "پریس ریلیز")}
                 </h3>
 
                 {/* Excerpt */}
@@ -439,7 +457,10 @@ const KokanHubBento = () => {
                   className="text-xs sm:text-sm text-slate-600 leading-relaxed line-clamp-4"
                   style={{ fontFamily: "'Noto Naskh Arabic', sans-serif" }}
                 >
-                  {activeClipping.excerpt || activeClipping.description || "مرکز اہل حدیث کوکن، بیت السلام کمپلیکس کھڑ کے زیر اہتمام کتاب و سنت کی اشاعت، معاشرتی اصلاح اور علمی کانفرنسز کا انعقاد جاری ہے۔ تمام احباب سے گزارش ہے کہ مستند بیانات اور دعوتی پروگرامز میں شرکت فرمائیں۔"}
+                  {resolveSafeText(
+                    activeClipping.excerpt || activeClipping.description,
+                    "مرکز اہل حدیث کوکن، بیت السلام کمپلیکس کھڑ کے زیر اہتمام کتاب و سنت کی اشاعت، معاشرتی اصلاح اور علمی کانفرنسز کا انعقاد جاری ہے۔ تمام احباب سے گزارش ہے کہ مستند بیانات اور دعوتی پروگرامز میں شرکت فرمائیں۔"
+                  )}
                 </p>
 
                 {/* Read More Button */}
@@ -474,10 +495,10 @@ const KokanHubBento = () => {
                       style={{ fontFamily: "'Noto Naskh Arabic', sans-serif" }}
                     >
                       <span className="line-clamp-1 flex-1">
-                        • {clip.title}
+                        • {resolveSafeText(clip.title, "پریس ریلیز")}
                       </span>
                       <span className="text-[10px] text-slate-500 shrink-0 font-mono">
-                        {clip.source || clip.newspaper_name}
+                        {resolveSafeText(clip.source || clip.newspaper_name, "Inquilab")}
                       </span>
                     </div>
                   ))}
@@ -531,7 +552,7 @@ const KokanHubBento = () => {
               >
                 <img
                   src={activeMagazine.image ? resolveImageUrl(activeMagazine.image) : SVG_NO_COVER}
-                  alt={activeMagazine.title}
+                  alt={resolveSafeText(activeMagazine.title, "میگزین")}
                   className="w-full h-full object-cover"
                 />
               </div>
@@ -542,13 +563,13 @@ const KokanHubBento = () => {
                   className="text-xs sm:text-sm font-bold text-slate-900 line-clamp-1 hover:text-[#0F3D2E] transition-colors cursor-pointer"
                   style={{ fontFamily: "'Noto Naskh Arabic', sans-serif" }}
                 >
-                  {activeMagazine.title}
+                  {resolveSafeText(activeMagazine.title, "مجلہ الجامعہ")}
                 </h4>
                 <p className="text-[11px] text-[#0F3D2E] font-bold">
-                  {activeMagazine.issue}
+                  {resolveSafeText(activeMagazine.issue, "شمارہ")}
                 </p>
                 <p className="text-[10px] text-slate-500 font-medium">
-                  {activeMagazine.date}
+                  {resolveSafeText(activeMagazine.date, "")}
                 </p>
               </div>
 
@@ -604,7 +625,7 @@ const KokanHubBento = () => {
               >
                 <img
                   src={activePoster.image || activePoster.image_url ? resolveImageUrl(activePoster.image || activePoster.image_url) : SVG_NO_COVER}
-                  alt={activePoster.title || "پروگرام پوسٹر"}
+                  alt={resolveSafeText(activePoster.title, "پروگرام پوسٹر")}
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform"
                 />
               </div>
@@ -615,10 +636,10 @@ const KokanHubBento = () => {
                   className="text-xs sm:text-sm font-bold text-slate-900 line-clamp-1 hover:text-[#0F3D2E] transition-colors cursor-pointer"
                   style={{ fontFamily: "'Noto Naskh Arabic', sans-serif" }}
                 >
-                  {activePoster.title || "دعوتی و تعلیمی پروگرام"}
+                  {resolveSafeText(activePoster.title, "دعوتی و تعلیمی پروگرام")}
                 </h4>
                 <p className="text-[11px] text-slate-500 font-medium">
-                  {activePoster.date || activePoster.event_date || "بیت السلام کمپلیکس، کھڑ"}
+                  {resolveSafeText(activePoster.date || activePoster.event_date, "بیت السلام کمپلیکس، کھڑ")}
                 </p>
               </div>
 

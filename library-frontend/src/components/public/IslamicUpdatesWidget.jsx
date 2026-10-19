@@ -32,7 +32,23 @@ const formatDate = (dateStr) => {
   } catch {
     // fallback
   }
-  return dateStr;
+  return String(dateStr);
+};
+
+// Fail-safe resolver to prevent React Error #31
+const resolveSafeText = (val, fallback = '') => {
+  if (val === null || val === undefined) return fallback;
+  if (typeof val === 'string') return val.trim() || fallback;
+  if (typeof val === 'number') return String(val);
+  if (typeof val === 'object') {
+    const candidate = val.ur || val.ar || val.en || val.name || val.title;
+    if (typeof candidate === 'string' && candidate.trim()) return candidate.trim();
+    for (const k of Object.keys(val)) {
+      if (typeof val[k] === 'string' && val[k].trim()) return val[k].trim();
+    }
+    return fallback;
+  }
+  return fallback;
 };
 
 const IslamicUpdatesWidget = ({ updates, config = {} }) => {
@@ -43,24 +59,10 @@ const IslamicUpdatesWidget = ({ updates, config = {} }) => {
 
   const { jumah, moon } = updates;
 
-  const resolveText = (val, fallback = '') => {
-    if (!val) return fallback;
-    if (typeof val === 'string') return val.trim() || fallback;
-    if (typeof val === 'object') {
-      const txt = val.ur || val.ar || val.en;
-      if (typeof txt === 'string' && txt.trim()) return txt.trim();
-      for (const k of Object.keys(val)) {
-        if (typeof val[k] === 'string' && val[k].trim()) return val[k].trim();
-      }
-      return fallback;
-    }
-    return String(val);
-  };
-
   const handleShare = (e, item, isJumah) => {
     e.stopPropagation();
     const fallbackTitle = isJumah ? 'خطباتِ جمعہ کا شیڈول' : 'رویتِ ہلال کا اعلان';
-    const title = resolveText(item.title_ur) || resolveText(item.title) || resolveText(item.title_en, fallbackTitle);
+    const title = resolveSafeText(item.title_ur || item.title || item.title_en, fallbackTitle);
     const dateText = item.event_date ? ` [تاریخ: ${item.event_date}]` : '';
     const shareText = `📢 *${title}*${dateText}\n\nمرکز اہل حدیث کوکن کا باضابطہ شیڈول ملاحظہ فرمائیں:\n${window.location.origin}`;
     window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(shareText)}`, '_blank');
@@ -112,7 +114,7 @@ const IslamicUpdatesWidget = ({ updates, config = {} }) => {
                   style={{ fontFamily: "'Noto Naskh Arabic', sans-serif" }}
                   onClick={() => setActiveModalItem(jumah)}
                 >
-                  {resolveText(jumah.title_ur) || resolveText(jumah.title) || "خطبہ جمعہ شیڈول - ائمہ و خطباء"}
+                  {resolveSafeText(jumah.title_ur || jumah.title, "خطبہ جمعہ شیڈول - ائمہ و خطباء")}
                 </h3>
 
                 {/* Poster Preview */}
@@ -199,7 +201,7 @@ const IslamicUpdatesWidget = ({ updates, config = {} }) => {
                 <div className="flex items-center justify-between gap-2 border-b border-slate-100 pb-2.5">
                   <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 border border-amber-200 text-amber-900 text-xs font-bold">
                     <span>🌙</span>
-                    <span>{moon.hijri_month || "مرکزی رویت ہلال کمیٹی"}</span>
+                    <span>{resolveSafeText(moon.hijri_month, "مرکزی رویت ہلال کمیٹی")}</span>
                   </span>
                   {moon.event_date && (
                     <span className="text-xs text-slate-500 font-mono font-bold flex items-center gap-1">
@@ -215,7 +217,7 @@ const IslamicUpdatesWidget = ({ updates, config = {} }) => {
                   style={{ fontFamily: "'Noto Naskh Arabic', sans-serif" }}
                   onClick={() => setActiveModalItem(moon)}
                 >
-                  {resolveText(moon.title_ur) || resolveText(moon.title) || "چاند کی تاریخ اور نئے ہجری مہینے کا اعلان"}
+                  {resolveSafeText(moon.title_ur || moon.title, "چاند کی تاریخ اور نئے ہجری مہینے کا اعلان")}
                 </h3>
 
                 {/* Poster Preview */}
@@ -321,7 +323,7 @@ const IslamicUpdatesWidget = ({ updates, config = {} }) => {
                     className="text-sm sm:text-base font-bold text-white"
                     style={{ fontFamily: "'Noto Naskh Arabic', sans-serif" }}
                   >
-                    {resolveText(activeModalItem.title_ur) || resolveText(activeModalItem.title)}
+                    {resolveSafeText(activeModalItem.title_ur || activeModalItem.title, "شیڈول")}
                   </h4>
                   {activeModalItem.event_date && (
                     <p className="text-xs text-slate-400 font-mono">

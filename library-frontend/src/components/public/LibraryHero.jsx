@@ -78,6 +78,23 @@ const DEFAULT_SLIDES = [
   },
 ];
 
+const resolveSafeText = (value, fallback = "") => {
+  if (value === null || value === undefined) return fallback;
+  if (typeof value === "string") return value.trim() || fallback;
+  if (typeof value === "number") return String(value);
+  if (typeof value === "object") {
+    const candidate = value.ur || value.ar || value.en || value.name || value.title || value.text;
+    if (typeof candidate === "string" && candidate.trim()) return candidate.trim();
+    for (const key of Object.keys(value)) {
+      if (typeof value[key] === "string" && value[key].trim()) {
+        return value[key].trim();
+      }
+    }
+    return fallback;
+  }
+  return fallback;
+};
+
 const LibraryHero = () => {
   const { language, isRTL } = useLanguage();
   const [galleryItems, setGalleryItems] = useState([]);
@@ -106,22 +123,19 @@ const LibraryHero = () => {
   const slides = useMemo(() => {
     if (galleryItems && galleryItems.length > 0) {
       return galleryItems.slice(0, 6).map((item, index) => {
-        const rawTitle = typeof item.title === "object"
-          ? (item.title[language] || item.title.ur || item.title.en || "")
-          : (item.title || "");
-        const rawDesc = typeof item.caption === "object"
-          ? (item.caption[language] || item.caption.ur || item.caption.en || "")
-          : (item.caption || "");
+        const rawTitle = resolveSafeText(item.title, "مرکز اہل حدیث کوکن کی تصویری جھلکیاں");
+        const rawDesc = resolveSafeText(item.caption, "مسجد اہل حدیث، بیت السلام کمپلیکس کھڑ میں جاری دعوتی، علمی اور اصلاحی سرگرمیاں۔");
+        const badge = resolveSafeText(item.album_title, "📸 تصویری گیلری");
 
         const title = cleanMediaTitle(rawTitle, "مرکز اہل حدیث کوکن کی تصویری جھلکیاں");
-        const desc = rawDesc || "مسجد اہل حدیث، بیت السلام کمپلیکس کھڑ میں جاری دعوتی، علمی اور اصلاحی سرگرمیاں۔";
+        const desc = rawDesc;
 
         return {
           id: `gallery-${item.id || index}`,
           raw_item: item,
           image: resolveImageUrl(item.image_url),
           fallback_image: DEFAULT_SLIDES[index % DEFAULT_SLIDES.length].fallback_image,
-          badge: item.album_title || "📸 تصویری گیلری",
+          badge,
           badge_color: index % 2 === 0 ? "bg-[#0F3D2E] text-white" : "bg-[#C5A059] text-slate-950",
           title,
           description: desc,
