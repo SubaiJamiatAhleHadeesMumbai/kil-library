@@ -15,77 +15,82 @@ import { useLanguage } from "../context/LanguageContext";
 // --- Components ---
 import RestrictedAccessFlow from "../components/book/RestrictedAccessFlow";
 import SuccessScreen from "../components/RestrictedAccess/SuccessScreen";
-import LibrarySearchStrip from "../components/public/LibrarySearchStrip";
 import BookDetailsModal from "../components/book/BookDetailsModal";
+import PublicBookCard from "../components/public/PublicBookCard";
 import { getBookCover } from "../utils/cover";
 
 // --- Icons ---
 import {
   FaceFrownIcon,
   XMarkIcon,
-  BookOpenIcon,
-  LockClosedIcon as LockOutline,
-  LockOpenIcon as LockOpenOutline,
-  CheckCircleIcon,
   ChevronRightIcon,
   ChevronLeftIcon,
-  ChevronDownIcon,
   Squares2X2Icon,
   ListBulletIcon,
   ArrowUpIcon,
   ArrowsUpDownIcon,
   MagnifyingGlassIcon,
-  BookmarkIcon as BookmarkOutline,
   FunnelIcon,
+  EyeIcon,
 } from "@heroicons/react/24/outline";
 
-import {
-  BookmarkIcon as BookmarkSolid,
-} from "@heroicons/react/24/solid";
+const API_BASE_URL = (
+  import.meta.env.VITE_API_BASE_URL ||
+  (import.meta.env.PROD ? "" : "http://127.0.0.1:8000")
+).replace(/\/$/, "");
 
-// --- Constants ---
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || (import.meta.env.PROD ? "" : "http://127.0.0.1:8000");
-const FALLBACK_NO_COVER = `data:image/svg+xml;utf8,${encodeURIComponent(`
-<svg xmlns="http://www.w3.org/2000/svg" width="400" height="600" viewBox="0 0 400 600">
-  <defs>
-    <linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#0f172a" />
-      <stop offset="100%" stop-color="#1e293b" />
-    </linearGradient>
-  </defs>
-  <rect width="400" height="600" fill="url(#g)" />
-  <rect x="24" y="24" width="352" height="552" rx="16" fill="none" stroke="#334155" stroke-width="2" stroke-dasharray="8 8" />
-  <g fill="#94a3b8" transform="translate(160, 230) scale(3.3)">
-    <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z" fill="none" stroke="#64748b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-    <path d="M6 2v20" stroke="#64748b" stroke-width="2"/>
-  </g>
-  <text x="200" y="340" fill="#94a3b8" font-family="system-ui, -apple-system, sans-serif" font-size="18" font-weight="600" text-anchor="middle">No Cover Available</text>
-  <text x="200" y="375" fill="#64748b" font-family="'Noto Naskh Arabic', serif" font-size="20" text-anchor="middle">غلاف دستیاب نہیں</text>
-</svg>
-`)}`;
-const FALLBACK_BROKEN = FALLBACK_NO_COVER;
+const URDU_ALPHABET = [
+  "آ",
+  "ا",
+  "ب",
+  "پ",
+  "ت",
+  "ٹ",
+  "ث",
+  "ج",
+  "چ",
+  "ح",
+  "خ",
+  "د",
+  "ڈ",
+  "ذ",
+  "ر",
+  "ز",
+  "س",
+  "ش",
+  "ص",
+  "ض",
+  "ط",
+  "ظ",
+  "ع",
+  "غ",
+  "ف",
+  "ق",
+  "ک",
+  "گ",
+  "ل",
+  "م",
+  "ن",
+  "و",
+  "ہ",
+  "ی",
+];
 
-const showUpcomingToast = () => {
-  toast("عنقریب...", {
-    icon: "⏳",
-    duration: 3500,
-    style: {
-      borderRadius: "16px",
-      background: "#0F172A",
-      color: "#38BDF8",
-      fontSize: "20px",
-      fontWeight: "bold",
-      fontFamily: '"Noto Nastaliq Urdu", "Mehr Nastaliq Web", "Mehr", "Jameel Noori Nastaleeq", serif',
-      padding: "12px 24px",
-      boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.3)"
-    }
-  });
+const CATEGORY_URDU_MAP = {
+  "all categories": "تمام کتب",
+  general: "عمومی کتب",
+  "aqeedah & fiqh": "عقیدہ و منہج",
+  "quran & sciences": "قرآن و علومِ قرآن",
+  "history & seerah": "سیرت و تاریخ",
+  "literature & adab": "ادب و اخلاق",
+  "science & tech": "جدید مباحث",
+  "general islamic studies": "اسلامی معلومات",
 };
 
 const safeBookText = (value, fallback = "") => {
   if (value === null || value === undefined) return fallback;
   if (typeof value === "object") {
-    const text = value.en || value.ur || value.ar || value.name || value.title;
+    const text = value.ur || value.ar || value.en || value.name || value.title;
     if (typeof text === "string" && text.trim()) return text.trim();
     for (const k of Object.keys(value)) {
       if (typeof value[k] === "string" && value[k].trim()) return value[k].trim();
@@ -96,27 +101,43 @@ const safeBookText = (value, fallback = "") => {
   return str.length ? str : fallback;
 };
 
-import PublicBookCard from "../components/public/PublicBookCard";
+const toUrduCategoryLabel = (label) => {
+  const clean = safeBookText(label, "عمومی کتب");
+  const lower = clean.toLowerCase();
+  return CATEGORY_URDU_MAP[lower] || clean;
+};
 
+const resolveCoverUrl = (raw) => {
+  if (!raw || String(raw).trim() === "") return null;
+  const s = String(raw).trim();
+  if (s.startsWith("http")) return s;
+  return `${API_BASE_URL}${s.startsWith("/") ? "" : "/"}${s}`;
+};
 
-// ==========================================
-// 2. MAIN USER LIBRARY COMPONENT
-// ==========================================
 const UserLibrary = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams] = useSearchParams();
   const { isAuth, user } = useAuth();
-  const { language, isRTL } = useLanguage();
-  const isAdmin = Boolean(user && (user.role === 'admin' || user.is_superuser || user.is_staff || user.role === 'ADMIN'));
+  const { isRTL } = useLanguage();
+  const isAdmin = Boolean(
+    user &&
+      (user.role === "admin" ||
+        user.is_superuser ||
+        user.is_staff ||
+        user.role === "ADMIN")
+  );
 
-  // --- THEME & SEARCH BAR LAYOUT OPTIONS (1, 2, 3) ---
   const themeContext = useTheme?.();
   const uiSettings = themeContext?.uiSettings;
   const updatePreview = themeContext?.updatePreview;
 
   const [activeLayout, setActiveLayout] = useState(() => {
-    return localStorage.getItem("kil_library_search_layout") || uiSettings?.library_search_layout || "option1";
+    return (
+      localStorage.getItem("kil_library_search_layout") ||
+      uiSettings?.library_search_layout ||
+      "option1"
+    );
   });
 
   useEffect(() => {
@@ -136,56 +157,61 @@ const UserLibrary = () => {
         ...(uiSettings || {}),
         library_search_layout: newLayout,
       });
-      toast.success(`Active Search Layout: ${newLayout === 'option1' ? 'Option 1 (Sticky Unified)' : newLayout === 'option2' ? 'Option 2 (Catalog Header)' : 'Option 3 (Classic + Floating)'}`);
+      toast.success(`Active Layout Updated: ${newLayout}`);
     } catch {
-      toast.success(`Active Search Layout: ${newLayout.toUpperCase()}`);
+      toast.success(`Active Layout: ${newLayout}`);
     }
   };
-
-  // Scroll tracking to trigger sticky bar or floating pill
-  const [isScrolledPastHero, setIsScrolledPastHero] = useState(false);
-  useEffect(() => {
-    const handleScroll = () => {
-      setIsScrolledPastHero(window.scrollY > 280);
-    };
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
 
   // --- STATE ---
   const [books, setBooks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [dynamicCategories, setDynamicCategories] = useState([]);
   const [viewMode, setViewMode] = useState("grid"); // 'grid' | 'list'
-  const [sortBy, setSortBy] = useState("newest"); // Default: Latest / Newest first
+  const [sortBy, setSortBy] = useState("newest");
+  const [selectedAuthor, setSelectedAuthor] = useState("all");
+  const [selectedLetter, setSelectedLetter] = useState("all");
+  const [librarySectionMode, setLibrarySectionMode] = useState("all"); // 'all' | 'continue' | 'favorites'
   const [showScrollTop, setShowScrollTop] = useState(false);
   const activeRequestRef = useRef(0);
 
-  // Pagination State (Items per page dropdown: 10, 25, 50, 100)
+  // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(25);
+  const [itemsPerPage, setItemsPerPage] = useState(24);
 
   // --- MODAL & FLOW ---
   const [selectedBook, setSelectedBook] = useState(null);
-
-  // Restricted flow
   const [restrictedBook, setRestrictedBook] = useState(null);
   const [isAccessFlowOpen, setIsAccessFlowOpen] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
 
-  const getCategoryIcon = (slug, label) => {
-    const s = String(slug || label || "").toLowerCase();
-    if (s.includes("tafseer") || s.includes("تفسیر") || s.includes("quran")) return "📖";
-    if (s.includes("hadees") || s.includes("hadith") || s.includes("حدیث")) return "📚";
-    if (s.includes("fiqh") || s.includes("فقہ")) return "📜";
-    if (s.includes("history") || s.includes("seerah") || s.includes("تاریخ") || s.includes("سیرت")) return "⏰";
-    if (s.includes("adab") || s.includes("literature") || s.includes("ادب")) return "✏️";
-    if (s.includes("aqeedah") || s.includes("tasawwuf") || s.includes("عقیدہ")) return "🪙";
-    if (s.includes("fatawa") || s.includes("فتاوی")) return "⚖️";
-    if (s.includes("all") || s.includes("تمام")) return "🌐";
-    return "📑";
-  };
+  // --- RECENT READS (FOR CONTINUE READING BAR & TAB) ---
+  const [recentReads, setRecentReads] = useState(() => {
+    try {
+      const raw = localStorage.getItem("bookNest_recent_reads");
+      const parsed = raw ? JSON.parse(raw) : [];
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  });
+
+  useEffect(() => {
+    const syncRecentReads = () => {
+      try {
+        const raw = localStorage.getItem("bookNest_recent_reads");
+        const parsed = raw ? JSON.parse(raw) : [];
+        if (Array.isArray(parsed)) setRecentReads(parsed);
+      } catch {}
+    };
+    window.addEventListener("storage", syncRecentReads);
+    window.addEventListener("kil_reading_updated", syncRecentReads);
+    return () => {
+      window.removeEventListener("storage", syncRecentReads);
+      window.removeEventListener("kil_reading_updated", syncRecentReads);
+    };
+  }, []);
 
   // --- FAVORITES ---
   const [favorites, setFavorites] = useState(() => {
@@ -197,28 +223,44 @@ const UserLibrary = () => {
     }
   });
 
+  const getCategoryIcon = (slug, label) => {
+    const s = String(slug || label || "").toLowerCase();
+    if (s.includes("tafseer") || s.includes("تفسیر") || s.includes("quran") || s.includes("قرآن"))
+      return "📖";
+    if (s.includes("hadees") || s.includes("hadith") || s.includes("حدیث"))
+      return "✨";
+    if (s.includes("fiqh") || s.includes("فقہ")) return "⚖️";
+    if (s.includes("history") || s.includes("seerah") || s.includes("تاریخ") || s.includes("سیرت"))
+      return "🕌";
+    if (s.includes("adab") || s.includes("literature") || s.includes("ادب") || s.includes("دعوت"))
+      return "📜";
+    if (s.includes("aqeedah") || s.includes("tasawwuf") || s.includes("عقیدہ"))
+      return "🪙";
+    if (s.includes("fatawa") || s.includes("فتاوی")) return "⚖️";
+    if (s.includes("all") || s.includes("تمام")) return "🌐";
+    return "📑";
+  };
+
   // --- CATEGORIES ---
   const categories = useMemo(() => {
     if (dynamicCategories.length > 0) {
       return [
-        { value: "all", label: "All Categories" },
-        { value: "general", label: "General" },
-        ...dynamicCategories.map(cat => ({
-          value: cat.slug || cat.name?.toLowerCase().replace(/\s+/g, '_'),
-          label: cat.name || cat.category_name,
-          id: cat.id
-        }))
+        { value: "all", label: "تمام کتب" },
+        ...dynamicCategories.map((cat) => ({
+          value: cat.slug || cat.name?.toLowerCase().replace(/\s+/g, "_"),
+          label: toUrduCategoryLabel(cat.name || cat.category_name),
+          id: cat.id,
+        })),
       ];
     }
     return [
-      { value: "all", label: "All Categories" },
-      { value: "general", label: "General" },
-      { value: "aqeedah_fiqh", label: "Aqeedah & Fiqh" },
-      { value: "quran_sciences", label: "Quran & Sciences" },
-      { value: "history_seerah", label: "History & Seerah" },
-      { value: "literature", label: "Literature & Adab" },
-      { value: "science_tech", label: "Science & Tech" },
-      { value: "islamic_studies", label: "General Islamic Studies" },
+      { value: "all", label: "تمام کتب" },
+      { value: "quran_sciences", label: "قرآن و علومِ قرآن" },
+      { value: "hadith_sciences", label: "حدیث و اصولِ حدیث" },
+      { value: "aqeedah_fiqh", label: "عقیدہ و منہج" },
+      { value: "fiqh_fatawa", label: "فقہ و فتاویٰ" },
+      { value: "history_seerah", label: "سیرت و تاریخ" },
+      { value: "literature", label: "دعوت و اصلاح" },
     ];
   }, [dynamicCategories]);
 
@@ -233,6 +275,20 @@ const UserLibrary = () => {
     filteredBooks,
   } = useBookSearch(books);
 
+  // --- UNIQUE AUTHORS LIST FOR DROPDOWN ---
+  const uniqueAuthors = useMemo(() => {
+    const map = new Map();
+    for (const b of books) {
+      const a = safeBookText(b?.author, "").trim();
+      if (a && a !== "Unknown" && a !== "نامعلوم") {
+        map.set(a, (map.get(a) || 0) + 1);
+      }
+    }
+    return Array.from(map.entries())
+      .sort((x, y) => y[1] - x[1])
+      .map(([name, count]) => ({ name, count }));
+  }, [books]);
+
   const fetchBooks = async (searchText = "") => {
     const requestId = ++activeRequestRef.current;
     setLoading(true);
@@ -241,20 +297,20 @@ const UserLibrary = () => {
       const trimmed = searchText?.trim() || "";
       const data = await bookService.getAllBooks({
         approved_only: true,
-        sort_order: 'desc',
+        sort_order: "desc",
         search: trimmed,
         limit: 5000,
       });
 
       if (requestId === activeRequestRef.current) {
         const rawList = Array.isArray(data) ? data : data?.books || [];
-        const list = rawList.filter(b => b.is_approved === true);
+        const list = rawList.filter((b) => b.is_approved === true);
         setBooks(list);
       }
     } catch (error) {
       console.error(error);
       if (requestId === activeRequestRef.current) {
-        toast.error("Failed to load library.");
+        toast.error("کتب خانہ لوڈ کرنے میں دشواری پیش آئی۔");
       }
     } finally {
       if (requestId === activeRequestRef.current) {
@@ -263,14 +319,13 @@ const UserLibrary = () => {
     }
   };
 
-  // --- EFFECTS ---
   useEffect(() => {
     const loadCategories = async () => {
       try {
         const data = await categoryService.getAllCategories();
         const categoryList = Array.isArray(data) ? data : data?.categories || [];
         setDynamicCategories(categoryList);
-      } catch (error) {
+      } catch {
         setDynamicCategories([]);
       }
     };
@@ -280,7 +335,7 @@ const UserLibrary = () => {
   useEffect(() => {
     if (loading || !Array.isArray(books) || books.length === 0) return;
 
-    const urlSearch = searchParams.get('search');
+    const urlSearch = searchParams.get("search");
     const stateSearch = location.state?.preSearch;
     const searchValue = urlSearch || stateSearch;
 
@@ -291,7 +346,13 @@ const UserLibrary = () => {
         if (el) el.scrollIntoView({ behavior: "smooth" });
       }, 200);
     }
-  }, [loading, books.length, searchParams.toString(), location.state?.preSearch, setSearchTerm]);
+  }, [
+    loading,
+    books.length,
+    searchParams.toString(),
+    location.state?.preSearch,
+    setSearchTerm,
+  ]);
 
   useEffect(() => {
     const handler = window.setTimeout(() => {
@@ -310,33 +371,40 @@ const UserLibrary = () => {
   // Reset pagination on filter changes
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, selectedLanguage, selectedCategory, sortBy]);
-
-  // --- HELPERS ---
-  const safeText = (v, f = "") => {
-    if (!v) return f;
-    if (typeof v === "object") return v?.name || v?.title || v?.slug || f;
-    return String(v);
-  };
+  }, [
+    searchTerm,
+    selectedLanguage,
+    selectedCategory,
+    sortBy,
+    selectedAuthor,
+    selectedLetter,
+    librarySectionMode,
+  ]);
 
   const safeCategory = (book) => {
-    if (!book) return "General";
-    if (book.category && typeof book.category === 'object') {
-      return safeBookText(book.category.name || book.category.title || book.category, "General");
+    if (!book) return "عمومی کتب";
+    if (book.category && typeof book.category === "object") {
+      return toUrduCategoryLabel(
+        book.category.name || book.category.title || book.category
+      );
     }
-    if (book.subcategories && Array.isArray(book.subcategories) && book.subcategories.length > 0) {
+    if (
+      book.subcategories &&
+      Array.isArray(book.subcategories) &&
+      book.subcategories.length > 0
+    ) {
       const sub = book.subcategories[0];
-      if (sub.category && typeof sub.category === 'object') {
-        return safeBookText(sub.category.name || sub.category, "General");
+      if (sub.category && typeof sub.category === "object") {
+        return toUrduCategoryLabel(sub.category.name || sub.category);
       }
-      return safeBookText(sub.name, "General");
+      return toUrduCategoryLabel(sub.name);
     }
-    if (typeof book.category === 'string') return book.category;
-    return "General";
+    if (typeof book.category === "string") return toUrduCategoryLabel(book.category);
+    return "عمومی کتب";
   };
 
   const toggleFavorite = (e, bookId) => {
-    e.stopPropagation();
+    if (e) e.stopPropagation();
     setFavorites((prev) => {
       const updated = prev.includes(bookId)
         ? prev.filter((id) => id !== bookId)
@@ -353,12 +421,46 @@ const UserLibrary = () => {
   const handleRequestAccess = (book) => {
     setSelectedBook(null);
     if (!isAuth) {
-      toast.error("Please login to request access.");
+      toast.error("رسائی کی درخواست کے لیے لاگ ان کریں۔");
       navigate("/login");
       return;
     }
     setRestrictedBook(book);
     setIsAccessFlowOpen(true);
+  };
+
+  const recordBookOpenAndNavigate = (book) => {
+    if (!book) return;
+    if (book.is_restricted && !book.user_has_access) {
+      handleRequestAccess(book);
+      return;
+    }
+    try {
+      const coverUrl = book?.cover_image_url || book?.cover_image;
+      const authorStr = safeBookText(book?.author, "علمائے کرام");
+      const existing = recentReads.find(
+        (r) => String(r.book_id) === String(book.id)
+      );
+      const nextEntry = {
+        book_id: Number(book.id),
+        title: safeBookText(book?.title, "کتاب"),
+        author: authorStr,
+        cover_image_url: coverUrl,
+        last_page_read: existing?.last_page_read || 1,
+        total_pages: Number(book?.page_count || existing?.total_pages || 0),
+        updated_at: new Date().toISOString(),
+      };
+      const filtered = recentReads.filter(
+        (entry) => String(entry.book_id) !== String(book.id)
+      );
+      const nextList = [nextEntry, ...filtered].slice(0, 12);
+      setRecentReads(nextList);
+      localStorage.setItem("bookNest_recent_reads", JSON.stringify(nextList));
+      window.dispatchEvent(
+        new CustomEvent("kil_reading_updated", { detail: nextEntry })
+      );
+    } catch {}
+    navigate(`/read/${book.id}`);
   };
 
   const scrollToTop = () => {
@@ -367,25 +469,126 @@ const UserLibrary = () => {
     else window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  // --- SORTING ---
-  const finalDisplayBooks = useMemo(() => {
-    const sorted = [...(Array.isArray(filteredBooks) ? filteredBooks : [])];
-    const safeId = (b) => Number(b?.id) || 0;
-
-    if (sortBy === "newest") {
-      sorted.sort((a, b) => safeId(b) - safeId(a));
-    } else if (sortBy === "oldest") {
-      sorted.sort((a, b) => safeId(a) - safeId(b));
-    } else if (sortBy === "az") {
-      sorted.sort((a, b) => safeBookText(a?.title).localeCompare(safeBookText(b?.title)));
-    } else if (sortBy === "favorites") {
-      return sorted.filter((b) => favorites.includes(b.id));
+  // --- CONTINUE READING FEATURED BOOK (KHAAS FEATURE 1) ---
+  const continueReadingItem = useMemo(() => {
+    if (recentReads.length > 0) {
+      const latest = recentReads[0];
+      const matchedBook = books.find(
+        (b) => String(b.id) === String(latest.book_id)
+      );
+      const lastPage = Math.max(1, Number(latest.last_page_read || 1));
+      const totalPages = Number(
+        latest.total_pages || matchedBook?.page_count || 0
+      );
+      const pct =
+        totalPages > 0
+          ? Math.min(100, Math.max(5, Math.round((lastPage / totalPages) * 100)))
+          : 25;
+      return {
+        isRecent: true,
+        bookId: latest.book_id,
+        title: safeBookText(latest.title || matchedBook?.title, "کتاب"),
+        author: safeBookText(
+          latest.author || matchedBook?.author,
+          "علمائے کرام"
+        ),
+        coverUrl: resolveCoverUrl(
+          latest.cover_image_url ||
+            matchedBook?.cover_image_url ||
+            matchedBook?.cover_image
+        ),
+        lastPage,
+        totalPages,
+        pct,
+        bookObj: matchedBook || { id: latest.book_id, title: latest.title },
+      };
     }
 
-    return sorted;
-  }, [filteredBooks, sortBy, favorites]);
+    if (books.length > 0) {
+      const firstBook = books[0];
+      const totalPages = Number(firstBook?.page_count || 0);
+      return {
+        isRecent: false,
+        bookId: firstBook.id,
+        title: safeBookText(firstBook.title, "کتاب"),
+        author: safeBookText(firstBook.author, "علمائے کرام"),
+        coverUrl: resolveCoverUrl(
+          firstBook.cover_image_url || firstBook.cover_image
+        ),
+        lastPage: 1,
+        totalPages,
+        pct: 10,
+        bookObj: firstBook,
+      };
+    }
 
-  // --- PAGINATION (10 per page) ---
+    return null;
+  }, [recentReads, books]);
+
+  // --- FILTERING & SORTING (WITH AUTHOR, ALPHABET, AND LIBRARY SECTION TABS) ---
+  const finalDisplayBooks = useMemo(() => {
+    let list = [...(Array.isArray(filteredBooks) ? filteredBooks : [])];
+
+    // 1. Library Section Mode ('all' | 'continue' | 'favorites')
+    if (librarySectionMode === "continue") {
+      const recentIds = new Set(recentReads.map((r) => String(r.book_id)));
+      list = list.filter((b) => recentIds.has(String(b.id)));
+    } else if (librarySectionMode === "favorites" || sortBy === "favorites") {
+      list = list.filter((b) => favorites.includes(b.id));
+    }
+
+    // 2. Author Filter
+    if (selectedAuthor !== "all") {
+      list = list.filter(
+        (b) => safeBookText(b?.author, "").trim() === selectedAuthor
+      );
+    }
+
+    // 3. Urdu Alphabet Letter Filter (Khaas Feature 2)
+    if (selectedLetter !== "all") {
+      list = list.filter((b) => {
+        const cleanTitle = safeBookText(b?.title, "")
+          .replace(/^[\s"'«»()[\]۔،\-–—]+/, "")
+          .trim();
+        if (!cleanTitle) return false;
+        const firstChar = cleanTitle.charAt(0);
+        if (selectedLetter === "ا") {
+          return firstChar === "ا" || firstChar === "أ" || firstChar === "إ";
+        }
+        if (selectedLetter === "ہ") {
+          return firstChar === "ہ" || firstChar === "ه" || firstChar === "ھ";
+        }
+        if (selectedLetter === "ی") {
+          return firstChar === "ی" || firstChar === "ي" || firstChar === "ے";
+        }
+        return firstChar === selectedLetter;
+      });
+    }
+
+    // 4. Sorting
+    const safeId = (b) => Number(b?.id) || 0;
+    if (sortBy === "newest") {
+      list.sort((a, b) => safeId(b) - safeId(a));
+    } else if (sortBy === "oldest") {
+      list.sort((a, b) => safeId(a) - safeId(b));
+    } else if (sortBy === "az") {
+      list.sort((a, b) =>
+        safeBookText(a?.title).localeCompare(safeBookText(b?.title))
+      );
+    }
+
+    return list;
+  }, [
+    filteredBooks,
+    librarySectionMode,
+    recentReads,
+    favorites,
+    selectedAuthor,
+    selectedLetter,
+    sortBy,
+  ]);
+
+  // --- PAGINATION ---
   const totalPages = Math.ceil(finalDisplayBooks.length / itemsPerPage) || 1;
   const paginatedBooks = useMemo(() => {
     const start = (currentPage - 1) * itemsPerPage;
@@ -393,25 +596,33 @@ const UserLibrary = () => {
   }, [finalDisplayBooks, currentPage, itemsPerPage]);
 
   const activeCategoryLabel = useMemo(() => {
-    if (selectedCategory === "all") return "All Books";
-    const found = categories.find(c => c.value === selectedCategory);
-    return found ? safeBookText(found.label, "All Books") : selectedCategory.replace(/_/g, " ");
-  }, [selectedCategory, categories]);
+    if (librarySectionMode === "continue") return "زیرِ مطالعہ کتب";
+    if (librarySectionMode === "favorites") return "محفوظ شدہ کتب";
+    if (selectedCategory === "all") return "تمام کتب";
+    const found = categories.find((c) => c.value === selectedCategory);
+    return found
+      ? toUrduCategoryLabel(found.label)
+      : toUrduCategoryLabel(selectedCategory.replace(/_/g, " "));
+  }, [selectedCategory, categories, librarySectionMode]);
 
   return (
-    <div className="min-h-screen bg-[#FAF8F5] font-sans text-[#1E293B] pb-24 relative islamic-lattice-bg" dir={isRTL ? "rtl" : "ltr"}>
+    <div
+      id="book-grid-container"
+      className="min-h-screen bg-[#FAF8F5] text-[#0F291E] pb-20 relative"
+      dir={isRTL ? "rtl" : "rtl"}
+      style={{ fontFamily: "'Noto Naskh Arabic', 'Amiri', serif" }}
+    >
       {/* 🛠️ ADMIN REALTIME LAYOUT CONTROLLER */}
       {isAdmin && (
         <div className="bg-slate-900 text-white px-3 py-2 border-b border-slate-800 text-xs flex flex-wrap items-center justify-between gap-2 z-40 relative">
           <div className="flex items-center gap-2">
-            <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse"></span>
-            <span className="font-bold text-slate-200">Admin Live Control:</span>
-            <span className="text-slate-400 hidden sm:inline">Search Layout Mode (/books)</span>
+            <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+            <span className="font-bold text-slate-200">ایڈمن کنٹرول:</span>
           </div>
           <div className="flex items-center gap-1.5 flex-wrap">
             {[
-              { id: "option1", label: "Option 1 (Sidebar + Grid - Image 2)" },
-              { id: "option2", label: "Option 2 (Catalog Header)" },
+              { id: "option1", label: "ڈیزائن ۱ (سائڈ بار + گرڈ)" },
+              { id: "option2", label: "ڈیزائن ۲ (کیٹلاگ ہیڈر)" },
             ].map((opt) => (
               <button
                 key={opt.id}
@@ -419,7 +630,7 @@ const UserLibrary = () => {
                 onClick={() => handleAdminLayoutChange(opt.id)}
                 className={`px-2.5 py-1 rounded-lg font-bold text-[11px] transition cursor-pointer ${
                   activeLayout === opt.id
-                    ? "bg-emerald-500 text-slate-950 shadow-sm"
+                    ? "bg-emerald-500 text-slate-950 shadow-xs"
                     : "bg-slate-800 text-slate-300 hover:bg-slate-700"
                 }`}
               >
@@ -431,15 +642,14 @@ const UserLibrary = () => {
       )}
 
       {/* ========================================================
-          PAGE BODY: TWO-COLUMN LAYOUT (IMAGE 2 MATCH)
+          PAGE BODY: TWO-COLUMN LIGHT PEARL & SQUARE-CURVE HD LAYOUT
       ======================================================== */}
-      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-5 sm:py-8">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-5 sm:py-7">
         
-        {/* MOBILE TOP BAR (< 1024px): Quick Search + Category Drawer Toggle */}
-        <div className="lg:hidden mb-5 space-y-3">
-          {/* Deep Emerald Search Pill */}
-          <div className="relative rounded-2xl bg-[#0F3D2E] text-white px-3.5 py-2.5 flex items-center border border-[#C5A059]/40 shadow-sm">
-            <MagnifyingGlassIcon className="w-5 h-5 text-[#C5A059] shrink-0" />
+        {/* MOBILE TOP BAR (< 1024px): Light Pearl Search + Category Drawer Toggle */}
+        <div className="lg:hidden mb-4 space-y-2.5">
+          <div className="relative rounded-full bg-white px-4 py-2.5 flex items-center border border-[#C8DDD2] shadow-2xs">
+            <MagnifyingGlassIcon className="w-4 h-4 text-[#165B43] shrink-0 ml-2" />
             <input
               type="text"
               value={searchTerm}
@@ -447,48 +657,47 @@ const UserLibrary = () => {
                 setSearchTerm(e.target.value);
                 setCurrentPage(1);
               }}
-              placeholder="کتاب، مصنف یا موضوع تلاش کریں..."
-              className="bg-transparent text-sm text-white placeholder-emerald-200/60 px-3 py-0.5 outline-none w-full font-medium"
-              style={{ fontFamily: "'Noto Naskh Arabic', sans-serif" }}
+              placeholder="کتاب یا مصنف تلاش کریں..."
+              className="bg-transparent text-xs sm:text-sm text-[#0F3D2E] placeholder-slate-400 outline-none w-full font-bold"
             />
             {searchTerm && (
               <button
                 type="button"
                 onClick={() => setSearchTerm("")}
-                className="p-1 text-emerald-200 hover:text-white transition"
+                className="p-1 text-slate-400 hover:text-[#0F3D2E] transition"
               >
                 <XMarkIcon className="w-4 h-4" />
               </button>
             )}
           </div>
 
-          {/* Horizontal Quick Category Scroller + Drawer Button */}
           <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
             <button
               type="button"
               onClick={() => setIsMobileDrawerOpen(true)}
-              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#0F3D2E] text-[#C5A059] font-bold text-xs shrink-0 shadow-xs border border-[#C5A059]/40 active:scale-95 transition"
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#F3F8F5] text-[#0F3D2E] hover:bg-[#165B43] hover:text-white font-extrabold text-xs shrink-0 border border-[#C5A059] transition cursor-pointer"
             >
-              <FunnelIcon className="w-4 h-4" />
-              <span style={{ fontFamily: "'Noto Naskh Arabic', sans-serif" }}>تمام موضوعات</span>
+              <FunnelIcon className="w-3.5 h-3.5" />
+              <span>علمی موضوعات</span>
             </button>
 
             {categories.slice(0, 8).map((cat) => {
-              const isSelected = selectedCategory === cat.value;
+              const isSelected =
+                librarySectionMode === "all" && selectedCategory === cat.value;
               return (
                 <button
                   key={cat.value}
                   type="button"
                   onClick={() => {
+                    setLibrarySectionMode("all");
                     setSelectedCategory(cat.value);
                     setCurrentPage(1);
                   }}
-                  className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold shrink-0 transition-all shadow-2xs ${
+                  className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold shrink-0 transition-all cursor-pointer ${
                     isSelected
-                      ? "bg-[#0F3D2E] text-white border border-[#C5A059]/50 shadow-sm"
-                      : "bg-white text-slate-700 border border-[#E6E2DD] hover:bg-emerald-50/60"
+                      ? "bg-[#165B43] text-white border border-[#165B43] shadow-xs"
+                      : "bg-white text-[#0F3D2E] border border-[#DCECE4] hover:bg-[#165B43] hover:text-white"
                   }`}
-                  style={{ fontFamily: "'Noto Naskh Arabic', sans-serif" }}
                 >
                   <span>{getCategoryIcon(cat.value, cat.label)}</span>
                   <span>{cat.label}</span>
@@ -498,31 +707,28 @@ const UserLibrary = () => {
           </div>
         </div>
 
-        {/* TWO-COLUMN LAYOUT */}
-        <div className="flex flex-col lg:flex-row gap-6 lg:gap-8 items-start">
+        {/* TWO-COLUMN DESKTOP WORKSPACE */}
+        <div className="flex flex-col lg:flex-row gap-6 items-start">
           
           {/* ========================================================
-              LEFT COLUMN: CATEGORY SIDEBAR (DESKTOP)
+              RIGHT COLUMN (IN RTL): LIGHT PEARL SIDEBAR (#F3F8F5)
           ======================================================== */}
-          <aside className="w-full lg:w-64 xl:w-72 shrink-0 hidden lg:block lg:sticky lg:top-20 z-20">
-            <div className="rounded-3xl bg-white border border-[#E6E2DD] p-5 shadow-sm space-y-5">
+          <aside className="w-full lg:w-68 xl:w-72 shrink-0 hidden lg:block lg:sticky lg:top-20 z-20">
+            <div className="rounded-3xl bg-[#F3F8F5] border border-[#D5E4DC] p-4 shadow-xs space-y-3.5">
               
-              {/* Brand Title */}
-              <div className="text-center pb-4 border-b border-[#E6E2DD]">
-                <h2
-                  className="text-xl font-black text-[#0F3D2E] leading-tight"
-                  style={{ fontFamily: "'Noto Naskh Arabic', 'Plus Jakarta Sans', system-ui, sans-serif" }}
-                >
-                  کوکن اسلامک لائبریری
-                </h2>
-                <span className="text-[11px] font-bold text-[#C5A059] uppercase tracking-wider block mt-1">
-                  Kokan Islamic Library
+              {/* Sidebar Header */}
+              <div className="flex items-center justify-between border-b border-[#C5A059]/40 pb-2.5">
+                <span className="text-sm font-extrabold text-[#0F3D2E]">
+                  📚 علمی موضوعات و زمرہ جات
+                </span>
+                <span className="text-[10px] font-bold bg-white px-2.5 py-0.5 rounded-full border border-[#C5A059] text-[#0F3D2E]">
+                  فہرست
                 </span>
               </div>
 
-              {/* Deep Emerald Search Bar (Matches Image 2) */}
-              <div className="relative rounded-2xl bg-[#0F3D2E] text-white px-3.5 py-2.5 flex items-center border border-[#C5A059]/40 shadow-xs focus-within:ring-2 focus-within:ring-[#C5A059]/50 transition">
-                <MagnifyingGlassIcon className="w-4 h-4 text-[#C5A059] shrink-0" />
+              {/* Clean White Search Pill */}
+              <div className="relative rounded-full bg-white px-3.5 py-2 flex items-center border border-[#C8DDD2] focus-within:border-[#165B43] transition">
+                <MagnifyingGlassIcon className="w-4 h-4 text-slate-400 shrink-0 ml-2" />
                 <input
                   type="text"
                   value={searchTerm}
@@ -530,48 +736,117 @@ const UserLibrary = () => {
                     setSearchTerm(e.target.value);
                     setCurrentPage(1);
                   }}
-                  placeholder="تلاش کریں..."
-                  className="bg-transparent text-xs sm:text-sm text-white placeholder-emerald-200/60 px-2 py-0.5 outline-none w-full font-medium"
-                  style={{ fontFamily: "'Noto Naskh Arabic', sans-serif" }}
+                  placeholder="کتاب یا مصنف تلاش کریں..."
+                  className="bg-transparent text-xs text-[#0F3D2E] placeholder-slate-400 outline-none w-full font-bold"
                 />
                 {searchTerm && (
                   <button
                     type="button"
                     onClick={() => setSearchTerm("")}
-                    className="p-0.5 text-emerald-200 hover:text-white transition"
+                    className="p-0.5 text-slate-400 hover:text-[#0F3D2E] transition"
                   >
                     <XMarkIcon className="w-3.5 h-3.5" />
                   </button>
                 )}
               </div>
 
-              {/* Categories Navigation (Matches Image 2) */}
-              <div className="space-y-1.5 pt-1">
-                <div className="text-[11px] font-bold text-[#64748B] uppercase tracking-wider px-2 py-1 flex items-center justify-between">
-                  <span>علمی زمرہ جات</span>
-                  <span className="text-[10px] text-[#C5A059] font-mono font-bold">Categories</span>
-                </div>
+              {/* Quick Library Views + Scholarly Categories */}
+              <nav className="space-y-1.5 max-h-[calc(100vh-250px)] overflow-y-auto pr-0.5 custom-scrollbar">
+                {/* 1. All Books */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setLibrarySectionMode("all");
+                    setSelectedCategory("all");
+                    setCurrentPage(1);
+                  }}
+                  className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-full text-xs font-extrabold transition-all text-right cursor-pointer ${
+                    librarySectionMode === "all" && selectedCategory === "all"
+                      ? "bg-[#165B43] text-white border border-[#165B43] shadow-xs"
+                      : "bg-white text-[#0F3D2E] border border-[#DCECE4] hover:bg-[#165B43] hover:text-white hover:border-[#165B43]"
+                  }`}
+                >
+                  <span className="flex items-center gap-2">
+                    <span>🌐</span>
+                    <span>تمام کتب</span>
+                  </span>
+                  <span className="text-[11px] font-mono opacity-90">
+                    {books.length}
+                  </span>
+                </button>
 
-                <nav className="space-y-1.5 max-h-[calc(100vh-320px)] overflow-y-auto pr-1 custom-scrollbar">
-                  {categories.map((cat) => {
-                    const isSelected = selectedCategory === cat.value;
+                {/* 2. Continue Reading (زیرِ مطالعہ) */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setLibrarySectionMode("continue");
+                    setCurrentPage(1);
+                  }}
+                  className={`w-full flex items-center justify-between px-3.5 py-2 rounded-full text-xs font-bold transition-all text-right cursor-pointer ${
+                    librarySectionMode === "continue"
+                      ? "bg-[#165B43] text-white border border-[#165B43] shadow-xs"
+                      : "bg-white text-[#0F3D2E] border border-[#DCECE4] hover:bg-[#165B43] hover:text-white hover:border-[#165B43]"
+                  }`}
+                >
+                  <span className="flex items-center gap-2">
+                    <span>📖</span>
+                    <span>زیرِ مطالعہ (جاری)</span>
+                  </span>
+                  <span className="text-[11px] font-mono opacity-90">
+                    {recentReads.length}
+                  </span>
+                </button>
+
+                {/* 3. Saved / Bookmarked Books (محفوظ شدہ کتب) */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setLibrarySectionMode("favorites");
+                    setCurrentPage(1);
+                  }}
+                  className={`w-full flex items-center justify-between px-3.5 py-2 rounded-full text-xs font-bold transition-all text-right cursor-pointer ${
+                    librarySectionMode === "favorites"
+                      ? "bg-[#165B43] text-white border border-[#165B43] shadow-xs"
+                      : "bg-white text-[#0F3D2E] border border-[#DCECE4] hover:bg-[#165B43] hover:text-white hover:border-[#165B43]"
+                  }`}
+                >
+                  <span className="flex items-center gap-2">
+                    <span>🔖</span>
+                    <span>محفوظ شدہ کتب</span>
+                  </span>
+                  <span className="text-[11px] font-mono opacity-90">
+                    {favorites.length}
+                  </span>
+                </button>
+
+                <div className="pt-1.5 border-t border-[#DCECE4]" />
+
+                {/* Dynamic Scholarly Categories */}
+                {categories
+                  .filter((c) => c.value !== "all")
+                  .map((cat) => {
+                    const isSelected =
+                      librarySectionMode === "all" &&
+                      selectedCategory === cat.value;
                     return (
                       <button
                         key={cat.value}
                         type="button"
                         onClick={() => {
+                          setLibrarySectionMode("all");
                           setSelectedCategory(cat.value);
                           setCurrentPage(1);
                         }}
-                        className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all text-right cursor-pointer ${
+                        className={`w-full flex items-center justify-between px-3.5 py-2 rounded-full text-xs font-bold transition-all text-right cursor-pointer ${
                           isSelected
-                            ? "bg-[#0F3D2E] text-white shadow-md border border-[#C5A059]/50"
-                            : "bg-white hover:bg-emerald-50/70 text-slate-700 hover:text-[#0F3D2E] border border-[#E6E2DD] shadow-2xs"
+                            ? "bg-[#165B43] text-white border border-[#165B43] shadow-xs"
+                            : "bg-white text-[#0F3D2E] border border-[#DCECE4] hover:bg-[#165B43] hover:text-white hover:border-[#165B43]"
                         }`}
-                        style={{ fontFamily: "'Noto Naskh Arabic', sans-serif" }}
                       >
-                        <span className="flex items-center gap-2.5">
-                          <span className="text-base leading-none">{getCategoryIcon(cat.value, cat.label)}</span>
+                        <span className="flex items-center gap-2 truncate">
+                          <span className="text-sm leading-none">
+                            {getCategoryIcon(cat.value, cat.label)}
+                          </span>
                           <span className="truncate">{cat.label}</span>
                         </span>
                         {isSelected && (
@@ -580,106 +855,226 @@ const UserLibrary = () => {
                       </button>
                     );
                   })}
-                </nav>
-              </div>
+              </nav>
             </div>
           </aside>
 
           {/* ========================================================
-              RIGHT COLUMN: CATALOG HEADER & BOOK GRID (IMAGE 2)
+              MAIN COLUMN: CONTINUE READING + HEADER + ALPHABET + HD GRID
           ======================================================== */}
-          <main className="flex-1 min-w-0 w-full space-y-6">
+          <main className="flex-1 min-w-0 w-full space-y-4">
             
-            {/* Top Catalog Header & Controls Bar */}
-            <div className="rounded-3xl bg-white border border-[#E6E2DD] p-4 sm:p-6 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
-              <div>
-                <h1
-                  className="text-2xl sm:text-3xl font-black text-[#0F3D2E] tracking-tight flex items-center gap-2.5 leading-snug"
-                  style={{ fontFamily: "'Noto Naskh Arabic', 'Plus Jakarta Sans', system-ui, sans-serif" }}
+            {/* KHAAS FEATURE 1: CONTINUE READING TOP BAR ("آخری مطالعہ جہاں سے چھوڑا تھا") */}
+            {continueReadingItem && (
+              <div className="bg-gradient-to-l from-[#F3F8F5] to-white border border-[#D5E4DC] border-r-4 border-r-[#165B43] rounded-2xl px-4 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs">
+                <div className="flex items-center gap-3.5 min-w-0">
+                  <div
+                    onClick={() =>
+                      recordBookOpenAndNavigate(continueReadingItem.bookObj)
+                    }
+                    className="w-11 h-15 rounded-lg border border-[#C5A059] bg-[#124B38] overflow-hidden shrink-0 shadow-xs cursor-pointer flex items-center justify-center"
+                  >
+                    {continueReadingItem.coverUrl ? (
+                      <img
+                        src={continueReadingItem.coverUrl}
+                        alt={continueReadingItem.title}
+                        className="w-full h-full object-fill"
+                        onError={(e) => {
+                          e.currentTarget.style.display = "none";
+                        }}
+                      />
+                    ) : (
+                      <span className="text-[9px] text-[#DFC286] font-bold text-center px-1 leading-tight">
+                        📖
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="min-w-0">
+                    <span className="inline-block bg-[#E5F2EC] text-[#165B43] text-[10.5px] font-extrabold px-2.5 py-0.5 rounded-full mb-0.5">
+                      {continueReadingItem.isRecent
+                        ? "📖 آخری مطالعہ جہاں سے چھوڑا تھا"
+                        : "📖 مطالعہ کے لیے منتخب کتاب"}
+                    </span>
+                    <div className="text-sm sm:text-[15px] font-extrabold text-[#0F3D2E] truncate">
+                      {continueReadingItem.title}
+                    </div>
+                    <div className="flex items-center gap-2.5 mt-1 flex-wrap">
+                      <div className="w-28 sm:w-36 h-1.5 bg-[#DCECE4] rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-[#165B43] rounded-full transition-all duration-300"
+                          style={{ width: `${continueReadingItem.pct}%` }}
+                        />
+                      </div>
+                      <span className="text-[11px] font-bold text-slate-600">
+                        {continueReadingItem.totalPages > 0
+                          ? `صفحہ ${continueReadingItem.lastPage} از ${continueReadingItem.totalPages} (${continueReadingItem.pct}% مکمل)`
+                          : continueReadingItem.isRecent
+                          ? `صفحہ ${continueReadingItem.lastPage} جاری`
+                          : `مؤلف: ${continueReadingItem.author}`}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    recordBookOpenAndNavigate(continueReadingItem.bookObj)
+                  }
+                  className="self-start sm:self-center shrink-0 px-4 py-1.5 rounded-full bg-white text-[#0F3D2E] border border-[#C8DDD2] hover:bg-[#165B43] hover:text-white hover:border-[#165B43] active:bg-[#165B43] active:text-white text-xs font-extrabold transition-all shadow-2xs cursor-pointer"
                 >
-                  <span>جدید اسلامی کتب خانہ</span>
-                </h1>
-                <p className="text-xs sm:text-sm text-[#64748B] mt-1 font-medium" style={{ fontFamily: "'Noto Naskh Arabic', sans-serif" }}>
-                  <span>زمرہ: </span>
-                  <strong className="text-[#0F3D2E]">{activeCategoryLabel}</strong>
-                  <span className="mx-2">•</span>
-                  <span>دستیاب کتب: </span>
-                  <strong className="text-[#C5A059] font-mono">{finalDisplayBooks.length}</strong>
-                </p>
+                  {continueReadingItem.isRecent
+                    ? `صفحہ ${continueReadingItem.lastPage} سے مطالعہ جاری رکھیں ←`
+                    : "ابھی مطالعہ شروع کریں ←"}
+                </button>
+              </div>
+            )}
+
+            {/* KHAAS FEATURE 2: LIGHT PEARL CATALOG HEADER + AUTHOR FILTER + URDU ALPHABET BAR */}
+            <div className="bg-[#F3F8F5] border border-[#D5E4DC] border-b-2 border-b-[#C5A059] rounded-2xl p-3.5 sm:p-4 space-y-3 shadow-2xs">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+                <div>
+                  <h1 className="text-xl sm:text-2xl font-black text-[#0F3D2E] flex items-center gap-2">
+                    <span>📖 جدید اسلامی کتب خانہ</span>
+                  </h1>
+                  <p className="text-xs font-bold text-[#165B43] mt-0.5">
+                    <span>زمرہ: {activeCategoryLabel}</span>
+                    <span className="mx-2">•</span>
+                    <span>دستیاب کتب: {finalDisplayBooks.length}</span>
+                  </p>
+                </div>
+
+                {/* Controls Toolbar (Hover-Only Green Pills) */}
+                <div className="flex flex-wrap items-center gap-2">
+                  {/* Language Select */}
+                  <select
+                    value={selectedLanguage}
+                    onChange={(e) => {
+                      setSelectedLanguage(e.target.value);
+                      setCurrentPage(1);
+                    }}
+                    className="rounded-full border border-[#C8DDD2] bg-white text-[#0F3D2E] hover:border-[#165B43] px-3 py-1.5 text-xs font-extrabold outline-none shadow-2xs cursor-pointer"
+                  >
+                    <option value="all">🌐 تمام زبانیں</option>
+                    <option value="urdu">اردو</option>
+                    <option value="arabic">عربی</option>
+                    <option value="english">انگریزی</option>
+                    <option value="hindi">ہندی</option>
+                  </select>
+
+                  {/* Author Select */}
+                  <select
+                    value={selectedAuthor}
+                    onChange={(e) => {
+                      setSelectedAuthor(e.target.value);
+                      setCurrentPage(1);
+                    }}
+                    className="rounded-full border border-[#C8DDD2] bg-white text-[#0F3D2E] hover:border-[#165B43] px-3 py-1.5 text-xs font-extrabold outline-none shadow-2xs cursor-pointer max-w-[180px]"
+                  >
+                    <option value="all">✍️ تمام مصنفین</option>
+                    {uniqueAuthors.map((a) => (
+                      <option key={a.name} value={a.name}>
+                        {a.name} ({a.count})
+                      </option>
+                    ))}
+                  </select>
+
+                  {/* Sort Select */}
+                  <div className="flex items-center gap-1 rounded-full border border-[#C8DDD2] bg-white hover:border-[#165B43] px-3 py-1.5 shadow-2xs">
+                    <ArrowsUpDownIcon className="w-3.5 h-3.5 text-[#165B43]" />
+                    <select
+                      value={sortBy}
+                      onChange={(e) => setSortBy(e.target.value)}
+                      className="bg-transparent text-xs font-extrabold text-[#0F3D2E] outline-none cursor-pointer"
+                    >
+                      <option value="newest">تازہ ترین</option>
+                      <option value="oldest">قدیم ترین</option>
+                      <option value="az">حروفِ تہجی</option>
+                      <option value="favorites">محفوظ شدہ</option>
+                    </select>
+                  </div>
+
+                  {/* Grid / List View Toggle */}
+                  <div className="flex rounded-full bg-white p-0.5 border border-[#C8DDD2] shadow-2xs">
+                    <button
+                      type="button"
+                      onClick={() => setViewMode("grid")}
+                      className={`p-1.5 rounded-full transition-all cursor-pointer ${
+                        viewMode === "grid"
+                          ? "bg-[#165B43] text-white"
+                          : "text-slate-500 hover:text-[#165B43]"
+                      }`}
+                      title="گرڈ ویو"
+                    >
+                      <Squares2X2Icon className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setViewMode("list")}
+                      className={`p-1.5 rounded-full transition-all cursor-pointer ${
+                        viewMode === "list"
+                          ? "bg-[#165B43] text-white"
+                          : "text-slate-500 hover:text-[#165B43]"
+                      }`}
+                      title="فہرست ویو"
+                    >
+                      <ListBulletIcon className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
               </div>
 
-              {/* Controls Toolbar */}
-              <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-                {/* Language Select */}
-                <select
-                  value={selectedLanguage}
-                  onChange={(e) => {
-                    setSelectedLanguage(e.target.value);
-                    setCurrentPage(1);
-                  }}
-                  className="rounded-xl border border-[#E6E2DD] bg-[#FAF8F5] text-slate-800 px-3 py-2 text-xs font-bold outline-none shadow-2xs hover:border-emerald-300 cursor-pointer"
-                  style={{ fontFamily: "'Noto Naskh Arabic', sans-serif" }}
+              {/* URDU ALPHABET QUICK FILTER STRIP (حروف تہجی) */}
+              <div className="flex items-center gap-1 pt-2.5 border-t border-[#DCECE4] overflow-x-auto no-scrollbar">
+                <span className="text-[11px] font-extrabold text-[#165B43] ml-1.5 shrink-0">
+                  حروف تہجی:
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setSelectedLetter("all")}
+                  className={`px-2.5 py-0.5 rounded-md text-xs font-extrabold transition shrink-0 cursor-pointer ${
+                    selectedLetter === "all"
+                      ? "bg-[#165B43] text-white shadow-2xs"
+                      : "bg-white text-[#0F3D2E] border border-[#DCECE4] hover:bg-[#165B43] hover:text-white"
+                  }`}
                 >
-                  <option value="all">🌐 تمام زبانیں (All)</option>
-                  <option value="urdu">اردو (Urdu)</option>
-                  <option value="arabic">عربی (Arabic)</option>
-                  <option value="english">انگریزی (English)</option>
-                  <option value="hindi">ہندی (Hindi)</option>
-                </select>
-
-                {/* Sort Select */}
-                <div className="flex items-center gap-1.5 rounded-xl border border-[#E6E2DD] bg-[#FAF8F5] px-2.5 py-1.5 shadow-2xs">
-                  <ArrowsUpDownIcon className="w-4 h-4 text-[#C5A059]" />
-                  <select
-                    value={sortBy}
-                    onChange={(e) => setSortBy(e.target.value)}
-                    className="bg-transparent text-xs font-bold text-slate-800 outline-none cursor-pointer"
-                    style={{ fontFamily: "'Noto Naskh Arabic', sans-serif" }}
-                  >
-                    <option value="newest">تازہ ترین (Newest)</option>
-                    <option value="oldest">نمبر شمار (Serial #)</option>
-                    <option value="az">حروفِ تہجی (A-Z)</option>
-                    <option value="favorites">محفوظ شدہ (Favorites)</option>
-                  </select>
-                </div>
-
-                {/* Grid / List View Toggle */}
-                <div className="flex rounded-xl bg-[#FAF8F5] p-1 border border-[#E6E2DD] shadow-2xs">
-                  <button
-                    type="button"
-                    onClick={() => setViewMode("grid")}
-                    className={`p-1.5 rounded-lg transition-all cursor-pointer ${
-                      viewMode === "grid"
-                        ? "bg-[#0F3D2E] text-white shadow-xs"
-                        : "text-slate-500 hover:text-[#0F3D2E]"
-                    }`}
-                    title="Grid view"
-                  >
-                    <Squares2X2Icon className="w-4 h-4" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setViewMode("list")}
-                    className={`p-1.5 rounded-lg transition-all cursor-pointer ${
-                      viewMode === "list"
-                        ? "bg-[#0F3D2E] text-white shadow-xs"
-                        : "text-slate-500 hover:text-[#0F3D2E]"
-                    }`}
-                    title="List view"
-                  >
-                    <ListBulletIcon className="w-4 h-4" />
-                  </button>
-                </div>
+                  سب
+                </button>
+                {URDU_ALPHABET.map((letter) => {
+                  const isActive = selectedLetter === letter;
+                  return (
+                    <button
+                      key={letter}
+                      type="button"
+                      onClick={() =>
+                        setSelectedLetter(isActive ? "all" : letter)
+                      }
+                      className={`min-w-[26px] h-[26px] px-1.5 rounded-md text-xs font-bold transition shrink-0 flex items-center justify-center cursor-pointer ${
+                        isActive
+                          ? "bg-[#165B43] text-white shadow-2xs"
+                          : "bg-white text-[#0F3D2E] border border-[#DCECE4] hover:bg-[#165B43] hover:text-white"
+                      }`}
+                    >
+                      {letter}
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
-            {/* BOOKS CATALOG GRID */}
+            {/* BOOKS CATALOG GRID (4-COLUMN SQUARE-CURVE HD CARDS) */}
             {loading ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-5 animate-pulse">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 animate-pulse">
                 {[...Array(8)].map((_, i) => (
-                  <div key={i} className="rounded-2xl border border-[#E6E2DD] bg-white p-4 space-y-4 shadow-xs">
-                    <div className="aspect-[2/3] rounded-xl bg-slate-100 mx-auto w-3/4" />
-                    <div className="space-y-2">
+                  <div
+                    key={i}
+                    className="rounded-[22px] border border-[#D5E4DC] bg-white overflow-hidden shadow-2xs"
+                  >
+                    <div className="bg-[#EAF3EE] p-5 flex justify-center">
+                      <div className="w-[148px] h-[210px] rounded-[14px] bg-white/70" />
+                    </div>
+                    <div className="p-4 space-y-2">
                       <div className="h-4 bg-slate-100 rounded-md w-4/5 mx-auto" />
                       <div className="h-3 bg-slate-100 rounded-md w-1/2 mx-auto" />
                     </div>
@@ -693,8 +1088,8 @@ const UserLibrary = () => {
                   layout
                   className={
                     viewMode === "grid"
-                      ? "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-5"
-                      : "grid grid-cols-1 gap-4"
+                      ? "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4"
+                      : "grid grid-cols-1 gap-3.5"
                   }
                 >
                   <AnimatePresence>
@@ -702,7 +1097,7 @@ const UserLibrary = () => {
                       <motion.div
                         key={book.id}
                         layout
-                        initial={{ opacity: 0, y: 14 }}
+                        initial={{ opacity: 0, y: 12 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0 }}
                         className="w-full"
@@ -711,32 +1106,39 @@ const UserLibrary = () => {
                           <PublicBookCard
                             book={book}
                             onClick={() => setSelectedBook(book)}
+                            onQuickLook={() => setSelectedBook(book)}
+                            onReadClick={() => recordBookOpenAndNavigate(book)}
                             isFavorite={favorites.includes(book.id)}
                             onToggleFavorite={toggleFavorite}
                           />
                         ) : (
-                          /* Clean List View Card */
+                          /* Clean Light Pearl List View Card */
                           <div
                             onClick={() => setSelectedBook(book)}
-                            className="flex flex-col sm:flex-row items-center gap-4 p-4 rounded-2xl bg-white border border-[#E6E2DD] hover:border-emerald-300 hover:shadow-md transition cursor-pointer shadow-2xs"
+                            className="flex flex-col sm:flex-row items-center gap-4 p-4 rounded-2xl bg-white border border-[#D5E4DC] hover:border-[#C5A059] hover:shadow-md transition cursor-pointer shadow-2xs"
                           >
-                            <div className="w-20 sm:w-24 aspect-[2/3] shrink-0 rounded-xl overflow-hidden bg-slate-100 border border-[#E6E2DD]">
-                              <img
-                                src={getBookCover(book) || FALLBACK_NO_COVER}
-                                alt={book.title}
-                                className="w-full h-full object-cover"
-                                onError={(e) => { e.currentTarget.src = FALLBACK_NO_COVER; }}
-                              />
+                            <div className="w-20 sm:w-24 aspect-[2/3] shrink-0 rounded-xl overflow-hidden bg-[#EAF3EE] border-2 border-[#C5A059] flex items-center justify-center">
+                              {getBookCover(book) ? (
+                                <img
+                                  src={getBookCover(book)}
+                                  alt={book.title}
+                                  className="w-full h-full object-fill"
+                                />
+                              ) : (
+                                <span className="text-xs font-bold text-[#0F3D2E] text-center px-1">
+                                  {safeBookText(book.title)}
+                                </span>
+                              )}
                             </div>
                             <div className="flex-1 min-w-0 text-center sm:text-right">
-                              <span className="text-[10px] font-bold text-[#C5A059] uppercase tracking-wider bg-amber-50 border border-amber-200/80 px-2 py-0.5 rounded-full inline-block mb-1">
+                              <span className="text-[10px] font-bold text-[#165B43] bg-[#F3F8F5] border border-[#DCECE4] px-2.5 py-0.5 rounded-full inline-block mb-1">
                                 {safeCategory(book)}
                               </span>
-                              <h3 className="text-base font-bold text-[#0F3D2E] leading-snug line-clamp-1" style={{ fontFamily: "'Noto Naskh Arabic', sans-serif" }}>
+                              <h3 className="text-base font-extrabold text-[#0F3D2E] leading-relaxed line-clamp-1">
                                 {safeBookText(book.title)}
                               </h3>
-                              <p className="text-xs text-[#64748B] mt-0.5" style={{ fontFamily: "'Noto Naskh Arabic', sans-serif" }}>
-                                مؤلف: <span className="text-slate-800 font-semibold">{safeBookText(book.author)}</span>
+                              <p className="text-xs text-[#165B43] font-bold mt-0.5">
+                                ✍️ {safeBookText(book.author, "علمائے کرام")}
                               </p>
                               {book.description && (
                                 <p className="text-xs text-slate-500 line-clamp-2 mt-1">
@@ -749,12 +1151,22 @@ const UserLibrary = () => {
                                 type="button"
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  navigate(`/read/${book.id}`);
+                                  recordBookOpenAndNavigate(book);
                                 }}
-                                className="px-4 py-2 rounded-xl bg-[#0F3D2E] hover:bg-[#165B44] text-white text-xs font-bold transition shadow-xs cursor-pointer"
-                                style={{ fontFamily: "'Noto Naskh Arabic', sans-serif" }}
+                                className="px-4 py-1.5 rounded-full bg-white text-[#0F3D2E] border border-[#C8DDD2] hover:bg-[#165B43] hover:text-white hover:border-[#165B43] text-xs font-extrabold transition shadow-2xs cursor-pointer"
                               >
                                 📖 مطالعہ
+                              </button>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedBook(book);
+                                }}
+                                className="px-4 py-1.5 rounded-full bg-white text-[#0F3D2E] border border-[#C8DDD2] hover:bg-[#165B43] hover:text-white hover:border-[#165B43] text-xs font-extrabold transition shadow-2xs cursor-pointer inline-flex items-center justify-center gap-1"
+                              >
+                                <EyeIcon className="w-3.5 h-3.5" />
+                                <span>جھلک</span>
                               </button>
                             </div>
                           </div>
@@ -764,11 +1176,12 @@ const UserLibrary = () => {
                   </AnimatePresence>
                 </motion.div>
 
-                {/* 📄 CLEAN PAGINATION BAR (IMAGE 2 MATCH) */}
-                <div className="mt-10 flex flex-col sm:flex-row items-center justify-between gap-4 bg-white p-4 sm:p-5 rounded-3xl border border-[#E6E2DD] shadow-xs">
-                  {/* Books Per Page Selector */}
+                {/* 📄 LIGHT PEARL PAGINATION BAR */}
+                <div className="mt-8 flex flex-col sm:flex-row items-center justify-between gap-4 bg-[#F3F8F5] p-4 rounded-2xl border border-[#D5E4DC] shadow-2xs">
                   <div className="flex items-center gap-2">
-                    <span className="text-xs font-semibold text-[#64748B]">فی صفحہ کتب:</span>
+                    <span className="text-xs font-extrabold text-[#0F3D2E]">
+                      فی صفحہ کتب:
+                    </span>
                     <select
                       value={itemsPerPage}
                       onChange={(e) => {
@@ -776,19 +1189,18 @@ const UserLibrary = () => {
                         setCurrentPage(1);
                         scrollToTop();
                       }}
-                      className="rounded-xl border border-[#E6E2DD] bg-[#FAF8F5] text-slate-800 px-3 py-1.5 text-xs font-bold outline-none shadow-2xs hover:border-emerald-300 cursor-pointer"
+                      className="rounded-xl border border-[#C8DDD2] bg-white text-[#0F3D2E] px-3 py-1 text-xs font-extrabold outline-none shadow-2xs hover:border-[#165B43] cursor-pointer"
                     >
-                      <option value={10}>10</option>
-                      <option value={25}>25</option>
-                      <option value={50}>50</option>
-                      <option value={100}>100</option>
+                      <option value={12}>12</option>
+                      <option value={24}>24</option>
+                      <option value={48}>48</option>
+                      <option value={96}>96</option>
                     </select>
-                    <span className="text-xs text-[#64748B] ml-2">
+                    <span className="text-xs font-bold text-[#165B43] mr-2">
                       صفحہ {currentPage} از {totalPages}
                     </span>
                   </div>
 
-                  {/* Page Navigation Buttons */}
                   <div className="flex items-center gap-1.5 flex-wrap justify-center">
                     <button
                       type="button"
@@ -799,17 +1211,23 @@ const UserLibrary = () => {
                         }
                       }}
                       disabled={currentPage === 1}
-                      className="inline-flex items-center gap-1 px-3.5 py-1.5 rounded-xl text-xs font-bold border border-[#E6E2DD] bg-[#FAF8F5] text-slate-700 hover:bg-emerald-50 hover:text-[#0F3D2E] disabled:opacity-40 disabled:cursor-not-allowed transition shadow-2xs cursor-pointer"
+                      className="inline-flex items-center gap-1 px-3.5 py-1.5 rounded-xl text-xs font-extrabold border border-[#C8DDD2] bg-white text-[#0F3D2E] hover:bg-[#165B43] hover:text-white hover:border-[#165B43] disabled:opacity-40 disabled:cursor-not-allowed transition shadow-2xs cursor-pointer"
                     >
-                      <ChevronRightIcon className="w-4 h-4" />
+                      <ChevronRightIcon className="w-3.5 h-3.5" />
                       <span>پچھلا</span>
                     </button>
 
                     {(() => {
                       const pages = [];
                       const maxVisible = 5;
-                      let startPage = Math.max(1, currentPage - Math.floor(maxVisible / 2));
-                      let endPage = Math.min(totalPages, startPage + maxVisible - 1);
+                      let startPage = Math.max(
+                        1,
+                        currentPage - Math.floor(maxVisible / 2)
+                      );
+                      let endPage = Math.min(
+                        totalPages,
+                        startPage + maxVisible - 1
+                      );
 
                       if (endPage - startPage + 1 < maxVisible) {
                         startPage = Math.max(1, endPage - maxVisible + 1);
@@ -824,10 +1242,10 @@ const UserLibrary = () => {
                               setCurrentPage(p);
                               scrollToTop();
                             }}
-                            className={`w-8 h-8 rounded-xl text-xs font-bold transition cursor-pointer ${
+                            className={`w-8 h-8 rounded-xl text-xs font-extrabold transition cursor-pointer ${
                               currentPage === p
-                                ? "bg-[#0F3D2E] text-white shadow-sm font-black"
-                                : "bg-[#FAF8F5] text-slate-700 border border-[#E6E2DD] hover:bg-emerald-50 hover:text-[#0F3D2E]"
+                                ? "bg-[#165B43] text-white shadow-xs"
+                                : "bg-white text-[#0F3D2E] border border-[#C8DDD2] hover:bg-[#165B43] hover:text-white hover:border-[#165B43]"
                             }`}
                           >
                             {p}
@@ -847,22 +1265,22 @@ const UserLibrary = () => {
                         }
                       }}
                       disabled={currentPage === totalPages}
-                      className="inline-flex items-center gap-1 px-3.5 py-1.5 rounded-xl text-xs font-bold border border-[#E6E2DD] bg-[#FAF8F5] text-slate-700 hover:bg-emerald-50 hover:text-[#0F3D2E] disabled:opacity-40 disabled:cursor-not-allowed transition shadow-2xs cursor-pointer"
+                      className="inline-flex items-center gap-1 px-3.5 py-1.5 rounded-xl text-xs font-extrabold border border-[#C8DDD2] bg-white text-[#0F3D2E] hover:bg-[#165B43] hover:text-white hover:border-[#165B43] disabled:opacity-40 disabled:cursor-not-allowed transition shadow-2xs cursor-pointer"
                     >
                       <span>اگلا</span>
-                      <ChevronLeftIcon className="w-4 h-4" />
+                      <ChevronLeftIcon className="w-3.5 h-3.5" />
                     </button>
                   </div>
                 </div>
               </div>
             ) : (
               /* Empty State */
-              <div className="text-center py-16 bg-white rounded-3xl shadow-xs border border-[#E6E2DD] p-8">
-                <FaceFrownIcon className="h-14 w-14 text-[#C5A059] mx-auto mb-3" />
-                <h3 className="text-xl font-bold text-[#0F3D2E]" style={{ fontFamily: "'Noto Naskh Arabic', sans-serif" }}>
+              <div className="text-center py-14 bg-[#F3F8F5] rounded-3xl shadow-2xs border border-[#D5E4DC] p-8">
+                <FaceFrownIcon className="h-12 w-12 text-[#C5A059] mx-auto mb-2.5" />
+                <h3 className="text-lg font-extrabold text-[#0F3D2E]">
                   کوئی کتاب نہیں ملی
                 </h3>
-                <p className="text-xs text-[#64748B] mt-1 max-w-sm mx-auto" style={{ fontFamily: "'Noto Naskh Arabic', sans-serif" }}>
+                <p className="text-xs text-slate-600 mt-1 max-w-sm mx-auto font-semibold">
                   منتخب کردہ فلٹرز یا تلاش کے مطابق کوئی کتاب دستیاب نہیں ہے۔
                 </p>
                 <button
@@ -871,11 +1289,13 @@ const UserLibrary = () => {
                     setSearchTerm("");
                     setSelectedCategory("all");
                     setSelectedLanguage("all");
+                    setSelectedAuthor("all");
+                    setSelectedLetter("all");
+                    setLibrarySectionMode("all");
                   }}
-                  className="mt-5 px-6 py-2.5 bg-[#0F3D2E] hover:bg-[#165B44] text-white rounded-xl font-bold shadow-md text-xs transition cursor-pointer"
-                  style={{ fontFamily: "'Noto Naskh Arabic', sans-serif" }}
+                  className="mt-4 px-5 py-2 bg-white text-[#0F3D2E] border border-[#C8DDD2] hover:bg-[#165B43] hover:text-white hover:border-[#165B43] rounded-full font-extrabold shadow-2xs text-xs transition cursor-pointer"
                 >
-                  فلٹرز ختم کریں (Reset Filters)
+                  تمام فلٹرز ختم کریں
                 </button>
               </div>
             )}
@@ -894,52 +1314,92 @@ const UserLibrary = () => {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setIsMobileDrawerOpen(false)}
-              className="fixed inset-0 bg-black/60 backdrop-blur-xs"
+              className="fixed inset-0 bg-black/50 backdrop-blur-xs"
             />
             <motion.div
               initial={{ y: "100%" }}
               animate={{ y: 0 }}
               exit={{ y: "100%" }}
               transition={{ type: "spring", damping: 25, stiffness: 250 }}
-              className="relative w-full sm:max-w-md bg-white rounded-t-3xl sm:rounded-3xl p-6 shadow-2xl z-10 max-h-[85vh] flex flex-col border border-[#E6E2DD]"
+              className="relative w-full sm:max-w-md bg-[#F3F8F5] rounded-t-3xl sm:rounded-3xl p-5 shadow-2xl z-10 max-h-[85vh] flex flex-col border border-[#D5E4DC]"
             >
-              <div className="flex items-center justify-between pb-4 border-b border-[#E6E2DD]">
-                <h3 className="text-lg font-bold text-[#0F3D2E] flex items-center gap-2" style={{ fontFamily: "'Noto Naskh Arabic', sans-serif" }}>
-                  <span>علمی موضوعات و زمرہ جات</span>
+              <div className="flex items-center justify-between pb-3.5 border-b border-[#C5A059]/40">
+                <h3 className="text-base font-extrabold text-[#0F3D2E] flex items-center gap-2">
+                  <span>📚 علمی موضوعات و زمرہ جات</span>
                 </h3>
                 <button
                   type="button"
                   onClick={() => setIsMobileDrawerOpen(false)}
-                  className="p-1 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100"
+                  className="p-1 rounded-full bg-white text-slate-500 hover:text-[#0F3D2E] border border-[#DCECE4]"
                 >
                   <XMarkIcon className="w-5 h-5" />
                 </button>
               </div>
 
-              <div className="py-4 space-y-2 overflow-y-auto flex-1 custom-scrollbar">
+              <div className="py-3.5 space-y-2 overflow-y-auto flex-1 custom-scrollbar">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setLibrarySectionMode("continue");
+                    setCurrentPage(1);
+                    setIsMobileDrawerOpen(false);
+                  }}
+                  className={`w-full flex items-center justify-between px-4 py-2.5 rounded-full text-xs font-extrabold transition text-right ${
+                    librarySectionMode === "continue"
+                      ? "bg-[#165B43] text-white"
+                      : "bg-white text-[#0F3D2E] border border-[#DCECE4]"
+                  }`}
+                >
+                  <span>📖 زیرِ مطالعہ (جاری)</span>
+                  <span>{recentReads.length}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setLibrarySectionMode("favorites");
+                    setCurrentPage(1);
+                    setIsMobileDrawerOpen(false);
+                  }}
+                  className={`w-full flex items-center justify-between px-4 py-2.5 rounded-full text-xs font-extrabold transition text-right ${
+                    librarySectionMode === "favorites"
+                      ? "bg-[#165B43] text-white"
+                      : "bg-white text-[#0F3D2E] border border-[#DCECE4]"
+                  }`}
+                >
+                  <span>🔖 محفوظ شدہ کتب</span>
+                  <span>{favorites.length}</span>
+                </button>
+
                 {categories.map((cat) => {
-                  const isSelected = selectedCategory === cat.value;
+                  const isSelected =
+                    librarySectionMode === "all" &&
+                    selectedCategory === cat.value;
                   return (
                     <button
                       key={cat.value}
                       type="button"
                       onClick={() => {
+                        setLibrarySectionMode("all");
                         setSelectedCategory(cat.value);
                         setCurrentPage(1);
                         setIsMobileDrawerOpen(false);
                       }}
-                      className={`w-full flex items-center justify-between px-4 py-3 rounded-2xl text-xs font-bold transition text-right ${
+                      className={`w-full flex items-center justify-between px-4 py-2.5 rounded-full text-xs font-extrabold transition text-right ${
                         isSelected
-                          ? "bg-[#0F3D2E] text-white shadow-md border border-[#C5A059]/40"
-                          : "bg-slate-50 text-slate-700 hover:bg-emerald-50/70 border border-[#E6E2DD]"
+                          ? "bg-[#165B43] text-white shadow-xs"
+                          : "bg-white text-[#0F3D2E] border border-[#DCECE4] hover:bg-[#165B43] hover:text-white"
                       }`}
-                      style={{ fontFamily: "'Noto Naskh Arabic', sans-serif" }}
                     >
                       <span className="flex items-center gap-2.5">
-                        <span className="text-lg">{getCategoryIcon(cat.value, cat.label)}</span>
+                        <span className="text-base">
+                          {getCategoryIcon(cat.value, cat.label)}
+                        </span>
                         <span>{cat.label}</span>
                       </span>
-                      {isSelected && <span className="w-2 h-2 rounded-full bg-[#C5A059]" />}
+                      {isSelected && (
+                        <span className="w-2 h-2 rounded-full bg-[#C5A059]" />
+                      )}
                     </button>
                   );
                 })}
@@ -957,15 +1417,15 @@ const UserLibrary = () => {
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.5 }}
             onClick={scrollToTop}
-            className="fixed bottom-20 right-6 z-40 p-3.5 bg-[#0F3D2E] text-[#C5A059] rounded-full shadow-2xl hover:bg-[#165B44] transition border border-[#C5A059]/40 cursor-pointer"
-            title="Scroll to top"
+            className="fixed bottom-20 right-6 z-40 p-3 bg-white text-[#0F3D2E] hover:bg-[#165B43] hover:text-white rounded-full shadow-lg transition border border-[#C5A059] cursor-pointer"
+            title="اوپر جائیں"
           >
             <ArrowUpIcon className="w-5 h-5" />
           </motion.button>
         )}
       </AnimatePresence>
 
-      {/* QUICK VIEW / BOOK DETAILS MODAL */}
+      {/* QUICK LOOK / BOOK DETAILS MODAL (KHAAS FEATURE 5: 👁️ جھلک) */}
       {selectedBook && (
         <BookDetailsModal
           book={selectedBook}
@@ -983,11 +1443,7 @@ const UserLibrary = () => {
         />
       )}
 
-      {showSuccess && (
-        <SuccessScreen
-          onClose={() => setShowSuccess(false)}
-        />
-      )}
+      {showSuccess && <SuccessScreen onClose={() => setShowSuccess(false)} />}
     </div>
   );
 };
