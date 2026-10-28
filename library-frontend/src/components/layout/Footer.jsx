@@ -239,13 +239,10 @@ const Footer = () => {
 
         {/* Bottom Copyright Bar inside #F3F8F5 Footer */}
         <div
-          className="pt-4 border-t border-emerald-900/15 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs font-extrabold text-[#0F3D2E]"
+          className="pt-4 border-t border-emerald-900/15 flex items-center justify-center text-xs font-extrabold text-[#0F3D2E]"
           style={{ fontFamily: "'Noto Naskh Arabic', sans-serif" }}
         >
           <span>© {new Date().getFullYear()} کوکن اسلامک لائبریری (مرکز اہل حدیث کوکن)</span>
-          <span className="text-[#165B43]">
-            خدمتِ دینِ حق اور اشاعتِ علومِ نبویہ کے لیے وقف
-          </span>
         </div>
       </div>
     </footer>
