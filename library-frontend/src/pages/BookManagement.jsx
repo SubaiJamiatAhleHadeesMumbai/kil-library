@@ -131,7 +131,7 @@ const BookManagement = () => {
     }, [searchTerm]);
 
     // --- Data Fetching (Server-Side Search & Stats) ---
-    const fetchData = useCallback(async (searchQuery = debouncedSearch, silent = false) => {
+    const fetchData = useCallback(async (searchQuery = debouncedSearch, currentStatus = statusFilter, silent = false) => {
         if (!silent) setIsLoading(true);
         try {
             const params = {
@@ -141,6 +141,9 @@ const BookManagement = () => {
             };
             if (searchQuery) {
                 params.search = searchQuery;
+            }
+            if (currentStatus && currentStatus !== 'ALL' && currentStatus !== 'INCOMPLETE') {
+                params.status = currentStatus;
             }
 
             const [booksData, stagedData, statsData] = await Promise.all([
@@ -161,11 +164,11 @@ const BookManagement = () => {
         } finally {
             setIsLoading(false);
         }
-    }, [debouncedSearch]);
+    }, [debouncedSearch, statusFilter]);
 
     useEffect(() => {
-        fetchData(debouncedSearch);
-    }, [debouncedSearch, fetchData]);
+        fetchData(debouncedSearch, statusFilter);
+    }, [debouncedSearch, statusFilter, fetchData]);
 
     // Reset page to 1 when search or filter changes
     useEffect(() => {
@@ -175,15 +178,15 @@ const BookManagement = () => {
     // --- Stats Summary Calculation ---
     const stats = useMemo(() => {
         const books = Array.isArray(allBooks) ? allBooks : [];
-        const total = books.length;
-        const restricted = books.filter(b => b && b.is_restricted).length;
-        const hidden = books.filter(b => b && b.is_hidden).length;
-        const unapproved = books.filter(b => b && !b.is_approved).length;
-        const publicAccess = books.filter(b => b && !b.is_restricted && !b.is_hidden && b.is_approved).length;
-        const digitalOnly = books.filter(b => b && b.is_digital).length;
+        const total = serverStats?.total ?? books.length;
+        const restricted = serverStats?.restricted ?? books.filter(b => b && b.is_restricted).length;
+        const hidden = serverStats?.hidden ?? books.filter(b => b && b.is_hidden).length;
+        const unapproved = serverStats?.pending ?? books.filter(b => b && !b.is_approved).length;
+        const publicAccess = serverStats?.public_live ?? serverStats?.publicAccess ?? books.filter(b => b && !b.is_restricted && !b.is_hidden && b.is_approved).length;
+        const digitalOnly = serverStats?.digitalOnly ?? books.filter(b => b && b.is_digital).length;
         const incomplete = books.filter(b => isBookIncomplete(b)).length;
         return { total, restricted, hidden, unapproved, publicAccess, digitalOnly, incomplete };
-    }, [allBooks]);
+    }, [allBooks, serverStats]);
 
     // --- Filtering & Pagination ---
     const filteredBooks = useMemo(() => {
@@ -257,6 +260,7 @@ const BookManagement = () => {
         try {
             const res = await bookService.toggleBookVisibility(book.id);
             toast.success(res.message || (nextHidden ? "Book hidden from public" : "Book is now visible"));
+            bookService.getBookStats().then(s => s && setServerStats(s)).catch(() => {});
         } catch (err) {
             // Revert on failure
             setAllBooks(prev => prev.map(b => b.id === book.id ? { ...b, is_hidden: !nextHidden } : b));

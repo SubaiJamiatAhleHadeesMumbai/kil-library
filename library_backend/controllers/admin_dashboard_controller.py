@@ -10,6 +10,7 @@ from models.user_model import User
 from models.request_model import BookRequest
 from models.issue_model import Issue
 from models.log_model import Log
+from models.analytics_model import SiteVisit, BookReadingSession
 from schemas.admin_dashboard_schema import AdminDashboardResponse
 from auth import require_permission
 
@@ -81,6 +82,53 @@ def get_dashboard_stats(db: Session = Depends(get_db)):
             "user": user_name
         })
 
+    # Platform Analytics (from SiteVisit and BookReadingSession)
+    total_visits = db.query(func.count(SiteVisit.id)).scalar() or 0
+    unique_visitors = db.query(func.count(func.distinct(SiteVisit.visitor_id))).scalar() or 0
+    book_read_events = db.query(func.count(BookReadingSession.id)).scalar() or 0
+    unique_books_read = db.query(func.count(func.distinct(BookReadingSession.book_id))).scalar() or 0
+
+    top_paths_query = (
+        db.query(SiteVisit.path.label('label'), func.count(SiteVisit.id).label('value'))
+        .filter(SiteVisit.path.isnot(None), SiteVisit.path != '')
+        .group_by(SiteVisit.path)
+        .order_by(func.count(SiteVisit.id).desc())
+        .limit(5)
+        .all()
+    )
+    top_paths = [{"label": p.label or "/", "value": p.value} for p in top_paths_query]
+
+    top_books_query = (
+        db.query(
+            BookReadingSession.book_title.label('label'),
+            func.count(BookReadingSession.id).label('value'),
+            func.max(BookReadingSession.book_category).label('meta')
+        )
+        .filter(BookReadingSession.book_title.isnot(None))
+        .group_by(BookReadingSession.book_title)
+        .order_by(func.count(BookReadingSession.id).desc())
+        .limit(5)
+        .all()
+    )
+    top_books = [
+        {
+            "label": b.label or "Unknown Book",
+            "value": b.value,
+            "meta": f"{b.meta or 'Library Book'} • {b.value} reads"
+        }
+        for b in top_books_query
+    ]
+
+    analytics_summary = {
+        "total_visits": total_visits,
+        "unique_visitors": unique_visitors,
+        "book_read_events": book_read_events,
+        "unique_books_read": unique_books_read,
+        "top_paths": top_paths,
+        "top_books": top_books,
+        "generated_at": datetime.now(timezone.utc)
+    }
+
     return {
         "stats": {
             "total_books": total_books,
@@ -93,5 +141,6 @@ def get_dashboard_stats(db: Session = Depends(get_db)):
             "request_breakdown": request_breakdown
         },
         "recent_logs": recent_logs,
+        "analytics": analytics_summary,
         "generated_at": datetime.now(timezone.utc)
     }

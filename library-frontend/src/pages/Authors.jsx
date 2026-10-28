@@ -22,18 +22,161 @@ const Authors = () => {
 
   const navigate = useNavigate();
 
-  // ✅ Safe author normalizer (Fixes nulls, spacing, objects & case-insensitivity)
-  const normalizeAuthor = (author) => {
-    if (!author) return null;
+  // Clean raw author text & filter invalid symbols
+  const cleanAuthorRaw = (str) => {
+    if (!str) return '';
+    if (typeof str === 'object') str = str.name || str.title || '';
+    let s = String(str).trim();
+    if (/^[\s\.\-۔،:؍\d_\*#]+$/.test(s)) return '';
+    if (s.toLowerCase() === 'unknown' || s === 'نامعلوم') return '';
+    return s;
+  };
 
-    if (typeof author === "object") {
-      author = author?.name || author?.title || "";
+  // Normalize Arabic & Urdu text, remove honorifics & standardize compounds
+  const normalizeScholarName = (str) => {
+    let s = cleanAuthorRaw(str);
+    if (!s) return '';
+
+    // Remove diacritics / tashkeel & tatweel
+    s = s.replace(/[\u064B-\u065F\u0670\u0640]/g, '');
+
+    // Strip leading prefixes (titles)
+    s = s.replace(/^(\s*(مولانا|فضیلۃ\s+الشیخ|فضیلة\s+الشيخ|الشیخ|الشيخ|شیخ|علامہ|علامة|ڈاکٹر|دكتور|د[\.۔]|مفتی|مفتي|مولوی|مولوي|حافظ|قاری|قاري|الامام|امام|الحافظ|شیخ\s+الاسلام|استاذ|استاذنا|تالیف[:۔]|تصنیف[:۔]|مؤلف[:۔]|از[:۔]|اعداد[:۔]|للامام|لشیخ)\s*)+/gi, '');
+
+    // Strip trailing honorific suffixes / prayers
+    s = s.replace(/\s*(رحمہ\s*اللہ|رحمه\s*الله|رحمۃ\s*اللہ\s*علیہ|رحمة\s*الله\s*عليه|حفظہ\s*اللہ|حفظه\s*الله|مدظلہ\s*العالی|مدظله|تعالی|وغیرہ|وآخرون)\s*$/gi, '');
+
+    // Normalize common arabic letter variations
+    s = s.replace(/[أإآ]/g, 'ا')
+         .replace(/[ة]/g, 'ہ')
+         .replace(/[يى]/g, 'ی')
+         .replace(/[ك]/g, 'ک')
+         .replace(/[ؤئ]/g, 'ء');
+
+    // Standardize common compound names spacing
+    s = s.replace(/ابو\s*عبد\s*اللہ/g, 'ابو عبداللہ')
+         .replace(/ابوعبد\s*اللہ/g, 'ابو عبداللہ')
+         .replace(/ابوعبداللہ/g, 'ابو عبداللہ')
+         .replace(/عبد\s*اللہ/g, 'عبداللہ')
+         .replace(/عبد\s*الرحمن/g, 'عبدالرحمن')
+         .replace(/عبد\s*الواحد/g, 'عبدالواحد')
+         .replace(/عبد\s*العزیز/g, 'عبدالعزیز')
+         .replace(/عبد\s*المالک/g, 'عبدالمالک')
+         .replace(/عبد\s*الباسط/g, 'عبدالباسط')
+         .replace(/عنایت\s*اللہ/g, 'عنایت اللہ')
+         .replace(/ناصر\s*الدین/g, 'ناصر الدین')
+         .replace(/صالح\s*العثیمین/g, 'صالح العثیمین')
+         .replace(/زبیر\s*علی\s*زئی/g, 'زبیر علی زئی')
+         .replace(/ابن\s*تیمی[ہۃ]/g, 'ابن تیمیۃ')
+         .replace(/ابن\s*قیم/g, 'ابن قیم');
+
+    return s.replace(/\s+/g, ' ').trim();
+  };
+
+  // Group scholar variations into canonical scholarly identity
+  const resolveCanonicalScholar = (rawAuthor) => {
+    const rawClean = cleanAuthorRaw(rawAuthor);
+    if (!rawClean) return null;
+    const norm = normalizeScholarName(rawAuthor);
+    if (!norm || norm.length < 2) return null;
+
+    // Curated scholar groups
+    // 1. Abu Abdullah Inayatullah Sanabili Madani
+    if (norm.includes('عنایت اللہ') && (norm.includes('سنابلی') || norm.includes('مدنی') || norm.includes('ابو عبداللہ') || norm.includes('حفیظ اللہ'))) {
+      return {
+        key: 'scholar_inayatullah_sanabili',
+        canonicalName: 'فضیلۃ الشیخ ابو عبداللہ عنایت اللہ سنابلی مدنی',
+        searchTerm: 'عنایت اللہ',
+      };
     }
 
-    const clean = String(author).trim();
-    if (!clean) return null;
+    // 2. Maulana Abdul Wahid Anwar Yousufi
+    if (norm.includes('انور یوسفی') || (norm.includes('عبدالواحد') && norm.includes('یوسفی'))) {
+      return {
+        key: 'scholar_anwar_yousufi',
+        canonicalName: 'مولانا عبدالواحد انور یوسفی',
+        searchTerm: 'انور یوسفی',
+      };
+    }
 
-    return clean.replace(/\s+/g, " ");
+    // 3. Sheikh Abdul Aziz bin Baz
+    if ((norm.includes('عبدالعزیز') || norm.includes('عبد العزیز')) && norm.includes('بن باز')) {
+      return {
+        key: 'scholar_ibn_baz',
+        canonicalName: 'سماحة الشیخ عبدالعزیز بن عبداللہ بن باز',
+        searchTerm: 'بن باز',
+      };
+    }
+
+    // 4. Sheikh Muhammad bin Saleh al-Uthaymeen
+    if (norm.includes('العثیمین') || norm.includes('عثیمین')) {
+      return {
+        key: 'scholar_ibn_uthaymeen',
+        canonicalName: 'فضیلۃ الشیخ محمد بن صالح العثیمین',
+        searchTerm: 'العثیمین',
+      };
+    }
+
+    // 5. Allama Muhammad Nasiruddin al-Albani
+    if (norm.includes('البانی') || norm.includes('الالبانی')) {
+      return {
+        key: 'scholar_albani',
+        canonicalName: 'محدث العصر علامہ محمد ناصر الدین البانی',
+        searchTerm: 'البانی',
+      };
+    }
+
+    // 6. Shaykh al-Islam Ibn Taymiyyah
+    if (norm.includes('ابن تیمیۃ') || norm.includes('ابن تیمیہ')) {
+      return {
+        key: 'scholar_ibn_taymiyyah',
+        canonicalName: 'شیخ الاسلام ابن تیمیۃ',
+        searchTerm: 'ابن تیمی',
+      };
+    }
+
+    // 7. Imam Ibn al-Qayyim al-Jawziyyah
+    if (norm.includes('ابن قیم') || norm.includes('ابن القیم')) {
+      return {
+        key: 'scholar_ibn_qayyim',
+        canonicalName: 'الامام ابن قیم الجوزیۃ',
+        searchTerm: 'ابن قیم',
+      };
+    }
+
+    // 8. Sheikh Saleh al-Fawzan
+    if (norm.includes('صالح') && (norm.includes('فوزان') || norm.includes('الفوزان'))) {
+      return {
+        key: 'scholar_saleh_fawzan',
+        canonicalName: 'فضیلۃ الشیخ صالح بن فوزان الفوزان',
+        searchTerm: 'الفوزان',
+      };
+    }
+
+    // 9. Hafiz Zubair Ali Zai
+    if (norm.includes('زبیر علی زئی') || norm.includes('زبیر علی زئی')) {
+      return {
+        key: 'scholar_zubair_ali_zai',
+        canonicalName: 'حافظ زبیر علی زئی',
+        searchTerm: 'زبیر علی زئی',
+      };
+    }
+
+    // 10. Maulana Muhammad Iqbal Kailani
+    if (norm.includes('اقبال کیلانی') || norm.includes('اقبال کیلا نی')) {
+      return {
+        key: 'scholar_iqbal_kailani',
+        canonicalName: 'مولانا محمد اقبال کیلانی',
+        searchTerm: 'اقبال کیلانی',
+      };
+    }
+
+    // Default canonical resolution
+    return {
+      key: `author_${norm.toLowerCase().replace(/\s+/g, '_')}`,
+      canonicalName: rawClean,
+      searchTerm: norm,
+    };
   };
 
   useEffect(() => {
@@ -52,31 +195,38 @@ const Authors = () => {
       const map = new Map();
 
       for (const book of list) {
-        const authorName = normalizeAuthor(book?.author);
-        if (!authorName) continue;
-
-        if (authorName.toLowerCase() === "unknown" || authorName.length < 2) {
-          continue;
-        }
-
-        const key = authorName.toLowerCase();
-        const prev = map.get(key);
+        const canonical = resolveCanonicalScholar(book?.author);
+        if (!canonical) continue;
 
         const copies = book?.total_copies ? parseInt(book.total_copies, 10) : 1;
         const safeCopies = Number.isNaN(copies) ? 1 : copies;
 
+        const prev = map.get(canonical.key);
         if (!prev) {
-          map.set(key, {
-            name: authorName,
+          map.set(canonical.key, {
+            key: canonical.key,
+            name: canonical.canonicalName,
+            searchTerm: canonical.searchTerm,
+            aliases: [book.author],
+            bookIds: [book.id],
             works: 1,
             volumes: safeCopies,
           });
         } else {
-          map.set(key, {
-            ...prev,
-            works: prev.works + 1,
-            volumes: prev.volumes + safeCopies,
-          });
+          const isNewBook = !prev.bookIds.includes(book.id);
+          if (!prev.aliases.includes(book.author)) {
+            prev.aliases.push(book.author);
+          }
+          if (isNewBook) {
+            prev.bookIds.push(book.id);
+            prev.works += 1;
+          }
+          prev.volumes += safeCopies;
+
+          // If current book author string is a cleaner/longer scholarly title, upgrade name
+          if (canonical.canonicalName.length > prev.name.length && !canonical.key.startsWith('scholar_')) {
+            prev.name = canonical.canonicalName;
+          }
         }
       }
 
@@ -95,12 +245,24 @@ const Authors = () => {
     }
   };
 
-  // ✅ Search filter
+  // ✅ Search filter across canonical names, search terms & aliases
   const filteredAuthors = useMemo(() => {
-    const query = q.trim().toLowerCase();
-    if (!query) return authors;
+    const rawQ = q.trim().toLowerCase();
+    if (!rawQ) return authors;
+    const query = normalizeScholarName(rawQ);
 
-    return authors.filter((a) => a.name.toLowerCase().includes(query));
+    return authors.filter((a) => {
+      const nameNorm = normalizeScholarName(a.name.toLowerCase());
+      const searchNorm = normalizeScholarName((a.searchTerm || '').toLowerCase());
+      const aliasesNorm = (a.aliases || []).map(al => normalizeScholarName(String(al).toLowerCase()));
+
+      return (
+        nameNorm.includes(query) ||
+        searchNorm.includes(query) ||
+        aliasesNorm.some(al => al.includes(query)) ||
+        query.split(' ').every(tok => nameNorm.includes(tok) || aliasesNorm.some(al => al.includes(tok)))
+      );
+    });
   }, [authors, q]);
 
   // ✅ Compute Aggregated Statistics
@@ -112,11 +274,14 @@ const Authors = () => {
     return authors.reduce((sum, a) => sum + (a.volumes || 0), 0);
   }, [authors]);
 
-  // ✅ Navigate to Books Library with preSearch state
-  const handleAuthorClick = (authorName) => {
-    navigate(`/books?search=${encodeURIComponent(authorName)}`, {
+  // ✅ Navigate to Books Library with unified search & alias support
+  const handleAuthorClick = (author) => {
+    const targetSearch = author.searchTerm || author.name;
+    navigate(`/books?search=${encodeURIComponent(targetSearch)}`, {
       state: {
-        preSearch: authorName,
+        preSearch: targetSearch,
+        authorAliases: author.aliases || [author.name],
+        canonicalAuthor: author.name,
         mode: "author",
       },
     });
@@ -223,7 +388,7 @@ const Authors = () => {
                   initial={{ opacity: 0, y: 12 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.25, delay: Math.min(index * 0.02, 0.3) }}
-                  onClick={() => handleAuthorClick(author.name)}
+                  onClick={() => handleAuthorClick(author)}
                   className="group relative bg-white p-5 sm:p-6 rounded-3xl border border-slate-200/80 shadow-2xs hover:shadow-md hover:border-indigo-300 transition-all duration-300 cursor-pointer flex items-center justify-between"
                 >
                   <div className="flex items-center gap-4 min-w-0">

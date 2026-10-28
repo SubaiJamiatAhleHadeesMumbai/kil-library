@@ -29,8 +29,23 @@ class RecentLog(BaseModel):
     timestamp: datetime
     user: Optional[str] = None
 
+class AnalyticsItem(BaseModel):
+    label: str
+    value: int
+    meta: Optional[str] = None
+
+class AnalyticsSummary(BaseModel):
+    total_visits: int = 0
+    unique_visitors: int = 0
+    book_read_events: int = 0
+    unique_books_read: int = 0
+    top_paths: List[AnalyticsItem] = []
+    top_books: List[AnalyticsItem] = []
+    generated_at: Optional[datetime] = None
+
 class AdminDashboardResponse(BaseModel):
     stats: DashboardStats
     charts: DashboardCharts
     recent_logs: List[RecentLog]
     generated_at: datetime
+    analytics: Optional[AnalyticsSummary] = None

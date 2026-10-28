@@ -155,6 +155,10 @@ const Dashboard = () => {
             setHasNextLogPage(rawLogs.length >= LOGS_PER_PAGE);
             setLogPage(1);
             setLastUpdated(new Date(data.generated_at));
+
+            if (data.analytics) {
+                setAnalytics(data.analytics);
+            }
         } catch (err) {
             console.error("Dashboard Load Error:", err);
             toast.error("Dashboard data load failed.");

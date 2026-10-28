@@ -146,12 +146,20 @@ export const useBookSearch = (initialBooks = []) => {
         const isbn = normalizeText(book?.isbn);
         const description = normalizeText(book?.description);
 
-        const matchesSearch =
+        let matchesSearch =
           title.includes(term) ||
           author.includes(term) ||
           publisher.includes(term) ||
           isbn.includes(term) ||
           description.includes(term);
+
+        // If direct substring doesn't match and term has multiple words/tokens, check all tokens against author/title
+        if (!matchesSearch && term.includes(" ")) {
+          const tokens = term.split(" ").filter(t => t.length >= 2);
+          if (tokens.length >= 2 && tokens.every(tok => author.includes(tok) || title.includes(tok))) {
+            matchesSearch = true;
+          }
+        }
 
         if (!matchesSearch) return false;
       }

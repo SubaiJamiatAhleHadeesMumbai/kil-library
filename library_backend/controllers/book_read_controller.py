@@ -342,13 +342,27 @@ def get_smart_recommendations(
 def get_book_stats(db: Session = Depends(get_db)):
     base_query = db.query(book_model.Book).filter(book_model.Book.deleted_at.is_(None))
     total = base_query.count()
+    hidden = base_query.filter(book_model.Book.is_hidden == True).count()
     restricted = base_query.filter(book_model.Book.is_restricted == True).count()
-    public_access = total - restricted
     digital_only = base_query.filter(book_model.Book.is_digital == True).count()
+    pending = base_query.filter(
+        or_(
+            book_model.Book.is_approved == False,
+            book_model.Book.upload_request.has(request_model.UploadRequest.status.in_(['Pending', 'Rejected']))
+        )
+    ).count()
+    public_live = base_query.filter(
+        book_model.Book.is_hidden == False,
+        book_model.Book.is_approved == True,
+        ~book_model.Book.upload_request.has(request_model.UploadRequest.status.in_(['Pending', 'Rejected']))
+    ).count()
     return {
         "total": total,
+        "hidden": hidden,
         "restricted": restricted,
-        "publicAccess": public_access,
+        "publicAccess": total - restricted,
+        "public_live": public_live,
+        "pending": pending,
         "digitalOnly": digital_only
     }
 
@@ -367,6 +381,9 @@ def read_books(
     approved_only: bool = False,
     sort_order: Optional[str] = "desc",
     distinct: Optional[bool] = None,
+    is_hidden: Optional[bool] = None,
+    status: Optional[str] = None,
+    is_restricted: Optional[bool] = None,
     db: Session = Depends(get_db),
     current_user: Optional[user_model.User] = Depends(get_current_user_optional)
 ):
@@ -389,6 +406,31 @@ def read_books(
             book_model.Book.is_approved == True,
             ~book_model.Book.upload_request.has(request_model.UploadRequest.status.in_(['Pending', 'Rejected']))
         )
+    else:
+        # Admin filtering
+        if is_hidden is not None:
+            query = query.filter(book_model.Book.is_hidden == is_hidden)
+        elif status == 'HIDDEN':
+            query = query.filter(book_model.Book.is_hidden == True)
+
+        if status == 'UNAPPROVED':
+            query = query.filter(
+                or_(
+                    book_model.Book.is_approved == False,
+                    book_model.Book.upload_request.has(request_model.UploadRequest.status.in_(['Pending', 'Rejected']))
+                )
+            )
+        elif status == 'PUBLIC':
+            query = query.filter(
+                book_model.Book.is_hidden == False,
+                book_model.Book.is_approved == True,
+                ~book_model.Book.upload_request.has(request_model.UploadRequest.status.in_(['Pending', 'Rejected']))
+            )
+
+        if is_restricted is not None:
+            query = query.filter(book_model.Book.is_restricted == is_restricted)
+        elif status == 'RESTRICTED':
+            query = query.filter(book_model.Book.is_restricted == True)
     
     # 3. Filters
     if search and search.strip():
