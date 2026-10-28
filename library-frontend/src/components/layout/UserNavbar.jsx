@@ -66,42 +66,22 @@ const NavItem = ({ to, label, icon: Icon, onClick }) => {
     <NavLink
       to={to}
       onClick={onClick}
-      className={({ isActive }) => `
-        relative flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs sm:text-sm font-bold transition-all duration-200
-        ${
-          isActive
-            ? "text-[#F3E5C8] font-extrabold bg-white/10"
-            : "text-slate-200 hover:text-white hover:bg-white/5"
-        }
-      `}
+      className="group relative flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs sm:text-sm font-bold text-[#0F3D2E] bg-transparent border border-transparent hover:bg-[#165B43] hover:text-white hover:border-[#165B43] active:bg-[#0F3D2E] active:text-white transition-all duration-200 whitespace-nowrap"
     >
-      {({ isActive }) => (
-        <>
-          {Icon && (
-            <Icon
-              className={`h-4 w-4 transition-colors ${
-                isActive ? "text-[#C5A059]" : "text-slate-300 group-hover:text-[#C5A059]"
-              }`}
-            />
-          )}
-          <span 
-            style={isUrdu ? { 
-              fontFamily: "'Noto Naskh Arabic', system-ui, sans-serif", 
-              fontSize: "0.95rem", 
-              lineHeight: 1.5 
-            } : undefined}
-          >
-            {displayLabel}
-          </span>
-          {isActive && (
-            <motion.div
-              layoutId="active-nav-underline"
-              className="absolute bottom-0 inset-x-2 h-[2.5px] bg-[#C5A059] rounded-full shadow-xs"
-              transition={{ type: "spring", stiffness: 300, damping: 30 }}
-            />
-          )}
-        </>
+      {Icon && (
+        <Icon
+          className="h-4 w-4 text-[#165B43] group-hover:text-white group-active:text-white transition-colors shrink-0"
+        />
       )}
+      <span 
+        style={isUrdu ? { 
+          fontFamily: "'Noto Naskh Arabic', system-ui, sans-serif", 
+          fontSize: "0.95rem", 
+          lineHeight: 1.5 
+        } : undefined}
+      >
+        {displayLabel}
+      </span>
     </NavLink>
   );
 };
@@ -286,6 +266,13 @@ const UserNavbar = () => {
   const showLanguageSwitcher = false; // Strictly Urdu mode (English & Arabic disabled)
   const showDonateButton = navbarConfig.show_donate !== false;
   const donateButtonText = (() => {
+    if (language === 'ur') {
+      const d = navbarConfig.donate_text;
+      if (d && typeof d === "object" && d.ur && d.ur !== "donate_btn" && d.ur.toLowerCase() !== "donate") {
+        return d.ur;
+      }
+      return 'تعاون';
+    }
     const d = navbarConfig.donate_text;
     if (d && typeof d === "object") {
       const val = d[language] || d.en || d.ur || d.ar;
@@ -294,7 +281,7 @@ const UserNavbar = () => {
     if (typeof d === "string" && d.trim() && d.trim() !== "donate_btn") return d.trim();
     const trans = t("donate_btn");
     if (trans && trans !== "donate_btn") return trans;
-    return language === 'ur' ? 'تعاون فرمائیں' : (language === 'ar' ? 'تبرع الآن' : 'Donate');
+    return language === 'ar' ? 'تبرع الآن' : 'Donate';
   })();
   const logoSizePx = Number(navbarConfig.logo_size) || 42;
 
@@ -345,26 +332,43 @@ const UserNavbar = () => {
         {/* TOP ANNOUNCEMENT / HADITH TICKER BAR */}
         <TopAnnouncementBar config={announcementConfig} />
 
-        {/* MAIN NAVBAR */}
-        {/* MAIN NAVBAR */}
-        <nav className="bg-[#0F3D2E] border-b border-[#C5A059]/20 shadow-md transition-all duration-300 text-white">
+        {/* MAIN NAVBAR: LIGHT PEARL & EMERALD (#F3F8F5) */}
+        <nav className="bg-[#F3F8F5] border-b-2 border-[#C5A059]/50 shadow-xs transition-all duration-300 text-[#0F3D2E]">
+          {/* TOP CENTERED PURE URDU MARKAZ TITLE */}
+          <div className="text-center pt-1.5 pb-1 border-b border-emerald-900/10 px-3">
+            <span
+              style={{ fontFamily: "'Noto Naskh Arabic', 'Plus Jakarta Sans', system-ui, sans-serif" }}
+              className="text-xs sm:text-base font-extrabold text-[#0F3D2E] whitespace-nowrap notranslate"
+              translate="no"
+            >
+              مرکز اہل حدیث کوکن
+            </span>
+          </div>
+
           <div className="app-shell-container">
-            <div className="flex items-center justify-between min-h-[4.25rem] py-2 gap-2">
+            <div className="flex items-center justify-between min-h-[3.75rem] sm:min-h-[4rem] py-1.5 sm:py-2 gap-2 whitespace-nowrap">
               
-              {/* LOGO & BRAND (100% Matching Footer Identity) */}
+              {/* LOGO & BRAND (Official Markaz Logo + Crisp Titles) */}
               <div className="flex items-center min-w-0 flex-1 lg:flex-none">
-                <Link to="/" className="flex items-center gap-2.5 sm:gap-3 group min-w-0 flex-1 lg:flex-none" onClick={() => setIsMobileMenuOpen(false)}>
-                  <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-[#0A2A20] text-[#C5A059] flex items-center justify-center font-bold text-xl shadow-xs border border-[#C5A059]/40 shrink-0 group-hover:scale-105 transition-transform duration-300">
-                    📖
+                <Link to="/" className="flex items-center gap-2 sm:gap-3 group min-w-0 flex-1 lg:flex-none" onClick={() => setIsMobileMenuOpen(false)}>
+                  <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-full bg-white p-0.5 sm:p-1 shadow-xs border-2 border-[#165B43] flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform duration-300">
+                    <img
+                      src={brandLogoUrl}
+                      alt="مرکز اہل حدیث کوکن"
+                      className="w-full h-full object-contain rounded-full"
+                      onError={(e) => {
+                        e.currentTarget.onerror = null;
+                        e.currentTarget.src = "/static/images/MarkazLogo.png";
+                      }}
+                    />
                   </div>
-                  <div className="flex flex-col justify-center min-w-0 flex-1 py-0.5 overflow-visible">
+                  <div className="flex flex-col justify-center min-w-0 flex-1 py-0.5 overflow-hidden">
                     <span
                       style={{ 
-                        fontSize: "clamp(0.95rem, 3.4vw, 1.3rem)",
                         fontFamily: "'Noto Naskh Arabic', 'Plus Jakarta Sans', system-ui, sans-serif",
                         lineHeight: 1.3,
                       }}
-                      className="font-extrabold text-[#F3E5C8] line-clamp-1 break-words overflow-visible notranslate"
+                      className="text-[14px] sm:text-lg font-extrabold text-[#0F3D2E] truncate whitespace-nowrap notranslate"
                       translate="no"
                       title="کوکن اسلامک لائبریری"
                     >
@@ -374,7 +378,7 @@ const UserNavbar = () => {
                       style={{
                         fontFamily: "'Noto Naskh Arabic', sans-serif"
                       }}
-                      className="text-[10px] sm:text-[11px] text-[#C5A059] font-bold tracking-normal line-clamp-1 break-words notranslate"
+                      className="text-[10px] sm:text-[11px] text-[#165B43] font-bold tracking-normal truncate whitespace-nowrap notranslate"
                       translate="no"
                     >
                       مرکز اہل حدیث کوکن کا علمی شعبہ
@@ -403,22 +407,18 @@ const UserNavbar = () => {
                   <button
                     type="button"
                     onClick={() => setIsAboutDropdownOpen((prev) => !prev)}
-                    className={`relative flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs sm:text-sm font-bold transition-all duration-200 cursor-pointer ${
-                      isAboutDropdownOpen ||
-                      location.pathname === '/about' ||
-                      location.pathname === '/calendar' ||
-                      location.pathname === '/moon' ||
-                      location.pathname === '/juma-list'
-                        ? "text-[#F3E5C8] bg-white/10 font-extrabold"
-                        : "text-slate-200 hover:text-white hover:bg-white/5"
+                    className={`group relative flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs sm:text-sm font-bold transition-all duration-200 cursor-pointer whitespace-nowrap border ${
+                      isAboutDropdownOpen
+                        ? "bg-[#165B43] text-white border-[#165B43]"
+                        : "text-[#0F3D2E] bg-transparent border-transparent hover:bg-[#165B43] hover:text-white hover:border-[#165B43] active:bg-[#0F3D2E] active:text-white"
                     }`}
                     aria-expanded={isAboutDropdownOpen}
                   >
-                    <InformationCircleIcon className={`h-4 w-4 transition-colors ${isAboutDropdownOpen ? "text-[#C5A059]" : "text-slate-300"}`} />
+                    <InformationCircleIcon className={`h-4 w-4 transition-colors ${isAboutDropdownOpen ? "text-white" : "text-[#165B43] group-hover:text-white group-active:text-white"}`} />
                     <span>{t("about") || "About"}</span>
                     <ChevronDownIcon
-                      className={`w-3.5 h-3.5 text-slate-300 transition-transform duration-200 ${
-                        isAboutDropdownOpen ? "rotate-180 text-[#C5A059]" : ""
+                      className={`w-3.5 h-3.5 transition-transform duration-200 ${
+                        isAboutDropdownOpen ? "rotate-180 text-white" : "text-[#165B43] group-hover:text-white group-active:text-white"
                       }`}
                     />
                   </button>
@@ -513,16 +513,16 @@ const UserNavbar = () => {
                           <Link
                             to="/about?tab=ulama"
                             onClick={() => setIsAboutDropdownOpen(false)}
-                            className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-emerald-900/60 hover:border-amber-500/30 border border-transparent transition-all duration-200 group"
+                            className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-slate-50 hover:border-slate-200 border border-transparent transition-all duration-200 group"
                           >
-                            <div className="h-9 w-9 rounded-xl bg-emerald-950/80 border border-amber-500/20 text-amber-400 flex items-center justify-center flex-shrink-0 group-hover:scale-105 group-hover:bg-amber-500 group-hover:text-slate-950 transition-all shadow-sm">
+                            <div className="h-9 w-9 rounded-xl bg-emerald-50 border border-emerald-200/60 text-emerald-800 flex items-center justify-center flex-shrink-0 group-hover:scale-105 group-hover:bg-emerald-800 group-hover:text-white transition-all shadow-2xs">
                               <ChatBubbleLeftRightIcon className="h-5 w-5" />
                             </div>
                             <div className="flex flex-col text-start">
-                              <span className="text-xs font-bold text-white group-hover:text-amber-300 transition-colors">
+                              <span className="text-xs font-bold text-slate-800 group-hover:text-emerald-900 transition-colors">
                                 {language === 'ur' ? 'علماء کی آراء' : (language === 'ar' ? 'آراء العلماء' : 'Scholarly Opinions')}
                               </span>
-                              <span className="text-[10px] text-amber-200/70 font-medium">
+                              <span className="text-[10px] text-slate-500 font-medium">
                                 {language === 'ur' ? 'مرکز کے بارے میں تاثرات' : (language === 'ar' ? 'شهادات وانطباعات' : 'Scholarly Testimonials')}
                               </span>
                             </div>
@@ -566,18 +566,18 @@ const UserNavbar = () => {
                     <button
                       type="button"
                       onClick={() => setIsSocialDropdownOpen((prev) => !prev)}
-                      className={`relative flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs sm:text-sm font-bold transition-all duration-200 cursor-pointer ${
+                      className={`group relative flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs sm:text-sm font-bold transition-all duration-200 cursor-pointer whitespace-nowrap border ${
                         isSocialDropdownOpen
-                          ? "text-[#F3E5C8] bg-white/10 font-extrabold"
-                          : "text-slate-200 hover:text-white hover:bg-white/5"
+                          ? "bg-[#165B43] text-white border-[#165B43]"
+                          : "text-[#0F3D2E] bg-transparent border-transparent hover:bg-[#165B43] hover:text-white hover:border-[#165B43] active:bg-[#0F3D2E] active:text-white"
                       }`}
                       aria-expanded={isSocialDropdownOpen}
                     >
-                      <Squares2X2Icon className={`h-4 w-4 transition-colors ${isSocialDropdownOpen ? "text-[#C5A059]" : "text-slate-300"}`} />
+                      <Squares2X2Icon className={`h-4 w-4 transition-colors ${isSocialDropdownOpen ? "text-white" : "text-[#165B43] group-hover:text-white group-active:text-white"}`} />
                       <span>{t("more") || "More"}</span>
                       <ChevronDownIcon
-                        className={`w-3.5 h-3.5 text-slate-300 transition-transform duration-200 ${
-                          isSocialDropdownOpen ? "rotate-180 text-[#C5A059]" : ""
+                        className={`w-3.5 h-3.5 transition-transform duration-200 ${
+                          isSocialDropdownOpen ? "rotate-180 text-white" : "text-[#165B43] group-hover:text-white group-active:text-white"
                         }`}
                       />
                     </button>
@@ -655,16 +655,16 @@ const UserNavbar = () => {
                               <Link
                                 to="/activities"
                                 onClick={() => setIsSocialDropdownOpen(false)}
-                                className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-emerald-900/60 hover:border-amber-500/30 border border-transparent transition-all duration-200 group"
+                                className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-slate-50 hover:border-slate-200 border border-transparent transition-all duration-200 group"
                               >
-                                <div className="h-9 w-9 rounded-xl bg-emerald-950/80 border border-amber-500/20 text-purple-400 flex items-center justify-center flex-shrink-0 group-hover:scale-105 group-hover:bg-amber-500 group-hover:text-slate-950 transition-all shadow-sm">
+                                <div className="h-9 w-9 rounded-xl bg-emerald-50 border border-emerald-200/60 text-emerald-800 flex items-center justify-center flex-shrink-0 group-hover:scale-105 group-hover:bg-emerald-800 group-hover:text-white transition-all shadow-2xs">
                                   <EllipsisHorizontalCircleIcon className="h-5 w-5" />
                                 </div>
                                 <div className="flex flex-col text-start">
-                                  <span className="text-xs font-bold text-white group-hover:text-amber-300 transition-colors">
+                                  <span className="text-xs font-bold text-slate-800 group-hover:text-emerald-900 transition-colors">
                                     {t("activities")}
                                   </span>
-                                  <span className="text-[10px] text-amber-200/70 font-medium">
+                                  <span className="text-[10px] text-slate-500 font-medium">
                                     Events & Gatherings
                                   </span>
                                 </div>
@@ -676,16 +676,16 @@ const UserNavbar = () => {
                               <Link
                                 to="/posts"
                                 onClick={() => setIsSocialDropdownOpen(false)}
-                                className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-emerald-900/60 hover:border-amber-500/30 border border-transparent transition-all duration-200 group"
+                                className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-slate-50 hover:border-slate-200 border border-transparent transition-all duration-200 group"
                               >
-                                <div className="h-9 w-9 rounded-xl bg-emerald-950/80 border border-amber-500/20 text-rose-400 flex items-center justify-center flex-shrink-0 group-hover:scale-105 group-hover:bg-amber-500 group-hover:text-slate-950 transition-all shadow-sm">
+                                <div className="h-9 w-9 rounded-xl bg-emerald-50 border border-emerald-200/60 text-emerald-800 flex items-center justify-center flex-shrink-0 group-hover:scale-105 group-hover:bg-emerald-800 group-hover:text-white transition-all shadow-2xs">
                                   <MegaphoneIcon className="h-5 w-5" />
                                 </div>
                                 <div className="flex flex-col text-start">
-                                  <span className="text-xs font-bold text-white group-hover:text-amber-300 transition-colors">
+                                  <span className="text-xs font-bold text-slate-800 group-hover:text-emerald-900 transition-colors">
                                     {t("updates")}
                                   </span>
-                                  <span className="text-[10px] text-amber-200/70 font-medium">
+                                  <span className="text-[10px] text-slate-500 font-medium">
                                     News & Circulars
                                   </span>
                                 </div>
@@ -699,37 +699,33 @@ const UserNavbar = () => {
                 )}
               </div>
 
-              {/* RIGHT ACTIONS: CONSOLIDATED CLUSTER */}
-              <div className="hidden lg:flex items-center justify-end gap-2 min-w-0 lg:flex-none">
+              {/* RIGHT ACTIONS: UNIFORM WHITE BUTTONS (Turn Green ONLY on Hover/Click) */}
+              <div className="hidden lg:flex items-center justify-end gap-2 min-w-0 lg:flex-none whitespace-nowrap">
                 
-                {/* Compact Icon-Only Search Trigger (Expand-on-click via modal) */}
+                {/* Search Trigger */}
                 {showSearchPill && (
                   <button
                     type="button"
                     onClick={() => setIsUniversalSearchOpen(true)}
-                    className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 hover:bg-white/20 text-[#F3E5C8] hover:text-white border border-[#C5A059]/40 text-xs transition-all duration-200 shadow-2xs cursor-pointer group"
+                    className="group flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-white hover:bg-[#165B43] active:bg-[#0F3D2E] text-[#0F3D2E] hover:text-white active:text-white border border-[#0F3D2E]/20 hover:border-[#165B43] text-xs font-bold transition-all duration-200 shadow-2xs cursor-pointer whitespace-nowrap"
                     title={language === 'ur' ? "کتاب، مصنف یا موضوع تلاش فرمائیں... (Ctrl+K)" : "Search (Ctrl+K)"}
                   >
-                    <MagnifyingGlassIcon className="w-4 h-4 text-[#C5A059] group-hover:scale-110 transition-transform" />
-                    <span className="text-xs text-[#F3E5C8] font-semibold font-sans">
+                    <MagnifyingGlassIcon className="w-4 h-4 text-[#165B43] group-hover:text-white group-active:text-white transition-colors" />
+                    <span className="text-xs font-bold">
                       {language === 'ur' ? 'تلاش کریں...' : 'Search...'}
                     </span>
-                    <kbd className="hidden xl:inline-flex items-center px-1.5 py-0.5 text-[9px] font-bold text-slate-300 bg-white/10 border border-white/20 rounded">
-                      ⌘K
-                    </kbd>
                   </button>
                 )}
 
-                {/* Gold Donate Button */}
+                {/* Donate Button (Uniform white normal state, Green on Hover/Click) */}
                 {showDonateButton && (
                   <button
                     onClick={() => setIsDonationOpen(true)}
-                    className="group flex items-center gap-1.5 px-3.5 sm:px-4 py-2 bg-[#C5A059] hover:bg-[#b08d47] text-[#0F3D2E] rounded-xl transition-all duration-300 shadow-sm cursor-pointer active:scale-95 font-black text-xs"
+                    className="group flex items-center gap-1.5 px-3.5 py-1.5 bg-white hover:bg-[#165B43] active:bg-[#0F3D2E] text-[#0F3D2E] hover:text-white active:text-white border border-[#0F3D2E]/20 hover:border-[#165B43] rounded-xl transition-all duration-200 shadow-2xs cursor-pointer font-bold text-xs whitespace-nowrap"
                     title={donateButtonText}
                   >
-                    <HandCoinIcon className="w-4 h-4 text-[#0F3D2E] group-hover:scale-110 transition-transform" />
                     <span 
-                      className="text-xs font-black text-[#0F3D2E]"
+                      className="text-xs font-bold"
                       style={language === 'ur' ? { fontFamily: "'Noto Naskh Arabic', sans-serif", fontSize: "0.85rem" } : undefined}
                     >
                       {donateButtonText}
@@ -737,12 +733,10 @@ const UserNavbar = () => {
                   </button>
                 )}
 
-                {/* VISUALLY UNIFIED ACCOUNT & CONTROLS CLUSTER */}
-                <div className="flex items-center gap-1.5 p-1 rounded-full bg-white/10 border border-white/15 shadow-2xs">
-                  {/* Language Switcher */}
+                {/* Account & Login Control */}
+                <div className="flex items-center gap-1.5">
                   {showLanguageSwitcher && <LanguageSwitcher />}
 
-                  {/* Auth Logic (Logged-in vs Logged-out) */}
                   {isAuth ? (
                     <>
                       <NotificationBell />
@@ -751,13 +745,13 @@ const UserNavbar = () => {
                       <div ref={profileRef} className="relative">
                         <button
                           onClick={() => setIsProfileOpen((p) => !p)}
-                          className="flex items-center gap-1 p-0.5 rounded-full hover:bg-white/10 transition-all group cursor-pointer focus:outline-none"
+                          className="group flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-white hover:bg-[#165B43] active:bg-[#0F3D2E] text-[#0F3D2E] hover:text-white border border-[#0F3D2E]/20 hover:border-[#165B43] transition-all cursor-pointer focus:outline-none shadow-2xs"
                           aria-expanded={isProfileOpen}
                         >
-                          <div className="h-7 w-7 rounded-full bg-gradient-to-br from-[#C5A059] to-amber-700 text-slate-950 flex items-center justify-center border border-[#C5A059]/50 shadow-xs font-extrabold text-[11px]">
+                          <div className="h-6 w-6 rounded-full bg-[#165B43] group-hover:bg-white text-white group-hover:text-[#0F3D2E] flex items-center justify-center font-extrabold text-[11px] transition-colors">
                             {user?.username?.[0]?.toUpperCase() || "U"}
                           </div>
-                          <ChevronDownIcon className={`w-3 h-3 text-[#C5A059] transition-transform duration-200 ${isProfileOpen ? 'rotate-180 text-amber-300' : ''}`} />
+                          <ChevronDownIcon className={`w-3.5 h-3.5 text-[#0F3D2E] group-hover:text-white transition-transform duration-200 ${isProfileOpen ? 'rotate-180' : ''}`} />
                         </button>
 
                         <AnimatePresence>
@@ -767,115 +761,117 @@ const UserNavbar = () => {
                               animate={{ opacity: 1, y: 0, scale: 1 }}
                               exit={{ opacity: 0, y: 6, scale: 0.96 }}
                               transition={{ duration: 0.15, ease: "easeOut" }}
-                              className="absolute end-0 mt-2 w-60 bg-[#051c14]/98 backdrop-blur-2xl rounded-2xl shadow-2xl border border-amber-500/30 p-1.5 z-[110] overflow-hidden ring-1 ring-amber-400/20 text-white"
+                              className="absolute end-0 mt-2 w-60 bg-white rounded-2xl shadow-xl border border-slate-200 p-1.5 z-[110] overflow-hidden text-slate-800"
                             >
-                              {/* User Header Info Card */}
-                              <div className="px-3.5 py-3 bg-[#07241b] rounded-xl border border-amber-500/25 mb-1">
+                              <div className="px-3.5 py-3 bg-[#F3F8F5] rounded-xl border border-emerald-800/15 mb-1">
                                 <div className="flex items-center justify-between gap-2 mb-1">
-                                  <span className="text-[10px] uppercase font-bold text-amber-200/60 tracking-wider">Signed in as</span>
-                                  <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${
-                                    isUserAdmin(user)
-                                      ? 'bg-amber-500/20 text-amber-300 border border-amber-400/30'
-                                      : 'bg-emerald-500/20 text-emerald-300 border border-emerald-400/30'
-                                  }`}>
+                                  <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Signed in as</span>
+                                  <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-100 text-[#0F3D2E]">
                                     {getRoleDisplayName(user)}
                                   </span>
                                 </div>
-                                <p className="text-sm font-extrabold text-amber-200 truncate">{user?.username}</p>
+                                <p className="text-sm font-extrabold text-[#0F3D2E] truncate">{user?.username}</p>
                                 {user?.email && (
-                                  <p className="text-xs text-slate-300 font-medium truncate mt-0.5">{user.email}</p>
+                                  <p className="text-xs text-slate-500 font-medium truncate mt-0.5">{user.email}</p>
                                 )}
                               </div>
 
-                              {/* Navigation Items in Dropdown */}
                               <div className="space-y-0.5">
-                            {user && isUserAdmin(user) && (
-                              <Link
-                                to="/admin/dashboard"
-                                onClick={() => setIsProfileOpen(false)}
-                                className="flex items-center gap-2.5 px-3 py-2 text-xs font-bold text-amber-300 bg-amber-500/15 border border-amber-400/30 rounded-xl hover:bg-amber-500/25 transition-colors"
-                              >
-                                <ShieldCheckIcon className="w-4 h-4 text-amber-400 flex-shrink-0" />
-                                <span>Admin Dashboard</span>
-                              </Link>
-                            )}
-                            <Link
-                              to="/profile"
-                              onClick={() => setIsProfileOpen(false)}
-                              className="flex items-center gap-2.5 px-3 py-2 text-xs font-bold text-slate-200 rounded-xl hover:bg-emerald-900/60 hover:text-amber-300 transition-colors"
-                            >
-                              <UserCircleIcon className="w-4 h-4 text-amber-200/60 flex-shrink-0" />
-                              <span>{t("profile") || "My Profile"}</span>
-                            </Link>
-                            <Link
-                              to="/books"
-                              onClick={() => setIsProfileOpen(false)}
-                              className="flex items-center gap-2.5 px-3 py-2 text-xs font-bold text-slate-200 rounded-xl hover:bg-emerald-900/60 hover:text-amber-300 transition-colors"
-                            >
-                              <BookmarkIcon className="w-4 h-4 text-amber-200/60 flex-shrink-0" />
-                              <span>My Saved / History</span>
-                            </Link>
-                            <button
-                              type="button"
-                              onClick={handleLogout}
-                              className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-bold text-rose-400 rounded-xl hover:bg-rose-950/40 transition-colors text-start cursor-pointer mt-1 border-t border-amber-500/20"
-                            >
-                              <ArrowRightOnRectangleIcon className="w-4 h-4 flex-shrink-0" />
-                              <span>{t("logout") || "Log Out"}</span>
-                            </button>
-                          </div>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                  </div>
-                </>
-              ) : (
-                <Link
-                  to="/login"
-                  className="flex items-center gap-1.5 bg-[#C5A059] hover:bg-[#b08d47] text-[#0F3D2E] px-3.5 py-1.5 rounded-full text-[11px] font-black border border-[#C5A059]/40 shadow-xs transition-all duration-200 cursor-pointer"
+                                {user && isUserAdmin(user) && (
+                                  <Link
+                                    to="/admin/dashboard"
+                                    onClick={() => setIsProfileOpen(false)}
+                                    className="flex items-center gap-2.5 px-3 py-2 text-xs font-bold text-[#0F3D2E] hover:bg-[#165B43] hover:text-white rounded-xl transition-colors"
+                                  >
+                                    <ShieldCheckIcon className="w-4 h-4 flex-shrink-0" />
+                                    <span>Admin Dashboard</span>
+                                  </Link>
+                                )}
+                                <Link
+                                  to="/profile"
+                                  onClick={() => setIsProfileOpen(false)}
+                                  className="flex items-center gap-2.5 px-3 py-2 text-xs font-bold text-slate-700 hover:bg-[#165B43] hover:text-white rounded-xl transition-colors"
+                                >
+                                  <UserCircleIcon className="w-4 h-4 flex-shrink-0" />
+                                  <span>{t("profile") || "My Profile"}</span>
+                                </Link>
+                                <Link
+                                  to="/books"
+                                  onClick={() => setIsProfileOpen(false)}
+                                  className="flex items-center gap-2.5 px-3 py-2 text-xs font-bold text-slate-700 hover:bg-[#165B43] hover:text-white rounded-xl transition-colors"
+                                >
+                                  <BookmarkIcon className="w-4 h-4 flex-shrink-0" />
+                                  <span>My Saved / History</span>
+                                </Link>
+                                <button
+                                  type="button"
+                                  onClick={handleLogout}
+                                  className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-bold text-rose-600 hover:bg-rose-600 hover:text-white rounded-xl transition-colors text-start cursor-pointer mt-1 border-t border-slate-100"
+                                >
+                                  <ArrowRightOnRectangleIcon className="w-4 h-4 flex-shrink-0" />
+                                  <span>{t("logout") || "Log Out"}</span>
+                                </button>
+                              </div>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </div>
+                    </>
+                  ) : (
+                    <Link
+                      to="/login"
+                      className="group flex items-center gap-1.5 bg-white hover:bg-[#165B43] active:bg-[#0F3D2E] text-[#0F3D2E] hover:text-white active:text-white px-3.5 py-1.5 rounded-xl text-xs font-bold border border-[#0F3D2E]/20 hover:border-[#165B43] shadow-2xs transition-all duration-200 cursor-pointer whitespace-nowrap"
+                    >
+                      <span>{t("login")}</span>
+                    </Link>
+                  )}
+                </div>
+              </div>
+
+              {/* MOBILE CONTROLS (100% Responsive, White normal state -> Green on Hover/Tap) */}
+              <div className="flex items-center gap-1.5 lg:hidden shrink-0 whitespace-nowrap">
+                <button
+                  type="button"
+                  onClick={() => setIsUniversalSearchOpen(true)}
+                  className="p-1.5 sm:p-2 rounded-lg bg-white hover:bg-[#165B43] active:bg-[#0F3D2E] text-[#0F3D2E] hover:text-white active:text-white border border-[#0F3D2E]/20 hover:border-[#165B43] shadow-2xs transition-all cursor-pointer"
+                  title={language === 'ur' ? 'تلاش کریں' : 'Search'}
                 >
-                  <ArrowLeftOnRectangleIcon className="w-3.5 h-3.5 text-[#0F3D2E] stroke-2" />
-                  <span>{t("login")}</span>
-                </Link>
-              )}
-            </div>
-          </div>
+                  <MagnifyingGlassIcon className="h-4 w-4 sm:h-5 sm:w-5" />
+                </button>
 
-            {/* MOBILE TOGGLE, SEARCH & LANGUAGE */}
-            <div className="flex items-center gap-1 sm:gap-1.5 lg:hidden shrink-0">
-              <LanguageSwitcher />
-              <button
-                type="button"
-                onClick={() => setIsUniversalSearchOpen(true)}
-                className="p-1.5 sm:p-2 rounded-xl text-slate-200 hover:text-white hover:bg-white/10 active:bg-white/20 transition-colors cursor-pointer"
-                title="Universal Search"
-              >
-                <MagnifyingGlassIcon className="h-5 w-5" />
-              </button>
-              {isAuth && <NotificationBell />}
-              
-              <button
-                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                className="p-1.5 sm:p-2 rounded-xl text-[#C5A059] hover:text-[#dfba73] hover:bg-white/10 active:bg-white/20 transition-colors cursor-pointer"
-                aria-label="Toggle navigation menu"
-              >
-                {isMobileMenuOpen ? (
-                  <XMarkIcon className="h-6 w-6" />
-                ) : (
-                  <Bars3Icon className="h-6 w-6" />
+                {showDonateButton && (
+                  <button
+                    type="button"
+                    onClick={() => setIsDonationOpen(true)}
+                    className="px-2.5 py-1 sm:py-1.5 rounded-lg bg-white hover:bg-[#165B43] active:bg-[#0F3D2E] text-[#0F3D2E] hover:text-white active:text-white border border-[#0F3D2E]/20 hover:border-[#165B43] shadow-2xs text-[11px] sm:text-xs font-bold transition-all cursor-pointer"
+                  >
+                    {donateButtonText}
+                  </button>
                 )}
-              </button>
+
+                {isAuth && <NotificationBell />}
+                
+                <button
+                  onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                  className={`p-1.5 sm:p-2 rounded-lg border shadow-2xs transition-all cursor-pointer ${
+                    isMobileMenuOpen
+                      ? "bg-[#165B43] text-white border-[#165B43]"
+                      : "bg-white hover:bg-[#165B43] active:bg-[#0F3D2E] text-[#0F3D2E] hover:text-white active:text-white border-[#0F3D2E]/20 hover:border-[#165B43]"
+                  }`}
+                  aria-label="Toggle navigation menu"
+                >
+                  {isMobileMenuOpen ? (
+                    <XMarkIcon className="h-5 w-5" />
+                  ) : (
+                    <Bars3Icon className="h-5 w-5" />
+                  )}
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-
-        {/* Sub-strip centered text: MARKAZ AHLE HADEES KOKAN */}
-        <div className="bg-[#0A2A20] text-center py-1 border-t border-white/5 text-[10px] sm:text-[11px] text-[#C5A059] font-bold tracking-widest uppercase notranslate" translate="no">
-          مرکز اہل حدیث کوکن — Markaz Ahle Hadees Kokan
-        </div>
 
         {/* ----------------------------------------------------
-            MOBILE MENU
+            MOBILE MENU (Light Pearl & Emerald Theme)
         ---------------------------------------------------- */}
         <AnimatePresence>
           {isMobileMenuOpen && (
@@ -883,51 +879,50 @@ const UserNavbar = () => {
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: "auto" }}
               exit={{ opacity: 0, height: 0 }}
-              className="lg:hidden bg-[#051c14] border-t border-amber-500/25 overflow-hidden shadow-2xl text-white"
+              className="lg:hidden bg-[#F3F8F5] border-t border-emerald-900/15 overflow-hidden shadow-xl text-[#0F3D2E]"
             >
-              <div className="px-4 py-6 space-y-1">
+              <div className="px-4 py-5 space-y-1">
                 
                 {/* User Info / Login Mobile */}
-                <div className="mb-6 pb-6 border-b border-amber-500/20">
-                    {isAuth ? (
-                        <div className="flex items-center gap-3 bg-[#07241b] border border-amber-500/25 p-3 rounded-2xl">
-                            <div className="h-10 w-10 rounded-full bg-gradient-to-br from-amber-500 to-amber-700 text-slate-950 flex items-center justify-center font-bold text-lg shadow-md flex-shrink-0">
-                                {user?.username?.[0]?.toUpperCase()}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                                <p className="text-sm font-bold text-white truncate">{user?.username}</p>
-                                <p className="text-xs text-amber-300/80">{getRoleDisplayName(user)}</p>
-                            </div>
-                            {user && isUserAdmin(user) && (
-                              <Link
-                                to="/admin/dashboard"
-                                onClick={() => setIsMobileMenuOpen(false)}
-                                className="p-2 bg-amber-500/20 text-amber-300 rounded-lg shadow-xs border border-amber-400/30"
-                                title="Admin Dashboard"
-                              >
-                                <ShieldCheckIcon className="w-5 h-5" />
-                              </Link>
-                            )}
-                            <Link
-                              to="/profile"
-                              onClick={() => setIsMobileMenuOpen(false)}
-                              className="p-2 bg-[#041610] text-amber-300 rounded-lg shadow-xs border border-amber-500/30"
-                              title="My Profile"
-                            >
-                                <UserCircleIcon className="w-5 h-5" />
-                            </Link>
-                        </div>
-                    ) : (
-                        // ONLY LOGIN BUTTON MOBILE
+                <div className="mb-4 pb-4 border-b border-emerald-900/10">
+                  {isAuth ? (
+                    <div className="flex items-center gap-3 bg-white border border-emerald-900/15 p-3 rounded-2xl shadow-2xs">
+                      <div className="h-10 w-10 rounded-full bg-[#165B43] text-white flex items-center justify-center font-bold text-lg shadow-xs flex-shrink-0">
+                        {user?.username?.[0]?.toUpperCase()}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-bold text-[#0F3D2E] truncate">{user?.username}</p>
+                        <p className="text-xs text-[#165B43] font-semibold">{getRoleDisplayName(user)}</p>
+                      </div>
+                      {user && isUserAdmin(user) && (
                         <Link
-                            to="/login"
-                            onClick={() => setIsMobileMenuOpen(false)}
-                            className="flex items-center justify-center gap-2 w-full py-3 bg-gradient-to-r from-amber-500 via-amber-600 to-amber-700 text-slate-950 rounded-xl font-bold shadow-md active:scale-95 transition-transform"
+                          to="/admin/dashboard"
+                          onClick={() => setIsMobileMenuOpen(false)}
+                          className="p-2 bg-white hover:bg-[#165B43] text-[#0F3D2E] hover:text-white rounded-lg shadow-2xs border border-emerald-900/20 transition-colors"
+                          title="Admin Dashboard"
                         >
-                            <ArrowLeftOnRectangleIcon className="w-5 h-5" />
-                            Log In to Portal
+                          <ShieldCheckIcon className="w-5 h-5" />
                         </Link>
-                    )}
+                      )}
+                      <Link
+                        to="/profile"
+                        onClick={() => setIsMobileMenuOpen(false)}
+                        className="p-2 bg-white hover:bg-[#165B43] text-[#0F3D2E] hover:text-white rounded-lg shadow-2xs border border-emerald-900/20 transition-colors"
+                        title="My Profile"
+                      >
+                        <UserCircleIcon className="w-5 h-5" />
+                      </Link>
+                    </div>
+                  ) : (
+                    <Link
+                      to="/login"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      className="flex items-center justify-center gap-2 w-full py-2.5 bg-white hover:bg-[#165B43] active:bg-[#0F3D2E] text-[#0F3D2E] hover:text-white active:text-white border border-[#0F3D2E]/25 rounded-xl font-bold shadow-2xs transition-colors"
+                    >
+                      <ArrowLeftOnRectangleIcon className="w-4 h-4" />
+                      <span>{t("login")}</span>
+                    </Link>
+                  )}
                 </div>
 
                 {/* Mobile Links */}
@@ -944,13 +939,17 @@ const UserNavbar = () => {
                     <button
                       type="button"
                       onClick={() => setIsMobileAboutOpen((p) => !p)}
-                      className="flex items-center justify-between w-full px-3 py-2 text-sm font-bold text-slate-200 hover:text-amber-300 hover:bg-emerald-900/40 rounded-xl transition-colors cursor-pointer"
+                      className={`group flex items-center justify-between w-full px-3 py-2 text-sm font-bold rounded-xl transition-colors cursor-pointer ${
+                        isMobileAboutOpen
+                          ? "bg-[#165B43] text-white"
+                          : "text-[#0F3D2E] hover:bg-[#165B43] hover:text-white active:bg-[#0F3D2E] active:text-white"
+                      }`}
                     >
                       <div className="flex items-center gap-2">
-                        <InformationCircleIcon className="h-4 w-4 text-amber-400" />
-                        <span>{t("about") || "About & Portals"}</span>
+                        <InformationCircleIcon className={`h-4 w-4 ${isMobileAboutOpen ? 'text-white' : 'text-[#165B43] group-hover:text-white'}`} />
+                        <span>{t("about") || "About"}</span>
                       </div>
-                      <ChevronDownIcon className={`w-3.5 h-3.5 text-amber-200/60 transition-transform duration-200 ${isMobileAboutOpen ? 'rotate-180 text-amber-300' : ''}`} />
+                      <ChevronDownIcon className={`w-3.5 h-3.5 transition-transform duration-200 ${isMobileAboutOpen ? 'rotate-180 text-white' : 'text-[#165B43] group-hover:text-white'}`} />
                     </button>
                     <AnimatePresence>
                       {isMobileAboutOpen && (
@@ -958,46 +957,46 @@ const UserNavbar = () => {
                           initial={{ opacity: 0, height: 0 }}
                           animate={{ opacity: 1, height: "auto" }}
                           exit={{ opacity: 0, height: 0 }}
-                          className="pl-6 pr-2 py-1 space-y-1 bg-[#041610]/80 border border-amber-500/20 rounded-xl mt-1 overflow-hidden text-white"
+                          className="ps-4 pe-2 py-1.5 space-y-1 bg-white border border-emerald-900/15 rounded-xl mt-1 overflow-hidden text-[#0F3D2E]"
                         >
                           <Link
                             to="/about"
                             onClick={() => setIsMobileMenuOpen(false)}
-                            className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold text-slate-200 hover:text-amber-300 hover:bg-emerald-900/50 transition-colors"
+                            className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-bold text-[#0F3D2E] hover:bg-[#165B43] hover:text-white transition-colors"
                           >
-                            <InformationCircleIcon className="w-4 h-4 text-amber-400" />
+                            <InformationCircleIcon className="w-4 h-4 shrink-0" />
                             <span>{language === 'ur' ? 'تعارف مرکز' : 'About Markaz'}</span>
                           </Link>
                           <Link
                             to="/juma-list"
                             onClick={() => setIsMobileMenuOpen(false)}
-                            className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold text-slate-200 hover:text-amber-300 hover:bg-emerald-900/50 transition-colors"
+                            className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-bold text-[#0F3D2E] hover:bg-[#165B43] hover:text-white transition-colors"
                           >
-                            <CalendarDaysIcon className="w-4 h-4 text-emerald-400" />
+                            <CalendarDaysIcon className="w-4 h-4 shrink-0" />
                             <span>{language === 'ur' ? 'خطباتِ جمعہ' : (language === 'ar' ? 'جدول خطب الجمعة' : 'Jumah Schedule')}</span>
                           </Link>
                           <Link
                             to="/moon"
                             onClick={() => setIsMobileMenuOpen(false)}
-                            className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold text-slate-200 hover:text-amber-300 hover:bg-emerald-900/50 transition-colors"
+                            className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-bold text-[#0F3D2E] hover:bg-[#165B43] hover:text-white transition-colors"
                           >
-                            <MoonIcon className="w-4 h-4 text-amber-400" />
+                            <MoonIcon className="w-4 h-4 shrink-0" />
                             <span>{language === 'ur' ? 'رؤیتِ ہلال' : (language === 'ar' ? 'إعلانات رؤية الهلال' : 'Moon Announcements')}</span>
                           </Link>
                           <Link
                             to="/calendar"
                             onClick={() => setIsMobileMenuOpen(false)}
-                            className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold text-slate-200 hover:text-amber-300 hover:bg-emerald-900/50 transition-colors"
+                            className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-bold text-[#0F3D2E] hover:bg-[#165B43] hover:text-white transition-colors"
                           >
-                            <CalendarDaysIcon className="w-4 h-4 text-teal-400" />
+                            <CalendarDaysIcon className="w-4 h-4 shrink-0" />
                             <span>{language === 'ur' ? 'اسلامی تقویم (کیلنڈر)' : (language === 'ar' ? 'التقويم الهجري' : 'Islamic Calendar')}</span>
                           </Link>
                           <Link
                             to="/about?tab=ulama"
                             onClick={() => setIsMobileMenuOpen(false)}
-                            className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold text-slate-200 hover:text-amber-300 hover:bg-emerald-900/50 transition-colors"
+                            className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-bold text-[#0F3D2E] hover:bg-[#165B43] hover:text-white transition-colors"
                           >
-                            <ChatBubbleLeftRightIcon className="w-4 h-4 text-amber-400" />
+                            <ChatBubbleLeftRightIcon className="w-4 h-4 shrink-0" />
                             <span>{language === 'ur' ? 'علماء کی آراء' : (language === 'ar' ? 'آراء العلماء' : 'Scholarly Opinions')}</span>
                           </Link>
                         </motion.div>
@@ -1031,13 +1030,17 @@ const UserNavbar = () => {
                     <button
                       type="button"
                       onClick={() => setIsMobileSocialOpen((p) => !p)}
-                      className="flex items-center justify-between w-full px-3 py-2 text-sm font-bold text-slate-200 hover:text-amber-300 hover:bg-emerald-900/40 rounded-xl transition-colors cursor-pointer"
+                      className={`group flex items-center justify-between w-full px-3 py-2 text-sm font-bold rounded-xl transition-colors cursor-pointer ${
+                        isMobileSocialOpen
+                          ? "bg-[#165B43] text-white"
+                          : "text-[#0F3D2E] hover:bg-[#165B43] hover:text-white active:bg-[#0F3D2E] active:text-white"
+                      }`}
                     >
                       <div className="flex items-center gap-2">
-                        <Squares2X2Icon className="h-4 w-4 text-amber-200/60" />
+                        <Squares2X2Icon className={`h-4 w-4 ${isMobileSocialOpen ? 'text-white' : 'text-[#165B43] group-hover:text-white'}`} />
                         <span>{t("activities")}</span>
                       </div>
-                      <ChevronDownIcon className={`w-3.5 h-3.5 text-amber-200/60 transition-transform duration-200 ${isMobileSocialOpen ? 'rotate-180 text-amber-300' : ''}`} />
+                      <ChevronDownIcon className={`w-3.5 h-3.5 transition-transform duration-200 ${isMobileSocialOpen ? 'rotate-180 text-white' : 'text-[#165B43] group-hover:text-white'}`} />
                     </button>
                     <AnimatePresence>
                       {isMobileSocialOpen && (
@@ -1045,38 +1048,38 @@ const UserNavbar = () => {
                           initial={{ opacity: 0, height: 0 }}
                           animate={{ opacity: 1, height: "auto" }}
                           exit={{ opacity: 0, height: 0 }}
-                          className="pl-6 pr-2 py-1 space-y-1 bg-[#041610]/80 border border-amber-500/20 rounded-xl mt-1 overflow-hidden text-white"
+                          className="ps-4 pe-2 py-1.5 space-y-1 bg-white border border-emerald-900/15 rounded-xl mt-1 overflow-hidden text-[#0F3D2E]"
                         >
                           <Link
                             to="/education"
                             onClick={() => setIsMobileMenuOpen(false)}
-                            className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold text-slate-200 hover:text-amber-300 hover:bg-emerald-900/50 transition-colors"
+                            className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-bold text-[#0F3D2E] hover:bg-[#165B43] hover:text-white transition-colors"
                           >
-                            <AcademicCapIcon className="w-4 h-4 text-blue-400" />
+                            <AcademicCapIcon className="w-4 h-4 shrink-0" />
                             <span>{t("education_taleem") || (language === 'ur' ? 'تعلیم و رہنمائی' : language === 'ar' ? 'التعليم والإرشاد' : 'Education & Guidance')}</span>
                           </Link>
                           <Link
                             to="/social-work"
                             onClick={() => setIsMobileMenuOpen(false)}
-                            className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold text-slate-200 hover:text-amber-300 hover:bg-emerald-900/50 transition-colors"
+                            className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-bold text-[#0F3D2E] hover:bg-[#165B43] hover:text-white transition-colors"
                           >
-                            <img src="/icons/social-work.png" alt="Social Work" className="w-4 h-4 object-contain brightness-0 invert" />
+                            <img src="/icons/social-work.png" alt="Social Work" className="w-4 h-4 object-contain shrink-0" />
                             <span>{t("social_work")}</span>
                           </Link>
                           <Link
                             to="/clippings"
                             onClick={() => setIsMobileMenuOpen(false)}
-                            className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold text-slate-200 hover:text-amber-300 hover:bg-emerald-900/50 transition-colors"
+                            className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-bold text-[#0F3D2E] hover:bg-[#165B43] hover:text-white transition-colors"
                           >
-                            <NewspaperIcon className="w-4 h-4 text-amber-400" />
-                            <span>Newspaper Clippings (اخباری تراشے)</span>
+                            <NewspaperIcon className="w-4 h-4 shrink-0" />
+                            <span>{language === 'ur' ? 'اخباری تراشے' : 'Newspaper Clippings'}</span>
                           </Link>
                           <Link
                             to="/activities"
                             onClick={() => setIsMobileMenuOpen(false)}
-                            className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold text-slate-200 hover:text-amber-300 hover:bg-emerald-900/50 transition-colors"
+                            className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-bold text-[#0F3D2E] hover:bg-[#165B43] hover:text-white transition-colors"
                           >
-                            <EllipsisHorizontalCircleIcon className="w-4 h-4 text-purple-400" />
+                            <EllipsisHorizontalCircleIcon className="w-4 h-4 shrink-0" />
                             <span>{t("other")}</span>
                           </Link>
                         </motion.div>
@@ -1086,38 +1089,31 @@ const UserNavbar = () => {
 
                   <NavItem to="/posts" label={t("updates")} icon={MegaphoneIcon} onClick={() => setIsMobileMenuOpen(false)} />
                   {isAuth && (
-                      <NavItem to="/history" label={t("history")} icon={ClockIcon} onClick={() => setIsMobileMenuOpen(false)} />
+                    <NavItem to="/history" label={t("history")} icon={ClockIcon} onClick={() => setIsMobileMenuOpen(false)} />
                   )}
                 </div>
 
                 {/* Mobile Actions */}
-                <div className="mt-6 pt-6 border-t border-amber-500/20 space-y-3">
-                    {/* Inline Segmented Language Selector (English / اردو / العربية) */}
-                    <div className="pb-1">
-                      <LanguageSwitcher variant="segmented" />
-                    </div>
+                <div className="mt-4 pt-4 border-t border-emerald-900/10 space-y-2.5">
+                  <button
+                    onClick={() => {
+                      setIsDonationOpen(true);
+                      setIsMobileMenuOpen(false);
+                    }}
+                    className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-white hover:bg-[#165B43] active:bg-[#0F3D2E] text-[#0F3D2E] hover:text-white active:text-white font-bold text-sm border border-[#0F3D2E]/25 shadow-2xs transition-colors cursor-pointer"
+                  >
+                    <span>{donateButtonText}</span>
+                  </button>
+                  
+                  {isAuth && (
                     <button
-                        onClick={() => {
-                            setIsDonationOpen(true);
-                            setIsMobileMenuOpen(false);
-                        }}
-                        className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-gradient-to-r from-rose-900/40 to-pink-900/40 text-rose-200 font-bold text-sm border border-rose-500/40 shadow-xs"
+                      onClick={handleLogout}
+                      className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-rose-700 bg-white hover:bg-rose-600 hover:text-white font-bold text-sm transition-colors border border-rose-300 cursor-pointer"
                     >
-                        <HandCoinIcon className="w-5 h-5 text-rose-400" />
-                        <span style={language === 'ur' ? { fontFamily: "'Noto Nastaliq Urdu', 'Mehr Nastaliq Web', 'Mehr', serif", fontSize: "1.05rem" } : undefined}>
-                          {donateButtonText}
-                        </span>
+                      <ArrowRightOnRectangleIcon className="w-4 h-4" />
+                      <span>{t("logout") || "Log Out"}</span>
                     </button>
-                    
-                    {isAuth && (
-                        <button
-                            onClick={handleLogout}
-                            className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-rose-300 bg-rose-950/40 hover:bg-rose-900/60 font-bold text-sm transition-colors border border-rose-500/30"
-                        >
-                            <ArrowRightOnRectangleIcon className="w-4 h-4" />
-                            Log Out
-                        </button>
-                    )}
+                  )}
                 </div>
               </div>
             </motion.div>
