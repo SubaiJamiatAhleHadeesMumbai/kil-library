@@ -133,9 +133,11 @@ const ReadBook = () => {
           // 2. Sync bookNest_recent_reads array
           const recentReadsRaw = localStorage.getItem("bookNest_recent_reads");
           const recentReads = recentReadsRaw ? JSON.parse(recentReadsRaw) : [];
+          const authorStr = typeof bookData?.author === "object" ? (bookData?.author?.name || "") : (bookData?.author || "");
           const nextEntry = {
             book_id: Number(id),
             title: bookData?.title,
+            author: authorStr,
             cover_image_url: coverUrl,
             last_page_read: resumePage,
             total_pages: totalPagesCount,

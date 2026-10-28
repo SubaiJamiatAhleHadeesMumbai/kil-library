@@ -3,7 +3,6 @@ import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   EyeIcon,
-  ArrowRightIcon,
   XMarkIcon,
   MagnifyingGlassPlusIcon,
   MagnifyingGlassMinusIcon,
@@ -12,20 +11,16 @@ import {
   ShareIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
-  DocumentDuplicateIcon
+  DocumentDuplicateIcon,
 } from "@heroicons/react/24/outline";
 import newspaperService from "../../api/newspaperService";
 
-const NewspaperClippingsHomeSection = ({ config = {} }) => {
+const NewspaperClippingsHomeSection = () => {
   const [clippings, setClippings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeClipping, setActiveClipping] = useState(null);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [zoomLevel, setZoomLevel] = useState(1);
-
-  const title = config?.title || "Press & Newspaper Clippings";
-  const subtitle = config?.subtitle || "اخباری کٹنگز و اہم پریس ریلیز";
-  const description = config?.description || "Read published reports and coverage of Markaz activities across national Urdu & English newspapers.";
 
   useEffect(() => {
     const loadClippings = async () => {
@@ -44,19 +39,27 @@ const NewspaperClippingsHomeSection = ({ config = {} }) => {
 
   const getClippingImages = (clipping) => {
     if (!clipping) return [];
-    if (Array.isArray(clipping.images) && clipping.images.length > 0) return clipping.images;
+    if (Array.isArray(clipping.images) && clipping.images.length > 0)
+      return clipping.images;
     if (typeof clipping.images === "string") {
       try {
         const parsed = JSON.parse(clipping.images);
         if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      } catch (e) {}
+      } catch {}
     }
     return [clipping.image_url].filter(Boolean);
   };
 
   const handleShareWhatsApp = (clipping) => {
-    const text = `📰 *${clipping.newspaper_name}* (${clipping.edition_date || 'Press Clipping'})\n\n*${clipping.title}*\n\nRead full clipping at:\n${window.location.origin}/clippings?id=${clipping.id}`;
-    window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, "_blank");
+    const text = `📰 *${clipping.newspaper_name}* (${
+      clipping.edition_date || "Press Clipping"
+    })\n\n*${clipping.title}*\n\nRead full clipping at:\n${
+      window.location.origin
+    }/clippings?id=${clipping.id}`;
+    window.open(
+      `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`,
+      "_blank"
+    );
   };
 
   const openLightbox = (clipping, idx = 0) => {
@@ -66,295 +69,285 @@ const NewspaperClippingsHomeSection = ({ config = {} }) => {
   };
 
   if (!loading && clippings.length === 0) {
-    return null; // Do not render empty section
+    return null;
   }
 
   return (
-    <section className="py-6 px-4 max-w-7xl mx-auto">
-      {/* Section Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
-        <div>
-          <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold text-slate-900 font-urdu leading-loose">
-            {title}
-          </h2>
-          {subtitle && (
-            <p 
-              className="text-sm sm:text-base font-medium text-slate-500 mt-0.5 font-urdu leading-relaxed" 
-              dir="rtl"
-            >
-              {subtitle}
-            </p>
-          )}
+    <section className="w-full" dir="rtl">
+      <div className="rounded-[20px] border-[1.5px] border-[#C8DDD2] bg-white shadow-[0_10px_25px_-5px_rgba(15,61,46,0.07),0_4px_10px_-2px_rgba(15,61,46,0.04)] overflow-hidden">
+        {/* Light Mint-Pearl Section Header */}
+        <div className="bg-gradient-to-r from-[#E6F2EC] to-[#F3F8F5] border-b-2 border-[#C5A059] px-4 sm:px-5 py-3 flex items-center justify-between gap-3">
+          <span
+            className="text-sm sm:text-base font-extrabold text-[#0F3D2E]"
+            style={{ fontFamily: "'Noto Naskh Arabic', sans-serif" }}
+          >
+            📰 اخباری کٹنگز و اہم پریس ریلیز (روزنامہ انقلاب)
+          </span>
+
+          <Link
+            to="/clippings"
+            className="px-3.5 py-1 rounded-full text-xs font-bold bg-white text-[#0F3D2E] border-[1.5px] border-[#0F3D2E]/25 hover:bg-[#165B43] hover:text-white hover:border-[#165B43] active:bg-[#165B43] active:text-white transition-all duration-200 shrink-0"
+            style={{ fontFamily: "'Noto Naskh Arabic', sans-serif" }}
+          >
+            تمام تراشے دیکھیں ←
+          </Link>
         </div>
 
-        <Link
-          to="/clippings"
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white hover:bg-slate-50 text-emerald-800 font-bold text-xs border border-slate-200 transition-all shadow-2xs hover:shadow-md shrink-0 self-start sm:self-auto"
-        >
-          <span className="font-urdu text-xs sm:text-sm">تمام تراشے دیکھیں</span>
-          <ArrowRightIcon className="w-3.5 h-3.5 rotate-180" />
-        </Link>
-      </div>
-
-      {/* Grid of Clippings */}
-      {loading ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 animate-pulse">
-          {[...Array(4)].map((_, i) => (
-            <div key={i} className="bg-white rounded-3xl border border-slate-200 p-4 space-y-3">
-              <div className="aspect-4/3 rounded-2xl bg-slate-100" />
-              <div className="h-4 bg-slate-200 rounded-md w-3/4" />
-              <div className="h-3 bg-slate-100 rounded-md w-1/2" />
-            </div>
-          ))}
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {clippings.map((clipping) => {
-            const allImages = getClippingImages(clipping);
-            return (
-              <motion.div
-                key={clipping.id}
-                whileHover={{ y: -4 }}
-                transition={{ duration: 0.2 }}
-                onClick={() => openLightbox(clipping)}
-                className="bg-white rounded-3xl border border-slate-200/90 hover:border-emerald-300 shadow-xs hover:shadow-xl transition-all duration-300 overflow-hidden flex flex-col group cursor-pointer text-slate-900"
+        {/* Grid of 4 Clippings */}
+        {loading ? (
+          <div className="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 animate-pulse">
+            {[...Array(4)].map((_, i) => (
+              <div
+                key={i}
+                className="bg-[#FAF8F5] rounded-xl border border-[#C8DDD2] p-3 space-y-2.5"
               >
-                {/* Image Container with Newspaper Stamp */}
-                <div className="relative aspect-4/3 bg-slate-100 overflow-hidden">
-                  <img
-                    src={clipping.image_url}
-                    alt={clipping.title}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                    loading="lazy"
-                  />
-
-                  {/* Header Strip */}
-                  <div className="absolute top-3 left-3 bg-slate-900/90 backdrop-blur-md text-white px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider shadow-sm border border-slate-700">
-                    {clipping.newspaper_name}
-                  </div>
-
-                  {/* Date & Multi-page Badge */}
-                  <div className="absolute bottom-3 left-3 flex items-center gap-1.5">
-                    {clipping.edition_date && (
-                      <div className="bg-slate-900/90 backdrop-blur-md text-slate-200 text-[10px] font-bold px-2 py-0.5 rounded-md shadow-xs border border-slate-700">
-                        {clipping.edition_date}
-                      </div>
-                    )}
+                <div className="h-36 rounded-lg bg-slate-200" />
+                <div className="h-4 bg-slate-200 rounded-md w-3/4 mx-auto" />
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {clippings.slice(0, 4).map((clipping) => {
+              const allImages = getClippingImages(clipping);
+              return (
+                <div
+                  key={clipping.id}
+                  onClick={() => openLightbox(clipping)}
+                  className="rounded-xl overflow-hidden border border-[#C8DDD2] bg-[#FAF8F5] hover:bg-white transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md flex flex-col justify-between group cursor-pointer"
+                >
+                  <div className="relative h-36 bg-slate-100 overflow-hidden">
+                    <img
+                      src={clipping.image_url}
+                      alt={clipping.title}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      loading="lazy"
+                    />
                     {allImages.length > 1 && (
-                      <div className="bg-emerald-800 text-white text-[10px] font-bold px-2 py-0.5 rounded-md shadow-xs flex items-center gap-1">
+                      <div className="absolute bottom-2 left-2 bg-[#0F3D2E]/90 text-white text-[9.5px] font-bold px-2 py-0.5 rounded shadow-xs flex items-center gap-1 border border-[#C5A059]">
                         <DocumentDuplicateIcon className="w-3 h-3" />
-                        <span>{allImages.length} Pages</span>
+                        <span>{allImages.length} صفحات</span>
                       </div>
                     )}
+                    <div className="absolute inset-0 bg-[#0F3D2E]/35 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center text-white gap-1.5 font-bold text-xs">
+                      <EyeIcon className="w-4 h-4 text-[#C5A059]" />
+                      <span
+                        style={{
+                          fontFamily: "'Noto Naskh Arabic', sans-serif",
+                        }}
+                      >
+                        بڑا کرکے پڑھیں
+                      </span>
+                    </div>
                   </div>
 
-                  {/* Hover Overlay Hint */}
-                  <div className="absolute inset-0 bg-emerald-950/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center text-white gap-1.5 font-bold text-xs backdrop-blur-xs">
-                    <EyeIcon className="w-5 h-5 text-emerald-300" />
-                    <span className="font-urdu text-sm">بڑا کرکے پڑھیں</span>
-                  </div>
-                </div>
-
-                {/* Card Body */}
-                <div className="p-4 sm:p-5 flex-1 flex flex-col justify-between space-y-3">
-                  <div className="space-y-1.5">
-                    <span className="inline-block bg-slate-100 text-slate-700 border border-slate-200 text-[10px] font-bold px-2.5 py-0.5 rounded-full font-urdu">
-                      {clipping.category || "اخباری رپورٹ"}
-                    </span>
-                    <h3 
-                      className="font-bold text-slate-900 text-base sm:text-lg leading-loose line-clamp-2 group-hover:text-emerald-800 transition-colors font-urdu" 
-                      dir="rtl"
+                  <div className="p-3 text-right">
+                    <h5
+                      className="text-xs font-bold text-[#0F3D2E] line-clamp-2 leading-relaxed"
+                      style={{ fontFamily: "'Noto Naskh Arabic', sans-serif" }}
                       title={clipping.title}
                     >
                       {clipping.title}
-                    </h3>
-                  </div>
-
-                  <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500 font-medium">
-                    <span className="text-emerald-800 font-bold group-hover:text-emerald-900 group-hover:underline font-urdu text-sm">تراشہ پڑھیں ←</span>
-                    <span className="text-[11px] font-mono text-slate-400">HD Image</span>
+                    </h5>
                   </div>
                 </div>
-              </motion.div>
-            );
-          })}
-        </div>
-      )}
+              );
+            })}
+          </div>
+        )}
+      </div>
 
       {/* ================= HD ZOOMABLE LIGHTBOX MODAL ================= */}
       <AnimatePresence>
-        {activeClipping && (() => {
-          const allImages = getClippingImages(activeClipping);
-          const currentImg = allImages[activeImageIndex] || activeClipping.image_url;
+        {activeClipping &&
+          (() => {
+            const allImages = getClippingImages(activeClipping);
+            const currentImg =
+              allImages[activeImageIndex] || activeClipping.image_url;
 
-          return (
-            <div className="fixed inset-0 z-[9999] flex items-center justify-center p-2 sm:p-4 bg-slate-950/90 backdrop-blur-md">
-              <div className="fixed inset-0" onClick={() => setActiveClipping(null)} />
+            return (
+              <div className="fixed inset-0 z-[9999] flex items-center justify-center p-2 sm:p-4 bg-slate-950/90 backdrop-blur-md">
+                <div
+                  className="fixed inset-0"
+                  onClick={() => setActiveClipping(null)}
+                />
 
-              <motion.div
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                className="relative w-full max-w-5xl bg-slate-900 rounded-3xl overflow-hidden shadow-2xl border border-slate-800 flex flex-col max-h-[95vh] z-10"
-              >
-                {/* Top Lightbox Bar */}
-                <div className="flex items-center justify-between p-3 sm:p-4 bg-slate-950/95 border-b border-slate-800 text-white gap-3">
-                  {/* Left: Newspaper Metadata & Title */}
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="px-2.5 py-0.5 rounded-full bg-emerald-500 text-slate-950 text-[10px] font-black uppercase tracking-wider">
-                        {activeClipping.newspaper_name}
-                      </span>
-                      <span className="text-xs text-slate-400 font-mono">
-                        {activeClipping.edition_date || "Archive"}
-                      </span>
-                      {allImages.length > 1 && (
-                        <span className="bg-slate-800 text-emerald-400 text-[10px] font-bold px-2 py-0.5 rounded-full border border-slate-700">
-                          Page {activeImageIndex + 1}/{allImages.length}
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  className="relative w-full max-w-5xl bg-slate-900 rounded-3xl overflow-hidden shadow-2xl border border-slate-800 flex flex-col max-h-[95vh] z-10"
+                >
+                  {/* Top Lightbox Bar */}
+                  <div className="flex items-center justify-between p-3 sm:p-4 bg-slate-950/95 border-b border-slate-800 text-white gap-3">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="px-2.5 py-0.5 rounded-full bg-emerald-500 text-slate-950 text-[10px] font-black uppercase tracking-wider">
+                          {activeClipping.newspaper_name}
                         </span>
-                      )}
-                    </div>
-                    <h3 className="font-bold text-xs sm:text-sm text-slate-200 truncate mt-1" title={activeClipping.title}>
-                      {activeClipping.title}
-                    </h3>
-                  </div>
-
-                  {/* Right: Clean Action Buttons (Zero Clutter) */}
-                  <div className="flex items-center gap-1.5 shrink-0">
-                    {/* Desktop Only Zoom Controls (Hidden on mobile) */}
-                    <div className="hidden md:flex items-center gap-1 bg-slate-900 border border-slate-800 rounded-xl p-0.5">
-                      <button
-                        onClick={() => setZoomLevel((z) => Math.min(3, z + 0.25))}
-                        className="p-1.5 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition cursor-pointer"
-                        title="Zoom In"
+                        <span className="text-xs text-slate-400 font-mono">
+                          {activeClipping.edition_date || "Archive"}
+                        </span>
+                        {allImages.length > 1 && (
+                          <span className="bg-slate-800 text-emerald-400 text-[10px] font-bold px-2 py-0.5 rounded-full border border-slate-700">
+                            Page {activeImageIndex + 1}/{allImages.length}
+                          </span>
+                        )}
+                      </div>
+                      <h3
+                        className="font-bold text-xs sm:text-sm text-slate-200 truncate mt-1"
+                        title={activeClipping.title}
                       >
-                        <MagnifyingGlassPlusIcon className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => setZoomLevel((z) => Math.max(0.75, z - 0.25))}
-                        className="p-1.5 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition cursor-pointer"
-                        title="Zoom Out"
-                      >
-                        <MagnifyingGlassMinusIcon className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => setZoomLevel(1)}
-                        className="px-2 py-1 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white text-[11px] font-bold transition cursor-pointer"
-                        title="Reset Zoom"
-                      >
-                        {Math.round(zoomLevel * 100)}%
-                      </button>
+                        {activeClipping.title}
+                      </h3>
                     </div>
 
-                    {/* 1. Download High-Res Image */}
-                    <a
-                      href={currentImg}
-                      download={`clipping_${activeClipping.id}_page${activeImageIndex + 1}.jpg`}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="p-2 rounded-xl bg-slate-800 hover:bg-emerald-600 text-slate-200 hover:text-white transition border border-slate-700/60 flex items-center gap-1.5 text-xs font-bold cursor-pointer shadow-sm"
-                      title="Download Image"
-                    >
-                      <ArrowDownTrayIcon className="w-4 h-4" />
-                      <span className="hidden sm:inline">Download</span>
-                    </a>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <div className="hidden md:flex items-center gap-1 bg-slate-900 border border-slate-800 rounded-xl p-0.5">
+                        <button
+                          onClick={() =>
+                            setZoomLevel((z) => Math.min(3, z + 0.25))
+                          }
+                          className="p-1.5 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition cursor-pointer"
+                          title="Zoom In"
+                        >
+                          <MagnifyingGlassPlusIcon className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() =>
+                            setZoomLevel((z) => Math.max(0.75, z - 0.25))
+                          }
+                          className="p-1.5 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition cursor-pointer"
+                          title="Zoom Out"
+                        >
+                          <MagnifyingGlassMinusIcon className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => setZoomLevel(1)}
+                          className="px-2 py-1 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white text-[11px] font-bold transition cursor-pointer"
+                          title="Reset Zoom"
+                        >
+                          {Math.round(zoomLevel * 100)}%
+                        </button>
+                      </div>
 
-                    {/* Optional PDF Download (if attached) */}
-                    {activeClipping.pdf_url && (
                       <a
-                        href={activeClipping.pdf_url}
+                        href={currentImg}
+                        download={`clipping_${activeClipping.id}_page${
+                          activeImageIndex + 1
+                        }.jpg`}
                         target="_blank"
                         rel="noreferrer"
-                        className="p-2 rounded-xl bg-slate-800 hover:bg-indigo-600 text-slate-200 hover:text-white transition border border-slate-700/60 flex items-center gap-1.5 text-xs font-bold cursor-pointer shadow-sm"
-                        title="Open PDF Document"
+                        className="p-2 rounded-xl bg-slate-800 hover:bg-emerald-600 text-slate-200 hover:text-white transition border border-slate-700/60 flex items-center gap-1.5 text-xs font-bold cursor-pointer shadow-sm"
+                        title="Download Image"
                       >
-                        <DocumentArrowDownIcon className="w-4 h-4" />
-                        <span className="hidden sm:inline">PDF</span>
+                        <ArrowDownTrayIcon className="w-4 h-4" />
+                        <span className="hidden sm:inline">Download</span>
                       </a>
-                    )}
 
-                    {/* 2. WhatsApp Share */}
-                    <button
-                      onClick={() => handleShareWhatsApp(activeClipping)}
-                      className="p-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white transition flex items-center gap-1.5 text-xs font-bold cursor-pointer shadow-sm"
-                      title="Share via WhatsApp"
-                    >
-                      <ShareIcon className="w-4 h-4" />
-                      <span className="hidden sm:inline">Share</span>
-                    </button>
+                      {activeClipping.pdf_url && (
+                        <a
+                          href={activeClipping.pdf_url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="p-2 rounded-xl bg-slate-800 hover:bg-indigo-600 text-slate-200 hover:text-white transition border border-slate-700/60 flex items-center gap-1.5 text-xs font-bold cursor-pointer shadow-sm"
+                          title="Open PDF Document"
+                        >
+                          <DocumentArrowDownIcon className="w-4 h-4" />
+                          <span className="hidden sm:inline">PDF</span>
+                        </a>
+                      )}
 
-                    {/* 3. Close */}
-                    <button
-                      onClick={() => setActiveClipping(null)}
-                      className="p-2 rounded-xl bg-slate-800 hover:bg-rose-600 text-slate-300 hover:text-white transition border border-slate-700/60 cursor-pointer shadow-sm"
-                      title="Close"
-                    >
-                      <XMarkIcon className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-
-                {/* Main Image Container */}
-                <div className="relative flex-1 overflow-auto p-4 sm:p-8 bg-black/80 flex items-center justify-center min-h-[50vh] max-h-[75vh]">
-                  {allImages.length > 1 && (
-                    <button
-                      onClick={() => {
-                        setActiveImageIndex((prev) => (prev > 0 ? prev - 1 : allImages.length - 1));
-                        setZoomLevel(1);
-                      }}
-                      className="absolute left-3 top-1/2 -translate-y-1/2 p-2.5 rounded-full bg-slate-950/80 hover:bg-emerald-600 text-white shadow-xl backdrop-blur-md transition z-20"
-                    >
-                      <ChevronLeftIcon className="w-6 h-6 stroke-[2.5]" />
-                    </button>
-                  )}
-
-                  <div
-                    className="transition-transform duration-200 cursor-grab active:cursor-grabbing origin-center"
-                    style={{ transform: `scale(${zoomLevel})` }}
-                  >
-                    <img
-                      src={currentImg}
-                      alt={activeClipping.title}
-                      className="max-h-[70vh] w-auto object-contain rounded-lg shadow-2xl mx-auto"
-                    />
-                  </div>
-
-                  {allImages.length > 1 && (
-                    <button
-                      onClick={() => {
-                        setActiveImageIndex((prev) => (prev < allImages.length - 1 ? prev + 1 : 0));
-                        setZoomLevel(1);
-                      }}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 p-2.5 rounded-full bg-slate-950/80 hover:bg-emerald-600 text-white shadow-xl backdrop-blur-md transition z-20"
-                    >
-                      <ChevronRightIcon className="w-6 h-6 stroke-[2.5]" />
-                    </button>
-                  )}
-                </div>
-
-                {/* Bottom Strip */}
-                {allImages.length > 1 && (
-                  <div className="bg-slate-950 border-t border-slate-800 p-3 flex items-center gap-2 overflow-x-auto">
-                    {allImages.map((imgUrl, idx) => (
                       <button
-                        key={idx}
+                        onClick={() => handleShareWhatsApp(activeClipping)}
+                        className="p-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white transition flex items-center gap-1.5 text-xs font-bold cursor-pointer shadow-sm"
+                        title="Share via WhatsApp"
+                      >
+                        <ShareIcon className="w-4 h-4" />
+                        <span className="hidden sm:inline">Share</span>
+                      </button>
+
+                      <button
+                        onClick={() => setActiveClipping(null)}
+                        className="p-2 rounded-xl bg-slate-800 hover:bg-rose-600 text-slate-300 hover:text-white transition border border-slate-700/60 cursor-pointer shadow-sm"
+                        title="Close"
+                      >
+                        <XMarkIcon className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Main Image Container */}
+                  <div className="relative flex-1 overflow-auto p-4 sm:p-8 bg-black/80 flex items-center justify-center min-h-[50vh] max-h-[75vh]">
+                    {allImages.length > 1 && (
+                      <button
                         onClick={() => {
-                          setActiveImageIndex(idx);
+                          setActiveImageIndex((prev) =>
+                            prev > 0 ? prev - 1 : allImages.length - 1
+                          );
                           setZoomLevel(1);
                         }}
-                        className={`relative w-12 h-12 rounded-lg overflow-hidden border-2 transition shrink-0 ${
-                          activeImageIndex === idx ? "border-emerald-500 scale-105" : "border-slate-700 opacity-60 hover:opacity-100"
-                        }`}
+                        className="absolute left-3 top-1/2 -translate-y-1/2 p-2.5 rounded-full bg-slate-950/80 hover:bg-emerald-600 text-white shadow-xl backdrop-blur-md transition z-20"
                       >
-                        <img src={imgUrl} alt={`Thumbnail ${idx + 1}`} className="w-full h-full object-cover" />
+                        <ChevronLeftIcon className="w-6 h-6 stroke-[2.5]" />
                       </button>
-                    ))}
+                    )}
+
+                    <div
+                      className="transition-transform duration-200 cursor-grab active:cursor-grabbing origin-center"
+                      style={{ transform: `scale(${zoomLevel})` }}
+                    >
+                      <img
+                        src={currentImg}
+                        alt={activeClipping.title}
+                        className="max-h-[70vh] w-auto object-contain rounded-lg shadow-2xl mx-auto"
+                      />
+                    </div>
+
+                    {allImages.length > 1 && (
+                      <button
+                        onClick={() => {
+                          setActiveImageIndex((prev) =>
+                            prev < allImages.length - 1 ? prev + 1 : 0
+                          );
+                          setZoomLevel(1);
+                        }}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 p-2.5 rounded-full bg-slate-950/80 hover:bg-emerald-600 text-white shadow-xl backdrop-blur-md transition z-20"
+                      >
+                        <ChevronRightIcon className="w-6 h-6 stroke-[2.5]" />
+                      </button>
+                    )}
                   </div>
-                )}
-              </motion.div>
-            </div>
-          );
-        })()}
+
+                  {/* Bottom Strip */}
+                  {allImages.length > 1 && (
+                    <div className="bg-slate-950 border-t border-slate-800 p-3 flex items-center gap-2 overflow-x-auto">
+                      {allImages.map((imgUrl, idx) => (
+                        <button
+                          key={idx}
+                          onClick={() => {
+                            setActiveImageIndex(idx);
+                            setZoomLevel(1);
+                          }}
+                          className={`relative w-12 h-12 rounded-lg overflow-hidden border-2 transition shrink-0 ${
+                            activeImageIndex === idx
+                              ? "border-emerald-500 scale-105"
+                              : "border-slate-700 opacity-60 hover:opacity-100"
+                          }`}
+                        >
+                          <img
+                            src={imgUrl}
+                            alt={`Thumbnail ${idx + 1}`}
+                            className="w-full h-full object-cover"
+                          />
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </motion.div>
+              </div>
+            );
+          })()}
       </AnimatePresence>
     </section>
   );

@@ -1,22 +1,11 @@
-import React, { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import {
-  BookOpenIcon,
-  MoonIcon,
-  DocumentTextIcon,
-  PhotoIcon,
-  ChevronRightIcon,
-  ChevronLeftIcon,
-  ArrowRightIcon,
-  CalendarDaysIcon,
-  UserIcon,
-} from "@heroicons/react/24/outline";
+import React, { useEffect, useState, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { bookService } from "../../api/bookService";
 import galleryService from "../../api/galleryService";
-import apiClient from "../../api/apiClient";
-import { useLanguage } from "../../context/LanguageContext";
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || (import.meta.env.PROD ? "" : "http://127.0.0.1:8000");
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL ||
+  (import.meta.env.PROD ? "" : "http://127.0.0.1:8000");
 
 const resolveImageUrl = (value) => {
   if (!value) return "";
@@ -26,13 +15,13 @@ const resolveImageUrl = (value) => {
   return `${API_BASE_URL}${cleanPath}`;
 };
 
-// Bulletproof helper to prevent React Error #31 (Objects as React child)
 const resolveSafeText = (value, fallback = "") => {
   if (value === null || value === undefined) return fallback;
   if (typeof value === "string") return value.trim() || fallback;
   if (typeof value === "number") return String(value);
   if (typeof value === "object") {
-    const candidate = value.ur || value.ar || value.en || value.name || value.title || value.text;
+    const candidate =
+      value.ur || value.ar || value.en || value.name || value.title || value.text;
     if (typeof candidate === "string" && candidate.trim()) return candidate.trim();
     for (const key of Object.keys(value)) {
       if (typeof value[key] === "string" && value[key].trim()) {
@@ -57,168 +46,124 @@ const SVG_NO_COVER =
     </svg>
   `);
 
+const defaultBooks = [
+  {
+    id: 35869,
+    title: "حدیث رسول کی عظمت امام شافعی کی نظر میں",
+    author: "عبدالواحد انور یوسفی",
+    cover_image_url:
+      "https://pub-65d224b0d4124762b53348a845b82a92.r2.dev/booknest/covers/e6326ed649fdb912_Screenshot__123.png",
+  },
+  {
+    id: 35868,
+    title: "دعوت فکر",
+    author: "عبدالواحد انور یوسفی",
+    cover_image_url:
+      "https://pub-65d224b0d4124762b53348a845b82a92.r2.dev/booknest/covers/5b6b1b71acc47afd_Screenshot__122.png",
+  },
+  {
+    id: 35867,
+    title: "ماہ رمضان کے مختصر احکام ومسائل",
+    author: "عبدالواحد انور یوسفی",
+    cover_image_url:
+      "https://pub-65d224b0d4124762b53348a845b82a92.r2.dev/booknest/covers/352ef32967c50b16_Screenshot__121.png",
+  },
+  {
+    id: 35865,
+    title: "عید الاضحی کے احکام اور فضائل",
+    author: "رضاء اللہ عبدالکریم مدنی",
+    cover_image_url:
+      "https://pub-65d224b0d4124762b53348a845b82a92.r2.dev/booknest/covers/e79b1c5c69e5ffff_Screenshot__118.png",
+  },
+];
+
+const defaultMoon = {
+  id: "moon-1",
+  title: "چاند کی تاریخ کا اعلان - 2026-09-20",
+  image:
+    "https://pub-65d224b0d4124762b53348a845b82a92.r2.dev/booknest/gallery/moon/3939f8ee3e6ea131_محرم_الحرام_1448.jpg",
+};
+
+const defaultJumah = {
+  id: "jumah-1",
+  title: "خطبہ جمعہ شیڈول - یکم جمعہ (4؍ ستمبر 2026)",
+  image:
+    "https://pub-65d224b0d4124762b53348a845b82a92.r2.dev/booknest/gallery/jumah/66f22eab85b166bb_13_january_2023.jpg",
+};
+
 const KokanHubBento = () => {
-  const { language, isRTL } = useLanguage();
   const navigate = useNavigate();
 
-  // Data states
   const [books, setBooks] = useState([]);
-  const [moonItems, setMoonItems] = useState([]);
-  const [pressClippings, setPressClippings] = useState([]);
-  const [posters, setPosters] = useState([]);
-  const [activeClippingIndex, setActiveClippingIndex] = useState(0);
+  const [moonItem, setMoonItem] = useState(null);
+  const [jumahItem, setJumahItem] = useState(null);
+  const [recentReads, setRecentReads] = useState([]);
+  const [recentOffset, setRecentOffset] = useState(0);
 
-  // Slider indices for the 4 side cards
-  const [bookIndex, setBookIndex] = useState(0);
-  const [moonIndex, setMoonIndex] = useState(0);
-  const [magazineIndex, setMagazineIndex] = useState(0);
-  const [posterIndex, setPosterIndex] = useState(0);
+  // Sync user's recently viewed/read books from localStorage
+  useEffect(() => {
+    const syncRecentReads = () => {
+      try {
+        const raw = localStorage.getItem("bookNest_recent_reads");
+        const parsed = raw ? JSON.parse(raw) : [];
+        if (Array.isArray(parsed)) {
+          setRecentReads(parsed);
+        }
+      } catch {
+        setRecentReads([]);
+      }
+    };
 
-  // Fallback authentic data
-  const defaultBooks = [
-    {
-      id: 35869,
-      title: "حدیث رسول کی عظمت امام شافعی کی نظر میں",
-      author: "عبدالواحد انور یوسفی",
-      cover_image_url: "https://pub-65d224b0d4124762b53348a845b82a92.r2.dev/booknest/covers/e6326ed649fdb912_Screenshot__123.png",
-      category: "حدیث و علوم الحدیث",
-    },
-    {
-      id: 35868,
-      title: "دعوت فکر",
-      author: "عبدالواحد انور یوسفی",
-      cover_image_url: "https://pub-65d224b0d4124762b53348a845b82a92.r2.dev/booknest/covers/5b6b1b71acc47afd_Screenshot__122.png",
-      category: "دعوت و اصلاح",
-    },
-    {
-      id: 35867,
-      title: "ماہ رمضان کے مختصر احکام ومسائل",
-      author: "عبدالواحد انور یوسفی",
-      cover_image_url: "https://pub-65d224b0d4124762b53348a845b82a92.r2.dev/booknest/covers/352ef32967c50b16_Screenshot__121.png",
-      category: "فقہ و احکام",
-    },
-    {
-      id: 35865,
-      title: "عید الاضحی کے احکام اور فضائل",
-      author: "رضاء اللہ عبدالکریم مدنی",
-      cover_image_url: "https://pub-65d224b0d4124762b53348a845b82a92.r2.dev/booknest/covers/e79b1c5c69e5ffff_Screenshot__118.png",
-      category: "فقہ و احکام",
-    },
-  ];
-
-  const defaultMoon = [
-    {
-      id: "moon-1",
-      title: "چاند کی تاریخ کا اعلان • رویتِ ہلال",
-      month: "ربیع الاول 1448ھ",
-      date: "2026-09-20",
-      image: "https://pub-65d224b0d4124762b53348a845b82a92.r2.dev/booknest/gallery/moon/3939f8ee3e6ea131_محرم_الحرام_1448.jpg",
-      description: "مرکزی رویت ہلال کمیٹی صوبائی جمعیت اہل حدیث ممبئی و کوکن کی تصدیق شدہ رپورٹ۔",
-    },
-  ];
-
-  const defaultMagazines = [
-    {
-      id: "mag-1",
-      title: "مجلہ الجامعہ (خصوصی اشاعت)",
-      issue: "شمارہ نمبر 48 • جلد 12",
-      date: "محرم تا ربیع الاول",
-      image: "https://pub-65d224b0d4124762b53348a845b82a92.r2.dev/booknest/covers/8521b7917ace44f3_Screenshot__120.png",
-      description: "عقیدہ توحید، فتنہ پروری کی روک تھام اور اصلاح معاشرہ کے اہم علمی مضامین۔",
-    },
-    {
-      id: "mag-2",
-      title: "مجلہ صوت الجامعہ",
-      issue: "شمارہ نمبر 47",
-      date: "شوال تا ذو الحجہ",
-      image: "https://pub-65d224b0d4124762b53348a845b82a92.r2.dev/booknest/covers/352ef32967c50b16_Screenshot__121.png",
-      description: "دار الافتاء کے منتخب فتاویٰ اور دعوتی سرگرمیوں کی مفصل رپورٹ۔",
-    },
-  ];
-
-  const defaultClippings = [
-    {
-      id: 5,
-      title: "ملت میں انتشار کی مذموم کوششوں کو ناکام بنائیں",
-      source: "Roznama Inquilab (انقلاب)",
-      date: "2 جولائی 2001",
-      excerpt: "مرکز اہل حدیث کوکن کے زیر اہتمام منعقدہ اہم اجلاس میں تمام ائمہ اور خطباء نے اتحاد بین المسلمین اور تحفظ سنت کی اہمیت پر زور دیا۔ علماء نے واضح کیا کہ کتاب و سنت کی طرف رجوع ہی امت کی فلاح کا ضامن ہے۔",
-      link: "/clippings",
-    },
-    {
-      id: 4,
-      title: "گمراہ فرقوں کی فتنہ سامانی سے مسلمانوں کو بچانا ہمارا مشن۔ مفتی سعید احمد",
-      source: "Roznama Inquilab (انقلاب)",
-      date: "2 جولائی 2001",
-      excerpt: "مرکز کے ناظم اور مفتیان کرام نے خطاب کرتے ہوئے کہا کہ مسلم نوجوانوں کو گمراہ کن نظریات سے بچانے کے لیے دینی و فکری رہنمائی وقت کی اہم ضرورت ہے۔",
-      link: "/clippings",
-    },
-    {
-      id: 1,
-      title: "تحریک تحفظ سنت کا عظیم الشان اجلاسِ عام",
-      source: "Roznama Inquilab (انقلاب)",
-      date: "27 جون 2001",
-      excerpt: "بیت السلام کمپلیکس کھیڈ میں منعقدہ عظیم الشان کانفرنس میں ہزاروں شرکاء کی آمد، سنت نبوی پر عمل پیرا ہونے کا عزم۔",
-      link: "/clippings",
-    },
-  ];
-
-  const defaultPosters = [
-    {
-      id: "poster-1",
-      title: "یک روزہ دورۂ علمیہ (شرح الأصول الثلاثة)",
-      date: "آئندہ اتوار",
-      venue: "بیت السلام کمپلیکس، کھیڈ",
-      image: "/static/images/0a33c541-b2d5-4315-aed3-04753bc5198a_download28.jpeg",
-    },
-    {
-      id: "poster-2",
-      title: "ماہانہ تربیتی درسِ قرآن و سنت",
-      date: "ہر ماہ کا پہلا جمعہ",
-      venue: "جامع مسجد اہل حدیث، سونس",
-      image: "/static/images/7b6e2da0-4181-408c-b1d7-88bac463416f_books.jpeg",
-    },
-  ];
+    syncRecentReads();
+    window.addEventListener("kil_reading_updated", syncRecentReads);
+    window.addEventListener("storage", syncRecentReads);
+    return () => {
+      window.removeEventListener("kil_reading_updated", syncRecentReads);
+      window.removeEventListener("storage", syncRecentReads);
+    };
+  }, []);
 
   useEffect(() => {
     let mounted = true;
 
-    // 1. Fetch latest books
+    // 1. Fetch latest approved books
     bookService
-      .getAllBooks({ limit: 8, approved_only: true })
+      .getAllBooks({ limit: 12, approved_only: true, sort_order: "desc" })
       .then((data) => {
-        const items = Array.isArray(data) ? data : (data?.books || data?.items || []);
-        if (mounted && items.length > 0) {
-          setBooks(items.slice(0, 8));
+        const items = Array.isArray(data)
+          ? data
+          : data?.books || data?.items || [];
+        const approved = items.filter((b) => b.is_approved !== false);
+        if (mounted && approved.length > 0) {
+          setBooks(approved);
         }
       })
       .catch(() => {});
 
-    // 2. Fetch gallery items for moon & posters
+    // 2. Fetch latest Moon & Jumah updates
     galleryService
-      .getPublicGallery({ limit: 20 })
-      .then((data) => {
-        const items = Array.isArray(data) ? data : (data?.items || []);
-        if (mounted && items.length > 0) {
-          const moons = items.filter((it) => it.item_type === "moon");
-          if (moons.length > 0) {
-            setMoonItems(moons);
-          }
-          const photoPosters = items.filter((it) => it.item_type === "photo" && it.image_url);
-          if (photoPosters.length > 0) {
-            setPosters(photoPosters.slice(0, 6));
-          }
-        }
-      })
-      .catch(() => {});
-
-    // 3. Fetch clippings via safe endpoint
-    apiClient
-      .get("/api/newspaper-clippings?limit=5")
+      .getIslamicUpdates()
       .then((res) => {
-        const items = Array.isArray(res.data) ? res.data : (res.data?.items || []);
-        if (mounted && items.length > 0) {
-          setPressClippings(items);
+        if (!mounted || !res) return;
+        if (res.moon && res.moon.image_url) {
+          setMoonItem({
+            id: res.moon.id,
+            title: resolveSafeText(
+              res.moon.title,
+              "چاند کی تاریخ کا اعلان"
+            ),
+            image: resolveImageUrl(res.moon.image_url),
+          });
+        }
+        if (res.jumah && res.jumah.image_url) {
+          setJumahItem({
+            id: res.jumah.id,
+            title: resolveSafeText(
+              res.jumah.title,
+              "خطبہ جمعہ شیڈول"
+            ),
+            image: resolveImageUrl(res.jumah.image_url),
+          });
         }
       })
       .catch(() => {});
@@ -229,435 +174,499 @@ const KokanHubBento = () => {
   }, []);
 
   const currentBookList = books.length > 0 ? books : defaultBooks;
-  const currentMoonList = moonItems.length > 0 ? moonItems : defaultMoon;
-  const currentMagazineList = defaultMagazines;
-  const currentClippingsList = pressClippings.length > 0 ? pressClippings : defaultClippings;
-  const currentPosterList = posters.length > 0 ? posters : defaultPosters;
+  const activeMoon = moonItem || defaultMoon;
+  const activeJumah = jumahItem || defaultJumah;
 
-  const activeBook = currentBookList[bookIndex % currentBookList.length] || defaultBooks[0];
-  const activeMoon = currentMoonList[moonIndex % currentMoonList.length] || defaultMoon[0];
-  const activeMagazine = currentMagazineList[magazineIndex % currentMagazineList.length] || defaultMagazines[0];
-  const activePoster = currentPosterList[posterIndex % currentPosterList.length] || defaultPosters[0];
-  const activeClipping = currentClippingsList[activeClippingIndex % currentClippingsList.length] || defaultClippings[0];
+  // Build the user's viewed books list (from localStorage recentReads, enriched with library books, or fallback to library books)
+  const viewedBooksList = useMemo(() => {
+    const byId = new Map(currentBookList.map((b) => [String(b.id), b]));
+    const fromHistory = [];
+
+    if (Array.isArray(recentReads) && recentReads.length > 0) {
+      for (const entry of recentReads) {
+        const bId = entry?.book_id || entry?.bookId || entry?.id;
+        if (!bId) continue;
+        const matched = byId.get(String(bId));
+        fromHistory.push({
+          id: bId,
+          title: resolveSafeText(
+            entry.title || matched?.title,
+            "مستند علمی کتاب"
+          ),
+          author: resolveSafeText(
+            entry.author || matched?.author,
+            "مرکز اہل حدیث کوکن"
+          ),
+          cover:
+            entry.cover_image_url ||
+            entry.cover ||
+            matched?.cover_image_url ||
+            matched?.cover_image ||
+            "",
+          page: Number(entry.last_page_read || entry.page || 1),
+        });
+      }
+    }
+
+    if (fromHistory.length >= 2) {
+      return fromHistory;
+    }
+
+    // Supplement with library books so the scrolling card always has items to scroll
+    const existingIds = new Set(fromHistory.map((item) => String(item.id)));
+    const fallbackItems = currentBookList
+      .filter((b) => !existingIds.has(String(b.id)))
+      .slice(0, 6)
+      .map((b) => ({
+        id: b.id,
+        title: resolveSafeText(b.title, "کتاب"),
+        author: resolveSafeText(b.author, "عبدالواحد انور یوسفی"),
+        cover: b.cover_image_url || b.cover_image || "",
+        page: 1,
+      }));
+
+    return [...fromHistory, ...fallbackItems];
+  }, [recentReads, currentBookList]);
+
+  // Smooth auto-scroll for the user's viewed books
+  useEffect(() => {
+    if (viewedBooksList.length <= 2) return;
+    const timer = setInterval(() => {
+      setRecentOffset((prev) => (prev + 1) % viewedBooksList.length);
+    }, 3500);
+    return () => clearInterval(timer);
+  }, [viewedBooksList.length]);
+
+  const visibleViewedBooks = useMemo(() => {
+    if (viewedBooksList.length === 0) return [];
+    const count = Math.min(2, viewedBooksList.length);
+    const items = [];
+    for (let i = 0; i < count; i++) {
+      items.push(viewedBooksList[(recentOffset + i) % viewedBooksList.length]);
+    }
+    return items;
+  }, [viewedBooksList, recentOffset]);
+
+  const cardClass =
+    "rounded-[20px] border-[1.5px] border-[#C8DDD2] bg-white shadow-[0_10px_25px_-5px_rgba(15,61,46,0.07),0_4px_10px_-2px_rgba(15,61,46,0.04)] overflow-hidden";
+  const headerClass =
+    "bg-gradient-to-r from-[#E6F2EC] to-[#F3F8F5] border-b-2 border-[#C5A059] text-[#0F3D2E]";
+  const btnHoverGreen =
+    "bg-white text-[#0F3D2E] border-[1.5px] border-[#0F3D2E]/25 hover:bg-[#165B43] hover:text-white hover:border-[#165B43] active:bg-[#165B43] active:text-white transition-all duration-200 cursor-pointer";
 
   return (
-    <section className="py-4 w-full" dir="rtl">
-      {/* ================= 3-COLUMN MARKAZ HUB ================= */}
+    <section className="w-full space-y-6" dir="rtl">
+      {/* ================= 1. 3-COLUMN MARKAZ PORTAL ================= */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
-        
-        {/* ================= RIGHT COLUMN (Desktop 3 Cols in RTL): جدید کتب & رویت ہلال ================= */}
-        <div className="lg:col-span-3 space-y-5 flex flex-col justify-between">
-          
-          {/* CARD 1: جدید کتب (New Books) */}
-          <div className="rounded-2xl border border-[#E6E2DD] bg-white overflow-hidden shadow-xs hover:shadow-md transition flex flex-col justify-between h-full">
-            {/* Header Pill */}
-            <div className="bg-[#0F3D2E] text-white px-4 py-2.5 flex items-center justify-between">
-              <span 
-                className="text-xs sm:text-sm font-bold flex items-center gap-1.5"
+        {/* RIGHT 3 COLS: 1. حدیثِ مبارکہ | 2. رویت ہلال */}
+        <div className="lg:col-span-3 flex flex-col justify-between gap-5">
+          {/* Card 1: حدیثِ مبارکہ */}
+          <div className={`${cardClass} flex-1 flex flex-col justify-between`}>
+            <div
+              className={`${headerClass} px-4 py-2.5 flex items-center justify-between`}
+            >
+              <span
+                className="text-sm font-extrabold text-[#0F3D2E]"
                 style={{ fontFamily: "'Noto Naskh Arabic', sans-serif" }}
               >
-                <span>📖</span>
-                <span>جدید کتب (New Books)</span>
+                ✨ حدیثِ مبارکہ
+              </span>
+              <span className="text-[10px] font-bold text-[#165B43] font-mono">
+                صحیح البخاری: 5027
+              </span>
+            </div>
+            <div className="p-4 flex flex-col items-center justify-between flex-1 text-center space-y-3">
+              <div className="w-full rounded-xl bg-[#F3F8F5] border border-[#C8DDD2] p-3.5 space-y-2 flex-1 flex flex-col justify-center">
+                <div
+                  className="text-lg font-bold text-[#0F3D2E] leading-relaxed"
+                  style={{ fontFamily: "'Amiri', serif" }}
+                >
+                  «خَيْرُكُمْ مَنْ تَعَلَّمَ الْقُرْآنَ وَعَلَّمَهُ»
+                </div>
+                <div
+                  className="text-xs font-bold text-slate-700 leading-relaxed"
+                  style={{ fontFamily: "'Noto Naskh Arabic', sans-serif" }}
+                >
+                  ”تم میں سے سب سے بہتر وہ شخص ہے جو قرآن سیکھے اور سکھائے۔“
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => navigate("/books")}
+                className={`${btnHoverGreen} w-full py-1.5 rounded-xl text-xs font-bold shadow-2xs`}
+                style={{ fontFamily: "'Noto Naskh Arabic', sans-serif" }}
+              >
+                کتبِ احادیث کا مطالعہ کریں
+              </button>
+            </div>
+          </div>
+
+          {/* Card 2: رویت ہلال */}
+          <div className={`${cardClass} flex-1 flex flex-col justify-between`}>
+            <div
+              className={`${headerClass} px-4 py-2.5 flex items-center justify-between`}
+            >
+              <span
+                className="text-sm font-extrabold text-[#0F3D2E]"
+                style={{ fontFamily: "'Noto Naskh Arabic', sans-serif" }}
+              >
+                🌙 رویت ہلال
+              </span>
+              <span className="text-[10px] font-bold text-[#165B43]">
+                ہجری تقویم
+              </span>
+            </div>
+            <div className="p-4 flex flex-col items-center text-center space-y-2.5 flex-1 justify-between">
+              <div
+                onClick={() => navigate("/moon")}
+                className="w-full h-32 rounded-lg overflow-hidden border border-slate-200 bg-slate-50 cursor-pointer"
+              >
+                <img
+                  src={activeMoon.image}
+                  alt={activeMoon.title}
+                  className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+                  onError={(e) => {
+                    e.currentTarget.onerror = null;
+                    e.currentTarget.src = defaultMoon.image;
+                  }}
+                />
+              </div>
+              <h4
+                className="text-xs font-extrabold text-[#0F3D2E] line-clamp-1"
+                style={{ fontFamily: "'Noto Naskh Arabic', sans-serif" }}
+              >
+                {activeMoon.title}
+              </h4>
+              <button
+                type="button"
+                onClick={() => navigate("/moon")}
+                className={`${btnHoverGreen} w-full py-1.5 rounded-xl text-xs font-bold shadow-2xs`}
+                style={{ fontFamily: "'Noto Naskh Arabic', sans-serif" }}
+              >
+                سرکلر دیکھیں
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* CENTER 6 COLS: مرکز الدعوۃ الاسلامیۃ والخیریہ (سونس، کھیڈ - رتناگری) */}
+        <div className="lg:col-span-6 flex flex-col">
+          <div className={`${cardClass} h-full flex flex-col justify-between`}>
+            <div
+              className={`${headerClass} px-4 sm:px-5 py-3 flex items-center justify-between gap-2`}
+            >
+              <span
+                className="text-sm sm:text-base font-extrabold text-[#0F3D2E]"
+                style={{ fontFamily: "'Noto Naskh Arabic', sans-serif" }}
+              >
+                🏛️ مرکز الدعوۃ الاسلامیۃ والخیریہ (سونس، کھیڈ - رتناگری)
+              </span>
+              <span className="text-xs bg-white text-[#0F3D2E] border border-[#165B43]/30 px-3 py-0.5 rounded-full font-extrabold shrink-0">
+                تعارفِ مرکز
+              </span>
+            </div>
+
+            <div className="p-5 sm:p-6 space-y-4 flex-1 flex flex-col justify-between bg-gradient-to-b from-white to-[#F3F8F5]/50">
+              <div className="space-y-3">
+                <div className="text-center border-b border-[#C8DDD2] pb-3">
+                  <p className="text-xs font-bold text-[#165B43]">
+                    •─════﷽════─•
+                  </p>
+                  <p
+                    className="text-xs text-slate-600 font-bold mt-1"
+                    style={{ fontFamily: "'Noto Naskh Arabic', sans-serif" }}
+                  >
+                    شعبے • سرگرمیاں • کارکردگی • مستقبل کے عزائم
+                  </p>
+                </div>
+
+                <div
+                  className="space-y-2.5 text-xs sm:text-sm text-slate-700 leading-relaxed text-justify"
+                  style={{ fontFamily: "'Noto Naskh Arabic', sans-serif" }}
+                >
+                  <h4 className="font-extrabold text-[#0F3D2E] text-sm">
+                    ✺ کوکن کا محل وقوع اور پس منظر
+                  </h4>
+                  <p>
+                    ہندوستان کے صوبہ مہاراشٹر کے جنوب مغرب میں ساحل سمندر پر
+                    آباد پہاڑیوں کے دامن میں پھیلی ہوئی آبادی خطۂ کوکن کے نام سے
+                    مشہور ہے۔ کوکن وہ تاریخی اور سعادت مند جگہ ہے جہاں سب سے
+                    پہلے سرکاری طور سے عہدِ فاروقی میں مسلمانوں کا پہلا لشکر آیا
+                    تھا، یعنی ۱۵ ہجری ہی میں اسلام کی خالص تعلیمات سے یہ خطہ بہرہ
+                    ور ہو چکا تھا۔
+                  </p>
+                  <p>
+                    ممبئی گوا شاہراہ پر کھیڈ (ضلع رتناگیری) سے صرف ۲۴ کلومیٹر کے
+                    فاصلے پر ”سونس“ نامی گاؤں میں اسلام کی خالص تعلیمات کو فروغ
+                    دینے کے لئے ”مرکز الدعوۃ الاسلامیۃ والخیرہ“ کوشاں ہے۔ کھیڈ
+                    شہر میں ”بیت السلام کمپلیکس“ سے مرکز کی دعوتی، اصلاحی اور
+                    تبلیغی سرگرمیاں پورے کوکن میں انجام دی جا رہی ہیں۔
+                  </p>
+                  <h4 className="font-extrabold text-[#0F3D2E] text-sm pt-1">
+                    ✺ قیامِ مرکز کے محرکات
+                  </h4>
+                  <p>
+                    اگست ۱۹۹۱ء میں ”ادارہ دعوتِ دین“ قائم کیا گیا، اور ۲۰۰۰ء میں
+                    اسے مرکز الدعوۃ الاسلامیۃ والخیرہ کے نام سے رجسٹرڈ کرایا
+                    گیا۔ آج کوکن میں دعوت و تبلیغ اور نشر واشاعت کے میدان میں یہ
+                    ایک مشہور و متعارف نام ہے، فَلِلّٰهِ الْحَمْدُ۔
+                  </p>
+                </div>
+              </div>
+
+              <div className="pt-3 border-t border-[#C8DDD2] flex flex-wrap items-center justify-between gap-2">
+                <button
+                  type="button"
+                  onClick={() => navigate("/about")}
+                  className={`${btnHoverGreen} px-5 py-2 rounded-xl text-xs font-extrabold shadow-2xs`}
+                  style={{ fontFamily: "'Noto Naskh Arabic', sans-serif" }}
+                >
+                  مکمل تعارف اور شعبہ جات پڑھیں ←
+                </button>
+                <span className="text-xs text-slate-500 font-bold">
+                  بیت السلام کمپلیکس، کھیڈ
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* LEFT 3 COLS: 1. حالیہ مطالعہ (دیکھی گئی کتب - اسکرول) | 2. خطباتِ جمعہ */}
+        <div className="lg:col-span-3 flex flex-col justify-between gap-5">
+          {/* Card 3: حالیہ مطالعہ (User's Viewed Books from Library in Scroll) */}
+          <div className={`${cardClass} flex-1 flex flex-col justify-between`}>
+            <div
+              className={`${headerClass} px-4 py-2.5 flex items-center justify-between`}
+            >
+              <span
+                className="text-sm font-extrabold text-[#0F3D2E]"
+                style={{ fontFamily: "'Noto Naskh Arabic', sans-serif" }}
+              >
+                📚 حالیہ مطالعہ (دیکھی گئی کتب)
               </span>
               <div className="flex items-center gap-1">
                 <button
                   type="button"
-                  onClick={() => setBookIndex((prev) => (prev - 1 + currentBookList.length) % currentBookList.length)}
-                  className="w-5 h-5 rounded-full bg-white/20 hover:bg-white/40 flex items-center justify-center text-xs transition cursor-pointer"
-                  title="Previous Book"
+                  onClick={() =>
+                    setRecentOffset(
+                      (prev) =>
+                        (prev - 1 + viewedBooksList.length) %
+                        Math.max(1, viewedBooksList.length)
+                    )
+                  }
+                  className="text-[10px] bg-white text-[#165B43] border border-[#C5A059] px-1.5 py-0.5 rounded-full font-bold hover:bg-[#165B43] hover:text-white transition cursor-pointer"
+                  title="اوپر اسکرول کریں"
                 >
-                  <ChevronRightIcon className="w-3.5 h-3.5" />
+                  ▲
                 </button>
                 <button
                   type="button"
-                  onClick={() => setBookIndex((prev) => (prev + 1) % currentBookList.length)}
-                  className="w-5 h-5 rounded-full bg-white/20 hover:bg-white/40 flex items-center justify-center text-xs transition cursor-pointer"
-                  title="Next Book"
+                  onClick={() =>
+                    setRecentOffset(
+                      (prev) =>
+                        (prev + 1) % Math.max(1, viewedBooksList.length)
+                    )
+                  }
+                  className="text-[10px] bg-white text-[#165B43] border border-[#C5A059] px-1.5 py-0.5 rounded-full font-bold hover:bg-[#165B43] hover:text-white transition cursor-pointer"
+                  title="نیچے اسکرول کریں"
                 >
-                  <ChevronLeftIcon className="w-3.5 h-3.5" />
+                  ▼
                 </button>
               </div>
             </div>
 
-            {/* Book Body */}
-            <div className="p-4 flex flex-col items-center text-center space-y-3 flex-1 justify-center">
-              <div 
-                onClick={() => navigate(`/read/${activeBook.id}`)}
-                className="w-28 h-40 rounded-xl overflow-hidden shadow-md border border-slate-200 cursor-pointer hover:scale-103 transition-transform bg-slate-100 flex items-center justify-center"
+            <div className="p-3 flex flex-col justify-between flex-1 space-y-2">
+              <div className="space-y-2 max-h-[165px] overflow-y-auto pr-0.5">
+                {visibleViewedBooks.map((item, idx) => {
+                  const coverSrc = item.cover
+                    ? resolveImageUrl(item.cover)
+                    : SVG_NO_COVER;
+                  return (
+                    <div
+                      key={`${item.id}-${idx}`}
+                      onClick={() =>
+                        navigate(
+                          `/read/${item.id}${
+                            item.page > 1 ? `?page=${item.page}` : ""
+                          }`
+                        )
+                      }
+                      className="flex items-center gap-2.5 p-2 rounded-xl bg-[#F3F8F5] hover:bg-[#E6F2EC] border border-[#C8DDD2] cursor-pointer transition"
+                    >
+                      <img
+                        src={coverSrc}
+                        alt={item.title}
+                        className="w-10 h-14 object-cover rounded border border-[#C5A059] shrink-0 bg-white"
+                        onError={(e) => {
+                          e.currentTarget.onerror = null;
+                          e.currentTarget.src = SVG_NO_COVER;
+                        }}
+                      />
+                      <div className="min-w-0 flex-1 text-right">
+                        <h5
+                          className="text-[11px] font-extrabold text-[#0F3D2E] truncate"
+                          style={{
+                            fontFamily: "'Noto Naskh Arabic', sans-serif",
+                          }}
+                        >
+                          {item.title}
+                        </h5>
+                        <p className="text-[10px] text-slate-500 truncate">
+                          {item.author}
+                        </p>
+                        <span className="inline-block mt-0.5 text-[9.5px] font-bold text-[#165B43] bg-white px-2 py-0.2 rounded-full border border-[#C8DDD2]">
+                          پڑھائی جاری رکھیں (صفحہ {item.page || 1})
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <button
+                type="button"
+                onClick={() => {
+                  const first = visibleViewedBooks[0];
+                  if (first?.id) {
+                    navigate(
+                      `/read/${first.id}${
+                        first.page > 1 ? `?page=${first.page}` : ""
+                      }`
+                    );
+                  } else {
+                    navigate("/books");
+                  }
+                }}
+                className={`${btnHoverGreen} w-full py-1.5 rounded-xl text-xs font-bold shadow-2xs`}
+                style={{ fontFamily: "'Noto Naskh Arabic', sans-serif" }}
+              >
+                مطالعہ جاری رکھیں
+              </button>
+            </div>
+          </div>
+
+          {/* Card 4: خطباتِ جمعہ */}
+          <div className={`${cardClass} flex-1 flex flex-col justify-between`}>
+            <div
+              className={`${headerClass} px-4 py-2.5 flex items-center justify-between`}
+            >
+              <span
+                className="text-sm font-extrabold text-[#0F3D2E]"
+                style={{ fontFamily: "'Noto Naskh Arabic', sans-serif" }}
+              >
+                🕌 خطباتِ جمعہ
+              </span>
+              <span className="text-[10px] font-bold text-[#165B43]">
+                ہفتہ وار
+              </span>
+            </div>
+            <div className="p-4 flex flex-col items-center text-center space-y-2.5 flex-1 justify-between">
+              <div
+                onClick={() => navigate("/juma-list")}
+                className="w-full h-32 rounded-lg overflow-hidden border border-slate-200 bg-slate-50 cursor-pointer"
               >
                 <img
-                  src={activeBook.cover_image_url ? resolveImageUrl(activeBook.cover_image_url) : SVG_NO_COVER}
-                  alt={resolveSafeText(activeBook.title, "کتاب")}
-                  className="w-full h-full object-cover"
+                  src={activeJumah.image}
+                  alt={activeJumah.title}
+                  className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+                  onError={(e) => {
+                    e.currentTarget.onerror = null;
+                    e.currentTarget.src = defaultJumah.image;
+                  }}
+                />
+              </div>
+              <h4
+                className="text-xs font-extrabold text-[#0F3D2E] line-clamp-1"
+                style={{ fontFamily: "'Noto Naskh Arabic', sans-serif" }}
+              >
+                {activeJumah.title}
+              </h4>
+              <button
+                type="button"
+                onClick={() => navigate("/juma-list")}
+                className={`${btnHoverGreen} w-full py-1.5 rounded-xl text-xs font-bold shadow-2xs`}
+                style={{ fontFamily: "'Noto Naskh Arabic', sans-serif" }}
+              >
+                مکمل شیڈول
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ================= 2. جدید کتب — 4-CARD FORMAT RIGHT ABOVE AKHBARI CLIPPINGS ================= */}
+      <div className={cardClass}>
+        <div
+          className={`${headerClass} px-4 sm:px-5 py-3 flex items-center justify-between`}
+        >
+          <span
+            className="text-sm sm:text-base font-extrabold text-[#0F3D2E]"
+            style={{ fontFamily: "'Noto Naskh Arabic', sans-serif" }}
+          >
+            📖 جدید کتب
+          </span>
+          <button
+            type="button"
+            onClick={() => navigate("/books")}
+            className={`${btnHoverGreen} px-3.5 py-1 rounded-full text-xs font-bold`}
+            style={{ fontFamily: "'Noto Naskh Arabic', sans-serif" }}
+          >
+            تمام کتب دیکھیں ←
+          </button>
+        </div>
+
+        <div className="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {currentBookList.slice(0, 4).map((book, idx) => {
+            const coverUrl =
+              book.cover_image_url || book.cover_image
+                ? resolveImageUrl(book.cover_image_url || book.cover_image)
+                : SVG_NO_COVER;
+            const title = resolveSafeText(book.title, "مستند علمی کتاب");
+            const author = resolveSafeText(book.author, "مرکز اہل حدیث کوکن");
+
+            return (
+              <div
+                key={book.id || idx}
+                onClick={() => navigate(`/read/${book.id}`)}
+                className="rounded-xl overflow-hidden border border-[#C8DDD2] bg-[#FAF8F5] hover:bg-white p-3.5 flex flex-col items-center text-center justify-between space-y-2.5 cursor-pointer transition-all hover:-translate-y-0.5 hover:shadow-md"
+              >
+                <img
+                  src={coverUrl}
+                  alt={title}
+                  className="w-28 h-40 object-cover rounded-lg shadow-md border border-[#C5A059] bg-white"
+                  loading="lazy"
                   onError={(e) => {
                     e.currentTarget.onerror = null;
                     e.currentTarget.src = SVG_NO_COVER;
                   }}
                 />
-              </div>
-
-              <div className="space-y-1 w-full">
-                <h4 
-                  onClick={() => navigate(`/read/${activeBook.id}`)}
-                  className="text-xs sm:text-sm font-bold text-slate-900 line-clamp-2 hover:text-[#0F3D2E] transition-colors cursor-pointer leading-snug"
-                  style={{ fontFamily: "'Noto Naskh Arabic', sans-serif" }}
-                >
-                  {resolveSafeText(activeBook.title, "کتاب")}
-                </h4>
-                {activeBook.author && (
-                  <p className="text-[11px] text-slate-500 font-medium truncate flex items-center justify-center gap-1">
-                    <UserIcon className="w-3 h-3 text-[#C5A059]" />
-                    <span>{resolveSafeText(activeBook.author, "علمائے کرام")}</span>
+                <div className="w-full">
+                  <h5
+                    className="text-xs font-extrabold text-[#0F3D2E] line-clamp-1"
+                    style={{ fontFamily: "'Noto Naskh Arabic', sans-serif" }}
+                    title={title}
+                  >
+                    {title}
+                  </h5>
+                  <p className="text-[11px] text-slate-500 font-semibold mt-0.5 truncate">
+                    {author}
                   </p>
-                )}
-              </div>
-
-              <div className="w-full pt-2 border-t border-slate-100 flex items-center justify-between gap-2">
+                </div>
                 <button
                   type="button"
-                  onClick={() => navigate(`/read/${activeBook.id}`)}
-                  className="w-full py-1.5 rounded-xl bg-[#0F3D2E] hover:bg-[#165B44] text-white text-xs font-bold transition cursor-pointer shadow-2xs"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    navigate(`/read/${book.id}`);
+                  }}
+                  className={`${btnHoverGreen} w-full py-1.5 rounded-xl text-xs font-bold`}
                   style={{ fontFamily: "'Noto Naskh Arabic', sans-serif" }}
                 >
                   مطالعہ کریں
                 </button>
-                <button
-                  type="button"
-                  onClick={() => navigate("/books")}
-                  className="px-3 py-1.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-semibold transition cursor-pointer shrink-0"
-                >
-                  فہرست
-                </button>
               </div>
-            </div>
-          </div>
-
-          {/* CARD 2: رویت ہلال (Moon Sighting Announcement) */}
-          <div className="rounded-2xl border border-[#E6E2DD] bg-white overflow-hidden shadow-xs hover:shadow-md transition flex flex-col justify-between h-full">
-            {/* Header Pill */}
-            <div className="bg-[#0F3D2E] text-white px-4 py-2.5 flex items-center justify-between">
-              <span 
-                className="text-xs sm:text-sm font-bold flex items-center gap-1.5"
-                style={{ fontFamily: "'Noto Naskh Arabic', sans-serif" }}
-              >
-                <span>🌙</span>
-                <span>رویت ہلال (Moon Sighting)</span>
-              </span>
-              <div className="flex items-center gap-1">
-                <button
-                  type="button"
-                  onClick={() => setMoonIndex((prev) => (prev - 1 + currentMoonList.length) % currentMoonList.length)}
-                  className="w-5 h-5 rounded-full bg-white/20 hover:bg-white/40 flex items-center justify-center text-xs transition cursor-pointer"
-                  title="Previous Announcement"
-                >
-                  <ChevronRightIcon className="w-3.5 h-3.5" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setMoonIndex((prev) => (prev + 1) % currentMoonList.length)}
-                  className="w-5 h-5 rounded-full bg-white/20 hover:bg-white/40 flex items-center justify-center text-xs transition cursor-pointer"
-                  title="Next Announcement"
-                >
-                  <ChevronLeftIcon className="w-3.5 h-3.5" />
-                </button>
-              </div>
-            </div>
-
-            {/* Moon Sighting Body */}
-            <div className="p-4 flex flex-col items-center text-center space-y-3 flex-1 justify-center">
-              <div 
-                onClick={() => navigate("/moon")}
-                className="w-full h-36 rounded-xl overflow-hidden border border-amber-200 bg-amber-50/50 relative cursor-pointer group shadow-2xs"
-              >
-                <img
-                  src={activeMoon.image || activeMoon.image_url ? resolveImageUrl(activeMoon.image || activeMoon.image_url) : SVG_NO_COVER}
-                  alt={resolveSafeText(activeMoon.title_ur || activeMoon.title, "رویت ہلال")}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-transparent to-transparent flex items-end p-2.5">
-                  <span className="text-[10px] font-bold text-amber-300 bg-slate-950/70 px-2 py-0.5 rounded-md">
-                    {resolveSafeText(activeMoon.hijri_month || activeMoon.month, "ہجری تقویم")}
-                  </span>
-                </div>
-              </div>
-
-              <div className="space-y-1 w-full">
-                <h4 
-                  onClick={() => navigate("/moon")}
-                  className="text-xs sm:text-sm font-bold text-slate-900 line-clamp-1 hover:text-[#0F3D2E] transition-colors cursor-pointer"
-                  style={{ fontFamily: "'Noto Naskh Arabic', sans-serif" }}
-                >
-                  {resolveSafeText(activeMoon.title_ur || activeMoon.title, "چاند کی تاریخ کا باضابطہ اعلان")}
-                </h4>
-                <p className="text-[11px] text-slate-500 font-medium">
-                  {resolveSafeText(activeMoon.event_date || activeMoon.date, "مرکزی رویت ہلال کمیٹی")}
-                </p>
-              </div>
-
-              <div className="w-full pt-2 border-t border-slate-100 flex items-center justify-between gap-2">
-                <button
-                  type="button"
-                  onClick={() => navigate("/moon")}
-                  className="w-full py-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold transition cursor-pointer shadow-2xs"
-                  style={{ fontFamily: "'Noto Naskh Arabic', sans-serif" }}
-                >
-                  سرکلر دیکھیں
-                </button>
-              </div>
-            </div>
-          </div>
-
+            );
+          })}
         </div>
-
-        {/* ================= CENTER COLUMN (Desktop 6 Cols - Wide Majestic Editorial): پریس ریلیز و اعلامیہ ================= */}
-        <div className="lg:col-span-6 flex flex-col justify-between">
-          <div className="rounded-2xl border border-[#E6E2DD] bg-white overflow-hidden shadow-xs hover:shadow-md transition h-full flex flex-col">
-            
-            {/* Header Pill */}
-            <div className="bg-[#0F3D2E] text-white px-5 py-3 flex items-center justify-between">
-              <span 
-                className="text-sm sm:text-base font-extrabold flex items-center gap-2"
-                style={{ fontFamily: "'Noto Naskh Arabic', sans-serif" }}
-              >
-                <span>📰</span>
-                <span>پریس ریلیز و بیاناتِ مرکز (Markaz Press Releases)</span>
-              </span>
-              <span className="text-[11px] text-[#C5A059] font-bold tracking-wider">
-                روزنامہ اخباری کوریج
-              </span>
-            </div>
-
-            {/* Featured Editorial Body */}
-            <div className="p-5 sm:p-6 space-y-4 flex-1 flex flex-col justify-between">
-              
-              <div className="space-y-3">
-                {/* Meta Row: Tag & Date */}
-                <div className="flex items-center justify-between gap-2 border-b border-slate-100 pb-2.5">
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-[#0F3D2E] text-xs font-bold">
-                    <span>✨</span>
-                    <span>{resolveSafeText(activeClipping.source || activeClipping.newspaper_name, "Roznama Inquilab")}</span>
-                  </span>
-                  <span className="text-xs text-slate-500 font-mono font-medium flex items-center gap-1">
-                    <CalendarDaysIcon className="w-3.5 h-3.5 text-slate-400" />
-                    <span>{resolveSafeText(activeClipping.date || activeClipping.edition_date, "تازہ ترین اشاعت")}</span>
-                  </span>
-                </div>
-
-                {/* Main Headline */}
-                <h3 
-                  className="text-lg sm:text-2xl font-black text-[#1E293B] leading-snug hover:text-[#0F3D2E] transition-colors cursor-pointer"
-                  style={{ fontFamily: "'Noto Naskh Arabic', 'Plus Jakarta Sans', system-ui, sans-serif" }}
-                  onClick={() => navigate("/clippings")}
-                >
-                  {resolveSafeText(activeClipping.title, "پریس ریلیز")}
-                </h3>
-
-                {/* Excerpt */}
-                <p 
-                  className="text-xs sm:text-sm text-slate-600 leading-relaxed line-clamp-4"
-                  style={{ fontFamily: "'Noto Naskh Arabic', sans-serif" }}
-                >
-                  {resolveSafeText(
-                    activeClipping.excerpt || activeClipping.description,
-                    "مرکز اہل حدیث کوکن، بیت السلام کمپلیکس کھڑ کے زیر اہتمام کتاب و سنت کی اشاعت، معاشرتی اصلاح اور علمی کانفرنسز کا انعقاد جاری ہے۔ تمام احباب سے گزارش ہے کہ مستند بیانات اور دعوتی پروگرامز میں شرکت فرمائیں۔"
-                  )}
-                </p>
-
-                {/* Read More Button */}
-                <div className="pt-2">
-                  <button
-                    type="button"
-                    onClick={() => navigate("/clippings")}
-                    className="inline-flex items-center gap-2 bg-[#0F3D2E] hover:bg-[#165B44] text-white text-xs sm:text-sm font-bold px-5 py-2.5 rounded-xl transition shadow-xs cursor-pointer active:scale-95"
-                    style={{ fontFamily: "'Noto Naskh Arabic', sans-serif" }}
-                  >
-                    <span>مکمل پریس ریلیز ملاحظہ فرمائیں</span>
-                    <span>←</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* Bottom List of 3 Recent Releases */}
-              <div className="pt-4 mt-4 border-t border-slate-100 space-y-2">
-                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
-                  حالیہ پریس بیانات و اخباری کٹنگز:
-                </span>
-                <div className="space-y-1.5">
-                  {currentClippingsList.slice(0, 3).map((clip, idx) => (
-                    <div
-                      key={clip.id || idx}
-                      onClick={() => setActiveClippingIndex(idx)}
-                      className={`p-2.5 rounded-xl border text-xs font-bold transition flex items-center justify-between gap-3 cursor-pointer ${
-                        activeClippingIndex === idx
-                          ? "bg-emerald-50/80 border-[#0F3D2E] text-[#0F3D2E]"
-                          : "bg-slate-50/60 border-slate-200 text-slate-700 hover:bg-slate-100"
-                      }`}
-                      style={{ fontFamily: "'Noto Naskh Arabic', sans-serif" }}
-                    >
-                      <span className="line-clamp-1 flex-1">
-                        • {resolveSafeText(clip.title, "پریس ریلیز")}
-                      </span>
-                      <span className="text-[10px] text-slate-500 shrink-0 font-mono">
-                        {resolveSafeText(clip.source || clip.newspaper_name, "Inquilab")}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-            </div>
-
-          </div>
-        </div>
-
-        {/* ================= LEFT COLUMN (Desktop 3 Cols in RTL): میگزین & پروگرام کے پوسٹرز ================= */}
-        <div className="lg:col-span-3 space-y-5 flex flex-col justify-between">
-          
-          {/* CARD 1: میگزین (Magazine / Al-Jamiah) */}
-          <div className="rounded-2xl border border-[#E6E2DD] bg-white overflow-hidden shadow-xs hover:shadow-md transition flex flex-col justify-between h-full">
-            {/* Header Pill */}
-            <div className="bg-[#0F3D2E] text-white px-4 py-2.5 flex items-center justify-between">
-              <span 
-                className="text-xs sm:text-sm font-bold flex items-center gap-1.5"
-                style={{ fontFamily: "'Noto Naskh Arabic', sans-serif" }}
-              >
-                <span>📚</span>
-                <span>میگزین (Al-Jamiah)</span>
-              </span>
-              <div className="flex items-center gap-1">
-                <button
-                  type="button"
-                  onClick={() => setMagazineIndex((prev) => (prev - 1 + currentMagazineList.length) % currentMagazineList.length)}
-                  className="w-5 h-5 rounded-full bg-white/20 hover:bg-white/40 flex items-center justify-center text-xs transition cursor-pointer"
-                  title="Previous Issue"
-                >
-                  <ChevronRightIcon className="w-3.5 h-3.5" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setMagazineIndex((prev) => (prev + 1) % currentMagazineList.length)}
-                  className="w-5 h-5 rounded-full bg-white/20 hover:bg-white/40 flex items-center justify-center text-xs transition cursor-pointer"
-                  title="Next Issue"
-                >
-                  <ChevronLeftIcon className="w-3.5 h-3.5" />
-                </button>
-              </div>
-            </div>
-
-            {/* Magazine Body */}
-            <div className="p-4 flex flex-col items-center text-center space-y-3 flex-1 justify-center">
-              <div 
-                onClick={() => navigate("/books?q=مجل")}
-                className="w-28 h-40 rounded-xl overflow-hidden shadow-md border border-slate-200 cursor-pointer hover:scale-103 transition-transform bg-slate-100 flex items-center justify-center"
-              >
-                <img
-                  src={activeMagazine.image ? resolveImageUrl(activeMagazine.image) : SVG_NO_COVER}
-                  alt={resolveSafeText(activeMagazine.title, "میگزین")}
-                  className="w-full h-full object-cover"
-                />
-              </div>
-
-              <div className="space-y-1 w-full">
-                <h4 
-                  onClick={() => navigate("/books?q=مجل")}
-                  className="text-xs sm:text-sm font-bold text-slate-900 line-clamp-1 hover:text-[#0F3D2E] transition-colors cursor-pointer"
-                  style={{ fontFamily: "'Noto Naskh Arabic', sans-serif" }}
-                >
-                  {resolveSafeText(activeMagazine.title, "مجلہ الجامعہ")}
-                </h4>
-                <p className="text-[11px] text-[#0F3D2E] font-bold">
-                  {resolveSafeText(activeMagazine.issue, "شمارہ")}
-                </p>
-                <p className="text-[10px] text-slate-500 font-medium">
-                  {resolveSafeText(activeMagazine.date, "")}
-                </p>
-              </div>
-
-              <div className="w-full pt-2 border-t border-slate-100 flex items-center justify-between gap-2">
-                <button
-                  type="button"
-                  onClick={() => navigate("/books?q=مجل")}
-                  className="w-full py-1.5 rounded-xl bg-[#0F3D2E] hover:bg-[#165B44] text-white text-xs font-bold transition cursor-pointer shadow-2xs"
-                  style={{ fontFamily: "'Noto Naskh Arabic', sans-serif" }}
-                >
-                  مطالعہ / ڈاؤنلوڈ
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* CARD 2: پروگرام کے پوسٹرز (Event & Dars Posters) */}
-          <div className="rounded-2xl border border-[#E6E2DD] bg-white overflow-hidden shadow-xs hover:shadow-md transition flex flex-col justify-between h-full">
-            {/* Header Pill */}
-            <div className="bg-[#0F3D2E] text-white px-4 py-2.5 flex items-center justify-between">
-              <span 
-                className="text-xs sm:text-sm font-bold flex items-center gap-1.5"
-                style={{ fontFamily: "'Noto Naskh Arabic', sans-serif" }}
-              >
-                <span>🖼️</span>
-                <span>پروگرام کے پوسٹرز</span>
-              </span>
-              <div className="flex items-center gap-1">
-                <button
-                  type="button"
-                  onClick={() => setPosterIndex((prev) => (prev - 1 + currentPosterList.length) % currentPosterList.length)}
-                  className="w-5 h-5 rounded-full bg-white/20 hover:bg-white/40 flex items-center justify-center text-xs transition cursor-pointer"
-                  title="Previous Poster"
-                >
-                  <ChevronRightIcon className="w-3.5 h-3.5" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setPosterIndex((prev) => (prev + 1) % currentPosterList.length)}
-                  className="w-5 h-5 rounded-full bg-white/20 hover:bg-white/40 flex items-center justify-center text-xs transition cursor-pointer"
-                  title="Next Poster"
-                >
-                  <ChevronLeftIcon className="w-3.5 h-3.5" />
-                </button>
-              </div>
-            </div>
-
-            {/* Poster Body */}
-            <div className="p-4 flex flex-col items-center text-center space-y-3 flex-1 justify-center">
-              <div 
-                onClick={() => navigate("/gallery")}
-                className="w-full h-36 rounded-xl overflow-hidden border border-slate-200 bg-slate-100 relative cursor-pointer group shadow-2xs"
-              >
-                <img
-                  src={activePoster.image || activePoster.image_url ? resolveImageUrl(activePoster.image || activePoster.image_url) : SVG_NO_COVER}
-                  alt={resolveSafeText(activePoster.title, "پروگرام پوسٹر")}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-                />
-              </div>
-
-              <div className="space-y-1 w-full">
-                <h4 
-                  onClick={() => navigate("/gallery")}
-                  className="text-xs sm:text-sm font-bold text-slate-900 line-clamp-1 hover:text-[#0F3D2E] transition-colors cursor-pointer"
-                  style={{ fontFamily: "'Noto Naskh Arabic', sans-serif" }}
-                >
-                  {resolveSafeText(activePoster.title, "دعوتی و تعلیمی پروگرام")}
-                </h4>
-                <p className="text-[11px] text-slate-500 font-medium">
-                  {resolveSafeText(activePoster.date || activePoster.event_date, "بیت السلام کمپلیکس، کھڑ")}
-                </p>
-              </div>
-
-              <div className="w-full pt-2 border-t border-slate-100 flex items-center justify-between gap-2">
-                <button
-                  type="button"
-                  onClick={() => navigate("/gallery")}
-                  className="w-full py-1.5 rounded-xl bg-[#0F3D2E] hover:bg-[#165B44] text-white text-xs font-bold transition cursor-pointer shadow-2xs"
-                  style={{ fontFamily: "'Noto Naskh Arabic', sans-serif" }}
-                >
-                  پوسٹر دیکھیں
-                </button>
-              </div>
-            </div>
-          </div>
-
-        </div>
-
       </div>
     </section>
   );

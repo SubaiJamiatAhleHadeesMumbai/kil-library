@@ -55,6 +55,28 @@ const BookDetail = () => {
                 const data = await bookService.getBookById(id);
                 if (data) {
                     setBook(data);
+                    // Record in bookNest_recent_reads so homepage Recent Viewed Books widget updates immediately
+                    try {
+                        const rawRecent = localStorage.getItem("bookNest_recent_reads");
+                        const recentReads = rawRecent ? JSON.parse(rawRecent) : [];
+                        const coverUrl = data?.cover_image_url || data?.cover_image;
+                        const authorStr = typeof data?.author === "object" ? (data?.author?.name || "") : (data?.author || "");
+                        const nextEntry = {
+                            book_id: Number(id),
+                            title: data?.title,
+                            author: authorStr,
+                            cover_image_url: coverUrl,
+                            last_page_read: 1,
+                            total_pages: data?.page_count || 0,
+                            updated_at: new Date().toISOString(),
+                        };
+                        const filtered = Array.isArray(recentReads)
+                            ? recentReads.filter((entry) => String(entry.book_id) !== String(id))
+                            : [];
+                        filtered.unshift(nextEntry);
+                        localStorage.setItem("bookNest_recent_reads", JSON.stringify(filtered.slice(0, 10)));
+                        window.dispatchEvent(new CustomEvent("kil_reading_updated", { detail: nextEntry }));
+                    } catch {}
                     // Smart Default: If no PDF but Text exists, switch to Text mode
                     if (!data.pdf_url && data.txt_file_url) {
                         setViewMode("text");
