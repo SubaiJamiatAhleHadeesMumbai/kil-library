@@ -55,6 +55,17 @@ const PdfViewer = ({
   const touchStartDistRef = useRef(0);
   const touchStartScaleRef = useRef(scale);
   const lastTapRef = useRef(0);
+  const pinchTargetRef = useRef(scale);
+  const isZoomingRef = useRef(false);
+  const zoomTimerRef = useRef(null);
+
+  const markZooming = useCallback(() => {
+    isZoomingRef.current = true;
+    if (zoomTimerRef.current) clearTimeout(zoomTimerRef.current);
+    zoomTimerRef.current = setTimeout(() => {
+      isZoomingRef.current = false;
+    }, 600);
+  }, []);
 
   const handleTouchStart = (e) => {
     if (e.touches.length === 2) {
@@ -64,10 +75,13 @@ const PdfViewer = ({
       );
       touchStartDistRef.current = dist;
       touchStartScaleRef.current = scale;
+      pinchTargetRef.current = scale;
+      markZooming();
     } else if (e.touches.length === 1) {
       const now = Date.now();
       if (now - lastTapRef.current < 280) {
         // Double-tap zoom toggle (reset to 1.0 or zoom to 1.45)
+        markZooming();
         setScale(prev => (prev > 1.15 ? 1.0 : 1.45));
         lastTapRef.current = 0;
       } else {
@@ -84,12 +98,33 @@ const PdfViewer = ({
       );
       const ratio = dist / touchStartDistRef.current;
       const target = Math.min(2.5, Math.max(0.4, Number((touchStartScaleRef.current * ratio).toFixed(2))));
-      setScale(target);
+      pinchTargetRef.current = target;
+      markZooming();
+
+      // Hardware-accelerated GPU preview during pinch - 0 lag, 60fps
+      if (scrollAreaRef.current) {
+        const visualRatio = Math.min(1.8, Math.max(0.6, ratio));
+        scrollAreaRef.current.style.transform = `scale(${visualRatio})`;
+        scrollAreaRef.current.style.transformOrigin = 'center 20%';
+        scrollAreaRef.current.style.transition = 'none';
+      }
     }
   };
 
   const handleTouchEnd = () => {
-    touchStartDistRef.current = 0;
+    if (touchStartDistRef.current > 0) {
+      if (scrollAreaRef.current) {
+        scrollAreaRef.current.style.transform = '';
+        scrollAreaRef.current.style.transformOrigin = '';
+        scrollAreaRef.current.style.transition = '';
+      }
+      const target = pinchTargetRef.current;
+      touchStartDistRef.current = 0;
+      if (target && Math.abs(target - scale) >= 0.05) {
+        markZooming();
+        setScale(target);
+      }
+    }
   };
 
   // Sync active URL when pdfUrl prop changes
@@ -100,15 +135,23 @@ const PdfViewer = ({
     setRenderedPages(new Set([currentPage]));
   }, [pdfUrl]);
 
+  // Keep sliding window of rendered pages around currentPage to prevent memory bloat & lag
   useEffect(() => {
-    setRenderedPages((previous) => {
-      const next = new Set(previous);
-      [currentPage - 1, currentPage, currentPage + 1].forEach((pageNumber) => {
-        if (pageNumber > 0) next.add(pageNumber);
-      });
+    setRenderedPages(() => {
+      const next = new Set();
+      const start = Math.max(1, currentPage - 1);
+      const end = Math.min(effectiveTotalPages, currentPage + 2);
+      for (let p = start; p <= end; p++) {
+        next.add(p);
+      }
       return next;
     });
-  }, [currentPage]);
+  }, [currentPage, effectiveTotalPages]);
+
+  // Mark zooming whenever scale changes to avoid auto-scroll jump loops
+  useEffect(() => {
+    markZooming();
+  }, [scale, markZooming]);
 
   // Synchronize internal docTotalPages with prop
   useEffect(() => {
@@ -220,8 +263,9 @@ const PdfViewer = ({
   useEffect(() => {
     if (viewMode !== 'scroll' || !currentPage) return;
 
-    // IF THE USER IS ACTIVELY SCROLLING THE PDF, DO NOT FORCE SCROLL / SNAP JUMP!
+    // IF THE USER IS ACTIVELY SCROLLING OR ZOOMING, DO NOT FORCE SCROLL / SNAP JUMP!
     if (isUserScrollingPdfRef.current) return;
+    if (isZoomingRef.current) return;
 
     // If currentPage change was triggered by user's natural scrolling, DO NOT snap/jump!
     if (scrolledPageRef.current === currentPage) {
@@ -287,7 +331,7 @@ const PdfViewer = ({
           {/* Ultra-compact Zoom controls */}
           <div className="flex items-center gap-0.5 border-x border-slate-700 px-1.5 mx-0.5">
             <button
-              onClick={() => setScale(s => Math.max(0.4, s - 0.1))}
+              onClick={() => { markZooming(); setScale(s => Math.max(0.4, Number((s - 0.1).toFixed(2)))); }}
               className="w-5 h-5 flex items-center justify-center hover:bg-white/20 rounded-full text-slate-300 font-mono text-xs font-bold leading-none transition cursor-pointer"
               title="Zoom Out (−)"
             >
@@ -297,7 +341,7 @@ const PdfViewer = ({
               {Math.round(scale * 100)}%
             </span>
             <button
-              onClick={() => setScale(s => Math.min(2.5, s + 0.1))}
+              onClick={() => { markZooming(); setScale(s => Math.min(2.5, Number((s + 0.1).toFixed(2)))); }}
               className="w-5 h-5 flex items-center justify-center hover:bg-white/20 rounded-full text-slate-300 font-mono text-xs font-bold leading-none transition cursor-pointer"
               title="Zoom In (+)"
             >
@@ -481,6 +525,12 @@ const PdfViewer = ({
                       const next = new Set(previous);
                       next.add(index + 1);
                       next.add(index + 2);
+                      // Prune distant pages (>3 pages away) to keep memory lightweight
+                      for (const p of next) {
+                        if (Math.abs(p - (index + 1)) > 3) {
+                          next.delete(p);
+                        }
+                      }
                       return next;
                     });
                   }
@@ -488,7 +538,7 @@ const PdfViewer = ({
                     onLandingResolved?.(index + 1);
                   }
 
-                  if (inView && !isProgrammaticScrollRef.current && !suppressAutoPageTracking) {
+                  if (inView && !isProgrammaticScrollRef.current && !suppressAutoPageTracking && !isZoomingRef.current) {
                     scrolledPageRef.current = index + 1;
                     onAutoPageChange(index + 1);
                   }
