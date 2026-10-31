@@ -42,7 +42,8 @@ const PdfViewer = ({
   const [activePdfUrl, setActivePdfUrl] = useState(pdfUrl);
   const [fallbackAttempted, setFallbackAttempted] = useState(false);
   const [docTotalPages, setDocTotalPages] = useState(() => totalPages || 1);
-  const [renderedPages, setRenderedPages] = useState(() => new Set([currentPage]));
+  const effectiveTotalPages = Math.max(docTotalPages, totalPages || 1);
+  const [renderedPages, setRenderedPages] = useState(() => new Set([1, 2, currentPage || 1, (currentPage || 1) + 1]));
   const [isJumpOpen, setIsJumpOpen] = useState(false);
   const [jumpInput, setJumpInput] = useState(String(currentPage || 1));
 
@@ -132,17 +133,23 @@ const PdfViewer = ({
     setActivePdfUrl(pdfUrl);
     setFallbackAttempted(false);
     setLoadError(null);
-    setRenderedPages(new Set([currentPage]));
-  }, [pdfUrl]);
+    setRenderedPages(new Set([1, 2, currentPage || 1, (currentPage || 1) + 1]));
+  }, [pdfUrl, currentPage]);
 
   // Keep sliding window of rendered pages around currentPage to prevent memory bloat & lag
   useEffect(() => {
-    setRenderedPages(() => {
-      const next = new Set();
-      const start = Math.max(1, currentPage - 1);
-      const end = Math.min(effectiveTotalPages, currentPage + 2);
+    setRenderedPages((prev) => {
+      const next = new Set(prev);
+      const start = Math.max(1, (currentPage || 1) - 1);
+      const end = Math.min(effectiveTotalPages, (currentPage || 1) + 2);
       for (let p = start; p <= end; p++) {
         next.add(p);
+      }
+      // Prune pages that are more than 4 pages away from current view to keep memory lean
+      for (const p of next) {
+        if (Math.abs(p - (currentPage || 1)) > 4) {
+          next.delete(p);
+        }
       }
       return next;
     });
@@ -160,7 +167,6 @@ const PdfViewer = ({
     }
   }, [totalPages]);
 
-  const effectiveTotalPages = Math.max(docTotalPages, totalPages || 1);
   const documentOptions = useMemo(() => ({
     disableAutoFetch: true,
     disableStream: false,
