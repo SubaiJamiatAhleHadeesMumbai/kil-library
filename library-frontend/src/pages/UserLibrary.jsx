@@ -117,7 +117,7 @@ const resolveCoverUrl = (raw) => {
 const UserLibrary = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { isAuth, user } = useAuth();
   const { isRTL } = useLanguage();
   const isAdmin = Boolean(
@@ -185,6 +185,117 @@ const UserLibrary = () => {
   const [isAccessFlowOpen, setIsAccessFlowOpen] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
+  const categoryDialogRef = useRef(null);
+  const booksRef = useRef(books);
+  booksRef.current = books;
+
+  // --- DEEP LINK: OPEN BOOK DETAILS MODAL FROM SHARED / COPIED LINK (?bookId=...) ---
+  const urlBookId = searchParams.get("bookId") || searchParams.get("book");
+
+  useEffect(() => {
+    const normalizedId = urlBookId ? String(urlBookId).trim() : "";
+    if (!normalizedId || normalizedId === "null" || normalizedId === "undefined") {
+      return;
+    }
+
+    const existing = Array.isArray(booksRef.current)
+      ? booksRef.current.find((b) => String(b.id) === normalizedId)
+      : null;
+
+    if (existing) {
+      setSelectedBook(existing);
+      return;
+    }
+
+    let cancelled = false;
+    bookService
+      .getBookById(normalizedId)
+      .then((fetchedBook) => {
+        if (!cancelled && fetchedBook && fetchedBook.id) {
+          setSelectedBook(fetchedBook);
+        }
+      })
+      .catch((err) => {
+        if (!cancelled) {
+          console.error("Failed to open shared book link:", err);
+          toast.error("مطلوبہ کتاب دستیاب نہیں ہے۔");
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [urlBookId]);
+
+  const handleCloseBookModal = () => {
+    setSelectedBook(null);
+    if (searchParams.has("bookId") || searchParams.has("book")) {
+      const nextParams = new URLSearchParams(searchParams);
+      nextParams.delete("bookId");
+      nextParams.delete("book");
+      setSearchParams(nextParams, { replace: true });
+    }
+  };
+
+  // --- NATIVE TOP-LAYER <dialog> SYNC FOR MOBILE CATEGORIES DRAWER ---
+  useEffect(() => {
+    const dialog = categoryDialogRef.current;
+    if (!dialog) return;
+
+    if (isMobileDrawerOpen) {
+      if (!dialog.open) {
+        dialog.showModal();
+      }
+    } else if (dialog.open) {
+      dialog.close();
+    }
+  }, [isMobileDrawerOpen]);
+
+  useEffect(() => {
+    const dialog = categoryDialogRef.current;
+    if (!dialog) return;
+
+    const handleNativeClose = () => {
+      dialog.returnValue = "";
+      setIsMobileDrawerOpen(false);
+    };
+    dialog.addEventListener("close", handleNativeClose);
+
+    // Fallback light-dismiss for browsers without native closedby="any" (e.g. Safari)
+    let cleanupOutsideClick = null;
+    if (!("closedBy" in HTMLDialogElement.prototype)) {
+      const isOutside = (e) => {
+        const r = dialog.getBoundingClientRect();
+        return (
+          e.clientX < r.left ||
+          e.clientX > r.right ||
+          e.clientY < r.top ||
+          e.clientY > r.bottom
+        );
+      };
+      let pressedOutside = false;
+      const onPointerDown = (e) => {
+        pressedOutside = isOutside(e);
+      };
+      const onPointerUp = (e) => {
+        if (pressedOutside && isOutside(e)) {
+          dialog.close();
+        }
+        pressedOutside = false;
+      };
+      dialog.addEventListener("pointerdown", onPointerDown);
+      dialog.addEventListener("pointerup", onPointerUp);
+      cleanupOutsideClick = () => {
+        dialog.removeEventListener("pointerdown", onPointerDown);
+        dialog.removeEventListener("pointerup", onPointerUp);
+      };
+    }
+
+    return () => {
+      dialog.removeEventListener("close", handleNativeClose);
+      cleanupOutsideClick?.();
+    };
+  }, []);
 
   // --- RECENT READS (FOR CONTINUE READING BAR & TAB) ---
   const [recentReads, setRecentReads] = useState(() => {
@@ -1304,110 +1415,107 @@ const UserLibrary = () => {
       </div>
 
       {/* ========================================================
-          MOBILE CATEGORY DRAWER (SLIDE-UP MODAL)
+          MOBILE CATEGORY DRAWER (NATIVE TOP-LAYER MODAL DIALOG)
       ======================================================== */}
-      <AnimatePresence>
-        {isMobileDrawerOpen && (
-          <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setIsMobileDrawerOpen(false)}
-              className="fixed inset-0 bg-black/50 backdrop-blur-xs"
-            />
-            <motion.div
-              initial={{ y: "100%" }}
-              animate={{ y: 0 }}
-              exit={{ y: "100%" }}
-              transition={{ type: "spring", damping: 25, stiffness: 250 }}
-              className="relative w-full sm:max-w-md bg-[#F3F8F5] rounded-t-3xl sm:rounded-3xl p-5 shadow-2xl z-10 max-h-[85vh] flex flex-col border border-[#D5E4DC]"
+      <dialog
+        ref={categoryDialogRef}
+        aria-labelledby="mobile-categories-drawer-title"
+        {...{ closedby: "any" }}
+        dir="rtl"
+        className="kil-category-drawer"
+        style={{ fontFamily: "'Noto Naskh Arabic', 'Amiri', serif" }}
+      >
+        <div className="w-full bg-[#F3F8F5] rounded-t-3xl sm:rounded-3xl shadow-2xl max-h-[85dvh] flex flex-col overflow-hidden border border-[#D5E4DC]">
+          <div className="flex items-center justify-between px-5 pt-4 pb-3.5 border-b border-[#C5A059]/40 shrink-0">
+            <h3
+              id="mobile-categories-drawer-title"
+              className="text-base font-extrabold text-[#0F3D2E] flex items-center gap-2"
             >
-              <div className="flex items-center justify-between pb-3.5 border-b border-[#C5A059]/40">
-                <h3 className="text-base font-extrabold text-[#0F3D2E] flex items-center gap-2">
-                  <span>📚 علمی موضوعات و زمرہ جات</span>
-                </h3>
-                <button
-                  type="button"
-                  onClick={() => setIsMobileDrawerOpen(false)}
-                  className="p-1 rounded-full bg-white text-slate-500 hover:text-[#0F3D2E] border border-[#DCECE4]"
-                >
-                  <XMarkIcon className="w-5 h-5" />
-                </button>
-              </div>
-
-              <div className="py-3.5 space-y-2 overflow-y-auto flex-1 custom-scrollbar">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setLibrarySectionMode("continue");
-                    setCurrentPage(1);
-                    setIsMobileDrawerOpen(false);
-                  }}
-                  className={`w-full flex items-center justify-between px-4 py-2.5 rounded-full text-xs font-extrabold transition text-right ${
-                    librarySectionMode === "continue"
-                      ? "bg-[#165B43] text-white"
-                      : "bg-white text-[#0F3D2E] border border-[#DCECE4]"
-                  }`}
-                >
-                  <span>📖 زیرِ مطالعہ (جاری)</span>
-                  <span>{recentReads.length}</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    setLibrarySectionMode("favorites");
-                    setCurrentPage(1);
-                    setIsMobileDrawerOpen(false);
-                  }}
-                  className={`w-full flex items-center justify-between px-4 py-2.5 rounded-full text-xs font-extrabold transition text-right ${
-                    librarySectionMode === "favorites"
-                      ? "bg-[#165B43] text-white"
-                      : "bg-white text-[#0F3D2E] border border-[#DCECE4]"
-                  }`}
-                >
-                  <span>🔖 محفوظ شدہ کتب</span>
-                  <span>{favorites.length}</span>
-                </button>
-
-                {categories.map((cat) => {
-                  const isSelected =
-                    librarySectionMode === "all" &&
-                    selectedCategory === cat.value;
-                  return (
-                    <button
-                      key={cat.value}
-                      type="button"
-                      onClick={() => {
-                        setLibrarySectionMode("all");
-                        setSelectedCategory(cat.value);
-                        setCurrentPage(1);
-                        setIsMobileDrawerOpen(false);
-                      }}
-                      className={`w-full flex items-center justify-between px-4 py-2.5 rounded-full text-xs font-extrabold transition text-right ${
-                        isSelected
-                          ? "bg-[#165B43] text-white shadow-xs"
-                          : "bg-white text-[#0F3D2E] border border-[#DCECE4] hover:bg-[#165B43] hover:text-white"
-                      }`}
-                    >
-                      <span className="flex items-center gap-2.5">
-                        <span className="text-base">
-                          {getCategoryIcon(cat.value, cat.label)}
-                        </span>
-                        <span>{cat.label}</span>
-                      </span>
-                      {isSelected && (
-                        <span className="w-2 h-2 rounded-full bg-[#C5A059]" />
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-            </motion.div>
+              <span>📚 علمی موضوعات و زمرہ جات</span>
+            </h3>
+            <button
+              type="button"
+              onClick={() => setIsMobileDrawerOpen(false)}
+              aria-label="بند کریں"
+              className="p-1.5 rounded-full bg-white text-slate-500 hover:text-[#0F3D2E] border border-[#DCECE4] cursor-pointer"
+            >
+              <XMarkIcon className="w-5 h-5" />
+            </button>
           </div>
-        )}
-      </AnimatePresence>
+
+          <div
+            className="px-5 pt-3.5 pb-[calc(2rem+env(safe-area-inset-bottom))] space-y-2 overflow-y-auto overscroll-contain flex-1 min-h-0 custom-scrollbar"
+            style={{ WebkitOverflowScrolling: "touch" }}
+          >
+            <button
+              type="button"
+              onClick={() => {
+                setLibrarySectionMode("continue");
+                setCurrentPage(1);
+                setIsMobileDrawerOpen(false);
+              }}
+              className={`w-full flex items-center justify-between px-4 py-2.5 rounded-full text-xs font-extrabold transition text-right cursor-pointer ${
+                librarySectionMode === "continue"
+                  ? "bg-[#165B43] text-white"
+                  : "bg-white text-[#0F3D2E] border border-[#DCECE4]"
+              }`}
+            >
+              <span>📖 زیرِ مطالعہ (جاری)</span>
+              <span>{recentReads.length}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setLibrarySectionMode("favorites");
+                setCurrentPage(1);
+                setIsMobileDrawerOpen(false);
+              }}
+              className={`w-full flex items-center justify-between px-4 py-2.5 rounded-full text-xs font-extrabold transition text-right cursor-pointer ${
+                librarySectionMode === "favorites"
+                  ? "bg-[#165B43] text-white"
+                  : "bg-white text-[#0F3D2E] border border-[#DCECE4]"
+              }`}
+            >
+              <span>🔖 محفوظ شدہ کتب</span>
+              <span>{favorites.length}</span>
+            </button>
+
+            {categories.map((cat) => {
+              const isSelected =
+                librarySectionMode === "all" &&
+                selectedCategory === cat.value;
+              return (
+                <button
+                  key={cat.value}
+                  type="button"
+                  onClick={() => {
+                    setLibrarySectionMode("all");
+                    setSelectedCategory(cat.value);
+                    setCurrentPage(1);
+                    setIsMobileDrawerOpen(false);
+                  }}
+                  className={`w-full flex items-center justify-between px-4 py-2.5 rounded-full text-xs font-extrabold transition text-right cursor-pointer ${
+                    isSelected
+                      ? "bg-[#165B43] text-white shadow-xs"
+                      : "bg-white text-[#0F3D2E] border border-[#DCECE4] hover:bg-[#165B43] hover:text-white"
+                  }`}
+                >
+                  <span className="flex items-center gap-2.5">
+                    <span className="text-base">
+                      {getCategoryIcon(cat.value, cat.label)}
+                    </span>
+                    <span>{cat.label}</span>
+                  </span>
+                  {isSelected && (
+                    <span className="w-2 h-2 rounded-full bg-[#C5A059]" />
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </dialog>
 
       {/* SCROLL TO TOP FLOATING BUTTON */}
       <AnimatePresence>
@@ -1429,7 +1537,7 @@ const UserLibrary = () => {
       {selectedBook && (
         <BookDetailsModal
           book={selectedBook}
-          onClose={() => setSelectedBook(null)}
+          onClose={handleCloseBookModal}
           onRequestAccess={(b) => handleRequestAccess(b)}
         />
       )}

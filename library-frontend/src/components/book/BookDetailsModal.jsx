@@ -1,5 +1,6 @@
 // src/components/book/BookDetailsModal.jsx
 import React, { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import SmartReader from './SmartReader';
 import {
   XMarkIcon,
@@ -221,7 +222,33 @@ const BookDetailsModal = ({
   // -----------------------------
   const getShareUrl = () => {
     const base = window.location.origin || "";
-    return `${base}/books?bookId=${book?.id || ""}`;
+    const idParam = book?.id !== undefined && book?.id !== null ? encodeURIComponent(String(book.id)) : "";
+    return idParam ? `${base}/books?bookId=${idParam}` : `${base}/books`;
+  };
+
+  const copyToClipboard = async (text) => {
+    if (navigator.clipboard && typeof navigator.clipboard.writeText === "function") {
+      try {
+        await navigator.clipboard.writeText(text);
+        return true;
+      } catch {
+        // Fallback below for mobile WebViews / non-secure contexts
+      }
+    }
+    try {
+      const textarea = document.createElement("textarea");
+      textarea.value = text;
+      textarea.setAttribute("readonly", "");
+      textarea.style.position = "fixed";
+      textarea.style.opacity = "0";
+      document.body.appendChild(textarea);
+      textarea.select();
+      const copied = document.execCommand("copy");
+      document.body.removeChild(textarea);
+      return copied;
+    } catch {
+      return false;
+    }
   };
 
   const handleShare = async () => {
@@ -239,27 +266,28 @@ const BookDetailsModal = ({
         });
         return;
       } catch (err) {
-        if (err.name !== "AbortError") {
-          console.error("Share error:", err);
+        if (err.name === "AbortError") {
+          return;
         }
+        console.error("Share error:", err);
       }
     }
 
     // Fallback to clipboard
-    try {
-      await navigator.clipboard.writeText(shareUrl);
+    const copied = await copyToClipboard(shareUrl);
+    if (copied) {
       toast.success("Book link copied to clipboard!", { icon: "🔗" });
-    } catch (err) {
+    } else {
       toast.error("Failed to copy link");
     }
   };
 
   const handleCopyLink = async () => {
     const shareUrl = getShareUrl();
-    try {
-      await navigator.clipboard.writeText(shareUrl);
+    const copied = await copyToClipboard(shareUrl);
+    if (copied) {
       toast.success("Link copied to clipboard!", { icon: "📋" });
-    } catch (err) {
+    } else {
       toast.error("Failed to copy link");
     }
   };
@@ -292,9 +320,8 @@ const BookDetailsModal = ({
     );
   }
 
-  // ✅ DEFAULT MODAL VIEW
-  return (
-    <>
+  // ✅ DEFAULT MODAL VIEW (Rendered via Portal above navbar/bottom-nav stacking contexts)
+  const modalBackdrop = (
       <AnimatePresence>
         <motion.div
           key="book-details-backdrop"
@@ -302,7 +329,7 @@ const BookDetailsModal = ({
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           onClick={handleClose}
-          className="fixed inset-0 z-[100] flex items-center justify-center p-3 pb-20 sm:p-4 bg-black/60 backdrop-blur-md"
+          className="fixed inset-0 z-[150] flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-md overflow-hidden overscroll-contain"
         >
         <motion.div
           initial={{ scale: 0.9, opacity: 0, y: 20 }}
@@ -310,7 +337,7 @@ const BookDetailsModal = ({
           exit={{ scale: 0.9, opacity: 0, y: 20 }}
           transition={{ type: "spring", stiffness: 300, damping: 30 }}
           onClick={(e) => e.stopPropagation()}
-          className="bg-white rounded-3xl shadow-2xl w-full max-w-5xl overflow-hidden relative h-[85vh] sm:h-[90vh] max-h-[780px] border border-slate-200/80 flex flex-col"
+          className="bg-white rounded-3xl shadow-2xl w-full max-w-5xl overflow-hidden relative h-[85dvh] sm:h-[90dvh] max-h-[780px] border border-slate-200/80 flex flex-col overscroll-contain"
         >
           {/* âœ… PREMIUM STICKY HEADER */}
           <motion.div 
@@ -583,7 +610,7 @@ const BookDetailsModal = ({
                     </div>
 
                     {/* TAB CONTENT (INDIVIDUAL SCROLL) */}
-                    <div className="flex-1 overflow-y-auto p-6 space-y-4 min-h-0">
+                    <div className="flex-1 overflow-y-auto overscroll-contain p-6 space-y-4 min-h-0">
                       {activeTab === "overview" ? (
                         <>
                           {/* 4 Quick Spec Cards Grid */}
@@ -629,7 +656,7 @@ const BookDetailsModal = ({
                 {/* 2. MOBILE VIEW (Scrollable middle + Sticky Bottom Bar with Payment & Read Online) */}
                 <div className="md:hidden flex flex-col flex-1 min-h-0 overflow-hidden">
                   {/* Middle Scrollable Section */}
-                  <div className="flex-1 overflow-y-auto p-4 space-y-4 min-h-0">
+                  <div className="flex-1 overflow-y-auto overscroll-contain p-4 space-y-4 min-h-0">
                     {/* Compact Book Card */}
                     <div className="flex gap-3.5 items-center bg-slate-50 p-3 rounded-2xl border border-slate-200/80">
                       <img
@@ -826,16 +853,21 @@ const BookDetailsModal = ({
         </motion.div>
       </motion.div>
     </AnimatePresence>
+  );
 
-    {/* Paid Download & UPI Purchase Modal */}
-    <BookPurchaseModal
-      key="book-purchase-modal"
-      book={book}
-      pdfUrl={pdfUrl}
-      isOpen={showPurchaseModal}
-      onClose={() => setShowPurchaseModal(false)}
-    />
-  </>
+  return (
+    <>
+      {typeof document !== "undefined" ? createPortal(modalBackdrop, document.body) : modalBackdrop}
+
+      {/* Paid Download & UPI Purchase Modal */}
+      <BookPurchaseModal
+        key="book-purchase-modal"
+        book={book}
+        pdfUrl={pdfUrl}
+        isOpen={showPurchaseModal}
+        onClose={() => setShowPurchaseModal(false)}
+      />
+    </>
   );
 };
 

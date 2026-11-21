@@ -501,6 +501,15 @@ const PublicHome = () => {
     filteredBooks,
   } = useBookSearch(books);
 
+  // Forward any shared bookId query link on homepage to /books?bookId=...
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const sharedBookId = params.get("bookId") || params.get("book");
+    if (sharedBookId && sharedBookId !== "null" && sharedBookId !== "undefined") {
+      navigate(`/books?bookId=${encodeURIComponent(sharedBookId)}`, { replace: true });
+    }
+  }, [location.search, navigate]);
+
   // Auto-search navigation handler
   useEffect(() => {
     if (location.state?.preSearch) {

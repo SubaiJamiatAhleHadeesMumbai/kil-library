@@ -695,3 +695,48 @@ html[lang="ar"] body,
   background-size: 30px 30px;
   background-position: 0 0, 15px 15px;
 }
+
+/* ============================================================
+   NATIVE MODAL DIALOG & MOBILE BOTTOM SHEET SCROLL CONTAINMENT
+   ============================================================ */
+dialog:modal {
+  overscroll-behavior: contain;
+}
+
+dialog::backdrop {
+  overflow: hidden;
+  overscroll-behavior: contain;
+}
+
+dialog.kil-category-drawer {
+  padding: 0;
+  border: none;
+  background: transparent;
+  width: 100%;
+  max-width: 100%;
+  max-height: 85dvh;
+  margin: auto auto 0 auto;
+  overflow: hidden;
+  color: #0F291E;
+}
+
+dialog.kil-category-drawer[open] {
+  display: flex;
+  flex-direction: column;
+}
+
+dialog.kil-category-drawer::backdrop {
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  overflow: hidden;
+  overscroll-behavior: contain;
+}
+
+@media (min-width: 640px) {
+  dialog.kil-category-drawer {
+    width: calc(100% - 2rem);
+    max-width: 28rem;
+    margin: auto;
+  }
+}

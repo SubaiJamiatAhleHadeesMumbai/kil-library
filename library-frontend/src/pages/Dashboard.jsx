@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
 import useAuth from '../hooks/useAuth'; // Ensure this hook provides permissions
+import { getUserPermissions, isSuperAdmin } from '../config/accessControl';
 import toast from 'react-hot-toast';
 
 import adminDashboardService from '../api/adminDashboardService';
@@ -102,8 +103,8 @@ const Dashboard = () => {
     const navigate = useNavigate();
     
     // Auth & Permissions
-    const role = user?.role?.name?.toLowerCase() || user?.role?.toLowerCase() || '';
-    const permissions = user?.permissions || [];
+    const role = (typeof user?.role === 'string' ? user.role : user?.role?.name || '').toLowerCase();
+    const permissions = useMemo(() => getUserPermissions(user), [user]);
 
     // --- State ---
     const [stats, setStats] = useState({
@@ -126,10 +127,13 @@ const Dashboard = () => {
     const [lastUpdated, setLastUpdated] = useState(null);
 
     // --- Permission Helper ---
-    const hasPermission = (perm) => {
-        if (role === 'admin' || role === 'superadmin') return true;
+    const hasPermission = useCallback((perm) => {
+        if (isSuperAdmin(user) || role === 'admin' || role === 'superadmin') return true;
+        if (perm === 'LOG_VIEW') {
+            return permissions.includes('LOG_VIEW') || permissions.includes('LOGS_VIEW');
+        }
         return permissions.includes(perm);
-    };
+    }, [user, role, permissions]);
 
     // --- Fetch Logic ---
     const fetchDashboardData = useCallback(async () => {
@@ -138,27 +142,25 @@ const Dashboard = () => {
             const data = await adminDashboardService.getDashboardStats();
             
             setStats({
-                totalBooks: data.stats.total_books,
-                activeUsers: data.stats.active_users,
-                pendingRequests: data.stats.pending_requests,
-                booksOnLoan: data.stats.books_on_loan,
+                totalBooks: data?.stats?.total_books ?? 0,
+                activeUsers: data?.stats?.active_users ?? 0,
+                pendingRequests: data?.stats?.pending_requests ?? 0,
+                booksOnLoan: data?.stats?.books_on_loan ?? 0,
                 totalCopies: 0
             });
             
             setChartData({
-                added: data.charts.monthly_growth,
-                status: data.charts.request_breakdown
+                added: data?.charts?.monthly_growth || [],
+                status: data?.charts?.request_breakdown || []
             });
             
-            const rawLogs = data.recent_logs || [];
+            const rawLogs = data?.recent_logs || [];
             setRecentLogs(rawLogs);
             setHasNextLogPage(rawLogs.length >= LOGS_PER_PAGE);
             setLogPage(1);
-            setLastUpdated(new Date(data.generated_at));
+            setLastUpdated(data?.generated_at ? new Date(data.generated_at) : new Date());
 
-            if (data.analytics) {
-                setAnalytics(data.analytics);
-            }
+            setAnalytics(data?.analytics || null);
         } catch (err) {
             console.error("Dashboard Load Error:", err);
             toast.error("Dashboard data load failed.");
@@ -364,7 +366,7 @@ const Dashboard = () => {
                                             </linearGradient>
                                         </defs>
                                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                                        <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 12}} dy={10} />
+                                        <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 12}} dy={10} />
                                         <YAxis axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 12}} />
                                         <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }} />
                                         <Area type="monotone" dataKey="books" stroke="#6366f1" strokeWidth={3} fillOpacity={1} fill="url(#colorBooks)" />
