@@ -24,7 +24,7 @@ const Footer = () => {
       },
       {
         name: "Facebook",
-        url: "https://www.facebook.com/share/p/1KApR5ZNkf/",
+        url: "https://www.facebook.com/share/1JMQrppGYi/",
         icon: <FaFacebookF className="w-3.5 h-3.5 text-blue-600 group-hover:text-white transition-colors" />,
         badge: "فالو کریں ↗",
       },
