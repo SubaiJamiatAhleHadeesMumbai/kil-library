@@ -59,3 +59,7 @@ class NewspaperClippingListResponse(BaseModel):
     page: int
     limit: int
     pages: int
+    total_all: Optional[int] = None
+    active_count: Optional[int] = None
+    inactive_count: Optional[int] = None
+    newspapers_count: Optional[int] = None

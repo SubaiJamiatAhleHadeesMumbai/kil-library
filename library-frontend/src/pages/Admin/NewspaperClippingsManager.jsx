@@ -20,7 +20,9 @@ import {
   ListBulletIcon,
   XMarkIcon,
   ArrowTopRightOnSquareIcon,
-  DocumentTextIcon
+  DocumentTextIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon
 } from "@heroicons/react/24/outline";
 import toast from "react-hot-toast";
 import newspaperService from "../../api/newspaperService";
@@ -54,6 +56,11 @@ const NewspaperClippingsManager = () => {
   const [statusFilter, setStatusFilter] = useState("all"); // 'all' | 'active' | 'inactive'
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [viewMode, setViewMode] = useState("grid"); // 'grid' | 'table'
+  const [page, setPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(24);
+  const [totalItems, setTotalItems] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+  const [serverStats, setServerStats] = useState(null);
 
   // Modal States
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -79,16 +86,36 @@ const NewspaperClippingsManager = () => {
 
   const fileInputRef = useRef(null);
 
-  const fetchClippings = async () => {
+  const fetchClippings = async (overrides = {}) => {
+    const activeSearch = overrides.search !== undefined ? overrides.search : search;
+    const activePage = overrides.page !== undefined ? overrides.page : page;
+    const activeLimit = overrides.limit !== undefined ? overrides.limit : itemsPerPage;
+    const activeStatus = overrides.statusFilter !== undefined ? overrides.statusFilter : statusFilter;
+    const activeCategory = overrides.categoryFilter !== undefined ? overrides.categoryFilter : categoryFilter;
+
     try {
       setLoading(true);
       const data = await newspaperService.getAdminClippings({
-        search: search.trim() || undefined,
-        status_filter: statusFilter,
-        category: categoryFilter !== "all" ? categoryFilter : undefined,
-        limit: 100
+        search: activeSearch.trim() || undefined,
+        status_filter: activeStatus,
+        category: activeCategory !== "all" ? activeCategory : undefined,
+        page: activePage,
+        limit: activeLimit
       });
       setClippings(data.items || []);
+      setTotalItems(typeof data.total === "number" ? data.total : (data.items?.length || 0));
+      setTotalPages(data.pages || 1);
+      if (typeof data.page === "number" && data.page !== activePage) {
+        setPage(data.page);
+      }
+      if (typeof data.total_all === "number") {
+        setServerStats({
+          total: data.total_all,
+          active: data.active_count ?? 0,
+          inactive: data.inactive_count ?? 0,
+          newspapers: data.newspapers_count ?? 0,
+        });
+      }
     } catch (err) {
       console.error("Error fetching clippings:", err);
       toast.error("Failed to load newspaper clippings.");
@@ -99,21 +126,26 @@ const NewspaperClippingsManager = () => {
 
   useEffect(() => {
     fetchClippings();
-  }, [statusFilter, categoryFilter]);
+  }, [statusFilter, categoryFilter, page, itemsPerPage]);
 
   const handleSearchSubmit = (e) => {
     e.preventDefault();
-    fetchClippings();
+    if (page !== 1) {
+      setPage(1);
+    } else {
+      fetchClippings({ page: 1 });
+    }
   };
 
-  // Stats calculation
+  // Stats calculation (prefers true DB-wide counts from backend, falls back gracefully)
   const stats = useMemo(() => {
-    const total = clippings.length;
+    if (serverStats) return serverStats;
+    const total = totalItems || clippings.length;
     const active = clippings.filter((c) => c.is_active).length;
-    const inactive = total - active;
+    const inactive = Math.max(0, total - active);
     const newspapers = new Set(clippings.map((c) => c.newspaper_name)).size;
     return { total, active, inactive, newspapers };
-  }, [clippings]);
+  }, [serverStats, totalItems, clippings]);
 
   // Open Create Modal
   const openCreateModal = () => {
@@ -263,6 +295,15 @@ const NewspaperClippingsManager = () => {
     setClippings((prev) =>
       prev.map((item) => (item.id === clipping.id ? { ...item, is_active: newStatus } : item))
     );
+    setServerStats((prev) =>
+      prev
+        ? {
+            ...prev,
+            active: Math.max(0, prev.active + (newStatus ? 1 : -1)),
+            inactive: Math.max(0, prev.inactive + (newStatus ? -1 : 1)),
+          }
+        : prev
+    );
 
     try {
       await newspaperService.toggleActiveStatus(clipping.id);
@@ -277,6 +318,15 @@ const NewspaperClippingsManager = () => {
       setClippings((prev) =>
         prev.map((item) => (item.id === clipping.id ? { ...item, is_active: originalStatus } : item))
       );
+      setServerStats((prev) =>
+        prev
+          ? {
+              ...prev,
+              active: Math.max(0, prev.active + (originalStatus ? 1 : -1)),
+              inactive: Math.max(0, prev.inactive + (originalStatus ? -1 : 1)),
+            }
+          : prev
+      );
       toast.error("Failed to toggle status.");
     }
   };
@@ -288,6 +338,7 @@ const NewspaperClippingsManager = () => {
       setClippings((prev) => prev.filter((item) => item.id !== id));
       toast.success("Clipping deleted successfully.");
       setDeleteConfirmId(null);
+      fetchClippings();
     } catch (err) {
       console.error("Delete error:", err);
       toast.error("Failed to delete clipping.");
@@ -378,7 +429,15 @@ const NewspaperClippingsManager = () => {
               className="w-full bg-transparent text-xs text-slate-800 outline-none font-medium placeholder:text-slate-400"
             />
             {search && (
-              <button type="button" onClick={() => { setSearch(""); fetchClippings(); }} className="text-slate-400 hover:text-slate-600">
+              <button
+                type="button"
+                onClick={() => {
+                  setSearch("");
+                  setPage(1);
+                  fetchClippings({ search: "", page: 1 });
+                }}
+                className="text-slate-400 hover:text-slate-600"
+              >
                 <XMarkIcon className="w-4 h-4" />
               </button>
             )}
@@ -389,7 +448,10 @@ const NewspaperClippingsManager = () => {
             {/* Status Filter */}
             <select
               value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
+              onChange={(e) => {
+                setStatusFilter(e.target.value);
+                setPage(1);
+              }}
               className="px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-xs font-bold text-slate-700 outline-none hover:border-emerald-500 cursor-pointer"
             >
               <option value="all">All Status</option>
@@ -400,7 +462,10 @@ const NewspaperClippingsManager = () => {
             {/* Category Filter */}
             <select
               value={categoryFilter}
-              onChange={(e) => setCategoryFilter(e.target.value)}
+              onChange={(e) => {
+                setCategoryFilter(e.target.value);
+                setPage(1);
+              }}
               className="px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-xs font-bold text-slate-700 outline-none hover:border-emerald-500 cursor-pointer max-w-[180px] truncate"
             >
               <option value="all">All Categories</option>
@@ -411,7 +476,7 @@ const NewspaperClippingsManager = () => {
 
             {/* Refresh */}
             <button
-              onClick={fetchClippings}
+              onClick={() => fetchClippings()}
               className="p-2 rounded-xl border border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100 transition cursor-pointer"
               title="Refresh"
             >
@@ -638,6 +703,67 @@ const NewspaperClippingsManager = () => {
                 ))}
               </tbody>
             </table>
+          </div>
+        </div>
+      )}
+
+      {/* ================= PAGINATION BAR ================= */}
+      {!loading && totalItems > 0 && (
+        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs flex flex-col sm:flex-row items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2.5 text-xs text-slate-600 font-medium">
+            <span>
+              Showing{" "}
+              <strong className="text-slate-900">
+                {(page - 1) * itemsPerPage + 1}–{Math.min(page * itemsPerPage, totalItems)}
+              </strong>{" "}
+              of <strong className="text-slate-900">{totalItems}</strong> clippings
+            </span>
+
+            <select
+              value={itemsPerPage}
+              onChange={(e) => {
+                setItemsPerPage(Number(e.target.value));
+                setPage(1);
+              }}
+              aria-label="Clippings per page"
+              className="px-2.5 py-1 rounded-lg border border-slate-200 bg-slate-50 text-xs font-bold text-slate-700 outline-none hover:border-emerald-500 cursor-pointer"
+            >
+              <option value={24}>24 / page</option>
+              <option value={50}>50 / page</option>
+              <option value={100}>100 / page</option>
+            </select>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              disabled={page <= 1}
+              onClick={() => {
+                setPage((p) => Math.max(1, p - 1));
+                window.scrollTo({ top: 0, behavior: "smooth" });
+              }}
+              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-xs font-bold text-slate-700 disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer"
+            >
+              <ChevronLeftIcon className="w-4 h-4" />
+              <span>Previous</span>
+            </button>
+
+            <span className="text-xs font-bold text-slate-600 px-2">
+              Page <span className="text-emerald-700">{page}</span> / {totalPages}
+            </span>
+
+            <button
+              type="button"
+              disabled={page >= totalPages}
+              onClick={() => {
+                setPage((p) => Math.min(totalPages, p + 1));
+                window.scrollTo({ top: 0, behavior: "smooth" });
+              }}
+              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-xs font-bold text-slate-700 disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer"
+            >
+              <span>Next</span>
+              <ChevronRightIcon className="w-4 h-4" />
+            </button>
           </div>
         </div>
       )}

@@ -173,12 +173,31 @@ def get_admin_clippings(
     status_filter: Optional[str] = Query("all", description="'all', 'active', or 'inactive'"),
     category: Optional[str] = Query(None),
     page: int = Query(1, ge=1),
-    limit: int = Query(50, ge=1, le=200),
+    limit: int = Query(50, ge=1, le=1000),
     db: Session = Depends(get_db),
     current_user: user_model.User = Depends(get_current_user)
 ):
     if not _is_admin(current_user):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin permissions required.")
+
+    # True database-wide counts across ALL clippings (never capped by page limit)
+    total_all = db.query(func.count(newspaper_clipping_model.NewspaperClipping.id)).scalar() or 0
+    active_count = (
+        db.query(func.count(newspaper_clipping_model.NewspaperClipping.id))
+        .filter(newspaper_clipping_model.NewspaperClipping.is_active == True)
+        .scalar()
+        or 0
+    )
+    inactive_count = max(0, total_all - active_count)
+    newspapers_count = (
+        db.query(func.count(func.distinct(newspaper_clipping_model.NewspaperClipping.newspaper_name)))
+        .filter(
+            newspaper_clipping_model.NewspaperClipping.newspaper_name.isnot(None),
+            newspaper_clipping_model.NewspaperClipping.newspaper_name != "",
+        )
+        .scalar()
+        or 0
+    )
 
     query = db.query(newspaper_clipping_model.NewspaperClipping)
 
@@ -208,15 +227,20 @@ def get_admin_clippings(
 
     total = query.count()
     pages = math.ceil(total / limit) if total > 0 else 1
-    offset = (page - 1) * limit
+    safe_page = min(page, pages)
+    offset = (safe_page - 1) * limit
     items = query.offset(offset).limit(limit).all()
 
     return {
         "items": items,
         "total": total,
-        "page": page,
+        "page": safe_page,
         "limit": limit,
-        "pages": pages
+        "pages": pages,
+        "total_all": total_all,
+        "active_count": active_count,
+        "inactive_count": inactive_count,
+        "newspapers_count": newspapers_count,
     }
 
 
